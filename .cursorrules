@@ -25,3 +25,5 @@ When working on React components:
 - Use existing API endpoints, don't duplicate backend logic
 - Handle authentication properly (check `is_owner` flags)
 - Structure code modularly: `components/`, `api/`, `types.ts`
+
+This application targets both mobile web and desktop web.
