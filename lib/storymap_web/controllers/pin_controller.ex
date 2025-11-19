@@ -16,6 +16,11 @@ defmodule StorymapWeb.PinController do
     pin = Pins.create_pin(pin_params, user_id)
 
     with {:ok, %Pin{} = pin} <- pin do
+      StorymapWeb.Endpoint.broadcast(
+        "map:world",
+        "marker_added", %{
+        pin: pin
+      })
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/pins/#{pin}")

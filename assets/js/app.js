@@ -24,6 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/storymap"
 import topbar from "../vendor/topbar"
+import "./user_socket.js"
 // React map is loaded dynamically below when #react-root is present
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
