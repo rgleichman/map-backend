@@ -2,6 +2,8 @@ defmodule Storymap.Pins.Pin do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder, only: [:id, :user_id, :title, :latitude, :longitude, :inserted_at, :updated_at]}
+
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
     field :title, :string
