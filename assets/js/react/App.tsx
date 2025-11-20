@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
+import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
 import type { NewPin, Pin, UpdatePin } from "./types"
@@ -23,6 +24,22 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins(enriched)
     }).finally(() => setLoading(false))
   }, [userId])
+
+    // Listen for real-time pin additions via Phoenix channel
+    useEffect(() => {
+      const handler = (payload) => {
+        const pin = payload.pin
+        // Enrich with is_owner flag
+        const enriched = { ...pin, is_owner: userId != null && pin.user_id === userId }
+        setPins(prevPins => {
+          // Avoid duplicates if pin already exists
+          if (prevPins.some(p => p.id === enriched.id)) return prevPins
+          return [...prevPins, enriched]
+        })
+      }
+      worldChannel.on("marker_added", handler)
+      return () => worldChannel.off("marker_added", handler)
+    }, [userId])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     setTitle("")

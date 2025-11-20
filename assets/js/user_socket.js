@@ -15,14 +15,15 @@ socket.connect()
 // Now that you are connected, you can join channels with a topic.
 // Let's assume you have a channel with a topic named `room` and the
 // subtopic is its id - in this case 42:
-let channel = socket.channel("map:world", {})
+let worldChannel = socket.channel("map:world", {})
 
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
+worldChannel.join()
+  .receive("ok", resp => { console.log("World joined successfully", resp) })
+  .receive("error", resp => { console.log("Unable to join world channel", resp) })
 
-channel.on("marker_added", payload => {
-  console.log("Marker added", payload)
-})
+// channel.on("marker_added", payload => {
+//   console.log("Marker added", payload)
+// })
 
-export default socket
+// export default socket
+export default worldChannel
