@@ -17,6 +17,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin }>(null)
   const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -43,13 +44,16 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     setTitle("")
+    setDescription("")
     setModal({ mode: "add", lng, lat })
   }, [])
 
   const onEdit = useCallback((pinId: number) => {
+    console.log("Editing pin with ID:", pinId)
     const pin = pins.find(p => p.id === pinId)
     if (!pin) return
     setTitle(pin.title)
+    setDescription(pin.description || "")
     setModal({ mode: "edit", pin })
   }, [pins])
 
@@ -65,7 +69,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const onSave = useCallback(async () => {
     if (!modal) return
     if (modal.mode === "add") {
-      const payload: NewPin = { title, latitude: modal.lat, longitude: modal.lng }
+      const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng }
       const { data } = await api.createPin(csrfToken, payload)
       const enriched = { ...data, is_owner: userId != null && data.user_id === userId }
       setPins((prev) => [...prev, enriched])
@@ -76,7 +80,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title } : p))
       setModal(null)
     }
-  }, [modal, title, csrfToken, userId])
+  }, [modal, title, description, csrfToken, userId])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -95,6 +99,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <PinModal
           title={title}
           setTitle={setTitle}
+          description={description}
+          setDescription={setDescription}
           mode={modal.mode}
           onCancel={() => setModal(null)}
           onSave={onSave}
