@@ -75,9 +75,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins((prev) => [...prev, enriched])
       setModal(null)
     } else {
-      const changes: UpdatePin = { title }
+      const changes: UpdatePin = { title, description }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title } : p))
+      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description } : p))
       setModal(null)
     }
   }, [modal, title, description, csrfToken, userId])
