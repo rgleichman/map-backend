@@ -116,7 +116,8 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       let marker = known.get(pin.id)
       const popupHtml = `
         <div>
-          <h3>${pin.title}</h3>
+          <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
+          <p>${pin.description || ""}</p>
           ${pin.is_owner ? `<div style="margin-top: 0.5em;">
             <button data-pin-action="edit" data-pin-id="${pin.id}" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;">Edit</button>
             <button data-pin-action="delete" data-pin-id="${pin.id}" style="padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;">Delete</button>
