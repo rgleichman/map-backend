@@ -89,3 +89,62 @@ if (reactRoot) {
   import("./react/main.tsx")
 }
 
+// Party mode toggle
+let partyModeInterval = null
+let partyModeTimeout = null
+
+const stopPartyMode = (partyButton) => {
+  document.documentElement.classList.remove("party-mode")
+  document.body.classList.remove("party-mode")
+  clearInterval(partyModeInterval)
+  partyModeInterval = null
+  if (partyModeTimeout) {
+    clearTimeout(partyModeTimeout)
+    partyModeTimeout = null
+  }
+  document.documentElement.style.filter = ""
+  document.body.style.filter = ""
+  if (partyButton) partyButton.textContent = "🎉 Party"
+}
+
+const initPartyMode = () => {
+  const partyButton = document.getElementById("party-button")
+  if (partyButton && !partyButton.dataset.partyInitialized) {
+    partyButton.dataset.partyInitialized = "true"
+    partyButton.addEventListener("click", () => {
+      const isActive = document.body.classList.contains("party-mode")
+      
+      if (isActive) {
+        stopPartyMode(partyButton)
+      } else {
+        document.documentElement.classList.add("party-mode")
+        document.body.classList.add("party-mode")
+        partyButton.textContent = "🛑 Stop"
+        
+        let hue = 0
+        partyModeInterval = setInterval(() => {
+          hue = (hue + 5) % 360
+          const filter = `hue-rotate(${hue}deg) brightness(1.8) saturate(2.5)`
+          document.documentElement.style.filter = filter
+          document.body.style.filter = filter
+        }, 50)
+        
+        // Auto-stop after 6 seconds
+        partyModeTimeout = setTimeout(() => {
+          stopPartyMode(partyButton)
+        }, 6000)
+      }
+    })
+  }
+}
+
+// Initialize on DOM ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPartyMode)
+} else {
+  initPartyMode()
+}
+
+// Re-initialize after LiveView navigation
+window.addEventListener("phx:page-loading-stop", initPartyMode)
+
