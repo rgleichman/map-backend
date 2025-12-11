@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
+import LoginRequiredModal from "./components/LoginRequiredModal"
 import type { NewPin, Pin, UpdatePin } from "./types"
 import * as api from "./api/client"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css";
@@ -15,7 +16,12 @@ type Props = {
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin }>(null)
+  const [modal, setModal] = useState<
+    | null
+    | { mode: "add"; lng: number; lat: number }
+    | { mode: "edit"; pin: Pin }
+    | { mode: "login-required" }
+  >(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
 
@@ -43,10 +49,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }, [userId])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
+    if (!userId) {
+      setModal({ mode: "login-required" })
+      return
+    }
     setTitle("")
     setDescription("")
     setModal({ mode: "add", lng, lat })
-  }, [])
+  }, [userId])
 
   const onEdit = useCallback((pinId: number) => {
     console.log("Editing pin with ID:", pinId)
@@ -74,7 +84,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const enriched = { ...data, is_owner: userId != null && data.user_id === userId }
       setPins((prev) => [...prev, enriched])
       setModal(null)
-    } else {
+    } else if (modal.mode === "edit") {
       const changes: UpdatePin = { title, description }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description } : p))
@@ -95,7 +105,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onDelete={onDelete}
         />
       )}
-      {modal && (
+      {modal && modal.mode === "login-required" && (
+        <LoginRequiredModal onClose={() => setModal(null)} />
+      )}
+      {modal && (modal.mode === "add" || modal.mode === "edit") && (
         <PinModal
           title={title}
           setTitle={setTitle}
