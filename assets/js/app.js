@@ -132,7 +132,7 @@ const initPartyMode = () => {
         // Auto-stop after 6 seconds
         partyModeTimeout = setTimeout(() => {
           stopPartyMode(partyButton)
-        }, 6000)
+        }, 60000)
       }
     })
   }
