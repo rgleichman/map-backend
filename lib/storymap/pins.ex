@@ -19,7 +19,7 @@ defmodule Storymap.Pins do
   """
 
   def list_pins do
-    Repo.all(Pin)
+    Repo.all(from p in Pin, preload: [:tags])
   end
 
   def list_pins(current_user_id) do
@@ -45,7 +45,7 @@ defmodule Storymap.Pins do
       ** (Ecto.NoResultsError)
 
   """
-  def get_pin!(id), do: Repo.get!(Pin, id)
+  def get_pin!(id), do: Repo.get!(Pin, id) |> Repo.preload(:tags)
 
   @doc """
   Creates a pin.
@@ -61,9 +61,13 @@ defmodule Storymap.Pins do
   """
   def create_pin(attrs, user_id) do
     attrs_with_user = Map.put(attrs, "user_id", user_id)
+    tags = Map.get(attrs, "tags", [])
+    # Get or create tags
+    tag_structs = Storymap.Tags.get_or_create_tags_by_names(tags)
+    attrs_with_tags = Map.put(attrs_with_user, "tags", tag_structs)
     %Pin{}
-         |> Pin.changeset(attrs_with_user)
-         |> Repo.insert()
+    |> Pin.changeset(attrs_with_tags)
+    |> Repo.insert()
   end
 
   @doc """

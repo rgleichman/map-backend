@@ -11,6 +11,7 @@ defmodule Storymap.Pins.Pin do
     field :longitude, :float
     field :description, :string # description of the pin in markdown format
     field :icon_url, :string # icon image url for the pin
+    many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
@@ -19,6 +20,7 @@ defmodule Storymap.Pins.Pin do
   def changeset(pin, attrs) do
     pin
     |> cast(attrs, [:title, :latitude, :longitude, :user_id, :description, :icon_url])
+    |> cast_assoc(:tags, required: false)
     |> validate_required([:title, :latitude, :longitude, :user_id])
     |> foreign_key_constraint(:user_id)
   end
