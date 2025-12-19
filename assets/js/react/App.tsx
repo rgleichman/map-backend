@@ -16,14 +16,10 @@ type Props = {
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<
-    | null
-    | { mode: "add"; lng: number; lat: number }
-    | { mode: "edit"; pin: Pin }
-    | { mode: "login-required" }
-  >(null)
+  const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin }>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [tags, setTags] = useState<string[]>([])
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -32,38 +28,35 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }).finally(() => setLoading(false))
   }, [userId])
 
-    // Listen for real-time pin additions via Phoenix channel
-    useEffect(() => {
-      const handler = (payload) => {
-        const pin = payload.pin
-        // Enrich with is_owner flag
-        const enriched = { ...pin, is_owner: userId != null && pin.user_id === userId }
-        setPins(prevPins => {
-          // Avoid duplicates if pin already exists
-          if (prevPins.some(p => p.id === enriched.id)) return prevPins
-          return [...prevPins, enriched]
-        })
-      }
-      worldChannel.on("marker_added", handler)
-      return () => worldChannel.off("marker_added", handler)
-    }, [userId])
-
-  const onMapClick = useCallback((lng: number, lat: number) => {
-    if (!userId) {
-      setModal({ mode: "login-required" })
-      return
+  // Listen for real-time pin additions via Phoenix channel
+  useEffect(() => {
+    const handler = (payload: any) => {
+      const pin = payload.pin
+      // Enrich with is_owner flag
+      const enriched = { ...pin, is_owner: userId != null && pin.user_id === userId }
+      setPins(prevPins => {
+        // Avoid duplicates if pin already exists
+        if (prevPins.some(p => p.id === enriched.id)) return prevPins
+        return [...prevPins, enriched]
+      })
     }
-    setTitle("")
-    setDescription("")
-    setModal({ mode: "add", lng, lat })
+    worldChannel.on("marker_added", handler)
+    return () => worldChannel.off("marker_added", handler)
   }, [userId])
 
+  const onMapClick = useCallback((lng: number, lat: number) => {
+    setTitle("")
+    setDescription("")
+    setTags([])
+    setModal({ mode: "add", lng, lat })
+  }, [])
+
   const onEdit = useCallback((pinId: number) => {
-    console.log("Editing pin with ID:", pinId)
     const pin = pins.find(p => p.id === pinId)
     if (!pin) return
     setTitle(pin.title)
     setDescription(pin.description || "")
+    setTags(pin.tags || [])
     setModal({ mode: "edit", pin })
   }, [pins])
 
@@ -79,18 +72,18 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const onSave = useCallback(async () => {
     if (!modal) return
     if (modal.mode === "add") {
-      const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng }
+      const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
       const { data } = await api.createPin(csrfToken, payload)
       const enriched = { ...data, is_owner: userId != null && data.user_id === userId }
       setPins((prev) => [...prev, enriched])
       setModal(null)
-    } else if (modal.mode === "edit") {
-      const changes: UpdatePin = { title, description }
+    } else {
+      const changes: UpdatePin = { title, description, tags }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description } : p))
+      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags } : p))
       setModal(null)
     }
-  }, [modal, title, description, csrfToken, userId])
+  }, [modal, title, description, tags, csrfToken, userId])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -105,15 +98,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onDelete={onDelete}
         />
       )}
-      {modal && modal.mode === "login-required" && (
-        <LoginRequiredModal onClose={() => setModal(null)} />
-      )}
-      {modal && (modal.mode === "add" || modal.mode === "edit") && (
+      {modal && (
         <PinModal
           title={title}
           setTitle={setTitle}
           description={description}
           setDescription={setDescription}
+          tags={tags}
+          setTags={setTags}
           mode={modal.mode}
           onCancel={() => setModal(null)}
           onSave={onSave}

@@ -18,10 +18,9 @@ defmodule Storymap.Pins.Pin do
 
   @doc false
   def changeset(pin, attrs) do
-    pin
-    |> cast(attrs, [:title, :latitude, :longitude, :user_id, :description, :icon_url])
-    |> cast_assoc(:tags, required: false)
-    |> validate_required([:title, :latitude, :longitude, :user_id])
-    |> foreign_key_constraint(:user_id)
+  pin
+  |> cast(attrs, [:title, :latitude, :longitude, :user_id, :description, :icon_url])
+  |> validate_required([:title, :latitude, :longitude, :user_id])
+  |> foreign_key_constraint(:user_id)
   end
 end

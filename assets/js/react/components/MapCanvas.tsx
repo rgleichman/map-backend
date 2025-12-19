@@ -114,10 +114,14 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     // add/update
     pins.forEach((pin) => {
       let marker = known.get(pin.id)
+      const tagsHtml = pin.tags && pin.tags.length > 0
+        ? `<div style=\"margin: 0.5em 0;\"><span style=\"font-size:0.95em; color:#555;\">Tags:</span> ${pin.tags.map(t => `<span style=\"background:#e2e8f0; color:#2d3748; border-radius:4px; padding:0.1em 0.5em; margin-right:0.3em; font-size:0.95em;\">${t}</span>`).join('')}</div>`
+        : ""
       const popupHtml = `
         <div>
           <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
           <p>${pin.description || ""}</p>
+          ${tagsHtml}
           ${pin.is_owner ? `<div style="margin-top: 0.5em;">
             <button data-pin-action="edit" data-pin-id="${pin.id}" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;">Edit</button>
             <button data-pin-action="delete" data-pin-id="${pin.id}" style="padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;">Delete</button>
