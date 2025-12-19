@@ -15,7 +15,7 @@ defmodule StorymapWeb.PinJSON do
     %{data: data(pin)}
   end
 
-  defp data(%Pin{} = pin) do
+  def data(%Pin{} = pin) do
     %{
       id: pin.id,
       title: pin.title,

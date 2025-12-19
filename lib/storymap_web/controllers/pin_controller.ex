@@ -13,14 +13,15 @@ defmodule StorymapWeb.PinController do
 
   def create(conn, %{"pin" => pin_params}) do
     user_id = conn.assigns.current_scope.user.id
-    pin = Pins.create_pin(pin_params, user_id)
+    pin_result = Pins.create_pin(pin_params, user_id)
 
-    with {:ok, %Pin{} = pin} <- pin do
+    with {:ok, %Pin{} = pin} <- pin_result do
+      pin = Storymap.Repo.preload(pin, :tags)
       StorymapWeb.Endpoint.broadcast(
         "map:world",
         "marker_added", %{
-        pin: pin
-      })
+          pin: StorymapWeb.PinJSON.data(pin)
+        })
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/pins/#{pin}")
@@ -37,6 +38,7 @@ defmodule StorymapWeb.PinController do
     pin = Pins.get_pin!(id)
 
     with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
+      pin = Storymap.Repo.preload(pin, :tags)
       render(conn, :show, pin: pin)
     end
   end
