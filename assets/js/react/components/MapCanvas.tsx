@@ -16,6 +16,12 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
   const [mapReady, setMapReady] = useState(false)
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
+
+  // Filter pins by tag if tagFilter is set
+  const filteredPins = tagFilter
+    ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
+    : pins
 
   // Initialize map once
   useEffect(() => {
@@ -71,6 +77,9 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
+  const filteredPins = tagFilter
+    ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
+    : pins
 
     const handlePopupClick = (e: Event) => {
       const target = e.target as HTMLElement
@@ -78,11 +87,20 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
         e.stopPropagation()
         const action = target.dataset.pinAction
         const pinId = parseInt(target.dataset.pinId || '0', 10)
-        
         if (action === 'edit') {
           onEdit(pinId)
         } else if (action === 'delete') {
           onDelete(pinId)
+        }
+      } else if (target.matches('[data-tag]')) {
+        e.stopPropagation()
+        const tag = target.dataset.tag
+        if (tag) {
+          setTagFilter(tag)
+          // Close all popups
+          document.querySelectorAll('.maplibregl-popup').forEach((el) => {
+            (el as HTMLElement).style.display = 'none';
+          });
         }
       }
     }
@@ -101,7 +119,7 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     if (!map || !mapReady) return
 
     const known = markersRef.current
-    const nextIds = new Set(pins.map((p) => p.id))
+    const nextIds = new Set(filteredPins.map((p) => p.id))
 
     // remove stale
     for (const [id, marker] of known) {
@@ -112,19 +130,19 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     }
 
     // add/update
-    pins.forEach((pin) => {
+    filteredPins.forEach((pin) => {
       let marker = known.get(pin.id)
       const tagsHtml = pin.tags && pin.tags.length > 0
-        ? `<div class=\"flex flex-wrap\"style=\"margin: 0.5em 0;\"><span style=\"font-size:0.95em; color:#555; margin-right:0.5em;\">Tags:</span> ${pin.tags.map(t => `<span style=\"background:#e2e8f0; color:#2d3748; border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em;\">${t}</span>`).join('')}</div>`
+        ? `<div class=\"flex flex-wrap\" style=\"margin: 0.5em 0;\"><span style=\"font-size:0.95em; color:#555; margin-right:0.5em;\">Tags:</span> ${pin.tags.map(t => `<button data-tag=\"${t}\" style=\"background:#e2e8f0; color:#2d3748; border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em; border:none; cursor:pointer;\">${t}</button>`).join('')}</div>`
         : ""
       const popupHtml = `
         <div>
           <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
           <p>${pin.description || ""}</p>
           ${tagsHtml}
-          ${pin.is_owner ? `<div style="margin-top: 0.5em;">
-            <button data-pin-action="edit" data-pin-id="${pin.id}" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;">Edit</button>
-            <button data-pin-action="delete" data-pin-id="${pin.id}" style="padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;">Delete</button>
+          ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
+            <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
+            <button data-pin-action=\"delete\" data-pin-id=\"${pin.id}\" style=\"padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;\">Delete</button>
           </div>` : ""}
         </div>`
       if (!marker) {
@@ -137,9 +155,25 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
         popup?.setHTML(popupHtml)
       }
     })
-  }, [pins, mapReady])
+  }, [filteredPins, mapReady])
 
-  return <div ref={containerRef} id="map" className="w-full h-full" />
+  return (
+    <div className="relative w-full h-full">
+      {tagFilter && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-white/90 rounded shadow px-4 py-2 flex items-center gap-2">
+          <span className="font-medium text-gray-700">Filtered by tag:</span>
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">{tagFilter}</span>
+          <button
+            className="ml-2 px-2 py-1 text-xs rounded bg-gray-200 hover:bg-gray-300 transition"
+            onClick={() => setTagFilter(null)}
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+      <div ref={containerRef} id="map" className="w-full h-full" />
+    </div>
+  )
 }
 
 
