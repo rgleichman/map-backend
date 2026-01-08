@@ -294,4 +294,29 @@ defmodule Storymap.Accounts do
       end
     end)
   end
+
+  @doc """
+  Deletes a user and all their pins.
+
+  ## Examples
+
+      iex> delete_user(user)
+      {:ok, %User{}}
+
+      iex> delete_user(user)
+      {:error, reason}
+
+  """
+  def delete_user(%User{} = user) do
+    Repo.transact(fn ->
+      # Delete all pins for the user
+      from(p in Storymap.Pins.Pin, where: p.user_id == ^user.id)
+      |> Repo.delete_all()
+      # Delete all tokens for the user
+      from(t in UserToken, where: t.user_id == ^user.id)
+      |> Repo.delete_all()
+      # Delete the user
+      Repo.delete(user)
+    end)
+  end
 end
