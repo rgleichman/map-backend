@@ -83,6 +83,8 @@ defmodule StorymapWeb.Router do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
+      # Public user profile page
+      live "/user/:user_id", UserLive.Show, :show
     end
 
     post "/users/log-in", UserSessionController, :create
