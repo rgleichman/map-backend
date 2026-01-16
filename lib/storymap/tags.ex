@@ -11,10 +11,11 @@ defmodule Storymap.Tags do
   Gets a tag by name, or creates it if it doesn't exist.
   """
   def get_or_create_tag_by_name(name) do
-    case Repo.get_by(Tag, name: name) do
+    lowercase_name = String.downcase(name)
+    case Repo.get_by(Tag, name: lowercase_name) do
       nil ->
         %Tag{}
-        |> Tag.changeset(%{name: name})
+        |> Tag.changeset(%{name: lowercase_name})
         |> Repo.insert()
       tag ->
         {:ok, tag}
