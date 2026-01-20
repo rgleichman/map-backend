@@ -8,7 +8,15 @@ defmodule StorymapWeb.PinController do
 
   def index(conn, _params) do
     pins = Pins.list_pins()
-    render(conn, :index, pins: pins)
+    # Only include user_id if user is authenticated (prevents user enumeration for unauthenticated users)
+    render(conn, :index, pins: pins, current_user_id: get_current_user_id(conn))
+  end
+
+  defp get_current_user_id(conn) do
+    case conn.assigns[:current_scope] do
+      %{user: %{id: user_id}} -> user_id
+      _ -> nil
+    end
   end
 
   def create(conn, %{"pin" => pin_params}) do
@@ -17,21 +25,24 @@ defmodule StorymapWeb.PinController do
 
     with {:ok, %Pin{} = pin} <- pin_result do
       pin = Storymap.Repo.preload(pin, :tags)
+      # Include user_id in broadcast so creator can immediately edit their pin
+      # Broadcasts are real-time and less of an enumeration concern than REST API
       StorymapWeb.Endpoint.broadcast(
         "map:world",
         "marker_added", %{
-          pin: StorymapWeb.PinJSON.data(pin)
+          pin: StorymapWeb.PinJSON.data_with_user(pin)
         })
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/pins/#{pin}")
-      |> render(:show, pin: pin)
+      |> render(:show, pin: pin, current_user_id: user_id)
     end
   end
 
   def show(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id)
-    render(conn, :show, pin: pin)
+    # Only include user_id if user is authenticated
+    render(conn, :show, pin: pin, current_user_id: get_current_user_id(conn))
   end
 
   def update(conn, %{"id" => id, "pin" => pin_params}) do
@@ -46,7 +57,7 @@ defmodule StorymapWeb.PinController do
     else
       with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
         pin = Storymap.Repo.preload(pin, :tags)
-        render(conn, :show, pin: pin)
+        render(conn, :show, pin: pin, current_user_id: current_user_id)
       end
     end
   end

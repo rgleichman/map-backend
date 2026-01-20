@@ -35,8 +35,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       // Enrich with is_owner flag
       const enriched = { ...pin, is_owner: userId != null && pin.user_id === userId }
       setPins(prevPins => {
-        // Avoid duplicates if pin already exists
-        if (prevPins.some(p => p.id === enriched.id)) return prevPins
+        // Update existing pin or add new one
+        const existingIndex = prevPins.findIndex(p => p.id === enriched.id)
+        if (existingIndex >= 0) {
+          // Update existing pin (e.g., if broadcast arrives after API response)
+          const updated = [...prevPins]
+          updated[existingIndex] = enriched
+          return updated
+        }
         return [...prevPins, enriched]
       })
     }

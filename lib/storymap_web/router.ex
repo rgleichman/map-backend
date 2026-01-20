@@ -26,9 +26,9 @@ defmodule StorymapWeb.Router do
   end
 
   scope "/api", StorymapWeb do
-    pipe_through :api
+    pipe_through [:api, :fetch_session, :fetch_current_scope_for_user]
 
-    # Public read operations
+    # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
     get "/map/style", MapController, :style
