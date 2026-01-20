@@ -18,9 +18,25 @@ defmodule Storymap.Pins.Pin do
 
   @doc false
   def changeset(pin, attrs) do
-  pin
-  |> cast(attrs, [:title, :latitude, :longitude, :user_id, :description, :icon_url])
-  |> validate_required([:title, :latitude, :longitude, :user_id])
-  |> foreign_key_constraint(:user_id)
+    changeset =
+      pin
+      |> cast(attrs, [:title, :latitude, :longitude, :description, :icon_url])
+      |> validate_required([:title, :latitude, :longitude])
+
+    # Set user_id programmatically only for new pins (creation)
+    # This prevents users from changing ownership via user input during updates
+    changeset =
+      if is_nil(pin.id) do
+        case Map.get(attrs, "user_id") do
+          nil -> changeset
+          user_id -> put_change(changeset, :user_id, user_id)
+        end
+      else
+        changeset
+      end
+
+    changeset
+    |> validate_required([:user_id])
+    |> foreign_key_constraint(:user_id)
   end
 end
