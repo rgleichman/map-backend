@@ -36,18 +36,34 @@ defmodule StorymapWeb.PinController do
 
   def update(conn, %{"id" => id, "pin" => pin_params}) do
     pin = Pins.get_pin!(id)
+    current_user_id = conn.assigns.current_scope.user.id
 
-    with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
-      pin = Storymap.Repo.preload(pin, :tags)
-      render(conn, :show, pin: pin)
+    if pin.user_id != current_user_id do
+      conn
+      |> put_status(:forbidden)
+      |> put_view(json: StorymapWeb.ErrorJSON)
+      |> render(:"403")
+    else
+      with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
+        pin = Storymap.Repo.preload(pin, :tags)
+        render(conn, :show, pin: pin)
+      end
     end
   end
 
   def delete(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id)
+    current_user_id = conn.assigns.current_scope.user.id
 
-    with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
-      send_resp(conn, :no_content, "")
+    if pin.user_id != current_user_id do
+      conn
+      |> put_status(:forbidden)
+      |> put_view(json: StorymapWeb.ErrorJSON)
+      |> render(:"403")
+    else
+      with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
+        send_resp(conn, :no_content, "")
+      end
     end
   end
 end
