@@ -20,6 +20,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
+  const [createdPinIds, setCreatedPinIds] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -32,8 +33,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   useEffect(() => {
     const handler = (payload: any) => {
       const pin = payload.pin
-      // Enrich with is_owner flag
-      const enriched = { ...pin, is_owner: userId != null && pin.user_id === userId }
+      // Ignore broadcasts for pins we just created (we already have full data from API)
+      if (createdPinIds.has(pin.id)) {
+        return
+      }
+      // Enrich with is_owner flag (broadcast doesn't include user_id, so is_owner will be false)
+      const enriched = { ...pin, is_owner: false }
       setPins(prevPins => {
         // Update existing pin or add new one
         const existingIndex = prevPins.findIndex(p => p.id === enriched.id)
@@ -48,7 +53,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }
     worldChannel.on("marker_added", handler)
     return () => worldChannel.off("marker_added", handler)
-  }, [userId])
+  }, [createdPinIds])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     setTitle("")
@@ -81,6 +86,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
       const { data } = await api.createPin(csrfToken, payload)
       const enriched = { ...data, is_owner: userId != null && data.user_id === userId }
+      // Track this pin ID so we ignore the broadcast (which won't have user_id)
+      setCreatedPinIds((prev) => new Set(prev).add(data.id))
       setPins((prev) => [...prev, enriched])
       setModal(null)
     } else {

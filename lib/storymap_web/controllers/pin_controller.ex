@@ -25,12 +25,12 @@ defmodule StorymapWeb.PinController do
 
     with {:ok, %Pin{} = pin} <- pin_result do
       pin = Storymap.Repo.preload(pin, :tags)
-      # Include user_id in broadcast so creator can immediately edit their pin
-      # Broadcasts are real-time and less of an enumeration concern than REST API
+      # Broadcast without user_id to prevent user enumeration
+      # Creator receives full pin data (with user_id) from API response
       StorymapWeb.Endpoint.broadcast(
         "map:world",
         "marker_added", %{
-          pin: StorymapWeb.PinJSON.data_with_user(pin)
+          pin: StorymapWeb.PinJSON.data(pin)
         })
       conn
       |> put_status(:created)
