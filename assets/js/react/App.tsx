@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
@@ -20,7 +20,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
-  const [createdPinIds, setCreatedPinIds] = useState<Set<number>>(new Set())
+  const createdPinIdsRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -34,7 +34,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     const handler = (payload: any) => {
       const pin = payload.pin
       // Ignore broadcasts for pins we just created (we already have full data from API)
-      if (createdPinIds.has(pin.id)) {
+      if (createdPinIdsRef.current.has(pin.id)) {
         return
       }
       // Enrich with is_owner flag (broadcast doesn't include user_id, so is_owner will be false)
@@ -53,7 +53,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }
     worldChannel.on("marker_added", handler)
     return () => worldChannel.off("marker_added", handler)
-  }, [createdPinIds])
+  }, [])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     setTitle("")
@@ -84,10 +84,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     if (!modal) return
     if (modal.mode === "add") {
       const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
-      const { data } = await api.createPin(csrfToken, payload)
-      const enriched = { ...data, is_owner: userId != null && data.user_id === userId }
+      const { data: pinData } = await api.createPin(csrfToken, payload)
+      const enriched = { ...pinData, is_owner: userId != null && pinData.user_id === userId }
       // Track this pin ID so we ignore the broadcast (which won't have user_id)
-      setCreatedPinIds((prev) => new Set(prev).add(data.id))
+      createdPinIdsRef.current.add(pinData.id)
       setPins((prev) => [...prev, enriched])
       setModal(null)
     } else {
