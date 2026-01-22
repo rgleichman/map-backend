@@ -6,7 +6,6 @@ export type Pin = {
   longitude: number
   description?: string
   icon_url?: string
-  user_id?: number
   is_owner?: boolean
   tags: string[]
 }

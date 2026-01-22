@@ -3,10 +3,10 @@ defmodule StorymapWeb.PinJSON do
 
   @doc """
   Renders a list of pins.
-  Includes user_id only if current_user_id is provided (authenticated user).
+  Includes is_owner flag only if current_user_id is provided (authenticated user).
   """
   def index(%{pins: pins, current_user_id: current_user_id}) when not is_nil(current_user_id) do
-    %{data: for(pin <- pins, do: data_with_user(pin))}
+    %{data: for(pin <- pins, do: data_with_user(pin, current_user_id))}
   end
 
   def index(%{pins: pins}) do
@@ -15,10 +15,10 @@ defmodule StorymapWeb.PinJSON do
 
   @doc """
   Renders a single pin.
-  Includes user_id only if current_user_id is provided (authenticated user).
+  Includes is_owner flag only if current_user_id is provided (authenticated user).
   """
   def show(%{pin: pin, current_user_id: current_user_id}) when not is_nil(current_user_id) do
-    %{data: data_with_user(pin)}
+    %{data: data_with_user(pin, current_user_id)}
   end
 
   def show(%{pin: pin}) do
@@ -27,7 +27,7 @@ defmodule StorymapWeb.PinJSON do
 
   @doc """
   Renders pin data for public (unauthenticated) responses.
-  Does not include user_id to prevent user enumeration.
+  Does not include user_id or is_owner to prevent user enumeration.
   """
   def data(%Pin{} = pin) do
     %{
@@ -43,10 +43,11 @@ defmodule StorymapWeb.PinJSON do
 
   @doc """
   Renders pin data for authenticated responses.
-  Includes user_id for authenticated users viewing their own pins.
+  Computes is_owner flag based on whether pin belongs to current user.
+  Never includes user_id to prevent user enumeration.
   """
-  def data_with_user(%Pin{} = pin) do
+  def data_with_user(%Pin{} = pin, current_user_id) do
     data(pin)
-    |> Map.put(:user_id, pin.user_id)
+    |> Map.put(:is_owner, pin.user_id == current_user_id)
   end
 end

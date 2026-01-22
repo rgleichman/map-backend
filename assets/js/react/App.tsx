@@ -24,10 +24,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
-      const enriched = data.map((p) => ({ ...p, is_owner: userId != null && p.user_id === userId }))
-      setPins(enriched)
+      setPins(data)
     }).finally(() => setLoading(false))
-  }, [userId])
+  }, [])
 
   // Listen for real-time pin additions via Phoenix channel
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       if (createdPinIdsRef.current.has(pin.id)) {
         return
       }
-      // Enrich with is_owner flag (broadcast doesn't include user_id, so is_owner will be false)
+      // Broadcast doesn't include is_owner, so set it to false (only backend can determine ownership)
       const enriched = { ...pin, is_owner: false }
       setPins(prevPins => {
         // Update existing pin or add new one
@@ -85,10 +84,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     if (modal.mode === "add") {
       const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
       const { data: pinData } = await api.createPin(csrfToken, payload)
-      const enriched = { ...pinData, is_owner: userId != null && pinData.user_id === userId }
-      // Track this pin ID so we ignore the broadcast (which won't have user_id)
+      // Track this pin ID so we ignore the broadcast (which won't have is_owner)
       createdPinIdsRef.current.add(pinData.id)
-      setPins((prev) => [...prev, enriched])
+      setPins((prev) => [...prev, pinData])
       setModal(null)
     } else {
       const changes: UpdatePin = { title, description, tags }
@@ -96,7 +94,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags } : p))
       setModal(null)
     }
-  }, [modal, title, description, tags, csrfToken, userId])
+  }, [modal, title, description, tags, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
