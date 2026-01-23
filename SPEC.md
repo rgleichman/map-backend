@@ -46,7 +46,9 @@ Storymap is a collaborative map application where users can add location markers
 ### Real-time Updates
 
 - When a user adds a new pin, it appears on the map for all users in real-time
-- Pin updates are broadcast to all connected users
+- When a user edits a pin, the changes are broadcast to all connected users in real-time
+- When a user deletes a pin, the deletion is broadcast to all connected users in real-time
+- All users see these changes immediately
 
 ### User Authentication
 

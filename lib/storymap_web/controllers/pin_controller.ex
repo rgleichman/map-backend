@@ -57,6 +57,13 @@ defmodule StorymapWeb.PinController do
     else
       with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
         pin = Storymap.Repo.preload(pin, :tags)
+        # Broadcast without user_id to prevent user enumeration
+        # Editor receives full pin data (with user_id) from API response
+        StorymapWeb.Endpoint.broadcast(
+          "map:world",
+          "marker_updated", %{
+            pin: StorymapWeb.PinJSON.data(pin)
+          })
         render(conn, :show, pin: pin, current_user_id: current_user_id)
       end
     end
@@ -72,7 +79,14 @@ defmodule StorymapWeb.PinController do
       |> put_view(json: StorymapWeb.ErrorJSON)
       |> render(:"403")
     else
+      pin_id = pin.id
       with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
+        # Broadcast deletion to all users
+        StorymapWeb.Endpoint.broadcast(
+          "map:world",
+          "marker_deleted", %{
+            pin_id: pin_id
+          })
         send_resp(conn, :no_content, "")
       end
     end

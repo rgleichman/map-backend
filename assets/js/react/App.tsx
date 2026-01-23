@@ -54,6 +54,37 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     return () => worldChannel.off("marker_added", handler)
   }, [])
 
+  // Listen for real-time pin updates via Phoenix channel
+  useEffect(() => {
+    const handler = (payload: any) => {
+      const updatedPin = payload.pin
+      setPins(prevPins => {
+        const existingIndex = prevPins.findIndex(p => p.id === updatedPin.id)
+        if (existingIndex >= 0) {
+          // Preserve is_owner from existing pin to prevent regression where users can't edit pins they created
+          const existing = prevPins[existingIndex]
+          const updated = [...prevPins]
+          updated[existingIndex] = { ...updatedPin, is_owner: existing.is_owner ?? false }
+          return updated
+        }
+        // New pin (shouldn't happen for updates, but handle it)
+        return [...prevPins, { ...updatedPin, is_owner: false }]
+      })
+    }
+    worldChannel.on("marker_updated", handler)
+    return () => worldChannel.off("marker_updated", handler)
+  }, [])
+
+  // Listen for real-time pin deletions via Phoenix channel
+  useEffect(() => {
+    const handler = (payload: any) => {
+      const pinId = payload.pin_id
+      setPins(prev => prev.filter(p => p.id !== pinId))
+    }
+    worldChannel.on("marker_deleted", handler)
+    return () => worldChannel.off("marker_deleted", handler)
+  }, [])
+
   const onMapClick = useCallback((lng: number, lat: number) => {
     if (!userId) {
       setModal({ mode: "login-required" })
