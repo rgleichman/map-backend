@@ -39,6 +39,7 @@ export default function PinModal({ title, setTitle, description, setDescription,
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          autoFocus={mode === "add"}
           className="w-full mb-4 px-3 py-2 rounded border"
         />
         <textarea
