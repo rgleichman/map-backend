@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
@@ -20,7 +20,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
-  const createdPinIdsRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -47,12 +46,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   // Listen for real-time pin additions via Phoenix channel
   useEffect(() => {
     const handler = (payload: any) => {
-      const pin = payload.pin
-      // Ignore broadcasts for pins we just created (we already have full data from API)
-      if (createdPinIdsRef.current.has(pin.id)) {
-        return
-      }
-      updateOrAddPin(pin)
+      updateOrAddPin(payload.pin)
     }
     worldChannel.on("marker_added", handler)
     return () => worldChannel.off("marker_added", handler)
@@ -111,8 +105,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     if (modal.mode === "add") {
       const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
       const { data: pinData } = await api.createPin(csrfToken, payload)
-      // Track this pin ID so we ignore the broadcast (which won't have is_owner)
-      createdPinIdsRef.current.add(pinData.id)
       setPins((prev) => [...prev, pinData])
       setModal(null)
     } else if (modal.mode === "edit") {
