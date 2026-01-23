@@ -28,6 +28,22 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }).finally(() => setLoading(false))
   }, [])
 
+  // Helper function to update or add a pin while preserving is_owner
+  const updateOrAddPin = useCallback((pin: Pin) => {
+    setPins(prevPins => {
+      const existingIndex = prevPins.findIndex(p => p.id === pin.id)
+      if (existingIndex >= 0) {
+        // Preserve is_owner from existing pin to prevent regression where users can't edit pins they created
+        const existing = prevPins[existingIndex]
+        const updated = [...prevPins]
+        updated[existingIndex] = { ...pin, is_owner: existing.is_owner ?? false }
+        return updated
+      }
+      // New pin - broadcast doesn't include is_owner, so set it to false
+      return [...prevPins, { ...pin, is_owner: false }]
+    })
+  }, [])
+
   // Listen for real-time pin additions via Phoenix channel
   useEffect(() => {
     const handler = (payload: any) => {
@@ -36,44 +52,20 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       if (createdPinIdsRef.current.has(pin.id)) {
         return
       }
-      // Broadcast doesn't include is_owner, so set it to false (only backend can determine ownership)
-      const enriched = { ...pin, is_owner: false }
-      setPins(prevPins => {
-        // Update existing pin or add new one
-        const existingIndex = prevPins.findIndex(p => p.id === enriched.id)
-        if (existingIndex >= 0) {
-          // Update existing pin (e.g., if broadcast arrives after API response)
-          const updated = [...prevPins]
-          updated[existingIndex] = enriched
-          return updated
-        }
-        return [...prevPins, enriched]
-      })
+      updateOrAddPin(pin)
     }
     worldChannel.on("marker_added", handler)
     return () => worldChannel.off("marker_added", handler)
-  }, [])
+  }, [updateOrAddPin])
 
   // Listen for real-time pin updates via Phoenix channel
   useEffect(() => {
     const handler = (payload: any) => {
-      const updatedPin = payload.pin
-      setPins(prevPins => {
-        const existingIndex = prevPins.findIndex(p => p.id === updatedPin.id)
-        if (existingIndex >= 0) {
-          // Preserve is_owner from existing pin to prevent regression where users can't edit pins they created
-          const existing = prevPins[existingIndex]
-          const updated = [...prevPins]
-          updated[existingIndex] = { ...updatedPin, is_owner: existing.is_owner ?? false }
-          return updated
-        }
-        // New pin (shouldn't happen for updates, but handle it)
-        return [...prevPins, { ...updatedPin, is_owner: false }]
-      })
+      updateOrAddPin(payload.pin)
     }
     worldChannel.on("marker_updated", handler)
     return () => worldChannel.off("marker_updated", handler)
-  }, [])
+  }, [updateOrAddPin])
 
   // Listen for real-time pin deletions via Phoenix channel
   useEffect(() => {
