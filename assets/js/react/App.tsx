@@ -16,7 +16,7 @@ type Props = {
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin }>(null)
+  const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
@@ -55,11 +55,15 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   }, [])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
+    if (!userId) {
+      setModal({ mode: "login-required" })
+      return
+    }
     setTitle("")
     setDescription("")
     setTags([])
     setModal({ mode: "add", lng, lat })
-  }, [])
+  }, [userId])
 
   const onEdit = useCallback((pinId: number) => {
     const pin = pins.find(p => p.id === pinId)
@@ -88,7 +92,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       createdPinIdsRef.current.add(pinData.id)
       setPins((prev) => [...prev, pinData])
       setModal(null)
-    } else {
+    } else if (modal.mode === "edit") {
       const changes: UpdatePin = { title, description, tags }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags } : p))
@@ -109,7 +113,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onDelete={onDelete}
         />
       )}
-      {modal && (
+      {modal && modal.mode === "login-required" && (
+        <LoginRequiredModal onClose={() => setModal(null)} />
+      )}
+      {modal && (modal.mode === "add" || modal.mode === "edit") && (
         <PinModal
           title={title}
           setTitle={setTitle}
