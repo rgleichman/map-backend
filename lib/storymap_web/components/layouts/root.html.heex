@@ -39,11 +39,6 @@
       <div class="drawer-content flex flex-col h-full">
         <!-- Navigation bar with hamburger (mobile) and horizontal menu (desktop) -->
         <div class="w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 flex-shrink-0">
-          <!-- Hamburger button (mobile only) -->
-          <label for="drawer-toggle" class="btn btn-ghost drawer-button md:hidden">
-            <.icon name="hero-bars-3" class="size-6" />
-          </label>
-          
           <!-- Horizontal menu (desktop only) -->
           <ul class="menu menu-horizontal hidden md:flex items-center gap-4 ml-auto">
             <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
@@ -76,6 +71,11 @@
               </li>
             <% end %>
           </ul>
+          
+          <!-- Hamburger button (mobile only) -->
+          <label for="drawer-toggle" class="btn btn-ghost drawer-button md:hidden ml-auto">
+            <.icon name="hero-bars-3" class="size-6" />
+          </label>
         </div>
         
         <!-- Page content -->
