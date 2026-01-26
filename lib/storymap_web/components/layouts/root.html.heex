@@ -87,46 +87,34 @@
       <!-- Drawer side menu (mobile) -->
       <div class="drawer-side">
         <label for="drawer-toggle" class="drawer-overlay"></label>
-        <ul class="menu p-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
+        <ul class="flex flex-col py-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
           <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
             <li>
-              <label for="drawer-toggle" class="block w-full">
-                <a href="/" class="btn btn-ghost justify-start w-full">Map</a>
-              </label>
+              <a href="/" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Map</a>
             </li>
           <% end %>
           <li>
-            <button id="party-button-mobile" class="btn btn-ghost justify-start w-full drawer-close">🎉 Party</button>
+            <button id="party-button-mobile" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">🎉 Party</button>
           </li>
           <li>
-            <label for="drawer-toggle" class="block w-full">
-              <a href="https://github.com/rgleichman/map-backend" class="btn btn-ghost justify-start w-full">GitHub</a>
-            </label>
+            <a href="https://github.com/rgleichman/map-backend" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">GitHub</a>
           </li>
           <%= if @current_scope do %>
             <li>
-              <span class="px-4 py-2">{@current_scope.user.email}</span>
+              <span class="block px-4 py-2">{@current_scope.user.email}</span>
             </li>
             <li>
-              <label for="drawer-toggle" class="block w-full">
-                <.link href={~p"/users/settings"} class="btn btn-ghost justify-start w-full">Settings</.link>
-              </label>
+              <.link href={~p"/users/settings"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Settings</.link>
             </li>
             <li>
-              <label for="drawer-toggle" class="block w-full">
-                <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost justify-start w-full">Log out</.link>
-              </label>
+              <.link href={~p"/users/log-out"} method="delete" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Log out</.link>
             </li>
           <% else %>
             <li>
-              <label for="drawer-toggle" class="block w-full">
-                <.link href={~p"/users/register"} class="btn btn-ghost justify-start w-full">Register</.link>
-              </label>
+              <.link href={~p"/users/register"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Register</.link>
             </li>
             <li>
-              <label for="drawer-toggle" class="block w-full">
-                <.link href={~p"/users/log-in"} class="btn btn-ghost justify-start w-full">Log in</.link>
-              </label>
+              <.link href={~p"/users/log-in"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Log in</.link>
             </li>
           <% end %>
         </ul>
