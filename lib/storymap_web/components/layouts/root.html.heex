@@ -87,7 +87,7 @@
       <!-- Drawer side menu (mobile) -->
       <div class="drawer-side">
         <label for="drawer-toggle" class="drawer-overlay"></label>
-        <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
+        <ul class="menu p-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
           <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
             <li>
               <label for="drawer-toggle">
