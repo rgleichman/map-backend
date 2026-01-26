@@ -51,6 +51,15 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       mapRef.current = map
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
+        
+        // Check if any popup is currently visible in the DOM
+        const hasVisiblePopup = document.querySelector('.maplibregl-popup') !== null
+        
+        // Check if there's an open popup - if so, just let it close without creating a pin
+        if (hasVisiblePopup) {
+          return
+        }
+        
         // ignore clicks on markers
         let cur: HTMLElement | null | undefined = el
         while (cur) {
