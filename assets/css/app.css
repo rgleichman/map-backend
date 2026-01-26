@@ -148,6 +148,11 @@
   border: 1px solid var(--color-base-300) !important;
 }
 
+/* Hide search box when drawer is open */
+#drawer-toggle:checked ~ .drawer-content .maplibre-search-box {
+  display: none !important;
+}
+
 /* Global height constraints to prevent scrollbar overflow */
 html, body {
   height: 100%;

@@ -104,38 +104,51 @@ const stopPartyMode = (partyButton) => {
   }
   document.documentElement.style.filter = ""
   document.body.style.filter = ""
-  if (partyButton) partyButton.textContent = "🎉 Party"
+  // Update all party buttons
+  const partyButtons = [
+    document.getElementById("party-button"),
+    document.getElementById("party-button-mobile")
+  ].filter(Boolean)
+  partyButtons.forEach(btn => {
+    if (btn) btn.textContent = "🎉 Party"
+  })
 }
 
 const initPartyMode = () => {
-  const partyButton = document.getElementById("party-button")
-  if (partyButton && !partyButton.dataset.partyInitialized) {
-    partyButton.dataset.partyInitialized = "true"
-    partyButton.addEventListener("click", () => {
-      const isActive = document.body.classList.contains("party-mode")
-      
-      if (isActive) {
-        stopPartyMode(partyButton)
-      } else {
-        document.documentElement.classList.add("party-mode")
-        document.body.classList.add("party-mode")
-        partyButton.textContent = "🛑 Stop"
+  const partyButtons = [
+    document.getElementById("party-button"),
+    document.getElementById("party-button-mobile")
+  ].filter(Boolean)
+  
+  partyButtons.forEach(partyButton => {
+    if (!partyButton.dataset.partyInitialized) {
+      partyButton.dataset.partyInitialized = "true"
+      partyButton.addEventListener("click", () => {
+        const isActive = document.body.classList.contains("party-mode")
         
-        let hue = 0
-        partyModeInterval = setInterval(() => {
-          hue = (hue + 5) % 360
-          const filter = `hue-rotate(${hue}deg) brightness(1.8) saturate(2.5)`
-          document.documentElement.style.filter = filter
-          document.body.style.filter = filter
-        }, 50)
-        
-        // Auto-stop after 6 seconds
-        partyModeTimeout = setTimeout(() => {
-          stopPartyMode(partyButton)
-        }, 60000)
-      }
-    })
-  }
+        if (isActive) {
+          stopPartyMode(partyButtons[0] || partyButtons[1])
+        } else {
+          document.documentElement.classList.add("party-mode")
+          document.body.classList.add("party-mode")
+          partyButtons.forEach(btn => btn.textContent = "🛑 Stop")
+          
+          let hue = 0
+          partyModeInterval = setInterval(() => {
+            hue = (hue + 5) % 360
+            const filter = `hue-rotate(${hue}deg) brightness(1.8) saturate(2.5)`
+            document.documentElement.style.filter = filter
+            document.body.style.filter = filter
+          }, 50)
+          
+          // Auto-stop after 60 seconds
+          partyModeTimeout = setTimeout(() => {
+            stopPartyMode(partyButtons[0] || partyButtons[1])
+          }, 60000)
+        }
+      })
+    }
+  })
 }
 
 // Initialize on DOM ready
@@ -147,4 +160,29 @@ if (document.readyState === "loading") {
 
 // Re-initialize after LiveView navigation
 window.addEventListener("phx:page-loading-stop", initPartyMode)
+
+// Close drawer when clicking drawer-close elements
+const initDrawerClose = () => {
+  document.querySelectorAll(".drawer-close").forEach(element => {
+    if (!element.dataset.drawerCloseInitialized) {
+      element.dataset.drawerCloseInitialized = "true"
+      element.addEventListener("click", () => {
+        const drawerToggle = document.getElementById("drawer-toggle")
+        if (drawerToggle) {
+          drawerToggle.checked = false
+        }
+      })
+    }
+  })
+}
+
+// Initialize drawer close handlers
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDrawerClose)
+} else {
+  initDrawerClose()
+}
+
+// Re-initialize after LiveView navigation
+window.addEventListener("phx:page-loading-stop", initDrawerClose)
 

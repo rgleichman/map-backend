@@ -33,37 +33,104 @@
     </script>
   </head>
   <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
-        <li> 
-         <a href="/" class="btn btn-ghost">Map</a>
-        </li>
-      <% end %>
-      <li>
-        <button id="party-button" class="btn btn-ghost">🎉 Party</button>
-      </li>
-      <li>
-        <a href="https://github.com/rgleichman/map-backend" class="btn btn-ghost">GitHub</a>
-      </li>
-      <%= if @current_scope do %>
-        <li>
-          {@current_scope.user.email}
-        </li>
-        <li>
-          <.link href={~p"/users/settings"}>Settings</.link>
-        </li>
-        <li>
-          <.link href={~p"/users/log-out"} method="delete">Log out</.link>
-        </li>
-      <% else %>
-        <li>
-          <.link href={~p"/users/register"}>Register</.link>
-        </li>
-        <li>
-          <.link href={~p"/users/log-in"}>Log in</.link>
-        </li>
-      <% end %>
-    </ul>
-    {@inner_content}
+    <div class="drawer h-full">
+      <input type="checkbox" id="drawer-toggle" class="drawer-toggle" />
+      
+      <div class="drawer-content flex flex-col h-full">
+        <!-- Navigation bar with hamburger (mobile) and horizontal menu (desktop) -->
+        <div class="w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 flex-shrink-0">
+          <!-- Hamburger button (mobile only) -->
+          <label for="drawer-toggle" class="btn btn-ghost drawer-button md:hidden">
+            <.icon name="hero-bars-3" class="size-6" />
+          </label>
+          
+          <!-- Horizontal menu (desktop only) -->
+          <ul class="menu menu-horizontal hidden md:flex items-center gap-4 ml-auto">
+            <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
+              <li> 
+               <a href="/" class="btn btn-ghost">Map</a>
+              </li>
+            <% end %>
+            <li>
+              <button id="party-button" class="btn btn-ghost">🎉 Party</button>
+            </li>
+            <li>
+              <a href="https://github.com/rgleichman/map-backend" class="btn btn-ghost">GitHub</a>
+            </li>
+            <%= if @current_scope do %>
+              <li>
+                {@current_scope.user.email}
+              </li>
+              <li>
+                <.link href={~p"/users/settings"}>Settings</.link>
+              </li>
+              <li>
+                <.link href={~p"/users/log-out"} method="delete">Log out</.link>
+              </li>
+            <% else %>
+              <li>
+                <.link href={~p"/users/register"}>Register</.link>
+              </li>
+              <li>
+                <.link href={~p"/users/log-in"}>Log in</.link>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+        
+        <!-- Page content -->
+        <div class="flex-1 min-h-0">
+          {@inner_content}
+        </div>
+      </div>
+      
+      <!-- Drawer side menu (mobile) -->
+      <div class="drawer-side">
+        <label for="drawer-toggle" class="drawer-overlay"></label>
+        <ul class="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
+          <%= if @conn.request_path != "/" && @conn.request_path != "/map" do %>
+            <li>
+              <label for="drawer-toggle">
+                <a href="/" class="btn btn-ghost justify-start w-full">Map</a>
+              </label>
+            </li>
+          <% end %>
+          <li>
+            <button id="party-button-mobile" class="btn btn-ghost justify-start w-full drawer-close">🎉 Party</button>
+          </li>
+          <li>
+            <label for="drawer-toggle">
+              <a href="https://github.com/rgleichman/map-backend" class="btn btn-ghost justify-start w-full">GitHub</a>
+            </label>
+          </li>
+          <%= if @current_scope do %>
+            <li>
+              <span class="px-4 py-2">{@current_scope.user.email}</span>
+            </li>
+            <li>
+              <label for="drawer-toggle">
+                <.link href={~p"/users/settings"} class="btn btn-ghost justify-start w-full">Settings</.link>
+              </label>
+            </li>
+            <li>
+              <label for="drawer-toggle">
+                <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost justify-start w-full">Log out</.link>
+              </label>
+            </li>
+          <% else %>
+            <li>
+              <label for="drawer-toggle">
+                <.link href={~p"/users/register"} class="btn btn-ghost justify-start w-full">Register</.link>
+              </label>
+            </li>
+            <li>
+              <label for="drawer-toggle">
+                <.link href={~p"/users/log-in"} class="btn btn-ghost justify-start w-full">Log in</.link>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
   </body>
 </html>
