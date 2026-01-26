@@ -142,7 +142,7 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     filteredPins.forEach((pin) => {
       let marker = known.get(pin.id)
       const tagsHtml = pin.tags && pin.tags.length > 0
-        ? `<div class=\"flex flex-wrap\" style=\"margin: 0.5em 0;\"><span style=\"font-size:0.95em; color:#555; margin-right:0.5em;\">Tags:</span> ${pin.tags.map(t => `<button data-tag=\"${t}\" style=\"background:#e2e8f0; color:#2d3748; border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em; border:none; cursor:pointer;\">${t}</button>`).join('')}</div>`
+        ? `<div class=\"flex flex-wrap\" style=\"margin: 0.5em 0;\"><span style=\"font-size:0.95em; color:var(--color-base-content); margin-right:0.5em;\">Tags:</span> ${pin.tags.map(t => `<button data-tag=\"${t}\" style=\"background:var(--color-base-200); color:var(--color-base-content); border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em; border:none; cursor:pointer;\">${t}</button>`).join('')}</div>`
         : ""
       const popupHtml = `
         <div>
@@ -169,11 +169,11 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
   return (
     <div className="relative w-full h-full">
       {tagFilter && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-white/90 rounded shadow px-4 py-2 flex items-center gap-2">
-          <span className="font-medium text-gray-700">Filtered by tag:</span>
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">{tagFilter}</span>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
+          <span className="font-medium text-base-content">Filtered by tag:</span>
+          <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
           <button
-            className="ml-2 px-2 py-1 text-xs rounded bg-gray-200 hover:bg-gray-300 transition"
+            className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
             onClick={() => setTagFilter(null)}
           >
             Clear Filter

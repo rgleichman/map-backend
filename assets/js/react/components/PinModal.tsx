@@ -64,7 +64,7 @@ export default function PinModal({ title, setTitle, description, setDescription,
           </div>
           <div className="flex flex-wrap gap-2">
             {tags.map(tag => (
-              <span key={tag} className="inline-flex items-center bg-gray-200 rounded px-2 py-1 text-sm">
+              <span key={tag} className="inline-flex items-center bg-base-200 text-base-content rounded px-2 py-1 text-sm">
                 {tag}
                 <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-red-500 hover:text-red-700">×</button>
               </span>
