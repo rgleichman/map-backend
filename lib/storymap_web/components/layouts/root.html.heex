@@ -33,6 +33,7 @@
     </script>
   </head>
   <body>
+    <% github_url = "https://github.com/rgleichman/map-backend" %>
     <div class="drawer h-full">
       <input type="checkbox" id="drawer-toggle" class="drawer-toggle" />
       
@@ -50,7 +51,7 @@
               <button id="party-button" class="btn btn-ghost">🎉 Party</button>
             </li>
             <li>
-              <a href="https://github.com/rgleichman/map-backend" class="btn btn-ghost">GitHub</a>
+              <a href={github_url} class="btn btn-ghost">GitHub</a>
             </li>
             <%= if @current_scope do %>
               <li>
@@ -97,7 +98,7 @@
             <button id="party-button-mobile" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">🎉 Party</button>
           </li>
           <li>
-            <a href="https://github.com/rgleichman/map-backend" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">GitHub</a>
+            <a href={github_url} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">GitHub</a>
           </li>
           <%= if @current_scope do %>
             <li>
