@@ -11,6 +11,9 @@ defmodule Storymap.Pins.Pin do
     field :longitude, :float
     field :description, :string # description of the pin in markdown format
     field :icon_url, :string # icon image url for the pin
+    field :start_time, :utc_datetime
+    field :end_time, :utc_datetime
+    field :pin_type, :string
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     timestamps(type: :utc_datetime)
@@ -20,7 +23,7 @@ defmodule Storymap.Pins.Pin do
   def changeset(pin, attrs) do
     changeset =
       pin
-      |> cast(attrs, [:title, :latitude, :longitude, :description, :icon_url])
+      |> cast(attrs, [:title, :latitude, :longitude, :description, :icon_url, :start_time, :end_time, :pin_type])
       |> validate_required([:title, :latitude, :longitude])
 
     # Set user_id programmatically only for new pins (creation)
