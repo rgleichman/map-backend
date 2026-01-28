@@ -82,6 +82,28 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     }
   }, [styleUrl, onMapClick])
 
+  // Get user's location and center map
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          map.jumpTo({
+            center: [longitude, latitude],
+            zoom: 10
+          })
+        },
+        (error) => {
+          console.log('Geolocation not available or denied:', error.message)
+        },
+        { enableHighAccuracy: true }
+      )
+    }
+  }, [mapReady])
+
   // Set up event delegation for popup buttons
   useEffect(() => {
     const map = mapRef.current
