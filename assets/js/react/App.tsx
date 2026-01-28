@@ -23,6 +23,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
 
+  const pad2 = (n: number) => String(n).padStart(2, "0")
+  // <input type="datetime-local"> expects a LOCAL "YYYY-MM-DDTHH:mm" string.
+  const dateToLocalInputValue = (d: Date) => {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  }
+  const isoToLocalInputValue = (s?: string) => (s ? dateToLocalInputValue(new Date(s)) : "")
+
   useEffect(() => {
     api.getPins().then(({ data }) => {
       setPins(data)
@@ -84,9 +91,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     // Set default startTime to now, endTime to now + 1 hour (in local time, formatted for input)
     const now = new Date()
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-    const toInputValue = (d: Date) => d.toISOString().slice(0, 16)
-    setStartTime(toInputValue(now))
-    setEndTime(toInputValue(inOneHour))
+    setStartTime(dateToLocalInputValue(now))
+    setEndTime(dateToLocalInputValue(inOneHour))
     setModal({ mode: "add", lng, lat })
   }, [userId])
 
@@ -96,10 +102,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle(pin.title)
     setDescription(pin.description || "")
     setTags(pin.tags || [])
-    // Convert ISO string to input value (YYYY-MM-DDTHH:mm)
-    const toInputValue = (s?: string) => s ? new Date(s).toISOString().slice(0, 16) : ""
-    setStartTime(toInputValue(pin.start_time))
-    setEndTime(toInputValue(pin.end_time))
+    // Convert ISO string to LOCAL input value (YYYY-MM-DDTHH:mm)
+    setStartTime(isoToLocalInputValue(pin.start_time))
+    setEndTime(isoToLocalInputValue(pin.end_time))
     setModal({ mode: "edit", pin })
   }, [pins])
 
