@@ -20,6 +20,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -79,6 +81,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle("")
     setDescription("")
     setTags([])
+    // Set default startTime to now, endTime to now + 1 hour (in local time, formatted for input)
+    const now = new Date()
+    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+    const toInputValue = (d: Date) => d.toISOString().slice(0, 16)
+    setStartTime(toInputValue(now))
+    setEndTime(toInputValue(inOneHour))
     setModal({ mode: "add", lng, lat })
   }, [userId])
 
@@ -88,6 +96,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle(pin.title)
     setDescription(pin.description || "")
     setTags(pin.tags || [])
+    // Convert ISO string to input value (YYYY-MM-DDTHH:mm)
+    const toInputValue = (s?: string) => s ? new Date(s).toISOString().slice(0, 16) : ""
+    setStartTime(toInputValue(pin.start_time))
+    setEndTime(toInputValue(pin.end_time))
     setModal({ mode: "edit", pin })
   }, [pins])
 
@@ -100,20 +112,53 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setModal(null)
   }, [csrfToken, pins])
 
+  const [timeError, setTimeError] = useState<string>("")
+
   const onSave = useCallback(async () => {
     if (!modal) return
+    setTimeError("")
+    // Convert input value (local) to ISO string
+    const toISOString = (s: string) => s ? new Date(s).toISOString() : undefined
+    const start = startTime ? new Date(startTime) : undefined
+    const end = endTime ? new Date(endTime) : undefined
+    const now = new Date()
+    // Validation
+    if (start && end) {
+      if (end <= start) {
+        setTimeError("End time must be after start time.")
+        return
+      }
+      if (end < now) {
+        setTimeError("End time cannot be in the past.")
+        return
+      }
+    }
     if (modal.mode === "add") {
-      const payload: NewPin = { title, description, latitude: modal.lat, longitude: modal.lng, tags }
+      const payload: NewPin = {
+        title,
+        description,
+        latitude: modal.lat,
+        longitude: modal.lng,
+        tags,
+        start_time: toISOString(startTime),
+        end_time: toISOString(endTime)
+      }
       const { data: pinData } = await api.createPin(csrfToken, payload)
       setPins((prev) => [...prev, pinData])
       setModal(null)
     } else if (modal.mode === "edit") {
-      const changes: UpdatePin = { title, description, tags }
+      const changes: UpdatePin = {
+        title,
+        description,
+        tags,
+        start_time: toISOString(startTime),
+        end_time: toISOString(endTime)
+      }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags } : p))
+      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags, start_time: data.start_time, end_time: data.end_time } : p))
       setModal(null)
     }
-  }, [modal, title, description, tags, csrfToken])
+  }, [modal, title, description, tags, startTime, endTime, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -132,19 +177,30 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <LoginRequiredModal onClose={() => setModal(null)} />
       )}
       {modal && (modal.mode === "add" || modal.mode === "edit") && (
-        <PinModal
-          title={title}
-          setTitle={setTitle}
-          description={description}
-          setDescription={setDescription}
-          tags={tags}
-          setTags={setTags}
-          mode={modal.mode}
-          onCancel={() => setModal(null)}
-          onSave={onSave}
-          onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
-          canDelete={canDelete}
-        />
+        <>
+          <PinModal
+            title={title}
+            setTitle={setTitle}
+            description={description}
+            setDescription={setDescription}
+            tags={tags}
+            setTags={setTags}
+            startTime={startTime}
+            setStartTime={setStartTime}
+            endTime={endTime}
+            setEndTime={setEndTime}
+            mode={modal.mode}
+            onCancel={() => setModal(null)}
+            onSave={onSave}
+            onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
+            canDelete={canDelete}
+          />
+          {timeError && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+              <div className="absolute bg-red-600 text-white px-4 py-2 rounded shadow-lg pointer-events-auto" style={{top: '10%'}}>⏰ {timeError}</div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

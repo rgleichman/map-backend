@@ -152,16 +152,30 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
             ).join('')}
           </div>`
         : ""
-      const popupHtml = `
-        <div>
-          <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
-          <p>${pin.description || ""}</p>
-          ${tagsHtml}
-          ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
-            <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
-            <button data-pin-action=\"delete\" data-pin-id=\"${pin.id}\" style=\"padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;\">Delete</button>
-          </div>` : ""}
-        </div>`
+        // Format date/time for display
+        const formatDateTime = (iso?: string) => {
+          if (!iso) return ""
+          try {
+            const d = new Date(iso)
+            return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+          } catch {
+            return iso
+          }
+        }
+        const popupHtml = `
+          <div>
+            <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
+            <p>${pin.description || ""}</p>
+            <div style="margin: 0.5em 0;">
+              <span style="font-size:0.95em; color:var(--color-base-content);"><b>Start:</b> ${formatDateTime(pin.start_time)}</span><br/>
+              <span style="font-size:0.95em; color:var(--color-base-content);"><b>End:</b> ${formatDateTime(pin.end_time)}</span>
+            </div>
+            ${tagsHtml}
+            ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
+              <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
+              <button data-pin-action=\"delete\" data-pin-id=\"${pin.id}\" style=\"padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;\">Delete</button>
+            </div>` : ""}
+          </div>`
       if (!marker) {
         const popup = new Popup().setHTML(popupHtml)
         marker = new Marker().setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)

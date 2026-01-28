@@ -1,4 +1,3 @@
-
 export type Pin = {
   id: number
   title: string
@@ -8,6 +7,8 @@ export type Pin = {
   icon_url?: string
   is_owner?: boolean
   tags: string[]
+  start_time?: string // ISO string
+  end_time?: string // ISO string
 }
 
 
@@ -17,6 +18,8 @@ export type NewPin = {
   latitude: number
   longitude: number
   tags: string[]
+  start_time?: string // ISO string
+  end_time?: string // ISO string
 }
 
 
@@ -24,6 +27,8 @@ export type UpdatePin = {
   title: string
   description?: string
   tags: string[]
+  start_time?: string // ISO string
+  end_time?: string // ISO string
 }
 
 

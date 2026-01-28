@@ -7,6 +7,10 @@ type Props = {
   setDescription: (d: string) => void
   tags: string[]
   setTags: (tags: string[]) => void
+  startTime: string
+  setStartTime: (t: string) => void
+  endTime: string
+  setEndTime: (t: string) => void
   mode: "add" | "edit"
   onCancel: () => void
   onSave: () => void
@@ -14,7 +18,7 @@ type Props = {
   canDelete?: boolean
 }
 
-export default function PinModal({ title, setTitle, description, setDescription, tags, setTags, mode, onCancel, onSave, onDelete, canDelete }: Props) {
+export default function PinModal({ title, setTitle, description, setDescription, tags, setTags, startTime, setStartTime, endTime, setEndTime, mode, onCancel, onSave, onDelete, canDelete }: Props) {
   const [tagInput, setTagInput] = React.useState("");
 
   const handleAddTag = () => {
@@ -49,6 +53,22 @@ export default function PinModal({ title, setTitle, description, setDescription,
           onChange={(e) => setDescription(e.target.value)}
           className="w-full mb-4 px-3 py-2 rounded border"
         />
+        <div className="mb-4">
+          <label className="block font-medium mb-1">Start Time</label>
+          <input
+            type="datetime-local"
+            value={startTime}
+            onChange={e => setStartTime(e.target.value)}
+            className="w-full mb-2 px-3 py-2 rounded border"
+          />
+          <label className="block font-medium mb-1">End Time</label>
+          <input
+            type="datetime-local"
+            value={endTime}
+            onChange={e => setEndTime(e.target.value)}
+            className="w-full mb-2 px-3 py-2 rounded border"
+          />
+        </div>
         <div className="mb-4">
           <label className="block font-medium mb-1">Tags</label>
           <div className="flex gap-2 mb-2">
