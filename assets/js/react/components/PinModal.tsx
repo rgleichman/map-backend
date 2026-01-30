@@ -1,4 +1,5 @@
-import React from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
+import * as api from "../api/client"
 
 type Props = {
   title: string
@@ -11,6 +12,11 @@ type Props = {
   setStartTime: (t: string) => void
   endTime: string
   setEndTime: (t: string) => void
+  latitude: number
+  longitude: number
+  onStartPickOnMap: () => void
+  onLocationFromSearch: (lat: number, lng: number) => void
+  onLocationFromGPS: (lat: number, lng: number) => void
   mode: "add" | "edit"
   onCancel: () => void
   onSave: () => void
@@ -18,24 +24,98 @@ type Props = {
   canDelete?: boolean
 }
 
-export default function PinModal({ title, setTitle, description, setDescription, tags, setTags, startTime, setStartTime, endTime, setEndTime, mode, onCancel, onSave, onDelete, canDelete }: Props) {
-  const [tagInput, setTagInput] = React.useState("");
+export default function PinModal({
+  title, setTitle,
+  description, setDescription,
+  tags, setTags,
+  startTime, setStartTime,
+  endTime, setEndTime,
+  latitude, longitude,
+  onStartPickOnMap,
+  onLocationFromSearch,
+  onLocationFromGPS,
+  mode, onCancel, onSave, onDelete, canDelete
+}: Props) {
+  const [tagInput, setTagInput] = useState("")
+  const [locationSearch, setLocationSearch] = useState("")
+  const [locationResults, setLocationResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([])
+  const [locationSearching, setLocationSearching] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [gpsError, setGpsError] = useState<string | null>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
   const handleAddTag = () => {
-    const newTag = tagInput.trim();
+    const newTag = tagInput.trim()
     if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag]);
+      setTags([...tags, newTag])
     }
-    setTagInput("");
-  };
+    setTagInput("")
+  }
 
   const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag));
-  };
+    setTags(tags.filter(t => t !== tag))
+  }
+
+  useEffect(() => {
+    if (locationSearch.trim().length < 2) {
+      setLocationResults([])
+      return
+    }
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => {
+      setLocationSearching(true)
+      setLocationError(null)
+      api.searchLocation(locationSearch)
+        .then(({ data }) => setLocationResults(data || []))
+        .catch(() => {
+          setLocationError("Search failed")
+          setLocationResults([])
+        })
+        .finally(() => setLocationSearching(false))
+    }, 300)
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    }
+  }, [locationSearch])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (resultsRef.current && !resultsRef.current.contains(e.target as Node)) {
+        setLocationResults([])
+      }
+    }
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [])
+
+  const handleSelectResult = useCallback((lat: number, lng: number) => {
+    onLocationFromSearch(lat, lng)
+    setLocationSearch("")
+    setLocationResults([])
+  }, [onLocationFromSearch])
+
+  const handleUseMyLocation = useCallback(() => {
+    setGpsError(null)
+    if (!navigator.geolocation) {
+      setGpsError("Location unavailable")
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords
+        onLocationFromGPS(lat, lng)
+      },
+      () => setGpsError("Location unavailable"),
+      { enableHighAccuracy: true }
+    )
+  }, [onLocationFromGPS])
+
+  const formatCoord = (n: number) => n.toFixed(5)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="pin-modal-content rounded-lg min-w-[300px] shadow-xl p-6">
+      <div className="pin-modal-content rounded-lg min-w-[300px] max-h-[90vh] overflow-y-auto shadow-xl p-6">
         <h2 className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
         <input
           id="pin-title"
@@ -53,6 +133,65 @@ export default function PinModal({ title, setTitle, description, setDescription,
           onChange={(e) => setDescription(e.target.value)}
           className="w-full mb-4 px-3 py-2 rounded border"
         />
+
+        <div className="mb-4">
+          <label className="block font-medium mb-1">Location</label>
+          <p className="text-sm text-base-content/80 mb-2">
+            {formatCoord(latitude)}, {formatCoord(longitude)}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <button
+              type="button"
+              onClick={onStartPickOnMap}
+              className="btn btn-sm btn-outline"
+            >
+              {mode === "edit" ? "Change location on map" : "Set location on map"}
+            </button>
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              className="btn btn-sm btn-outline"
+            >
+              Use my location
+            </button>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={locationSearch}
+              onChange={(e) => setLocationSearch(e.target.value)}
+              placeholder="Search for a place or address"
+              className="w-full px-3 py-2 rounded border"
+            />
+            {locationSearching && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-base-content/60">Searching…</span>
+            )}
+            {locationError && (
+              <p className="text-sm text-error mt-1">{locationError}</p>
+            )}
+            {gpsError && (
+              <p className="text-sm text-error mt-1">{gpsError}</p>
+            )}
+            {locationResults.length > 0 && (
+              <div
+                ref={resultsRef}
+                className="absolute left-0 right-0 top-full mt-1 bg-base-100 border rounded shadow-lg max-h-48 overflow-y-auto z-10"
+              >
+                {locationResults.map((r, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="block w-full text-left px-3 py-2 hover:bg-base-200 text-sm"
+                    onClick={() => handleSelectResult(r.lat, r.lng)}
+                  >
+                    {r.display_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="mb-4">
           <label className="block font-medium mb-1">Start Time</label>
           <input
@@ -102,5 +241,3 @@ export default function PinModal({ title, setTitle, description, setDescription,
     </div>
   )
 }
-
-

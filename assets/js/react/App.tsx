@@ -17,6 +17,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
+  const [addLocation, setAddLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [editLocation, setEditLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [pickingLocation, setPickingLocation] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
@@ -88,6 +91,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle("")
     setDescription("")
     setTags([])
+    setAddLocation({ lat, lng })
+    setEditLocation(null)
+    setPickingLocation(false)
     // Set default startTime to now, endTime to now + 1 hour (in local time, formatted for input)
     const now = new Date()
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
@@ -102,6 +108,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle(pin.title)
     setDescription(pin.description || "")
     setTags(pin.tags || [])
+    setEditLocation(null)
+    setPickingLocation(false)
     // Convert ISO string to LOCAL input value (YYYY-MM-DDTHH:mm)
     setStartTime(isoToLocalInputValue(pin.start_time))
     setEndTime(isoToLocalInputValue(pin.end_time))
@@ -115,7 +123,38 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     await api.deletePin(csrfToken, pin.id)
     setPins((prev) => prev.filter((p) => p.id !== pin.id))
     setModal(null)
+    setEditLocation(null)
+    setPickingLocation(false)
   }, [csrfToken, pins])
+
+  const onStartPickOnMap = useCallback(() => {
+    setPickingLocation(true)
+  }, [])
+
+  const onMapClickSetLocation = useCallback((lng: number, lat: number) => {
+    setPickingLocation(false)
+    if (modal?.mode === "add") {
+      setAddLocation({ lat, lng })
+    } else if (modal?.mode === "edit") {
+      setEditLocation({ lat, lng })
+    }
+  }, [modal])
+
+  const onLocationFromSearch = useCallback((lat: number, lng: number) => {
+    if (modal?.mode === "add") {
+      setAddLocation({ lat, lng })
+    } else if (modal?.mode === "edit") {
+      setEditLocation({ lat, lng })
+    }
+  }, [modal])
+
+  const onLocationFromGPS = useCallback((lat: number, lng: number) => {
+    if (modal?.mode === "add") {
+      setAddLocation({ lat, lng })
+    } else if (modal?.mode === "edit") {
+      setEditLocation({ lat, lng })
+    }
+  }, [modal])
 
   const [timeError, setTimeError] = useState<string>("")
 
@@ -139,11 +178,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       }
     }
     if (modal.mode === "add") {
+      const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
       const payload: NewPin = {
         title,
         description,
-        latitude: modal.lat,
-        longitude: modal.lng,
+        latitude: loc.lat,
+        longitude: loc.lng,
         tags,
         start_time: toISOString(startTime),
         end_time: toISOString(endTime)
@@ -151,19 +191,25 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const { data: pinData } = await api.createPin(csrfToken, payload)
       setPins((prev) => [...prev, pinData])
       setModal(null)
+      setAddLocation(null)
     } else if (modal.mode === "edit") {
+      const lat = editLocation?.lat ?? modal.pin.latitude
+      const lng = editLocation?.lng ?? modal.pin.longitude
       const changes: UpdatePin = {
         title,
         description,
         tags,
         start_time: toISOString(startTime),
-        end_time: toISOString(endTime)
+        end_time: toISOString(endTime),
+        latitude: lat,
+        longitude: lng
       }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, title: data.title, description: data.description, tags: data.tags, start_time: data.start_time, end_time: data.end_time } : p))
+      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
       setModal(null)
+      setEditLocation(null)
     }
-  }, [modal, title, description, tags, startTime, endTime, csrfToken])
+  }, [modal, addLocation, editLocation, title, description, tags, startTime, endTime, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -176,6 +222,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onMapClick={onMapClick}
           onEdit={onEdit}
           onDelete={onDelete}
+          pickingLocation={pickingLocation}
+          onMapClickSetLocation={onMapClickSetLocation}
         />
       )}
       {modal && modal.mode === "login-required" && (
@@ -194,8 +242,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             setStartTime={setStartTime}
             endTime={endTime}
             setEndTime={setEndTime}
+            latitude={modal.mode === "add" ? (addLocation?.lat ?? modal.lat) : (editLocation?.lat ?? modal.pin.latitude)}
+            longitude={modal.mode === "add" ? (addLocation?.lng ?? modal.lng) : (editLocation?.lng ?? modal.pin.longitude)}
+            onStartPickOnMap={onStartPickOnMap}
+            onLocationFromSearch={onLocationFromSearch}
+            onLocationFromGPS={onLocationFromGPS}
             mode={modal.mode}
-            onCancel={() => setModal(null)}
+            onCancel={() => { setModal(null); setPickingLocation(false); setEditLocation(null) }}
             onSave={onSave}
             onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
             canDelete={canDelete}

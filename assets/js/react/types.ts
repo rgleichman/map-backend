@@ -29,6 +29,14 @@ export type UpdatePin = {
   tags: string[]
   start_time?: string // ISO string
   end_time?: string // ISO string
+  latitude?: number
+  longitude?: number
+}
+
+export type GeocodeResult = {
+  lat: number
+  lng: number
+  display_name: string
 }
 
 

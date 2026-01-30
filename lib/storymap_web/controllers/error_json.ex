@@ -12,6 +12,11 @@ defmodule StorymapWeb.ErrorJSON do
   #   %{errors: %{detail: "Internal Server Error"}}
   # end
 
+  # Custom message for 502 (upstream service failure)
+  def render(:"502", _assigns) do
+    %{errors: %{detail: "Bad Gateway"}}
+  end
+
   # By default, Phoenix returns the status message from
   # the template name. For example, "404.json" becomes
   # "Not Found".

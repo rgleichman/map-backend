@@ -26,7 +26,7 @@ Storymap is a collaborative map application where users can add location markers
   - Title (required)
   - Description (optional)
   - Tags (optional, multiple tags per pin)
-  - Location (latitude/longitude from map click)
+  - Location (latitude/longitude). Users can set or change the new pin's location using: (1) "Set location on map" then tapping the desired point on the map, (2) searching for a place or address and selecting a result, or (3) "Use my location" to set the pin to their current GPS position.
 
 #### Editing Pins
 
@@ -34,6 +34,7 @@ Storymap is a collaborative map application where users can add location markers
 - **Behavior**: 
   - Only the pin owner can see edit controls for their pins
   - Users can edit the title, description, and tags of their own pins
+  - Users can edit the pin's location by: (1) tapping "Change location on map" and then tapping the desired point on the map, (2) searching for a place or address and selecting it, or (3) using "Use my location" to set the pin to their current GPS position. The new position is saved when they click Save.
   - Non-logged-in users do not see edit controls
 
 #### Deleting Pins

@@ -9,12 +9,18 @@ type Props = {
   onMapClick: (lng: number, lat: number) => void
   onEdit: (pinId: number) => void
   onDelete: (pinId: number) => void
+  pickingLocation?: boolean
+  onMapClickSetLocation?: (lng: number, lat: number) => void
 }
 
-export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete }: Props) {
+export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
+  const pickingLocationRef = useRef(pickingLocation)
+  const onMapClickSetLocationRef = useRef(onMapClickSetLocation)
+  pickingLocationRef.current = pickingLocation
+  onMapClickSetLocationRef.current = onMapClickSetLocation
   const [mapReady, setMapReady] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
 
@@ -51,6 +57,11 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       mapRef.current = map
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
+
+        if (pickingLocationRef.current && onMapClickSetLocationRef.current) {
+          onMapClickSetLocationRef.current(e.lngLat.lng, e.lngLat.lat)
+          return
+        }
 
         // Check if any popup is currently visible in the DOM
         const hasVisiblePopup = document.querySelector('.maplibregl-popup') !== null
@@ -212,6 +223,11 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
 
   return (
     <div className="relative w-full h-full">
+      {pickingLocation && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
+          Tap on the map to set location
+        </div>
+      )}
       {tagFilter && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
           <span className="font-medium text-base-content">Filtered by tag:</span>

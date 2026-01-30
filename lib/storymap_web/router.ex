@@ -32,10 +32,16 @@ defmodule StorymapWeb.Router do
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
     get "/map/style", MapController, :style
+    get "/geocode", GeocodeController, :index
   end
 
   scope "/api", StorymapWeb do
-    pipe_through [:api, :fetch_session, :fetch_current_scope_for_user, :require_authenticated_user]
+    pipe_through [
+      :api,
+      :fetch_session,
+      :fetch_current_scope_for_user,
+      :require_authenticated_user
+    ]
 
     # Authenticated write operations
     post "/pins", PinController, :create
