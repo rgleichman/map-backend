@@ -204,6 +204,9 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>End:</b> ${formatDateTime(pin.end_time)}</span>
             </div>` : ""}
             ${tagsHtml}
+            <div style="margin-top: 0.5em;">
+              <a href="geo:${pin.latitude},${pin.longitude}" target="_blank" rel="noopener noreferrer" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #3182ce; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">Get directions</a>
+            </div>
             ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
               <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
               <button data-pin-action=\"delete\" data-pin-id=\"${pin.id}\" style=\"padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;\">Delete</button>
