@@ -42,7 +42,6 @@ export default function PinModal({
   const [locationSearching, setLocationSearching] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [gpsError, setGpsError] = useState<string | null>(null)
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
 
   const handleAddTag = () => {
@@ -57,26 +56,22 @@ export default function PinModal({
     setTags(tags.filter(t => t !== tag))
   }
 
-  useEffect(() => {
-    if (locationSearch.trim().length < 2) {
+  const handleSearchLocation = useCallback(() => {
+    const q = locationSearch.trim()
+    if (q.length < 2) {
       setLocationResults([])
+      setLocationError("Enter at least 2 characters")
       return
     }
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    searchTimeoutRef.current = setTimeout(() => {
-      setLocationSearching(true)
-      setLocationError(null)
-      api.searchLocation(locationSearch)
-        .then(({ data }) => setLocationResults(data || []))
-        .catch(() => {
-          setLocationError("Search failed")
-          setLocationResults([])
-        })
-        .finally(() => setLocationSearching(false))
-    }, 300)
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    }
+    setLocationSearching(true)
+    setLocationError(null)
+    api.searchLocation(q)
+      .then(({ data }) => setLocationResults(data || []))
+      .catch(() => {
+        setLocationError("Search failed")
+        setLocationResults([])
+      })
+      .finally(() => setLocationSearching(false))
   }, [locationSearch])
 
   useEffect(() => {
@@ -156,16 +151,27 @@ export default function PinModal({
             </button>
           </div>
           <div className="relative">
-            <input
-              type="text"
-              value={locationSearch}
-              onChange={(e) => setLocationSearch(e.target.value)}
-              placeholder="Search for a place or address"
-              className="w-full px-3 py-2 rounded border"
-            />
-            {locationSearching && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-base-content/60">Searching…</span>
-            )}
+            <div className="flex gap-2 mb-1">
+              <input
+                type="text"
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchLocation())}
+                placeholder="Search for a place or address"
+                className="flex-1 px-3 py-2 rounded border"
+              />
+              <button
+                type="button"
+                onClick={handleSearchLocation}
+                disabled={locationSearching}
+                className="btn btn-sm btn-outline"
+              >
+                {locationSearching ? "Searching…" : "Search"}
+              </button>
+            </div>
+            <p className="text-xs text-base-content/60 mt-1">
+              Search by <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a>
+            </p>
             {locationError && (
               <p className="text-sm text-error mt-1">{locationError}</p>
             )}

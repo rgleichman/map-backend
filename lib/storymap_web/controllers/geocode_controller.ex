@@ -17,15 +17,22 @@ defmodule StorymapWeb.GeocodeController do
       |> put_view(json: StorymapWeb.ErrorJSON)
       |> render(:"400")
     else
-      case geocode(q) do
+      case Storymap.GeocodeCache.get(q) do
         {:ok, results} ->
           render(conn, :index, results: results)
 
-        {:error, _} ->
-          conn
-          |> put_status(:bad_gateway)
-          |> put_view(json: StorymapWeb.ErrorJSON)
-          |> render(:"502")
+        :miss ->
+          case geocode(q) do
+            {:ok, results} ->
+              Storymap.GeocodeCache.put(q, results)
+              render(conn, :index, results: results)
+
+            {:error, _} ->
+              conn
+              |> put_status(:bad_gateway)
+              |> put_view(json: StorymapWeb.ErrorJSON)
+              |> render(:"502")
+          end
       end
     end
   end
