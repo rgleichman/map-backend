@@ -214,7 +214,7 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
         marker = new Marker().setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
         known.set(pin.id, marker)
       } else {
-        // update popup if title changed
+        marker.setLngLat([pin.longitude, pin.latitude])
         const popup = marker.getPopup()
         popup?.setHTML(popupHtml)
       }
