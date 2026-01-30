@@ -249,9 +249,11 @@ defmodule Storymap.Accounts do
       # Delete all pins for the user
       from(p in Storymap.Pins.Pin, where: p.user_id == ^user.id)
       |> Repo.delete_all()
+
       # Delete all tokens for the user
       from(t in UserToken, where: t.user_id == ^user.id)
       |> Repo.delete_all()
+
       # Delete the user
       Repo.delete(user)
     end)

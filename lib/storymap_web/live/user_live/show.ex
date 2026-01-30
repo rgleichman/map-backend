@@ -13,8 +13,11 @@ defmodule StorymapWeb.UserLive.Show do
           id: user.id,
           confirmed_at: user.confirmed_at
         }
+
         {:ok, assign(socket, user: safe_user_data, not_found: false)}
-      :error -> {:ok, assign(socket, not_found: true)}
+
+      :error ->
+        {:ok, assign(socket, not_found: true)}
     end
   end
 

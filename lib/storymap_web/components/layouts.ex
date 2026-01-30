@@ -104,6 +104,7 @@ defmodule StorymapWeb.Layouts do
 
   def nav_menu_items(assigns) do
     assigns = assign(assigns, :github_url, @github_repo)
+
     ~H"""
     <%= if @current_path != "/" && @current_path != "/map" do %>
       <li>
@@ -118,14 +119,21 @@ defmodule StorymapWeb.Layouts do
       <%= if @variant == "desktop" do %>
         <button id="party-button" class="btn btn-ghost">🎉 Party</button>
       <% else %>
-        <button id="party-button-mobile" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">🎉 Party</button>
+        <button
+          id="party-button-mobile"
+          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+        >
+          🎉 Party
+        </button>
       <% end %>
     </li>
     <li>
       <%= if @variant == "desktop" do %>
         <a href={@github_url} class="btn btn-ghost">GitHub</a>
       <% else %>
-        <a href={@github_url} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">GitHub</a>
+        <a href={@github_url} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">
+          GitHub
+        </a>
       <% end %>
     </li>
     <%= if @current_scope do %>
@@ -140,14 +148,25 @@ defmodule StorymapWeb.Layouts do
         <%= if @variant == "desktop" do %>
           <.link href={~p"/users/settings"}>Settings</.link>
         <% else %>
-          <.link href={~p"/users/settings"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Settings</.link>
+          <.link
+            href={~p"/users/settings"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Settings
+          </.link>
         <% end %>
       </li>
       <li>
         <%= if @variant == "desktop" do %>
           <.link href={~p"/users/log-out"} method="delete">Log out</.link>
         <% else %>
-          <.link href={~p"/users/log-out"} method="delete" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Log out</.link>
+          <.link
+            href={~p"/users/log-out"}
+            method="delete"
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Log out
+          </.link>
         <% end %>
       </li>
     <% else %>
@@ -155,18 +174,27 @@ defmodule StorymapWeb.Layouts do
         <%= if @variant == "desktop" do %>
           <.link href={~p"/users/register"}>Register</.link>
         <% else %>
-          <.link href={~p"/users/register"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Register</.link>
+          <.link
+            href={~p"/users/register"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Register
+          </.link>
         <% end %>
       </li>
       <li>
         <%= if @variant == "desktop" do %>
           <.link href={~p"/users/log-in"}>Log in</.link>
         <% else %>
-          <.link href={~p"/users/log-in"} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Log in</.link>
+          <.link
+            href={~p"/users/log-in"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Log in
+          </.link>
         <% end %>
       </li>
     <% end %>
     """
   end
-
 end

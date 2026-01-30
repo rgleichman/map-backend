@@ -12,11 +12,13 @@ defmodule Storymap.Tags do
   """
   def get_or_create_tag_by_name(name) do
     lowercase_name = String.downcase(name)
+
     case Repo.get_by(Tag, name: lowercase_name) do
       nil ->
         %Tag{}
         |> Tag.changeset(%{name: lowercase_name})
         |> Repo.insert()
+
       tag ->
         {:ok, tag}
     end

@@ -6,7 +6,8 @@ defmodule Storymap.GeocodeCache do
   use GenServer
 
   @table :storymap_geocode_cache
-  @ttl_seconds 86_400  # 24 hours
+  # 24 hours
+  @ttl_seconds 86_400
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)

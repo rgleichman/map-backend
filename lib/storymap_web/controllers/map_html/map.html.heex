@@ -1,9 +1,9 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div id="react-root"
-       data-user-id={@current_scope && @current_scope.user && @current_scope.user.id}
-       data-csrf={get_csrf_token()}
-       data-style-url={~p"/api/map/style"}
-       class="h-full w-full" />
+  <div
+    id="react-root"
+    data-user-id={@current_scope && @current_scope.user && @current_scope.user.id}
+    data-csrf={get_csrf_token()}
+    data-style-url={~p"/api/map/style"}
+    class="h-full w-full"
+  />
 </Layouts.app>
-
-

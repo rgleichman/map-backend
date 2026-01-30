@@ -37,8 +37,7 @@ defmodule StorymapWeb.UserLive.Settings do
           class="btn btn-error btn-outline w-full max-w-xs text-base font-semibold"
           phx-click="show_delete_modal"
         >
-          <.icon name="hero-trash" class="w-5 h-5 mr-2" />
-          Delete Account
+          <.icon name="hero-trash" class="w-5 h-5 mr-2" /> Delete Account
         </.button>
       </div>
 
@@ -84,7 +83,10 @@ defmodule StorymapWeb.UserLive.Settings do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full" style="width: fit-content;">
+    <div
+      class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full"
+      style="width: fit-content;"
+    >
       <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
 
       <button
@@ -141,6 +143,7 @@ defmodule StorymapWeb.UserLive.Settings do
 
     {:ok, socket}
   end
+
   @impl true
   def handle_event("show_delete_modal", _params, socket) do
     {:noreply, assign(socket, :show_delete_modal, true)}
@@ -154,20 +157,20 @@ defmodule StorymapWeb.UserLive.Settings do
   @impl true
   def handle_event("confirm_delete_account", _params, socket) do
     user = socket.assigns.current_scope.user
+
     case Storymap.Accounts.delete_user(user) do
       {:ok, _} ->
         {:noreply,
-          socket
-          |> assign(:show_delete_modal, false)
-          |> Phoenix.LiveView.redirect(to: "/")
-          |> put_flash(:info, "Your account has been deleted.")
-        }
+         socket
+         |> assign(:show_delete_modal, false)
+         |> Phoenix.LiveView.redirect(to: "/")
+         |> put_flash(:info, "Your account has been deleted.")}
+
       {:error, _reason} ->
         {:noreply,
-          socket
-          |> assign(:show_delete_modal, false)
-          |> put_flash(:error, "There was a problem deleting your account. Please try again.")
-        }
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, "There was a problem deleting your account. Please try again.")}
     end
   end
 

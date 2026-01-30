@@ -8,6 +8,7 @@ defmodule StorymapWeb.PinController do
 
   def index(conn, _params) do
     pins = Pins.list_pins()
+
     # Only include user_id if user is authenticated (prevents user enumeration for unauthenticated users)
     render(conn, :index, pins: pins, current_user_id: get_current_user_id(conn))
   end
@@ -29,9 +30,12 @@ defmodule StorymapWeb.PinController do
       # Creator receives full pin data (with user_id) from API response
       StorymapWeb.Endpoint.broadcast(
         "map:world",
-        "marker_added", %{
+        "marker_added",
+        %{
           pin: StorymapWeb.PinJSON.data(pin)
-        })
+        }
+      )
+
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/pins/#{pin}")
@@ -61,9 +65,12 @@ defmodule StorymapWeb.PinController do
         # Editor receives full pin data (with user_id) from API response
         StorymapWeb.Endpoint.broadcast(
           "map:world",
-          "marker_updated", %{
+          "marker_updated",
+          %{
             pin: StorymapWeb.PinJSON.data(pin)
-          })
+          }
+        )
+
         render(conn, :show, pin: pin, current_user_id: current_user_id)
       end
     end
@@ -80,13 +87,17 @@ defmodule StorymapWeb.PinController do
       |> render(:"403")
     else
       pin_id = pin.id
+
       with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
         # Broadcast deletion to all users
         StorymapWeb.Endpoint.broadcast(
           "map:world",
-          "marker_deleted", %{
+          "marker_deleted",
+          %{
             pin_id: pin_id
-          })
+          }
+        )
+
         send_resp(conn, :no_content, "")
       end
     end

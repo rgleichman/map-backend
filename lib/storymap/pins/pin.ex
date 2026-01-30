@@ -2,15 +2,27 @@ defmodule Storymap.Pins.Pin do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:id, :title, :latitude, :longitude, :inserted_at, :updated_at, :description, :icon_url]}
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :title,
+             :latitude,
+             :longitude,
+             :inserted_at,
+             :updated_at,
+             :description,
+             :icon_url
+           ]}
 
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
     field :title, :string
     field :latitude, :float
     field :longitude, :float
-    field :description, :string # description of the pin in markdown format
-    field :icon_url, :string # icon image url for the pin
+    # description of the pin in markdown format
+    field :description, :string
+    # icon image url for the pin
+    field :icon_url, :string
     field :start_time, :utc_datetime
     field :end_time, :utc_datetime
     field :pin_type, :string
@@ -23,7 +35,16 @@ defmodule Storymap.Pins.Pin do
   def changeset(pin, attrs) do
     changeset =
       pin
-      |> cast(attrs, [:title, :latitude, :longitude, :description, :icon_url, :start_time, :end_time, :pin_type])
+      |> cast(attrs, [
+        :title,
+        :latitude,
+        :longitude,
+        :description,
+        :icon_url,
+        :start_time,
+        :end_time,
+        :pin_type
+      ])
       |> validate_required([:title, :latitude, :longitude])
 
     # Set user_id programmatically only for new pins (creation)

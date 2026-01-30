@@ -23,10 +23,21 @@ defmodule Storymap.Pins do
   end
 
   def list_pins(current_user_id) do
-    Repo.all(from p in Pin, select: %{
-      id: p.id, title: p.title, latitude: p.latitude, longitude: p.longitude,
-      user_id: p.user_id, description: p.description, icon_url: p.icon_url,
-      start_time: p.start_time, end_time: p.end_time, pin_type: p.pin_type})
+    Repo.all(
+      from p in Pin,
+        select: %{
+          id: p.id,
+          title: p.title,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          user_id: p.user_id,
+          description: p.description,
+          icon_url: p.icon_url,
+          start_time: p.start_time,
+          end_time: p.end_time,
+          pin_type: p.pin_type
+        }
+    )
     |> Enum.map(fn pin ->
       Map.put(pin, :is_owner, pin.user_id == current_user_id)
     end)
@@ -64,6 +75,7 @@ defmodule Storymap.Pins do
     attrs_with_user = Map.put(attrs, "user_id", user_id)
     tags = Map.get(attrs, "tags", [])
     tag_structs = Storymap.Tags.get_or_create_tags_by_names(tags)
+
     %Pin{}
     |> Pin.changeset(attrs_with_user)
     |> Ecto.Changeset.put_assoc(:tags, tag_structs)
@@ -85,6 +97,7 @@ defmodule Storymap.Pins do
   def update_pin(%Pin{} = pin, attrs) do
     tags = Map.get(attrs, "tags", [])
     tag_structs = Storymap.Tags.get_or_create_tags_by_names(tags)
+
     pin
     |> Pin.changeset(attrs)
     |> Ecto.Changeset.put_assoc(:tags, tag_structs)

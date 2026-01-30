@@ -35,32 +35,40 @@
   <body>
     <div class="drawer h-full">
       <input type="checkbox" id="drawer-toggle" class="drawer-toggle" />
-      
+
       <div class="drawer-content flex flex-col h-full">
         <!-- Navigation bar with hamburger (mobile) and horizontal menu (desktop) -->
         <div class="w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 flex-shrink-0">
           <!-- Horizontal menu (desktop only) -->
           <ul class="menu menu-horizontal hidden md:flex items-center gap-4 ml-auto">
-            <.nav_menu_items variant="desktop" current_path={@conn.request_path} current_scope={@current_scope} />
+            <.nav_menu_items
+              variant="desktop"
+              current_path={@conn.request_path}
+              current_scope={@current_scope}
+            />
           </ul>
           
-          <!-- Hamburger button (mobile only) -->
+<!-- Hamburger button (mobile only) -->
           <label for="drawer-toggle" class="btn btn-ghost drawer-button md:hidden ml-auto">
             <.icon name="hero-bars-3" class="size-6" />
           </label>
         </div>
         
-        <!-- Page content -->
+<!-- Page content -->
         <div class="flex-1 min-h-0">
           {@inner_content}
         </div>
       </div>
       
-      <!-- Drawer side menu (mobile) -->
+<!-- Drawer side menu (mobile) -->
       <div class="drawer-side">
         <label for="drawer-toggle" class="drawer-overlay"></label>
         <ul class="flex flex-col py-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
-          <.nav_menu_items variant="mobile" current_path={@conn.request_path} current_scope={@current_scope} />
+          <.nav_menu_items
+            variant="mobile"
+            current_path={@conn.request_path}
+            current_scope={@current_scope}
+          />
         </ul>
       </div>
     </div>
