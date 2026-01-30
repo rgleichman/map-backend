@@ -51,10 +51,15 @@ defmodule StorymapWeb.GeocodeController do
         results =
           body
           |> Enum.take(@limit)
-          |> Enum.map(fn item ->
+          |> Enum.flat_map(fn item ->
             lat = parse_float(item["lat"])
             lon = parse_float(item["lon"])
-            %{lat: lat, lng: lon, display_name: item["display_name"] || ""}
+
+            if lat != nil and lon != nil do
+              [%{lat: lat, lng: lon, display_name: item["display_name"] || ""}]
+            else
+              []
+            end
           end)
 
         {:ok, results}
@@ -64,16 +69,16 @@ defmodule StorymapWeb.GeocodeController do
     end
   end
 
-  defp parse_float(nil), do: 0.0
+  defp parse_float(nil), do: nil
 
   defp parse_float(n) when is_number(n), do: n * 1.0
 
   defp parse_float(s) when is_binary(s) do
     case Float.parse(s) do
       {f, _} -> f
-      :error -> 0.0
+      :error -> nil
     end
   end
 
-  defp parse_float(_), do: 0.0
+  defp parse_float(_), do: nil
 end
