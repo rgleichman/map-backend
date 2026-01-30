@@ -32,15 +32,15 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       const style = await fetch(styleUrl).then((r) => r.json())
       if (!isMounted) return
       const control = new MapLibreSearchControl({
-          onResultSelected: feature => {
-            // You can add code here to take some action when a result is selected.
-            console.log(feature.geometry.coordinates);
-          },
-          // You can also use our EU endpoint to keep traffic within the EU using the basePath option:
-          // baseUrl: "https://api-eu.stadiamaps.com",
+        onResultSelected: feature => {
+          // You can add code here to take some action when a result is selected.
+          console.log(feature.geometry.coordinates);
+        },
+        // You can also use our EU endpoint to keep traffic within the EU using the basePath option:
+        // baseUrl: "https://api-eu.stadiamaps.com",
       });
-      const map = new maplibregl.Map({ 
-        container: containerRef.current!, 
+      const map = new maplibregl.Map({
+        container: containerRef.current!,
         style,
         center: [0, 0],
         zoom: 2
@@ -51,15 +51,15 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       mapRef.current = map
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
-        
+
         // Check if any popup is currently visible in the DOM
         const hasVisiblePopup = document.querySelector('.maplibregl-popup') !== null
-        
+
         // Check if there's an open popup - if so, just let it close without creating a pin
         if (hasVisiblePopup) {
           return
         }
-        
+
         // ignore clicks on markers
         let cur: HTMLElement | null | undefined = el
         while (cur) {
@@ -108,9 +108,9 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-  const filteredPins = tagFilter
-    ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
-    : pins
+    const filteredPins = tagFilter
+      ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
+      : pins
 
     const handlePopupClick = (e: Event) => {
       const target = e.target as HTMLElement
@@ -166,32 +166,32 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
       const tagsHtml = pin.tags && pin.tags.length > 0
         ? `<div class="flex flex-wrap" style="margin: 0.5em 0;">
             <span style="font-size:0.95em; color:var(--color-base-content); margin-right:0.5em;">Tags:</span>
-            ${pin.tags.map(t => 
-              `<button 
+            ${pin.tags.map(t =>
+          `<button 
                 data-tag="${t}" 
                 style="background:var(--color-base-200); color:var(--color-base-content); border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em; border:none; cursor:pointer;"
               >${t}</button>`
-            ).join('')}
+        ).join('')}
           </div>`
         : ""
-        // Format date/time for display
-        const formatDateTime = (iso?: string) => {
-          if (!iso) return ""
-          try {
-            const d = new Date(iso)
-            return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-          } catch {
-            return iso
-          }
+      // Format date/time for display
+      const formatDateTime = (iso?: string) => {
+        if (!iso) return ""
+        try {
+          const d = new Date(iso)
+          return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+        } catch {
+          return iso
         }
-        const popupHtml = `
+      }
+      const popupHtml = `
           <div>
             <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
             <p>${pin.description || ""}</p>
-            <div style="margin: 0.5em 0;">
+            ${(pin.start_time || pin.end_time) ? `<div style="margin: 0.5em 0;">
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>Start:</b> ${formatDateTime(pin.start_time)}</span><br/>
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>End:</b> ${formatDateTime(pin.end_time)}</span>
-            </div>
+            </div>` : ""}
             ${tagsHtml}
             ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
               <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
