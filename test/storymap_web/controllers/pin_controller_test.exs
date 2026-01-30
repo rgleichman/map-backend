@@ -28,6 +28,8 @@ defmodule StorymapWeb.PinControllerTest do
   end
 
   describe "create pin" do
+    setup :register_and_log_in_user
+
     test "renders pin when data is valid", %{conn: conn} do
       conn = post(conn, ~p"/api/pins", pin: @create_attrs)
       assert %{"id" => id} = json_response(conn, 201)["data"]
@@ -49,7 +51,7 @@ defmodule StorymapWeb.PinControllerTest do
   end
 
   describe "update pin" do
-    setup [:create_pin]
+    setup [:register_and_log_in_user, :create_pin]
 
     test "renders pin when data is valid", %{conn: conn, pin: %Pin{id: id} = pin} do
       conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
@@ -72,7 +74,7 @@ defmodule StorymapWeb.PinControllerTest do
   end
 
   describe "delete pin" do
-    setup [:create_pin]
+    setup [:register_and_log_in_user, :create_pin]
 
     test "deletes chosen pin", %{conn: conn, pin: pin} do
       conn = delete(conn, ~p"/api/pins/#{pin}")
@@ -84,9 +86,8 @@ defmodule StorymapWeb.PinControllerTest do
     end
   end
 
-  defp create_pin(_) do
-    pin = pin_fixture()
-
-    %{pin: pin}
+  defp create_pin(%{conn: conn, user: user}) do
+    pin = pin_fixture(%{}, user)
+    %{conn: conn, pin: pin}
   end
 end

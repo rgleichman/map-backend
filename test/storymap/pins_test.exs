@@ -3,12 +3,14 @@ defmodule Storymap.PinsTest do
 
   alias Storymap.Pins
 
+  import Storymap.PinsFixtures
+  import Storymap.AccountsFixtures
+
   describe "pins" do
     alias Storymap.Pins.Pin
 
-    import Storymap.PinsFixtures
-
-    @invalid_attrs %{title: nil, latitude: nil, longitude: nil}
+    @valid_attrs %{"title" => "some title", "latitude" => 120.5, "longitude" => 120.5}
+    @invalid_attrs %{"title" => nil, "latitude" => nil, "longitude" => nil}
 
     test "list_pins/0 returns all pins" do
       pin = pin_fixture()
@@ -20,22 +22,23 @@ defmodule Storymap.PinsTest do
       assert Pins.get_pin!(pin.id) == pin
     end
 
-    test "create_pin/1 with valid data creates a pin" do
-      valid_attrs = %{title: "some title", latitude: 120.5, longitude: 120.5}
+    test "create_pin/2 with valid data creates a pin" do
+      user = user_fixture()
 
-      assert {:ok, %Pin{} = pin} = Pins.create_pin(valid_attrs)
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(@valid_attrs, user.id)
       assert pin.title == "some title"
       assert pin.latitude == 120.5
       assert pin.longitude == 120.5
     end
 
-    test "create_pin/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Pins.create_pin(@invalid_attrs)
+    test "create_pin/2 with invalid data returns error changeset" do
+      user = user_fixture()
+      assert {:error, %Ecto.Changeset{}} = Pins.create_pin(@invalid_attrs, user.id)
     end
 
     test "update_pin/2 with valid data updates the pin" do
       pin = pin_fixture()
-      update_attrs = %{title: "some updated title", latitude: 456.7, longitude: 456.7}
+      update_attrs = %{"title" => "some updated title", "latitude" => 456.7, "longitude" => 456.7}
 
       assert {:ok, %Pin{} = pin} = Pins.update_pin(pin, update_attrs)
       assert pin.title == "some updated title"
@@ -45,7 +48,8 @@ defmodule Storymap.PinsTest do
 
     test "update_pin/2 with invalid data returns error changeset" do
       pin = pin_fixture()
-      assert {:error, %Ecto.Changeset{}} = Pins.update_pin(pin, @invalid_attrs)
+      bad_attrs = %{"title" => nil, "latitude" => nil, "longitude" => nil}
+      assert {:error, %Ecto.Changeset{}} = Pins.update_pin(pin, bad_attrs)
       assert pin == Pins.get_pin!(pin.id)
     end
 
