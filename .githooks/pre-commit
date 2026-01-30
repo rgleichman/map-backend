@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run project precommit checks before allowing a commit.
+mix precommit
