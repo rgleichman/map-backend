@@ -229,7 +229,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       {modal && modal.mode === "login-required" && (
         <LoginRequiredModal onClose={() => setModal(null)} />
       )}
-      {modal && (modal.mode === "add" || modal.mode === "edit") && (
+      {modal && (modal.mode === "add" || modal.mode === "edit") && !pickingLocation && (
         <>
           <PinModal
             title={title}
@@ -255,7 +255,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           />
           {timeError && (
             <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-              <div className="absolute bg-red-600 text-white px-4 py-2 rounded shadow-lg pointer-events-auto" style={{top: '10%'}}>⏰ {timeError}</div>
+              <div className="absolute bg-red-600 text-white px-4 py-2 rounded shadow-lg pointer-events-auto" style={{ top: '10%' }}>⏰ {timeError}</div>
             </div>
           )}
         </>
