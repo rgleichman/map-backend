@@ -110,7 +110,7 @@ export default function PinModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="pin-modal-content rounded-lg min-w-[300px] max-h-[90vh] overflow-y-auto shadow-xl p-6">
+      <div className="pin-modal-content rounded-lg min-w-[300px] max-h-[100vh] overflow-y-auto shadow-xl p-6">
         <h2 className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
         <input
           id="pin-title"
@@ -151,7 +151,7 @@ export default function PinModal({
             </button>
           </div>
           <div className="relative">
-            <div className="flex gap-2 mb-1">
+            <div className="flex flex-col sm:flex-row gap-2 mb-1">
               <input
                 type="text"
                 value={locationSearch}
@@ -164,7 +164,7 @@ export default function PinModal({
                 type="button"
                 onClick={handleSearchLocation}
                 disabled={locationSearching}
-                className="btn btn-sm btn-outline"
+                className="btn btn-sm btn-outline w-full sm:w-auto"
               >
                 {locationSearching ? "Searching…" : "Search"}
               </button>
