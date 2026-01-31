@@ -13,7 +13,14 @@ type Props = {
   styleUrl?: string
 }
 
+const parseInitialPinId = () => {
+  const p = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("pin")
+  const n = p ? parseInt(p, 10) : NaN
+  return Number.isInteger(n) ? n : null
+}
+
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
+  const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
@@ -38,6 +45,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins(data)
     }).finally(() => setLoading(false))
   }, [])
+
+  // Clear stale ?pin= from URL if pin not in list
+  useEffect(() => {
+    if (!loading && initialPinId !== null && !pins.some((p) => p.id === initialPinId)) {
+      const path = window.location.pathname || "/map"
+      window.history.replaceState(null, "", path)
+    }
+  }, [loading, initialPinId, pins])
 
   // Helper function to update or add a pin while preserving is_owner
   const updateOrAddPin = useCallback((pin: Pin) => {
@@ -232,6 +247,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <MapCanvas
           styleUrl={styleUrl}
           pins={pins}
+          initialPinId={initialPinId}
           onMapClick={onMapClick}
           onEdit={onEdit}
           onDelete={onDelete}

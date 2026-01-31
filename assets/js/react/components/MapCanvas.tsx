@@ -6,6 +6,7 @@ import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 type Props = {
   styleUrl: string
   pins: Pin[]
+  initialPinId?: number | null
   onMapClick: (lng: number, lat: number) => void
   onEdit: (pinId: number) => void
   onDelete: (pinId: number) => void
@@ -15,10 +16,11 @@ type Props = {
   onPopupClose?: () => void
 }
 
-export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, onPopupOpen, onPopupClose }: Props) {
+export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
+  const initialPinIdAppliedRef = useRef(false)
   const pickingLocationRef = useRef(pickingLocation)
   const onMapClickSetLocationRef = useRef(onMapClickSetLocation)
   pickingLocationRef.current = pickingLocation
@@ -95,10 +97,10 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
     }
   }, [styleUrl, onMapClick])
 
-  // Get user's location and center map
+  // Get user's location and center map (skip when opening a shared pin link)
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapReady) return
+    if (!map || !mapReady || initialPinId != null) return
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -115,7 +117,7 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
         { enableHighAccuracy: true }
       )
     }
-  }, [mapReady])
+  }, [mapReady, initialPinId])
 
   // Set up event delegation for popup buttons
   useEffect(() => {
@@ -233,7 +235,18 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
         popup?.setHTML(popupHtml)
       }
     })
-  }, [filteredPins, mapReady])
+
+    // Open shared-link pin once when marker exists
+    if (initialPinId != null && !initialPinIdAppliedRef.current) {
+      const marker = known.get(initialPinId)
+      const pin = filteredPins.find((p) => p.id === initialPinId)
+      if (marker && pin) {
+        initialPinIdAppliedRef.current = true
+        map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
+        marker.togglePopup()
+      }
+    }
+  }, [filteredPins, mapReady, initialPinId])
 
   return (
     <div className="relative w-full h-full">
