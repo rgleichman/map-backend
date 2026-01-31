@@ -137,6 +137,15 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
           onEdit(pinId)
         } else if (action === 'delete') {
           onDelete(pinId)
+        } else if (action === 'copy-link') {
+          const path = window.location.pathname || '/map'
+          const url = `${window.location.origin}${path}?pin=${pinId}`
+          navigator.clipboard.writeText(url).then(() => {
+            const btn = target
+            const originalText = btn.textContent
+            btn.textContent = 'Copied!'
+            setTimeout(() => { btn.textContent = originalText }, 1500)
+          })
         }
       } else if (target.matches('[data-tag]')) {
         e.stopPropagation()
@@ -217,6 +226,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             ${tagsHtml}
             <div style="margin-top: 0.5em;">
               <a href="${openInMapsUrl}" target="_blank" rel="noopener noreferrer" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #3182ce; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">Get directions</a>
+              <button data-pin-action="copy-link" data-pin-id="${pin.id}" style="padding: 0.3em 0.6em; background: var(--color-base-200); color: var(--color-base-content); border: none; border-radius: 4px; cursor: pointer;">Copy link</button>
             </div>
             ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
               <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
