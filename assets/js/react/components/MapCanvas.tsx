@@ -11,9 +11,11 @@ type Props = {
   onDelete: (pinId: number) => void
   pickingLocation?: boolean
   onMapClickSetLocation?: (lng: number, lat: number) => void
+  onPopupOpen?: (pinId: number) => void
+  onPopupClose?: () => void
 }
 
-export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation }: Props) {
+export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
@@ -221,6 +223,8 @@ export default function MapCanvas({ styleUrl, pins, onMapClick, onEdit, onDelete
           </div>`
       if (!marker) {
         const popup = new Popup().setHTML(popupHtml)
+        popup.on("open", () => onPopupOpen?.(pin.id))
+        popup.on("close", () => onPopupClose?.())
         marker = new Marker().setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
         known.set(pin.id, marker)
       } else {

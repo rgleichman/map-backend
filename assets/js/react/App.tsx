@@ -213,6 +213,19 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
+  const onPopupOpen = useCallback((pinId: number) => {
+    const path = window.location.pathname || "/map"
+    window.history.replaceState(null, "", `${path}?pin=${pinId}`)
+  }, [])
+  const onPopupClose = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (document.querySelector(".maplibregl-popup") === null) {
+        const path = window.location.pathname || "/map"
+        window.history.replaceState(null, "", path)
+      }
+    })
+  }, [])
+
   return (
     <div className="w-full h-full">
       {!loading && (
@@ -224,6 +237,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onDelete={onDelete}
           pickingLocation={pickingLocation}
           onMapClickSetLocation={onMapClickSetLocation}
+          onPopupOpen={onPopupOpen}
+          onPopupClose={onPopupClose}
         />
       )}
       {modal && modal.mode === "login-required" && (
