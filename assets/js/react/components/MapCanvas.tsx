@@ -27,11 +27,27 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onMapClickSetLocationRef.current = onMapClickSetLocation
   const [mapReady, setMapReady] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [timeFilter, setTimeFilter] = useState<"now" | null>("now") // Active by default
 
-  // Filter pins by tag if tagFilter is set
-  const filteredPins = tagFilter
-    ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
-    : pins
+  // Filter pins by tag and time
+  const filteredPins = pins.filter((p) => {
+    // Apply tag filter
+    if (tagFilter && (!p.tags || !p.tags.includes(tagFilter))) {
+      return false
+    }
+    // Apply time filter (show pins open now by default)
+    if (timeFilter === "now") {
+      const now = new Date()
+      if (!p.start_time && !p.end_time) return true // No time restrictions
+      const start = p.start_time ? new Date(p.start_time) : null
+      const end = p.end_time ? new Date(p.end_time) : null
+      if (start && end) return start <= now && now <= end
+      if (start) return start <= now
+      if (end) return now <= end
+      return true
+    }
+    return true
+  })
 
   // Initialize map once
   useEffect(() => {
@@ -265,13 +281,24 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
           Tap on the map to set location
         </div>
       )}
-      {tagFilter && (
+      {(tagFilter || timeFilter) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
-          <span className="font-medium text-base-content">Filtered by tag:</span>
-          <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
+          {timeFilter && (
+            <span className="font-medium text-base-content">Showing pins open now</span>
+          )}
+          {tagFilter && (
+            <>
+              {timeFilter && <span className="text-base-content">•</span>}
+              <span className="font-medium text-base-content">Filtered by tag:</span>
+              <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
+            </>
+          )}
           <button
             className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
-            onClick={() => setTagFilter(null)}
+            onClick={() => {
+              setTagFilter(null)
+              setTimeFilter(null)
+            }}
           >
             Clear Filter
           </button>
