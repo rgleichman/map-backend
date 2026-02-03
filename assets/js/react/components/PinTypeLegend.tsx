@@ -10,8 +10,8 @@ const PIN_TYPES: PinType[] = ["one_time", "scheduled", "food_bank"]
 
 export default function PinTypeLegend({ onSelectType }: Props) {
   return (
-    <div className="absolute bottom-4 right-4 bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-4 z-10 max-w-xs">
-      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 text-sm">Pin Types</h3>
+    <div className="absolute bottom-4 right-4 bg-base-100 rounded-lg shadow-lg p-4 z-10 max-w-xs border border-base-300">
+      <h3 className="font-semibold text-base-content mb-3 text-sm">Pin Types</h3>
       <div className="space-y-2">
         {PIN_TYPES.map((pinType) => {
           const config = getPinTypeConfig(pinType)
@@ -30,12 +30,12 @@ export default function PinTypeLegend({ onSelectType }: Props) {
               >
                 {config.icon}
               </div>
-              <span className="text-zinc-700 dark:text-zinc-300">{config.label}</span>
+              <span className="text-base-content">{config.label}</span>
             </div>
           )
         })}
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3 italic">
+      <p className="text-xs text-base-content/80 mt-3 italic">
         Different colors show different types of food offerings
       </p>
     </div>

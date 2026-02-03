@@ -29,28 +29,28 @@ const PIN_TYPES = [
 
 export default function PinTypeModal({ onSelectType, onCancel }: Props) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-lg max-w-md w-full">
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300">
+        <div className="p-6 border-b border-base-300">
+          <h2 className="text-xl font-semibold text-base-content">
             What type of food offering is this?
           </h2>
         </div>
-        
+
         <div className="p-6 space-y-3">
           {PIN_TYPES.map((pinType) => (
             <button
               key={pinType.type}
               onClick={() => onSelectType(pinType.type)}
-              className="w-full text-left p-4 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              className="w-full text-left p-4 border-2 border-base-300 rounded-lg hover:border-primary hover:bg-base-200 transition-colors text-base-content"
             >
               <div className="flex items-start gap-3">
                 <span className="text-2xl flex-shrink-0">{pinType.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h3 className="font-semibold text-base-content">
                     {pinType.title}
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  <p className="text-sm text-base-content/80 mt-1">
                     {pinType.description}
                   </p>
                 </div>
@@ -59,10 +59,10 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
           ))}
         </div>
 
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">
+        <div className="p-4 border-t border-base-300 flex justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            className="px-4 py-2 text-base-content hover:bg-base-200 rounded transition-colors"
           >
             Cancel
           </button>
