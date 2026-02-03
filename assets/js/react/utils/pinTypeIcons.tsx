@@ -36,20 +36,24 @@ const pinTypeConfigs: Record<PinType, PinTypeConfig> = {
   }
 }
 
+const defaultPinType: PinType = "one_time"
+
 /**
- * Get configuration for a pin type including colors and icon
+ * Get configuration for a pin type including colors and icon.
+ * Falls back to one_time config when pinType is missing or unknown.
  */
-export function getPinTypeConfig(pinType: PinType): PinTypeConfig {
-  return pinTypeConfigs[pinType]
+export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : defaultPinType
+  return pinTypeConfigs[key]
 }
 
 /**
  * Create an SVG marker element for a specific pin type
  * Returns SVG as a data URL suitable for use with MapLibre markers
  */
-export function createPinTypeMarkerSVG(pinType: PinType): string {
+export function createPinTypeMarkerSVG(pinType: PinType | null | undefined): string {
   const config = getPinTypeConfig(pinType)
-  
+
   // SVG marker with emoji icon and type-specific color
   const svg = `
     <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
@@ -92,7 +96,7 @@ export function createPinTypeMarkerSVG(pinType: PinType): string {
  */
 export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
   const config = getPinTypeConfig(pinType)
-  
+
   const element = document.createElement('div')
   element.style.cssText = `
     width: 40px;
@@ -107,7 +111,7 @@ export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
   `
-  
+
   const iconSpan = document.createElement('span')
   iconSpan.textContent = config.icon
   iconSpan.style.cssText = `
@@ -117,7 +121,7 @@ export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
     align-items: center;
     justify-content: center;
   `
-  
+
   element.appendChild(iconSpan)
   return element
 }
@@ -125,8 +129,8 @@ export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
 /**
  * Get label for a pin type
  */
-export function getPinTypeLabel(pinType: PinType): string {
-  return pinTypeConfigs[pinType].label
+export function getPinTypeLabel(pinType: PinType | null | undefined): string {
+  return getPinTypeConfig(pinType).label
 }
 
 /**
