@@ -118,15 +118,10 @@ export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
       <path d="M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
             fill="${config.color}"
             filter="url(#shadow)"/>
-      <circle cx="20" cy="14" r="10" fill="${config.backgroundColor}"/>
+      <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}"/>
       <g transform="${MARKER_ICON_TRANSFORM}" fill="${iconFill}">
         ${config.iconPath}
       </g>
-      <path d="M20 2 C27 2 33 8 33 16 C33 26 20 44 20 44 C20 44 7 26 7 16 C7 8 13 2 20 2 Z"
-            fill="none"
-            stroke="${config.backgroundColor}"
-            stroke-width="1.5"
-            opacity="0.6"/>
     </svg>
   `
 
