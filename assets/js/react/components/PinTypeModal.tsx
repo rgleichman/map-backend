@@ -1,31 +1,11 @@
 import React from "react"
 import type { PinType } from "../types"
+import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
 
 type Props = {
   onSelectType: (type: PinType) => void
   onCancel: () => void
 }
-
-const PIN_TYPES = [
-  {
-    type: "one_time" as const,
-    title: "One-Time Food Offering",
-    description: "A single food offering event at a specific time",
-    icon: "🍕"
-  },
-  {
-    type: "scheduled" as const,
-    title: "Scheduled Food Offering",
-    description: "Recurring food offerings on a regular schedule",
-    icon: "📅"
-  },
-  {
-    type: "food_bank" as const,
-    title: "Food Bank / Pantry",
-    description: "A food bank or pantry with regular open hours",
-    icon: "🏪"
-  }
-]
 
 export default function PinTypeModal({ onSelectType, onCancel }: Props) {
   return (
@@ -38,25 +18,37 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
         </div>
 
         <div className="p-6 space-y-3">
-          {PIN_TYPES.map((pinType) => (
-            <button
-              key={pinType.type}
-              onClick={() => onSelectType(pinType.type)}
-              className="w-full text-left p-4 border-2 border-base-300 rounded-lg hover:border-primary hover:bg-base-200 transition-colors text-base-content"
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-2xl flex-shrink-0">{pinType.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-base-content">
-                    {pinType.title}
-                  </h3>
-                  <p className="text-sm text-base-content/80 mt-1">
-                    {pinType.description}
-                  </p>
+          {PIN_TYPES.map((type) => {
+            const config = getPinTypeConfig(type)
+            return (
+              <button
+                key={type}
+                onClick={() => onSelectType(type)}
+                className="w-full text-left p-4 border-2 border-base-300 rounded-lg hover:border-primary hover:bg-base-200 transition-colors text-base-content"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className="flex-shrink-0 rounded-full flex items-center justify-center w-10 h-10"
+                    style={{
+                      backgroundColor: config.backgroundColor,
+                      color: config.textColor,
+                      border: `2px solid ${config.borderColor}`
+                    }}
+                  >
+                    <PinTypeIcon pinType={type} size={24} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base-content">
+                      {config.label}
+                    </h3>
+                    <p className="text-sm text-base-content/80 mt-1">
+                      {config.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
 
         <div className="p-4 border-t border-base-300 flex justify-end">
