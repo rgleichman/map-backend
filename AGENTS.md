@@ -24,6 +24,8 @@ This application uses a **hybrid architecture**:
 - **Phoenix LiveView** for most pages (auth, settings, etc.)
 - **React + TypeScript** for complex interactive pages (map interface)
 
+The application should work for both **desktop** and **cross-platform mobile web**; design and implement with responsive layouts and touch-friendly interactions where appropriate.
+
 ### JS and CSS guidelines
 
 - **Always use light and dark theme variants for colors** so UI respects the user's theme (e.g. Tailwind `dark:` or theme CSS variables).
