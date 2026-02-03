@@ -3,6 +3,7 @@ import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
 import PinTypeModal from "./components/PinTypeModal"
+import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
@@ -259,18 +260,21 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   return (
     <div className="w-full h-full">
       {!loading && (
-        <MapCanvas
-          styleUrl={styleUrl}
-          pins={pins}
-          initialPinId={initialPinId}
-          onMapClick={onMapClick}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          pickingLocation={pickingLocation}
-          onMapClickSetLocation={onMapClickSetLocation}
-          onPopupOpen={onPopupOpen}
-          onPopupClose={onPopupClose}
-        />
+        <>
+          <MapCanvas
+            styleUrl={styleUrl}
+            pins={pins}
+            initialPinId={initialPinId}
+            onMapClick={onMapClick}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            pickingLocation={pickingLocation}
+            onMapClickSetLocation={onMapClickSetLocation}
+            onPopupOpen={onPopupOpen}
+            onPopupClose={onPopupClose}
+          />
+          <PinTypeLegend />
+        </>
       )}
       {modal && modal.mode === "login-required" && (
         <LoginRequiredModal onClose={() => setModal(null)} />

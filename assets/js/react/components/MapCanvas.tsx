@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin } from "../types"
+import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 
 type Props = {
@@ -253,7 +254,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         const popup = new Popup().setHTML(popupHtml)
         popup.on("open", () => onPopupOpen?.(pin.id))
         popup.on("close", () => onPopupClose?.())
-        marker = new Marker().setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
+        const markerElement = createPinTypeMarkerElement(pin.pin_type)
+        marker = new Marker({ element: markerElement }).setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
         known.set(pin.id, marker)
       } else {
         marker.setLngLat([pin.longitude, pin.latitude])
