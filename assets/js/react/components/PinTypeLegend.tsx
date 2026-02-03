@@ -84,7 +84,7 @@ export default function PinTypeLegend({ onSelectType }: Props) {
                   onClick={() => onSelectType?.(pinType)}
                 >
                   <div
-                    className="w-8 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{
                       backgroundColor: config.color,
                       border: `2px solid ${config.borderColor}`,
