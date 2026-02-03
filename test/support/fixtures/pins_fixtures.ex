@@ -16,7 +16,8 @@ defmodule Storymap.PinsFixtures do
       %{
         "latitude" => 120.5,
         "longitude" => 120.5,
-        "title" => "some title"
+        "title" => "some title",
+        "pin_type" => "one_time"
       }
 
     attrs =

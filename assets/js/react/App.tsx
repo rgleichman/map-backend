@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import worldChannel from "../user_socket"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
+import PinTypeModal from "./components/PinTypeModal"
 import LoginRequiredModal from "./components/LoginRequiredModal"
-import type { NewPin, Pin, UpdatePin } from "./types"
+import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css";
 
@@ -23,10 +24,11 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<null | { mode: "add"; lng: number; lat: number } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
+  const [modal, setModal] = useState<null | { mode: "select-type"; lng: number; lat: number } | { mode: "add"; lng: number; lat: number; pinType: PinType } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
   const [addLocation, setAddLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [editLocation, setEditLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [pickingLocation, setPickingLocation] = useState(false)
+  const [pinType, setPinType] = useState<PinType | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState<string[]>([])
@@ -106,6 +108,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setTitle("")
     setDescription("")
     setTags([])
+    setPinType(null)
     setAddLocation({ lat, lng })
     setEditLocation(null)
     setPickingLocation(false)
@@ -114,7 +117,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
     setStartTime(dateToLocalInputValue(now))
     setEndTime(dateToLocalInputValue(inOneHour))
-    setModal({ mode: "add", lng, lat })
+    setModal({ mode: "select-type", lng, lat })
   }, [userId])
 
   const onEdit = useCallback((pinId: number) => {
@@ -145,6 +148,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const onStartPickOnMap = useCallback(() => {
     setPickingLocation(true)
   }, [])
+
+  const onSelectPinType = useCallback((selectedType: PinType) => {
+    if (modal?.mode !== "select-type") return
+    setPinType(selectedType)
+    setModal({ mode: "add", lng: modal.lng, lat: modal.lat, pinType: selectedType })
+  }, [modal])
 
   const onMapClickSetLocation = useCallback((lng: number, lat: number) => {
     setPickingLocation(false)
@@ -194,8 +203,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }
     if (modal.mode === "add") {
       const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
+      if (!pinType) {
+        setTimeError("Please select a pin type")
+        return
+      }
       const payload: NewPin = {
         title,
+        pin_type: pinType,
         description,
         latitude: loc.lat,
         longitude: loc.lng,
@@ -207,6 +221,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins((prev) => [...prev, pinData])
       setModal(null)
       setAddLocation(null)
+      setPinType(null)
     } else if (modal.mode === "edit") {
       const lat = editLocation?.lat ?? modal.pin.latitude
       const lng = editLocation?.lng ?? modal.pin.longitude
@@ -259,6 +274,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       )}
       {modal && modal.mode === "login-required" && (
         <LoginRequiredModal onClose={() => setModal(null)} />
+      )}
+      {modal && modal.mode === "select-type" && (
+        <PinTypeModal
+          onSelectType={onSelectPinType}
+          onCancel={() => { setModal(null); setAddLocation(null); setPinType(null) }}
+        />
       )}
       {modal && (modal.mode === "add" || modal.mode === "edit") && !pickingLocation && (
         <>

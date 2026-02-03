@@ -8,6 +8,7 @@ defmodule Storymap.Pins.Pin do
              :title,
              :latitude,
              :longitude,
+             :pin_type,
              :inserted_at,
              :updated_at,
              :description,
@@ -45,7 +46,8 @@ defmodule Storymap.Pins.Pin do
         :end_time,
         :pin_type
       ])
-      |> validate_required([:title, :latitude, :longitude])
+      |> validate_required([:title, :latitude, :longitude, :pin_type])
+      |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank"])
 
     # Set user_id programmatically only for new pins (creation)
     # This prevents users from changing ownership via user input during updates

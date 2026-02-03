@@ -9,7 +9,7 @@ defmodule Storymap.PinsTest do
   describe "pins" do
     alias Storymap.Pins.Pin
 
-    @valid_attrs %{"title" => "some title", "latitude" => 120.5, "longitude" => 120.5}
+    @valid_attrs %{"title" => "some title", "latitude" => 120.5, "longitude" => 120.5, "pin_type" => "one_time"}
     @invalid_attrs %{"title" => nil, "latitude" => nil, "longitude" => nil}
 
     test "list_pins/0 returns all pins" do

@@ -7,7 +7,8 @@ defmodule StorymapWeb.PinControllerTest do
   @create_attrs %{
     title: "some title",
     latitude: 120.5,
-    longitude: 120.5
+    longitude: 120.5,
+    pin_type: "one_time"
   }
   @update_attrs %{
     title: "some updated title",
@@ -40,7 +41,8 @@ defmodule StorymapWeb.PinControllerTest do
                "id" => ^id,
                "latitude" => 120.5,
                "longitude" => 120.5,
-               "title" => "some title"
+               "title" => "some title",
+               "pin_type" => "one_time"
              } = json_response(conn, 200)["data"]
     end
 

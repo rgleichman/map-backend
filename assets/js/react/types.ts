@@ -1,8 +1,11 @@
+export type PinType = "one_time" | "scheduled" | "food_bank"
+
 export type Pin = {
   id: number
   title: string
   latitude: number
   longitude: number
+  pin_type: PinType
   description?: string
   icon_url?: string
   is_owner?: boolean
@@ -14,6 +17,7 @@ export type Pin = {
 
 export type NewPin = {
   title: string
+  pin_type: PinType
   description?: string
   latitude: number
   longitude: number

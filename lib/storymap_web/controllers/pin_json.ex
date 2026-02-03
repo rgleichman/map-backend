@@ -35,6 +35,7 @@ defmodule StorymapWeb.PinJSON do
       title: pin.title,
       latitude: pin.latitude,
       longitude: pin.longitude,
+      pin_type: pin.pin_type,
       description: pin.description,
       icon_url: pin.icon_url,
       tags: Enum.map(pin.tags || [], & &1.name),
