@@ -17,6 +17,14 @@ defmodule StorymapWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :rate_limit_login do
+    plug StorymapWeb.Plugs.RateLimit, limit: 10, window_sec: 60, format: :html
+  end
+
+  pipeline :rate_limit_api_writes do
+    plug StorymapWeb.Plugs.RateLimit, limit: 60, window_sec: 60, format: :json
+  end
+
   scope "/", StorymapWeb do
     pipe_through :browser
 
@@ -35,10 +43,14 @@ defmodule StorymapWeb.Router do
     get "/geocode", GeocodeController, :index
   end
 
+  # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),
+  # and require_authenticated_user. Clients must send credentials and CSRF for mutations.
   scope "/api", StorymapWeb do
     pipe_through [
       :api,
+      :rate_limit_api_writes,
       :fetch_session,
+      :protect_from_forgery,
       :fetch_current_scope_for_user,
       :require_authenticated_user
     ]
@@ -82,6 +94,11 @@ defmodule StorymapWeb.Router do
   end
 
   scope "/", StorymapWeb do
+    pipe_through [:browser, :rate_limit_login]
+    post "/users/log-in", UserSessionController, :create
+  end
+
+  scope "/", StorymapWeb do
     pipe_through [:browser]
 
     live_session :current_user,
@@ -93,7 +110,6 @@ defmodule StorymapWeb.Router do
       live "/user/:user_id", UserLive.Show, :show
     end
 
-    post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
   end
 end

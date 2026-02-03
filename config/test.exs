@@ -32,6 +32,9 @@ config :swoosh, :api_client, false
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# Disable rate limiting in tests
+config :storymap, StorymapWeb.Plugs.RateLimit, enabled: false
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
