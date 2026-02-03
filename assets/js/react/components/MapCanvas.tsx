@@ -255,7 +255,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         popup.on("open", () => onPopupOpen?.(pin.id))
         popup.on("close", () => onPopupClose?.())
         const markerElement = createPinTypeMarkerElement(pin.pin_type)
-        marker = new Marker({ element: markerElement }).setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
+        marker = new Marker({ element: markerElement, anchor: "bottom" }).setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
         known.set(pin.id, marker)
       } else {
         marker.setLngLat([pin.longitude, pin.latitude])
