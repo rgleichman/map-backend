@@ -102,7 +102,10 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Make LiveView wrapper divs transparent for layout */
-[data-phx-session], [data-phx-teleported-src] { display: contents }
+[data-phx-session],
+[data-phx-teleported-src] {
+  display: contents
+}
 
 /* Fix MapLibre popup contrast to adapt to browser theme */
 .maplibregl-popup-content {
@@ -148,13 +151,19 @@
   border: 1px solid var(--color-base-300) !important;
 }
 
+/* Highlight for the pin at pending location (create/edit) */
+.pin-marker--pending {
+  box-shadow: 0 0 0 3px var(--color-primary);
+}
+
 /* Hide search box when drawer is open */
-#drawer-toggle:checked ~ .drawer-content .maplibre-search-box {
+#drawer-toggle:checked~.drawer-content .maplibre-search-box {
   display: none !important;
 }
 
 /* Global height constraints to prevent scrollbar overflow */
-html, body {
+html,
+body {
   height: 100%;
 }
 

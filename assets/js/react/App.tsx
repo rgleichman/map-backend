@@ -276,6 +276,19 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     return null
   }, [placement, modal, addLocation, editLocation])
 
+  const pendingPinType: PinType | null =
+    pendingLocation == null
+      ? null
+      : placement?.intent === "edit"
+        ? placement.pin.pin_type
+        : modal?.mode === "add"
+          ? (pinType ?? "one_time")
+          : modal?.mode === "edit"
+            ? modal.pin.pin_type
+            : "one_time"
+
+  const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
+
   const showPlacementOverlay = placement !== null
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
 
@@ -310,6 +323,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             pickingLocation={pickingLocation}
             onMapClickSetLocation={onMapClickSetLocation}
             pendingLocation={pendingLocation}
+            pendingPinType={pendingPinType}
+            editingPinId={editingPinId}
             onMapClickMovePlacement={placement ? onPlacementMove : undefined}
             onPopupOpen={onPopupOpen}
             onPopupClose={onPopupClose}

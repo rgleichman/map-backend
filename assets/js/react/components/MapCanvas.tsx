@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
-import type { Pin } from "../types"
+import type { Pin, PinType } from "../types"
 import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 
@@ -13,30 +13,19 @@ type Props = {
   onDelete: (pinId: number) => void
   pickingLocation?: boolean
   onMapClickSetLocation?: (lng: number, lat: number) => void
-  /** When set, map shows this location with a temp marker and flies to it. */
+  /** When set, map shows the actual pin (highlighted) at this location and flies to it. */
   pendingLocation?: { lat: number; lng: number } | null
+  /** Pin type for the pending marker (add: selected or default; edit: pin's type). */
+  pendingPinType?: PinType | null
+  /** When set, this pin is shown only at pendingLocation (hidden from normal markers). */
+  editingPinId?: number | null
   /** When set, map clicks call this instead of onMapClick (mobile placement: move pin). */
   onMapClickMovePlacement?: (lng: number, lat: number) => void
   onPopupOpen?: (pinId: number) => void
   onPopupClose?: () => void
 }
 
-function createPendingMarkerElement(): HTMLElement {
-  const svg = `
-    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
-            fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.9"/>
-      <circle cx="20" cy="14" r="8" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
-    </svg>
-  `
-  const wrap = document.createElement("div")
-  wrap.className = "text-primary"
-  wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
-  wrap.innerHTML = svg
-  return wrap
-}
-
-export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, pendingLocation = null, onMapClickMovePlacement, onPopupOpen, onPopupClose }: Props) {
+export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, pendingLocation = null, pendingPinType = null, editingPinId = null, onMapClickMovePlacement, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
@@ -164,15 +153,22 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [mapReady, initialPinId])
 
-  // Pending location: temporary marker + flyTo
+  // Pending location: actual pin (highlighted) + flyTo
+  const pendingPinTypeRef = useRef<PinType | null>(null)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
     if (pendingLocation) {
       map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: 14 })
-      if (!pendingMarkerRef.current) {
-        const el = createPendingMarkerElement()
+      const pinType: PinType = pendingPinType ?? "one_time"
+      const typeChanged = pendingPinTypeRef.current !== pinType
+      if (!pendingMarkerRef.current || typeChanged) {
+        pendingMarkerRef.current?.remove()
+        pendingMarkerRef.current = null
+        pendingPinTypeRef.current = pinType
+        const el = createPinTypeMarkerElement(pinType)
+        el.classList.add("pin-marker--pending")
         pendingMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
           .setLngLat([pendingLocation.lng, pendingLocation.lat])
           .addTo(map)
@@ -182,13 +178,14 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     } else {
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
+      pendingPinTypeRef.current = null
     }
 
     return () => {
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
     }
-  }, [pendingLocation, mapReady])
+  }, [pendingLocation, pendingPinType, mapReady])
 
   // Set up event delegation for popup buttons
   useEffect(() => {
@@ -239,13 +236,17 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [mapReady, onEdit, onDelete])
 
-  // Sync markers with pins
+  // Sync markers with pins (exclude pin being edited; it is shown at pendingLocation)
+  const pinsToShow = editingPinId != null
+    ? filteredPins.filter((p) => p.id !== editingPinId)
+    : filteredPins
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
     const known = markersRef.current
-    const nextIds = new Set(filteredPins.map((p) => p.id))
+    const nextIds = new Set(pinsToShow.map((p) => p.id))
 
     // remove stale
     for (const [id, marker] of known) {
@@ -256,7 +257,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
 
     // add/update
-    filteredPins.forEach((pin) => {
+    pinsToShow.forEach((pin) => {
       let marker = known.get(pin.id)
       const tagsHtml = pin.tags && pin.tags.length > 0
         ? `<div class="flex flex-wrap" style="margin: 0.5em 0;">
@@ -321,14 +322,14 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     // Open shared-link pin once when marker exists
     if (initialPinId != null && !initialPinIdAppliedRef.current) {
       const marker = known.get(initialPinId)
-      const pin = filteredPins.find((p) => p.id === initialPinId)
+      const pin = pinsToShow.find((p) => p.id === initialPinId)
       if (marker && pin) {
         initialPinIdAppliedRef.current = true
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
         marker.togglePopup()
       }
     }
-  }, [filteredPins, mapReady, initialPinId])
+  }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
   return (
     <div className="relative w-full h-full">
