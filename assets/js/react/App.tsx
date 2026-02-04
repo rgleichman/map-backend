@@ -122,14 +122,11 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
     setStartTime(dateToLocalInputValue(now))
     setEndTime(dateToLocalInputValue(inOneHour))
-    if (isDesktop) {
-      setPlacement(null)
-      setModal({ mode: "select-type", lng, lat })
-    } else {
-      setPlacement({ intent: "add", lat, lng })
-      setModal(null)
-    }
-  }, [userId, isDesktop])
+
+    setPlacement({ intent: "add", lat, lng })
+    setModal(null)
+
+  }, [userId])
 
   const onEdit = useCallback((pinId: number) => {
     const pin = pins.find(p => p.id === pinId)
@@ -266,6 +263,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   const pendingLocation = useMemo(() => {
     if (placement) return { lat: placement.lat, lng: placement.lng }
+    if (modal?.mode === "select-type") return { lat: modal.lat, lng: modal.lng }
     if (modal?.mode === "add") return addLocation ?? { lat: modal.lat, lng: modal.lng }
     if (modal?.mode === "edit") return editLocation ?? { lat: modal.pin.latitude, lng: modal.pin.longitude }
     return null
@@ -276,11 +274,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       ? null
       : placement?.intent === "edit"
         ? placement.pin.pin_type
-        : modal?.mode === "add"
-          ? (pinType ?? "one_time")
-          : modal?.mode === "edit"
-            ? modal.pin.pin_type
-            : "one_time"
+        : modal?.mode === "select-type"
+          ? null
+          : modal?.mode === "add"
+            ? (pinType ?? "one_time")
+            : modal?.mode === "edit"
+              ? modal.pin.pin_type
+              : "one_time"
 
   const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
 
