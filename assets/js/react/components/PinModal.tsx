@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
-import * as api from "../api/client"
+import React, { useState } from "react"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -18,8 +17,6 @@ type Props = {
   latitude: number
   longitude: number
   onStartPickOnMap: () => void
-  onLocationFromSearch: (lat: number, lng: number) => void
-  onLocationFromGPS: (lat: number, lng: number) => void
   mode: "add" | "edit"
   onCancel: () => void
   onSave: () => void
@@ -37,17 +34,9 @@ export default function PinModal({
   endTime, setEndTime,
   latitude, longitude,
   onStartPickOnMap,
-  onLocationFromSearch,
-  onLocationFromGPS,
   mode, onCancel, onSave, onDelete, canDelete
 }: Props) {
   const [tagInput, setTagInput] = useState("")
-  const [locationSearch, setLocationSearch] = useState("")
-  const [locationResults, setLocationResults] = useState<Array<{ lat: number; lng: number; display_name: string }>>([])
-  const [locationSearching, setLocationSearching] = useState(false)
-  const [locationError, setLocationError] = useState<string | null>(null)
-  const [gpsError, setGpsError] = useState<string | null>(null)
-  const resultsRef = useRef<HTMLDivElement>(null)
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()
@@ -60,56 +49,6 @@ export default function PinModal({
   const handleRemoveTag = (tag: string) => {
     setTags(tags.filter(t => t !== tag))
   }
-
-  const handleSearchLocation = useCallback(() => {
-    const q = locationSearch.trim()
-    if (q.length < 2) {
-      setLocationResults([])
-      setLocationError("Enter at least 2 characters")
-      return
-    }
-    setLocationSearching(true)
-    setLocationError(null)
-    api.searchLocation(q)
-      .then(({ data }) => setLocationResults(data || []))
-      .catch(() => {
-        setLocationError("Search failed")
-        setLocationResults([])
-      })
-      .finally(() => setLocationSearching(false))
-  }, [locationSearch])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (resultsRef.current && !resultsRef.current.contains(e.target as Node)) {
-        setLocationResults([])
-      }
-    }
-    document.addEventListener("click", handleClickOutside)
-    return () => document.removeEventListener("click", handleClickOutside)
-  }, [])
-
-  const handleSelectResult = useCallback((lat: number, lng: number) => {
-    onLocationFromSearch(lat, lng)
-    setLocationSearch("")
-    setLocationResults([])
-  }, [onLocationFromSearch])
-
-  const handleUseMyLocation = useCallback(() => {
-    setGpsError(null)
-    if (!navigator.geolocation) {
-      setGpsError("Location unavailable")
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude: lat, longitude: lng } = position.coords
-        onLocationFromGPS(lat, lng)
-      },
-      () => setGpsError("Location unavailable"),
-      { enableHighAccuracy: true }
-    )
-  }, [onLocationFromGPS])
 
   const formatCoord = (n: number) => n.toFixed(5)
 
@@ -146,59 +85,6 @@ export default function PinModal({
           >
             {(locationAlreadySetFromPlacement || mode === "edit") ? "Change location on map" : "Set location on map"}
           </button>
-          <button
-            type="button"
-            onClick={handleUseMyLocation}
-            className="btn btn-sm btn-outline"
-          >
-            Use my location
-          </button>
-        </div>
-        <div className="relative">
-          <div className="flex flex-col sm:flex-row gap-2 mb-1">
-            <input
-              type="text"
-              value={locationSearch}
-              onChange={(e) => setLocationSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchLocation())}
-              placeholder="Search for a place or address"
-              className="flex-1 px-3 py-2 rounded border"
-            />
-            <button
-              type="button"
-              onClick={handleSearchLocation}
-              disabled={locationSearching}
-              className="btn btn-sm btn-outline w-full sm:w-auto"
-            >
-              {locationSearching ? "Searching…" : "Search"}
-            </button>
-          </div>
-          <p className="text-xs text-base-content/60 mt-1">
-            Search by <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a>
-          </p>
-          {locationError && (
-            <p className="text-sm text-error mt-1">{locationError}</p>
-          )}
-          {gpsError && (
-            <p className="text-sm text-error mt-1">{gpsError}</p>
-          )}
-          {locationResults.length > 0 && (
-            <div
-              ref={resultsRef}
-              className="absolute left-0 right-0 top-full mt-1 bg-base-100 border rounded shadow-lg max-h-48 overflow-y-auto z-10"
-            >
-              {locationResults.map((r, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="block w-full text-left px-3 py-2 hover:bg-base-200 text-sm"
-                  onClick={() => handleSelectResult(r.lat, r.lng)}
-                >
-                  {r.display_name}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 

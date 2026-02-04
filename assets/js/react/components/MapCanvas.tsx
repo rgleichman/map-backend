@@ -64,6 +64,43 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       // The search control is implemented against a different maplibre-gl type instance;
       // coerce it to the expected IControl to satisfy TypeScript.
       map.addControl(control as unknown as maplibregl.IControl, "top-left");
+
+      const myLocationControl: maplibregl.IControl = {
+        onAdd: (m: maplibregl.Map) => {
+          const container = document.createElement("div")
+          container.className = "maplibregl-ctrl maplibregl-ctrl-group"
+
+          const button = document.createElement("button")
+          button.type = "button"
+          button.className = "maplibregl-ctrl-icon"
+          button.setAttribute("aria-label", "Go to my location")
+          button.title = "Go to my location"
+          button.textContent = "◎"
+
+          button.addEventListener("click", (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (!navigator.geolocation) return
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords
+                m.flyTo({ center: [longitude, latitude], zoom: 10 })
+              },
+              () => {
+                // silent failure (consistent with existing initial geolocation behavior)
+              },
+              { enableHighAccuracy: true }
+            )
+          })
+
+          container.appendChild(button)
+          return container
+        },
+        onRemove: () => {
+          // maplibre removes the element for us
+        }
+      }
+      map.addControl(myLocationControl, "top-left")
       mapRef.current = map
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined

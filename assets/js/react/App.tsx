@@ -290,23 +290,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
   }, [modal])
 
-
-  const onLocationFromSearch = useCallback((lat: number, lng: number) => {
-    if (modal?.mode === "add") {
-      dispatch({ type: "set_add_location", lat, lng })
-    } else if (modal?.mode === "edit") {
-      dispatch({ type: "set_edit_location", lat, lng })
-    }
-  }, [modal])
-
-  const onLocationFromGPS = useCallback((lat: number, lng: number) => {
-    if (modal?.mode === "add") {
-      dispatch({ type: "set_add_location", lat, lng })
-    } else if (modal?.mode === "edit") {
-      dispatch({ type: "set_edit_location", lat, lng })
-    }
-  }, [modal])
-
   const onSave = useCallback(async () => {
     if (!modal) return
     dispatch({ type: "clear_time_error" })
@@ -459,8 +442,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 latitude={pinModalLat}
                 longitude={pinModalLng}
                 onStartPickOnMap={onStartPickOnMap}
-                onLocationFromSearch={onLocationFromSearch}
-                onLocationFromGPS={onLocationFromGPS}
                 mode={modal.mode}
                 onCancel={() => dispatch({ type: "close_all" })}
                 onSave={onSave}
@@ -553,8 +534,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           latitude={pinModalLat}
           longitude={pinModalLng}
           onStartPickOnMap={onStartPickOnMap}
-          onLocationFromSearch={onLocationFromSearch}
-          onLocationFromGPS={onLocationFromGPS}
           mode={modal.mode}
           onCancel={() => dispatch({ type: "close_all" })}
           onSave={onSave}
