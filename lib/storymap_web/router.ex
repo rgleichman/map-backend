@@ -40,7 +40,6 @@ defmodule StorymapWeb.Router do
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
     get "/map/style", MapController, :style
-    get "/geocode", GeocodeController, :index
   end
 
   # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),

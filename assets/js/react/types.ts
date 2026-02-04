@@ -37,10 +37,3 @@ export type UpdatePin = {
   longitude?: number
 }
 
-export type GeocodeResult = {
-  lat: number
-  lng: number
-  display_name: string
-}
-
-

@@ -1,4 +1,4 @@
-import type { GeocodeResult, NewPin, Pin, UpdatePin } from "../types"
+import type { NewPin, Pin, UpdatePin } from "../types"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -20,11 +20,6 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 
 export function getPins(): Promise<{ data: Pin[] }> {
   return jsonFetch("/api/pins")
-}
-
-export function searchLocation(q: string): Promise<{ data: GeocodeResult[] }> {
-  const params = new URLSearchParams({ q: q.trim() })
-  return jsonFetch(`/api/geocode?${params}`)
 }
 
 export function createPin(csrf: string | undefined, pin: NewPin): Promise<{ data: Pin }> {
