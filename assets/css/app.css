@@ -128,6 +128,7 @@
 .pin-modal-content {
   background: var(--color-base-100) !important;
   color: var(--color-base-content) !important;
+  overscroll-behavior: contain;
 }
 
 .pin-modal-content h2 {

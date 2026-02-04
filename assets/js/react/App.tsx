@@ -195,11 +195,29 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
   const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime } = draft
   const modalRef = useRef(modal)
   modalRef.current = modal
+  const escapePanelRef = useRef({ modal, isDesktop, dispatch })
+  escapePanelRef.current = { modal, isDesktop, dispatch }
+
+  // Escape closes desktop type-selection panel; listener registered on mount so it runs before map
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      const { modal: m, isDesktop: desktop, dispatch: d } = escapePanelRef.current
+      if (desktop && m?.mode === "select-type") {
+        e.preventDefault()
+        e.stopPropagation()
+        d({ type: "close_all" })
+      }
+    }
+    document.addEventListener("keydown", handleKey, true)
+    return () => document.removeEventListener("keydown", handleKey, true)
+  }, [])
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -326,9 +344,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         start_time: localInputValueToISOString(startTime),
         end_time: localInputValueToISOString(endTime)
       }
-      const { data: pinData } = await api.createPin(csrfToken, payload)
-      setPins((prev) => [...prev, pinData])
-      dispatch({ type: "after_add_saved" })
+      setSaving(true)
+      try {
+        const { data: pinData } = await api.createPin(csrfToken, payload)
+        setPins((prev) => [...prev, pinData])
+        dispatch({ type: "after_add_saved" })
+      } finally {
+        setSaving(false)
+      }
     } else if (modal.mode === "edit") {
       const lat = editLocation?.lat ?? modal.pin.latitude
       const lng = editLocation?.lng ?? modal.pin.longitude
@@ -341,9 +364,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         latitude: lat,
         longitude: lng
       }
-      const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-      setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
-      dispatch({ type: "after_edit_saved" })
+      setSaving(true)
+      try {
+        const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
+        setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
+        dispatch({ type: "after_edit_saved" })
+      } finally {
+        setSaving(false)
+      }
     }
   }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, csrfToken])
 
@@ -450,6 +478,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 onSave={onSave}
                 onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
                 canDelete={canDelete}
+                saving={saving}
               />
             )}
           </div>
@@ -542,12 +571,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onSave={onSave}
           onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
           canDelete={canDelete}
+          saving={saving}
         />
       )}
 
       {timeError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="absolute bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto" style={{ top: "10%" }}>⏰ {timeError}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
+          <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">⏰ {timeError}</div>
         </div>
       )}
     </div>

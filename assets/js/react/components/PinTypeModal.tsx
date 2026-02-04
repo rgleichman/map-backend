@@ -9,15 +9,23 @@ type Props = {
 }
 
 export default function PinTypeModal({ layout = "modal", onSelectType, onCancel }: Props) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      e.stopPropagation()
+      onCancel()
+    }
+  }
+
   const content = (
-    <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300">
-      <div className="p-6 border-b border-base-300">
-        <h2 className="text-xl font-semibold text-base-content">
+    <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="p-6 border-b border-base-300 flex-shrink-0">
+        <h2 id="pin-type-modal-title" className="text-xl font-semibold text-base-content">
           What type of food offering is this?
         </h2>
       </div>
 
-      <div className="p-6 space-y-3">
+      <div className="p-6 space-y-3 overflow-y-auto overscroll-contain flex-1 min-h-0">
         {PIN_TYPES.map((type) => {
           const config = getPinTypeConfig(type)
           return (
@@ -64,7 +72,13 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
 
   if (layout === "panel") return content
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pin-type-modal-title"
+      onKeyDown={handleKeyDown}
+    >
       {content}
     </div>
   )
