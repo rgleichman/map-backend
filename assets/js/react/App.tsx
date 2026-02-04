@@ -273,9 +273,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     const pin = pins.find(p => p.id === pinId)
     if (!pin) return
     if (!confirm("Are you sure you want to delete this pin?")) return
-    await api.deletePin(csrfToken, pin.id)
-    setPins((prev) => prev.filter((p) => p.id !== pin.id))
-    dispatch({ type: "close_all" })
+    setSaving(true)
+    try {
+      await api.deletePin(csrfToken, pin.id)
+      setPins((prev) => prev.filter((p) => p.id !== pin.id))
+      dispatch({ type: "close_all" })
+    } finally {
+      setSaving(false)
+    }
   }, [csrfToken, pins])
 
   const onStartPickOnMap = useCallback(() => {

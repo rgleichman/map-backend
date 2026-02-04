@@ -46,8 +46,19 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
   onPlacementMapClickRef.current = onPlacementMapClick
   const [mapReady, setMapReady] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("now") // Active by default
+
+  // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
+  useEffect(() => {
+    const toggle = document.getElementById("drawer-toggle") as HTMLInputElement | null
+    if (!toggle) return
+    const sync = () => setDrawerOpen(toggle.checked)
+    sync()
+    toggle.addEventListener("change", sync)
+    return () => toggle.removeEventListener("change", sync)
+  }, [])
 
   // Filter pins by tag and time
   const filteredPins = filterPins(pins, tagFilter, timeFilter)
@@ -266,7 +277,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   return (
     <div className="relative w-full h-full">
-      {mapReady && (
+      {mapReady && !drawerOpen && (
         <div className="absolute top-14 left-2 z-10">
           <button
             type="button"
