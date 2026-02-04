@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
 import PinTypeModal from "./components/PinTypeModal"
@@ -198,6 +198,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
   const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime } = draft
+  const modalRef = useRef(modal)
+  modalRef.current = modal
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -239,6 +241,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       dispatch({ type: "login_required" })
       return
     }
+    if (modalRef.current?.mode === "add" || modalRef.current?.mode === "edit") return
     dispatch({ type: "begin_add_at", lat, lng })
   }, [userId])
 
@@ -550,5 +553,3 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     </div>
   )
 }
-
-
