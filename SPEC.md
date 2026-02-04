@@ -39,10 +39,8 @@ authenticated users can create, edit, and delete their own pins.
   - Non-logged-in users who attempt to add a pin will see a notice prompting
     them to log in
 - Location can be set or changed by: (1) "Set location on map" then tapping
-  the desired point on the map, (2) searching for a place or address and
-  selecting a result (geocode), or (3) "Use my location" for current GPS
-  position.
-
+  the desired point on the map
+  
 #### Editing Pins
 
 - **Requirement**: Users must be logged in to edit pins
