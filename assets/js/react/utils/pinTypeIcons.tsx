@@ -129,19 +129,21 @@ export function createPinTypeMarkerElement(
   const shadowFilter = pending ? "" : ' filter="url(#shadow)"'
 
   const svg = `
-    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+    <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
         </filter>
       </defs>
-      ${outlinePath}
-      <path d="${TEARDROP_PATH}"
-            fill="${config.color}"
-            fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>
-      <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
-      <g transform="${MARKER_ICON_TRANSFORM}" fill="${iconFill}">
-        ${config.iconPath}
+      <g transform="translate(3, 3)">
+        ${outlinePath}
+        <path d="${TEARDROP_PATH}"
+              fill="${config.color}"
+              fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>
+        <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
+        <g transform="${MARKER_ICON_TRANSFORM}" fill="${iconFill}">
+          ${config.iconPath}
+        </g>
       </g>
     </svg>
   `
