@@ -196,6 +196,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
   const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime } = draft
@@ -273,11 +274,15 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     const pin = pins.find(p => p.id === pinId)
     if (!pin) return
     if (!confirm("Are you sure you want to delete this pin?")) return
+    setApiError(null)
     setSaving(true)
     try {
       await api.deletePin(csrfToken, pin.id)
       setPins((prev) => prev.filter((p) => p.id !== pin.id))
       dispatch({ type: "close_all" })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed. Please try again."
+      setApiError(message)
     } finally {
       setSaving(false)
     }
@@ -319,6 +324,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const onSave = useCallback(async () => {
     if (!modal) return
     dispatch({ type: "clear_time_error" })
+    setApiError(null)
     const start = startTime ? new Date(startTime) : undefined
     const end = endTime ? new Date(endTime) : undefined
     const now = new Date()
@@ -354,6 +360,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         const { data: pinData } = await api.createPin(csrfToken, payload)
         setPins((prev) => [...prev, pinData])
         dispatch({ type: "after_add_saved" })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Save failed. Please try again."
+        setApiError(message)
       } finally {
         setSaving(false)
       }
@@ -374,6 +383,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
         setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
         dispatch({ type: "after_edit_saved" })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Save failed. Please try again."
+        setApiError(message)
       } finally {
         setSaving(false)
       }
@@ -583,6 +595,11 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       {timeError && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
           <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">⏰ {timeError}</div>
+        </div>
+      )}
+      {apiError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
+          <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{apiError}</div>
         </div>
       )}
     </div>
