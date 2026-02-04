@@ -13,19 +13,41 @@ type Props = {
   onDelete: (pinId: number) => void
   pickingLocation?: boolean
   onMapClickSetLocation?: (lng: number, lat: number) => void
+  /** When set, map shows this location with a temp marker and flies to it. */
+  pendingLocation?: { lat: number; lng: number } | null
+  /** When set, map clicks call this instead of onMapClick (mobile placement: move pin). */
+  onMapClickMovePlacement?: (lng: number, lat: number) => void
   onPopupOpen?: (pinId: number) => void
   onPopupClose?: () => void
 }
 
-export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, onPopupOpen, onPopupClose }: Props) {
+function createPendingMarkerElement(): HTMLElement {
+  const svg = `
+    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
+            fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.9"/>
+      <circle cx="20" cy="14" r="8" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+    </svg>
+  `
+  const wrap = document.createElement("div")
+  wrap.className = "text-primary"
+  wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
+  wrap.innerHTML = svg
+  return wrap
+}
+
+export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, pendingLocation = null, onMapClickMovePlacement, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
+  const pendingMarkerRef = useRef<Marker | null>(null)
   const initialPinIdAppliedRef = useRef(false)
   const pickingLocationRef = useRef(pickingLocation)
   const onMapClickSetLocationRef = useRef(onMapClickSetLocation)
+  const onMapClickMovePlacementRef = useRef(onMapClickMovePlacement)
   pickingLocationRef.current = pickingLocation
   onMapClickSetLocationRef.current = onMapClickSetLocation
+  onMapClickMovePlacementRef.current = onMapClickMovePlacement
   const [mapReady, setMapReady] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [timeFilter, setTimeFilter] = useState<"now" | null>("now") // Active by default
@@ -79,6 +101,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
 
+        if (onMapClickMovePlacementRef.current) {
+          onMapClickMovePlacementRef.current(e.lngLat.lng, e.lngLat.lat)
+          return
+        }
         if (pickingLocationRef.current && onMapClickSetLocationRef.current) {
           onMapClickSetLocationRef.current(e.lngLat.lng, e.lngLat.lat)
           return
@@ -106,6 +132,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
     return () => {
       isMounted = false
+      pendingMarkerRef.current?.remove()
+      pendingMarkerRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
       markersRef.current.forEach((m) => m.remove())
@@ -135,6 +163,32 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       )
     }
   }, [mapReady, initialPinId])
+
+  // Pending location: temporary marker + flyTo
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    if (pendingLocation) {
+      map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: 14 })
+      if (!pendingMarkerRef.current) {
+        const el = createPendingMarkerElement()
+        pendingMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
+          .setLngLat([pendingLocation.lng, pendingLocation.lat])
+          .addTo(map)
+      } else {
+        pendingMarkerRef.current.setLngLat([pendingLocation.lng, pendingLocation.lat])
+      }
+    } else {
+      pendingMarkerRef.current?.remove()
+      pendingMarkerRef.current = null
+    }
+
+    return () => {
+      pendingMarkerRef.current?.remove()
+      pendingMarkerRef.current = null
+    }
+  }, [pendingLocation, mapReady])
 
   // Set up event delegation for popup buttons
   useEffect(() => {
