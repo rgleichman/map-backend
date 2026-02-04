@@ -6,6 +6,18 @@ import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { filterPins, type TimeFilter } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
 
+function getCurrentLocation(
+  onSuccess: (lat: number, lng: number) => void,
+  onError?: (error: GeolocationPositionError) => void
+) {
+  if (!navigator.geolocation) return
+  navigator.geolocation.getCurrentPosition(
+    (position) => onSuccess(position.coords.latitude, position.coords.longitude),
+    (err) => onError?.(err),  
+    { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
+  )
+}
+
 type Props = {
   styleUrl: string
   pins: Pin[]
@@ -110,21 +122,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     const map = mapRef.current
     if (!map || !mapReady || initialPinId != null) return
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords
-          map.jumpTo({
-            center: [longitude, latitude],
-            zoom: 10
-          })
-        },
-        (error) => {
-          console.log('Geolocation not available or denied:', error.message)
-        },
-        { enableHighAccuracy: true }
-      )
-    }
+    getCurrentLocation(
+      (lat, lng) => map.jumpTo({ center: [lng, lat], zoom: 10 }),
+      (error) => console.log('Geolocation not available or denied:', error.message)
+    )
   }, [mapReady, initialPinId])
 
   // Pending location: actual pin (highlighted) + flyTo
@@ -259,15 +260,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   const goToMyLocation = () => {
     const map = mapRef.current
-    if (!map || !navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        map.flyTo({ center: [longitude, latitude], zoom: 10 })
-      },
-      () => { },
-      { enableHighAccuracy: true }
-    )
+    if (!map) return
+    getCurrentLocation((lat, lng) => map.flyTo({ center: [lng, lat], zoom: 10 }))
   }
 
   return (
