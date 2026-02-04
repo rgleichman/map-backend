@@ -359,7 +359,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
       dispatch({ type: "after_edit_saved" })
     }
-  }, [modal, addLocation, editLocation, title, description, tags, startTime, endTime, csrfToken])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 

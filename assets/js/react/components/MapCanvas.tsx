@@ -3,6 +3,8 @@ import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
 import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
+import { filterPins, type TimeFilter } from "./map/filters"
+import { buildPopupHtml } from "./map/popup"
 
 type Props = {
   styleUrl: string
@@ -33,27 +35,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onPlacementMapClickRef.current = onPlacementMapClick
   const [mapReady, setMapReady] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
-  const [timeFilter, setTimeFilter] = useState<"now" | null>("now") // Active by default
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("now") // Active by default
 
   // Filter pins by tag and time
-  const filteredPins = pins.filter((p) => {
-    // Apply tag filter
-    if (tagFilter && (!p.tags || !p.tags.includes(tagFilter))) {
-      return false
-    }
-    // Apply time filter (show pins open now by default)
-    if (timeFilter === "now") {
-      const now = new Date()
-      if (!p.start_time && !p.end_time) return true // No time restrictions
-      const start = p.start_time ? new Date(p.start_time) : null
-      const end = p.end_time ? new Date(p.end_time) : null
-      if (start && end) return start <= now && now <= end
-      if (start) return start <= now
-      if (end) return now <= end
-      return true
-    }
-    return true
-  })
+  const filteredPins = filterPins(pins, tagFilter, timeFilter)
 
   // Initialize map once
   useEffect(() => {
@@ -65,8 +50,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       if (!isMounted) return
       const control = new MapLibreSearchControl({
         onResultSelected: feature => {
-          // You can add code here to take some action when a result is selected.
-          console.log(feature.geometry.coordinates);
+          void feature
         },
         // You can also use our EU endpoint to keep traffic within the EU using the basePath option:
         // baseUrl: "https://api-eu.stadiamaps.com",
@@ -181,9 +165,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-    const filteredPins = tagFilter
-      ? pins.filter((p) => p.tags && p.tags.includes(tagFilter))
-      : pins
 
     const handlePopupClick = (e: Event) => {
       const target = e.target as HTMLElement
@@ -249,52 +230,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     // add/update
     pinsToShow.forEach((pin) => {
       let marker = known.get(pin.id)
-      const tagsHtml = pin.tags && pin.tags.length > 0
-        ? `<div class="flex flex-wrap" style="margin: 0.5em 0;">
-            <span style="font-size:0.95em; color:var(--color-base-content); margin-right:0.5em;">Tags:</span>
-            ${pin.tags.map(t =>
-          `<button 
-                data-tag="${t}" 
-                style="background:var(--color-base-200); color:var(--color-base-content); border-radius:4px; padding:0.1em 0.5em; margin-top:0.1em; margin-bottom:0.1em; margin-right:0.3em; font-size:0.95em; border:none; cursor:pointer;"
-              >${t}</button>`
-        ).join('')}
-          </div>`
-        : ""
-      // Format date/time for display
-      const formatDateTime = (iso?: string) => {
-        if (!iso) return ""
-        try {
-          const d = new Date(iso)
-          return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-        } catch {
-          return iso
-        }
-      }
-      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
-      const isAndroid = /Android/.test(navigator.userAgent)
-      const openInMapsUrl = isIOS
-        ? `https://maps.apple.com/place?coordinate=${pin.latitude},${pin.longitude}&name=${encodeURIComponent(pin.title)}`
-        : isAndroid
-          ? `geo:${pin.latitude},${pin.longitude}?q=${pin.latitude},${pin.longitude}(${encodeURIComponent(pin.title)})`
-          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pin.latitude},${pin.longitude}`)}`
-      const popupHtml = `
-          <div>
-            <h2 style="font-size: 1.4em; font-weight: bold;">${pin.title}</h2>
-            <p>${pin.description || ""}</p>
-            ${(pin.start_time || pin.end_time) ? `<div style="margin: 0.5em 0;">
-              <span style="font-size:0.95em; color:var(--color-base-content);"><b>Start:</b> ${formatDateTime(pin.start_time)}</span><br/>
-              <span style="font-size:0.95em; color:var(--color-base-content);"><b>End:</b> ${formatDateTime(pin.end_time)}</span>
-            </div>` : ""}
-            ${tagsHtml}
-            <div style="margin-top: 0.5em;">
-              <a href="${openInMapsUrl}" target="_blank" rel="noopener noreferrer" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #3182ce; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">Get directions</a>
-              <button data-pin-action="copy-link" data-pin-id="${pin.id}" style="padding: 0.3em 0.6em; background: var(--color-base-200); color: var(--color-base-content); border: none; border-radius: 4px; cursor: pointer;">Copy link</button>
-            </div>
-            ${pin.is_owner ? `<div style=\"margin-top: 0.5em;\">
-              <button data-pin-action=\"edit\" data-pin-id=\"${pin.id}\" style=\"margin-right: 0.5em; padding: 0.3em 0.6em; background: #38a169; color: white; border: none; border-radius: 4px;\">Edit</button>
-              <button data-pin-action=\"delete\" data-pin-id=\"${pin.id}\" style=\"padding: 0.3em 0.6em; background: #e53e3e; color: white; border: none; border-radius: 4px;\">Delete</button>
-            </div>` : ""}
-          </div>`
+      const popupHtml = buildPopupHtml(pin, navigator.userAgent)
       if (!marker) {
         const popup = new Popup().setHTML(popupHtml)
         popup.on("open", () => onPopupOpen?.(pin.id))
