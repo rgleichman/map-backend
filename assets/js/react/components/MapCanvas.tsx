@@ -323,32 +323,36 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   return (
     <div className="relative w-full h-full">
-      {onPlacementMapClick && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
-          Click or tap on the map to set location
-        </div>
-      )}
-      {(tagFilter || timeFilter) && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
-          {timeFilter && (
-            <span className="font-medium text-base-content">Showing pins open now</span>
+      {(onPlacementMapClick || tagFilter || timeFilter) && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
+          {onPlacementMapClick && (
+            <div className="bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
+              Click or tap on the map to set location
+            </div>
           )}
-          {tagFilter && (
-            <>
-              {timeFilter && <span className="text-base-content">•</span>}
-              <span className="font-medium text-base-content">Filtered by tag:</span>
-              <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
-            </>
+          {(tagFilter || timeFilter) && (
+            <div className="bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
+              {timeFilter && (
+                <span className="font-medium text-base-content">Showing pins open now</span>
+              )}
+              {tagFilter && (
+                <>
+                  {timeFilter && <span className="text-base-content">•</span>}
+                  <span className="font-medium text-base-content">Filtered by tag:</span>
+                  <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
+                </>
+              )}
+              <button
+                className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
+                onClick={() => {
+                  setTagFilter(null)
+                  setTimeFilter(null)
+                }}
+              >
+                Clear Filter
+              </button>
+            </div>
           )}
-          <button
-            className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
-            onClick={() => {
-              setTagFilter(null)
-              setTimeFilter(null)
-            }}
-          >
-            Clear Filter
-          </button>
         </div>
       )}
       <div ref={containerRef} id="map" className="w-full h-full" />
