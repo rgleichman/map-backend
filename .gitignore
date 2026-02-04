@@ -35,6 +35,9 @@ storymap-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Local environment (API keys, secrets)
+.env
+
 # Editor and OS files
 .DS_Store
 Thumbs.db

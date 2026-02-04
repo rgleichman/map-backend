@@ -1,5 +1,11 @@
 import Config
 
+# Load .env in dev so mix phx.server picks up vars without sourcing manually
+if config_env() == :dev do
+  env_path = Path.join([__DIR__, "..", ".env"])
+  if File.exists?(env_path), do: DotenvParser.load_file(env_path)
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
