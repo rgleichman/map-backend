@@ -151,9 +151,9 @@
   border: 1px solid var(--color-base-300) !important;
 }
 
-/* Highlight for the pin at pending location (create/edit) */
+/* Highlight for the pin at pending location: teardrop outline uses currentColor */
 .pin-marker--pending {
-  box-shadow: 0 0 0 3px var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* Hide search box when drawer is open */

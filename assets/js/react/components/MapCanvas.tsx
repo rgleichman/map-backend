@@ -167,7 +167,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         pendingMarkerRef.current?.remove()
         pendingMarkerRef.current = null
         pendingPinTypeRef.current = pinType
-        const el = createPinTypeMarkerElement(pinType)
+        const el = createPinTypeMarkerElement(pinType, { pending: true })
         el.classList.add("pin-marker--pending")
         pendingMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
           .setLngLat([pendingLocation.lng, pendingLocation.lat])

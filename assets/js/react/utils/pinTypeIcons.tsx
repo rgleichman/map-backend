@@ -101,12 +101,32 @@ export function createPinTypeMarkerSVG(pinType: PinType | null | undefined): str
   return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
+const TEARDROP_PATH =
+  "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
+
+export type CreatePinMarkerOptions = {
+  /** When true, draw pin outline and lighter fill for pending (create/edit) state. */
+  pending?: boolean
+}
+
 /**
  * Create a DOM element marker: single SVG (teardrop + icon), no rotation.
  */
-export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
+export function createPinTypeMarkerElement(
+  pinType: PinType,
+  options?: CreatePinMarkerOptions
+): HTMLElement {
   const config = getPinTypeConfig(pinType)
   const iconFill = config.textColor
+  const pending = options?.pending ?? false
+
+  const outlinePath = pending
+    ? `<path d="${TEARDROP_PATH}" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="round"/>`
+    : ""
+
+  const mainPathFillOpacity = pending ? "0.72" : "1"
+  const circleFillOpacity = pending ? "0.85" : "1"
+  const shadowFilter = pending ? "" : ' filter="url(#shadow)"'
 
   const svg = `
     <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
@@ -115,10 +135,11 @@ export function createPinTypeMarkerElement(pinType: PinType): HTMLElement {
           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
         </filter>
       </defs>
-      <path d="M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
+      ${outlinePath}
+      <path d="${TEARDROP_PATH}"
             fill="${config.color}"
-            filter="url(#shadow)"/>
-      <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}"/>
+            fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>
+      <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
       <g transform="${MARKER_ICON_TRANSFORM}" fill="${iconFill}">
         ${config.iconPath}
       </g>
