@@ -8,7 +8,7 @@ defmodule StorymapWeb.MapController do
   end
 
   def style(conn, _params) do
-    maptiler_key = System.get_env("MAPTILER_API_KEY")
+    maptiler_key = Application.get_env(:storymap, :maptiler_api_key)
 
     spec =
       MapLibre.new(style: :terrain, key: maptiler_key)

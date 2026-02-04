@@ -6,6 +6,8 @@ if config_env() == :dev do
   if File.exists?(env_path), do: DotenvParser.load_file(env_path)
 end
 
+config :storymap, :maptiler_api_key, System.get_env("MAPTILER_API_KEY")
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
