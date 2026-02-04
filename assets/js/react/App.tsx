@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react"
-import worldChannel from "../user_socket"
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react"
 import MapCanvas from "./components/MapCanvas"
 import PinModal from "./components/PinModal"
 import PinTypeModal from "./components/PinTypeModal"
@@ -8,6 +7,8 @@ import LoginRequiredModal from "./components/LoginRequiredModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
 import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
+import { dateToLocalInputValue, isoToLocalInputValue, localInputValueToISOString } from "./utils/datetime"
+import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Placement =
@@ -26,28 +27,177 @@ const parseInitialPinId = () => {
   return Number.isInteger(n) ? n : null
 }
 
+type ModalState =
+  | null
+  | { mode: "select-type"; lng: number; lat: number }
+  | { mode: "add"; lng: number; lat: number; pinType: PinType }
+  | { mode: "edit"; pin: Pin }
+  | { mode: "login-required" }
+
+type DraftState = {
+  pinType: PinType | null
+  title: string
+  description: string
+  tags: string[]
+  startTime: string
+  endTime: string
+  addLocation: { lat: number; lng: number } | null
+  editLocation: { lat: number; lng: number } | null
+}
+
+type State = {
+  modal: ModalState
+  placement: Placement | null
+  draft: DraftState
+  timeError: string
+}
+
+type Action =
+  | { type: "login_required" }
+  | { type: "close_all" }
+  | { type: "begin_add_at"; lat: number; lng: number }
+  | { type: "after_add_saved" }
+  | { type: "after_edit_saved" }
+  | { type: "open_select_type"; lat: number; lng: number; resetDraft: boolean }
+  | { type: "open_add"; lat: number; lng: number; pinType: PinType }
+  | { type: "open_edit"; pin: Pin }
+  | { type: "set_placement"; placement: Placement | null }
+  | { type: "set_add_location"; lat: number; lng: number }
+  | { type: "set_edit_location"; lat: number; lng: number }
+  | { type: "set_pin_type"; pinType: PinType | null }
+  | { type: "set_title"; title: string }
+  | { type: "set_description"; description: string }
+  | { type: "set_tags"; tags: string[] }
+  | { type: "set_start_time"; startTime: string }
+  | { type: "set_end_time"; endTime: string }
+  | { type: "set_time_error"; timeError: string }
+  | { type: "clear_time_error" }
+  | { type: "clear_draft_locations" }
+
+const makeDefaultDraft = (): DraftState => {
+  const now = new Date()
+  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+  return {
+    pinType: null,
+    title: "",
+    description: "",
+    tags: [],
+    startTime: dateToLocalInputValue(now),
+    endTime: dateToLocalInputValue(inOneHour),
+    addLocation: null,
+    editLocation: null,
+  }
+}
+
+const initialState: State = {
+  modal: null,
+  placement: null,
+  draft: makeDefaultDraft(),
+  timeError: "",
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "login_required":
+      return { ...state, modal: { mode: "login-required" } }
+    case "close_all":
+      return { ...state, modal: null, placement: null, timeError: "" }
+    case "begin_add_at": {
+      const fresh = makeDefaultDraft()
+      return {
+        ...state,
+        modal: null,
+        placement: { intent: "add", lat: action.lat, lng: action.lng },
+        timeError: "",
+        draft: { ...fresh, addLocation: { lat: action.lat, lng: action.lng } },
+      }
+    }
+    case "after_add_saved":
+      return {
+        ...state,
+        modal: null,
+        placement: null,
+        timeError: "",
+        draft: { ...state.draft, addLocation: null, pinType: null },
+      }
+    case "after_edit_saved":
+      return {
+        ...state,
+        modal: null,
+        placement: null,
+        timeError: "",
+        draft: { ...state.draft, editLocation: null },
+      }
+    case "open_select_type": {
+      return {
+        ...state,
+        modal: { mode: "select-type", lat: action.lat, lng: action.lng },
+        placement: null,
+        timeError: "",
+        draft: action.resetDraft ? makeDefaultDraft() : state.draft,
+      }
+    }
+    case "open_add":
+      return {
+        ...state,
+        modal: { mode: "add", lat: action.lat, lng: action.lng, pinType: action.pinType },
+        placement: null,
+        timeError: "",
+        draft: { ...state.draft, pinType: action.pinType },
+      }
+    case "open_edit":
+      return {
+        ...state,
+        modal: { mode: "edit", pin: action.pin },
+        placement: null,
+        timeError: "",
+        draft: {
+          ...state.draft,
+          title: action.pin.title,
+          description: action.pin.description || "",
+          tags: action.pin.tags || [],
+          startTime: isoToLocalInputValue(action.pin.start_time),
+          endTime: isoToLocalInputValue(action.pin.end_time),
+          editLocation: null,
+        },
+      }
+    case "set_placement":
+      return { ...state, placement: action.placement }
+    case "set_add_location":
+      return { ...state, draft: { ...state.draft, addLocation: { lat: action.lat, lng: action.lng } } }
+    case "set_edit_location":
+      return { ...state, draft: { ...state.draft, editLocation: { lat: action.lat, lng: action.lng } } }
+    case "set_pin_type":
+      return { ...state, draft: { ...state.draft, pinType: action.pinType } }
+    case "set_title":
+      return { ...state, draft: { ...state.draft, title: action.title } }
+    case "set_description":
+      return { ...state, draft: { ...state.draft, description: action.description } }
+    case "set_tags":
+      return { ...state, draft: { ...state.draft, tags: action.tags } }
+    case "set_start_time":
+      return { ...state, draft: { ...state.draft, startTime: action.startTime } }
+    case "set_end_time":
+      return { ...state, draft: { ...state.draft, endTime: action.endTime } }
+    case "set_time_error":
+      return { ...state, timeError: action.timeError }
+    case "clear_time_error":
+      return { ...state, timeError: "" }
+    case "clear_draft_locations":
+      return { ...state, draft: { ...state.draft, addLocation: null, editLocation: null } }
+    default:
+      return state
+  }
+}
+
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
   const isDesktop = useIsDesktop()
   const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<null | { mode: "select-type"; lng: number; lat: number } | { mode: "add"; lng: number; lat: number; pinType: PinType } | { mode: "edit"; pin: Pin } | { mode: "login-required" }>(null)
-  const [placement, setPlacement] = useState<Placement | null>(null)
-  const [addLocation, setAddLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [editLocation, setEditLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [pinType, setPinType] = useState<PinType | null>(null)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [tags, setTags] = useState<string[]>([])
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
-
-  const pad2 = (n: number) => String(n).padStart(2, "0")
-  // <input type="datetime-local"> expects a LOCAL "YYYY-MM-DDTHH:mm" string.
-  const dateToLocalInputValue = (d: Date) => {
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-  }
-  const isoToLocalInputValue = (s?: string) => (s ? dateToLocalInputValue(new Date(s)) : "")
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { modal, placement, draft, timeError } = state
+  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime } = draft
 
   useEffect(() => {
     api.getPins().then(({ data }) => {
@@ -79,66 +229,23 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     })
   }, [])
 
-  // Listen for real-time pin additions via Phoenix channel
-  useEffect(() => {
-    const handler = (payload: any) => {
-      updateOrAddPin(payload.pin)
-    }
-    worldChannel.on("marker_added", handler)
-    return () => worldChannel.off("marker_added", handler)
-  }, [updateOrAddPin])
-
-  // Listen for real-time pin updates via Phoenix channel
-  useEffect(() => {
-    const handler = (payload: any) => {
-      updateOrAddPin(payload.pin)
-    }
-    worldChannel.on("marker_updated", handler)
-    return () => worldChannel.off("marker_updated", handler)
-  }, [updateOrAddPin])
-
-  // Listen for real-time pin deletions via Phoenix channel
-  useEffect(() => {
-    const handler = (payload: any) => {
-      const pinId = payload.pin_id
-      setPins(prev => prev.filter(p => p.id !== pinId))
-    }
-    worldChannel.on("marker_deleted", handler)
-    return () => worldChannel.off("marker_deleted", handler)
-  }, [])
+  usePinChannelSync({
+    onUpsertPin: updateOrAddPin,
+    onDeletePinId: (pinId) => setPins((prev) => prev.filter((p) => p.id !== pinId)),
+  })
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     if (!userId) {
-      setModal({ mode: "login-required" })
+      dispatch({ type: "login_required" })
       return
     }
-    setTitle("")
-    setDescription("")
-    setTags([])
-    setPinType(null)
-    setAddLocation({ lat, lng })
-    setEditLocation(null)
-    const now = new Date()
-    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-    setStartTime(dateToLocalInputValue(now))
-    setEndTime(dateToLocalInputValue(inOneHour))
-
-    setPlacement({ intent: "add", lat, lng })
-    setModal(null)
-
+    dispatch({ type: "begin_add_at", lat, lng })
   }, [userId])
 
   const onEdit = useCallback((pinId: number) => {
     const pin = pins.find(p => p.id === pinId)
     if (!pin) return
-    setTitle(pin.title)
-    setDescription(pin.description || "")
-    setTags(pin.tags || [])
-    setEditLocation(null)
-    // Convert ISO string to LOCAL input value (YYYY-MM-DDTHH:mm)
-    setStartTime(isoToLocalInputValue(pin.start_time))
-    setEndTime(isoToLocalInputValue(pin.end_time))
-    setModal({ mode: "edit", pin })
+    dispatch({ type: "open_edit", pin })
   }, [pins])
 
   const onDelete = useCallback(async (pinId: number) => {
@@ -147,80 +254,80 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     if (!confirm("Are you sure you want to delete this pin?")) return
     await api.deletePin(csrfToken, pin.id)
     setPins((prev) => prev.filter((p) => p.id !== pin.id))
-    setModal(null)
-    setEditLocation(null)
+    dispatch({ type: "close_all" })
   }, [csrfToken, pins])
 
   const onStartPickOnMap = useCallback(() => {
     if (modal?.mode === "edit") {
-      setPlacement({
-        intent: "edit",
-        pin: modal.pin,
-        lat: editLocation?.lat ?? modal.pin.latitude,
-        lng: editLocation?.lng ?? modal.pin.longitude
+      dispatch({
+        type: "set_placement",
+        placement: {
+          intent: "edit",
+          pin: modal.pin,
+          lat: editLocation?.lat ?? modal.pin.latitude,
+          lng: editLocation?.lng ?? modal.pin.longitude
+        }
       })
     } else if (modal?.mode === "add") {
       const lat = addLocation?.lat ?? modal.lat
       const lng = addLocation?.lng ?? modal.lng
-      setPlacement({ intent: "add", lat, lng })
+      dispatch({ type: "set_placement", placement: { intent: "add", lat, lng } })
     }
   }, [modal, editLocation, addLocation])
 
   const onPlacementMapClick = useCallback(
     (lng: number, lat: number) => {
-      setPlacement((prev) => (prev ? { ...prev, lat, lng } : null))
+      dispatch({
+        type: "set_placement",
+        placement: placement ? { ...placement, lat, lng } : null
+      })
     },
-    []
+    [placement]
   )
 
   const onSelectPinType = useCallback((selectedType: PinType) => {
     if (modal?.mode !== "select-type") return
-    setPinType(selectedType)
-    setModal({ mode: "add", lng: modal.lng, lat: modal.lat, pinType: selectedType })
+    dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
   }, [modal])
 
 
   const onLocationFromSearch = useCallback((lat: number, lng: number) => {
     if (modal?.mode === "add") {
-      setAddLocation({ lat, lng })
+      dispatch({ type: "set_add_location", lat, lng })
     } else if (modal?.mode === "edit") {
-      setEditLocation({ lat, lng })
+      dispatch({ type: "set_edit_location", lat, lng })
     }
   }, [modal])
 
   const onLocationFromGPS = useCallback((lat: number, lng: number) => {
     if (modal?.mode === "add") {
-      setAddLocation({ lat, lng })
+      dispatch({ type: "set_add_location", lat, lng })
     } else if (modal?.mode === "edit") {
-      setEditLocation({ lat, lng })
+      dispatch({ type: "set_edit_location", lat, lng })
     }
   }, [modal])
 
-  const [timeError, setTimeError] = useState<string>("")
-
   const onSave = useCallback(async () => {
     if (!modal) return
-    setTimeError("")
-    // Convert input value (local) to ISO string
-    const toISOString = (s: string) => s ? new Date(s).toISOString() : undefined
+    dispatch({ type: "clear_time_error" })
     const start = startTime ? new Date(startTime) : undefined
     const end = endTime ? new Date(endTime) : undefined
     const now = new Date()
     // Validation
     if (start && end) {
       if (end <= start) {
-        setTimeError("End time must be after start time.")
+        dispatch({ type: "set_time_error", timeError: "End time must be after start time." })
         return
       }
       if (end < now) {
-        setTimeError("End time cannot be in the past.")
+        dispatch({ type: "set_time_error", timeError: "End time cannot be in the past." })
         return
       }
     }
     if (modal.mode === "add") {
       const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
       if (!pinType) {
-        setTimeError("Please select a pin type")
+        dispatch({ type: "set_time_error", timeError: "Please select a pin type" })
         return
       }
       const payload: NewPin = {
@@ -230,15 +337,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         latitude: loc.lat,
         longitude: loc.lng,
         tags,
-        start_time: toISOString(startTime),
-        end_time: toISOString(endTime)
+        start_time: localInputValueToISOString(startTime),
+        end_time: localInputValueToISOString(endTime)
       }
       const { data: pinData } = await api.createPin(csrfToken, payload)
       setPins((prev) => [...prev, pinData])
-      setModal(null)
-      setPlacement(null)
-      setAddLocation(null)
-      setPinType(null)
+      dispatch({ type: "after_add_saved" })
     } else if (modal.mode === "edit") {
       const lat = editLocation?.lat ?? modal.pin.latitude
       const lng = editLocation?.lng ?? modal.pin.longitude
@@ -246,16 +350,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         title,
         description,
         tags,
-        start_time: toISOString(startTime),
-        end_time: toISOString(endTime),
+        start_time: localInputValueToISOString(startTime),
+        end_time: localInputValueToISOString(endTime),
         latitude: lat,
         longitude: lng
       }
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
-      setModal(null)
-      setPlacement(null)
-      setEditLocation(null)
+      dispatch({ type: "after_edit_saved" })
     }
   }, [modal, addLocation, editLocation, title, description, tags, startTime, endTime, csrfToken])
 
@@ -327,7 +429,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         </>
       )}
       {modal?.mode === "login-required" && (
-        <LoginRequiredModal onClose={() => setModal(null)} />
+        <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
       )}
 
       {/* Desktop: side panel for type selection and add/edit form (hidden while picking location) */}
@@ -338,29 +440,29 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
               <PinTypeModal
                 layout="panel"
                 onSelectType={onSelectPinType}
-                onCancel={() => { setModal(null); setAddLocation(null); setPinType(null) }}
+                onCancel={() => dispatch({ type: "close_all" })}
               />
             )}
             {(modal.mode === "add" || modal.mode === "edit") && (
               <PinModal
                 layout="panel"
                 title={title}
-                setTitle={setTitle}
+                setTitle={(t) => dispatch({ type: "set_title", title: t })}
                 description={description}
-                setDescription={setDescription}
+                setDescription={(d) => dispatch({ type: "set_description", description: d })}
                 tags={tags}
-                setTags={setTags}
+                setTags={(ts) => dispatch({ type: "set_tags", tags: ts })}
                 startTime={startTime}
-                setStartTime={setStartTime}
+                setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
                 endTime={endTime}
-                setEndTime={setEndTime}
+                setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
                 latitude={pinModalLat}
                 longitude={pinModalLng}
                 onStartPickOnMap={onStartPickOnMap}
                 onLocationFromSearch={onLocationFromSearch}
                 onLocationFromGPS={onLocationFromGPS}
                 mode={modal.mode}
-                onCancel={() => { setModal(null); setPlacement(null); setEditLocation(null) }}
+                onCancel={() => dispatch({ type: "close_all" })}
                 onSave={onSave}
                 onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
                 canDelete={canDelete}
@@ -377,14 +479,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             {placement.intent === "add" ? (
               modal?.mode === "add" ? (
                 <>
-                  <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={() => {
                       if (!placement || placement.intent !== "add") return
-                      setAddLocation({ lat: placement.lat, lng: placement.lng })
-                      setPlacement(null)
+                      dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
+                      dispatch({ type: "set_placement", placement: null })
                     }}
                   >
                     Confirm
@@ -392,19 +494,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 </>
               ) : (
                 <>
-                  <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={() => {
                       if (!placement || placement.intent !== "add") return
-                      const now = new Date()
-                      const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-                      setAddLocation({ lat: placement.lat, lng: placement.lng })
-                      setStartTime(dateToLocalInputValue(now))
-                      setEndTime(dateToLocalInputValue(inOneHour))
-                      setModal({ mode: "select-type", lat: placement.lat, lng: placement.lng })
-                      setPlacement(null)
+                      dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
+                      dispatch({ type: "open_select_type", lat: placement.lat, lng: placement.lng, resetDraft: false })
                     }}
                   >
                     Create pin
@@ -413,14 +510,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
               )
             ) : (
               <>
-                <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     if (!placement || placement.intent !== "edit") return
-                    setEditLocation({ lat: placement.lat, lng: placement.lng })
-                    setPlacement(null)
+                    dispatch({ type: "set_edit_location", lat: placement.lat, lng: placement.lng })
+                    dispatch({ type: "set_placement", placement: null })
                   }}
                 >
                   Confirm
@@ -436,7 +533,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <PinTypeModal
           layout="modal"
           onSelectType={onSelectPinType}
-          onCancel={() => { setModal(null); setAddLocation(null); setPinType(null) }}
+          onCancel={() => dispatch({ type: "close_all" })}
         />
       )}
       {!isDesktop && ((showAddForm && modal?.mode === "add") || (showEditForm && modal?.mode === "edit")) && (
@@ -444,22 +541,22 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           layout="modal"
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
           title={title}
-          setTitle={setTitle}
+          setTitle={(t) => dispatch({ type: "set_title", title: t })}
           description={description}
-          setDescription={setDescription}
+          setDescription={(d) => dispatch({ type: "set_description", description: d })}
           tags={tags}
-          setTags={setTags}
+          setTags={(ts) => dispatch({ type: "set_tags", tags: ts })}
           startTime={startTime}
-          setStartTime={setStartTime}
+          setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
           endTime={endTime}
-          setEndTime={setEndTime}
+          setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
           latitude={pinModalLat}
           longitude={pinModalLng}
           onStartPickOnMap={onStartPickOnMap}
           onLocationFromSearch={onLocationFromSearch}
           onLocationFromGPS={onLocationFromGPS}
           mode={modal.mode}
-          onCancel={() => { setModal(null); setPlacement(null); setEditLocation(null) }}
+          onCancel={() => dispatch({ type: "close_all" })}
           onSave={onSave}
           onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
           canDelete={canDelete}
