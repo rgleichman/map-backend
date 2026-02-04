@@ -11,32 +11,26 @@ type Props = {
   onMapClick: (lng: number, lat: number) => void
   onEdit: (pinId: number) => void
   onDelete: (pinId: number) => void
-  pickingLocation?: boolean
-  onMapClickSetLocation?: (lng: number, lat: number) => void
   /** When set, map shows the actual pin (highlighted) at this location and flies to it. */
   pendingLocation?: { lat: number; lng: number } | null
   /** Pin type for the pending marker (add: selected or default; edit: pin's type). */
   pendingPinType?: PinType | null
   /** When set, this pin is shown only at pendingLocation (hidden from normal markers). */
   editingPinId?: number | null
-  /** When set, map clicks call this instead of onMapClick (mobile placement: move pin). */
-  onMapClickMovePlacement?: (lng: number, lat: number) => void
+  /** When set, map clicks call this (picking location: desktop = set and done, mobile = move pin). */
+  onPlacementMapClick?: (lng: number, lat: number) => void
   onPopupOpen?: (pinId: number) => void
   onPopupClose?: () => void
 }
 
-export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pickingLocation = false, onMapClickSetLocation, pendingLocation = null, pendingPinType = null, editingPinId = null, onMapClickMovePlacement, onPopupOpen, onPopupClose }: Props) {
+export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pendingLocation = null, pendingPinType = null, editingPinId = null, onPlacementMapClick, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const markersRef = useRef<Map<number, Marker>>(new Map())
   const pendingMarkerRef = useRef<Marker | null>(null)
   const initialPinIdAppliedRef = useRef(false)
-  const pickingLocationRef = useRef(pickingLocation)
-  const onMapClickSetLocationRef = useRef(onMapClickSetLocation)
-  const onMapClickMovePlacementRef = useRef(onMapClickMovePlacement)
-  pickingLocationRef.current = pickingLocation
-  onMapClickSetLocationRef.current = onMapClickSetLocation
-  onMapClickMovePlacementRef.current = onMapClickMovePlacement
+  const onPlacementMapClickRef = useRef(onPlacementMapClick)
+  onPlacementMapClickRef.current = onPlacementMapClick
   const [mapReady, setMapReady] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [timeFilter, setTimeFilter] = useState<"now" | null>("now") // Active by default
@@ -90,12 +84,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
 
-        if (onMapClickMovePlacementRef.current) {
-          onMapClickMovePlacementRef.current(e.lngLat.lng, e.lngLat.lat)
-          return
-        }
-        if (pickingLocationRef.current && onMapClickSetLocationRef.current) {
-          onMapClickSetLocationRef.current(e.lngLat.lng, e.lngLat.lat)
+        if (onPlacementMapClickRef.current) {
+          onPlacementMapClickRef.current(e.lngLat.lng, e.lngLat.lat)
           return
         }
 
@@ -333,9 +323,9 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   return (
     <div className="relative w-full h-full">
-      {pickingLocation && (
+      {onPlacementMapClick && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
-          Tap on the map to set location
+          Click or tap on the map to set location
         </div>
       )}
       {(tagFilter || timeFilter) && (

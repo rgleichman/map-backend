@@ -35,7 +35,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [placement, setPlacement] = useState<Placement | null>(null)
   const [addLocation, setAddLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [editLocation, setEditLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [pickingLocation, setPickingLocation] = useState(false)
   const [pinType, setPinType] = useState<PinType | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -119,7 +118,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setPinType(null)
     setAddLocation({ lat, lng })
     setEditLocation(null)
-    setPickingLocation(false)
     const now = new Date()
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
     setStartTime(dateToLocalInputValue(now))
@@ -140,7 +138,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setDescription(pin.description || "")
     setTags(pin.tags || [])
     setEditLocation(null)
-    setPickingLocation(false)
     // Convert ISO string to LOCAL input value (YYYY-MM-DDTHH:mm)
     setStartTime(isoToLocalInputValue(pin.start_time))
     setEndTime(isoToLocalInputValue(pin.end_time))
@@ -155,13 +152,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setPins((prev) => prev.filter((p) => p.id !== pin.id))
     setModal(null)
     setEditLocation(null)
-    setPickingLocation(false)
   }, [csrfToken, pins])
 
   const onStartPickOnMap = useCallback(() => {
-    if (isDesktop) {
-      setPickingLocation(true)
-    } else if (modal?.mode === "edit") {
+    if (modal?.mode === "edit") {
       setPlacement({
         intent: "edit",
         pin: modal.pin,
@@ -173,11 +167,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const lng = addLocation?.lng ?? modal.lng
       setPlacement({ intent: "add", lat, lng })
     }
-  }, [isDesktop, modal, editLocation, addLocation])
+  }, [modal, editLocation, addLocation])
 
-  const onPlacementMove = useCallback((lng: number, lat: number) => {
-    setPlacement((prev) => (prev ? { ...prev, lat, lng } : null))
-  }, [])
+  const onPlacementMapClick = useCallback(
+    (lng: number, lat: number) => {
+      setPlacement((prev) => (prev ? { ...prev, lat, lng } : null))
+    },
+    []
+  )
 
   const onSelectPinType = useCallback((selectedType: PinType) => {
     if (modal?.mode !== "select-type") return
@@ -185,14 +182,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setModal({ mode: "add", lng: modal.lng, lat: modal.lat, pinType: selectedType })
   }, [modal])
 
-  const onMapClickSetLocation = useCallback((lng: number, lat: number) => {
-    setPickingLocation(false)
-    if (modal?.mode === "add") {
-      setAddLocation({ lat, lng })
-    } else if (modal?.mode === "edit") {
-      setEditLocation({ lat, lng })
-    }
-  }, [modal])
 
   const onLocationFromSearch = useCallback((lat: number, lng: number) => {
     if (modal?.mode === "add") {
@@ -250,6 +239,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const { data: pinData } = await api.createPin(csrfToken, payload)
       setPins((prev) => [...prev, pinData])
       setModal(null)
+      setPlacement(null)
       setAddLocation(null)
       setPinType(null)
     } else if (modal.mode === "edit") {
@@ -267,6 +257,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
       setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
       setModal(null)
+      setPlacement(null)
       setEditLocation(null)
     }
   }, [modal, addLocation, editLocation, title, description, tags, startTime, endTime, csrfToken])
@@ -325,12 +316,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             onMapClick={onMapClick}
             onEdit={onEdit}
             onDelete={onDelete}
-            pickingLocation={pickingLocation}
-            onMapClickSetLocation={onMapClickSetLocation}
             pendingLocation={pendingLocation}
             pendingPinType={pendingPinType}
             editingPinId={editingPinId}
-            onMapClickMovePlacement={placement ? onPlacementMove : undefined}
+            onPlacementMapClick={placement ? onPlacementMapClick : undefined}
             onPopupOpen={onPopupOpen}
             onPopupClose={onPopupClose}
           />
@@ -341,8 +330,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <LoginRequiredModal onClose={() => setModal(null)} />
       )}
 
-      {/* Desktop: side panel for type selection and add/edit form */}
-      {isDesktop && modal && (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit") && !pickingLocation && (
+      {/* Desktop: side panel for type selection and add/edit form (hidden while picking location) */}
+      {isDesktop && !placement && modal && (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit") && (
         <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-base-100 border-l border-base-300 shadow-xl z-40 flex flex-col overflow-hidden">
           <div className="p-4 overflow-y-auto flex-1">
             {modal.mode === "select-type" && (
@@ -371,7 +360,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 onLocationFromSearch={onLocationFromSearch}
                 onLocationFromGPS={onLocationFromGPS}
                 mode={modal.mode}
-                onCancel={() => { setModal(null); setPickingLocation(false); setEditLocation(null) }}
+                onCancel={() => { setModal(null); setPlacement(null); setEditLocation(null) }}
                 onSave={onSave}
                 onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
                 canDelete={canDelete}
@@ -381,25 +370,47 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         </div>
       )}
 
-      {/* Mobile: placement overlay (Create/Cancel or Confirm/Cancel) */}
-      {!isDesktop && showPlacementOverlay && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg flex gap-2 justify-center">
-          {placement.intent === "add" ? (
-            modal?.mode === "add" ? (
-              <>
-                <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    if (!placement || placement.intent !== "add") return
-                    setAddLocation({ lat: placement.lat, lng: placement.lng })
-                    setPlacement(null)
-                  }}
-                >
-                  Confirm
-                </button>
-              </>
+      {/* Placement overlay (Create/Cancel or Confirm/Cancel) */}
+      {showPlacementOverlay && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg">
+          <div className="mx-auto w-full max-w-md flex gap-2 justify-center">
+            {placement.intent === "add" ? (
+              modal?.mode === "add" ? (
+                <>
+                  <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!placement || placement.intent !== "add") return
+                      setAddLocation({ lat: placement.lat, lng: placement.lng })
+                      setPlacement(null)
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!placement || placement.intent !== "add") return
+                      const now = new Date()
+                      const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+                      setAddLocation({ lat: placement.lat, lng: placement.lng })
+                      setStartTime(dateToLocalInputValue(now))
+                      setEndTime(dateToLocalInputValue(inOneHour))
+                      setModal({ mode: "select-type", lat: placement.lat, lng: placement.lng })
+                      setPlacement(null)
+                    }}
+                  >
+                    Create pin
+                  </button>
+                </>
+              )
             ) : (
               <>
                 <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
@@ -407,47 +418,28 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                   type="button"
                   className="btn btn-primary"
                   onClick={() => {
-                    if (!placement || placement.intent !== "add") return
-                    const now = new Date()
-                    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-                    setAddLocation({ lat: placement.lat, lng: placement.lng })
-                    setStartTime(dateToLocalInputValue(now))
-                    setEndTime(dateToLocalInputValue(inOneHour))
-                    setModal({ mode: "select-type", lat: placement.lat, lng: placement.lng })
+                    if (!placement || placement.intent !== "edit") return
+                    setEditLocation({ lat: placement.lat, lng: placement.lng })
                     setPlacement(null)
                   }}
                 >
-                  Create pin
+                  Confirm
                 </button>
               </>
-            )
-          ) : (
-            <>
-              <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  if (!placement || placement.intent !== "edit") return
-                  setEditLocation({ lat: placement.lat, lng: placement.lng })
-                  setPlacement(null)
-                }}
-              >
-                Confirm
-              </button>
-            </>
-          )}
+            )}
+          </div>
         </div>
       )}
 
-      {/* Mobile: full modals for type selection and add/edit form */}
+      {/* Mobile: full modals for type selection and add/edit form (single PinModal block) */}
       {!isDesktop && modal?.mode === "select-type" && (
         <PinTypeModal
+          layout="modal"
           onSelectType={onSelectPinType}
           onCancel={() => { setModal(null); setAddLocation(null); setPinType(null) }}
         />
       )}
-      {!isDesktop && showAddForm && modal?.mode === "add" && (
+      {!isDesktop && ((showAddForm && modal?.mode === "add") || (showEditForm && modal?.mode === "edit")) && (
         <PinModal
           layout="modal"
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
@@ -466,35 +458,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onStartPickOnMap={onStartPickOnMap}
           onLocationFromSearch={onLocationFromSearch}
           onLocationFromGPS={onLocationFromGPS}
-          mode="add"
-          onCancel={() => { setModal(null); setEditLocation(null) }}
-          onSave={onSave}
-          onDelete={undefined}
-          canDelete={false}
-        />
-      )}
-      {!isDesktop && showEditForm && modal?.mode === "edit" && (
-        <PinModal
-          layout="modal"
-          title={title}
-          setTitle={setTitle}
-          description={description}
-          setDescription={setDescription}
-          tags={tags}
-          setTags={setTags}
-          startTime={startTime}
-          setStartTime={setStartTime}
-          endTime={endTime}
-          setEndTime={setEndTime}
-          latitude={pinModalLat}
-          longitude={pinModalLng}
-          onStartPickOnMap={onStartPickOnMap}
-          onLocationFromSearch={onLocationFromSearch}
-          onLocationFromGPS={onLocationFromGPS}
-          mode="edit"
+          mode={modal.mode}
           onCancel={() => { setModal(null); setPlacement(null); setEditLocation(null) }}
           onSave={onSave}
-          onDelete={() => onDelete(modal.pin.id)}
+          onDelete={modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined}
           canDelete={canDelete}
         />
       )}
