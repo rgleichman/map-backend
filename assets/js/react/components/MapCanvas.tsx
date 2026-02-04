@@ -64,43 +64,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       // The search control is implemented against a different maplibre-gl type instance;
       // coerce it to the expected IControl to satisfy TypeScript.
       map.addControl(control as unknown as maplibregl.IControl, "top-left");
-
-      const myLocationControl: maplibregl.IControl = {
-        onAdd: (m: maplibregl.Map) => {
-          const container = document.createElement("div")
-          container.className = "maplibregl-ctrl maplibregl-ctrl-group"
-
-          const button = document.createElement("button")
-          button.type = "button"
-          button.className = "maplibregl-ctrl-icon"
-          button.setAttribute("aria-label", "Go to my location")
-          button.title = "Go to my location"
-          button.textContent = "◎"
-
-          button.addEventListener("click", (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            if (!navigator.geolocation) return
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const { latitude, longitude } = position.coords
-                m.flyTo({ center: [longitude, latitude], zoom: 10 })
-              },
-              () => {
-                // silent failure (consistent with existing initial geolocation behavior)
-              },
-              { enableHighAccuracy: true }
-            )
-          })
-
-          container.appendChild(button)
-          return container
-        },
-        onRemove: () => {
-          // maplibre removes the element for us
-        }
-      }
-      map.addControl(myLocationControl, "top-left")
       mapRef.current = map
       map.on("click", (e) => {
         const el = e.originalEvent?.target as HTMLElement | undefined
@@ -294,8 +257,33 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
+  const goToMyLocation = () => {
+    const map = mapRef.current
+    if (!map || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        map.flyTo({ center: [longitude, latitude], zoom: 10 })
+      },
+      () => { },
+      { enableHighAccuracy: true }
+    )
+  }
+
   return (
     <div className="relative w-full h-full">
+      {mapReady && (
+        <div className="absolute top-14 left-2 z-10">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline whitespace-nowrap bg-base-100/30"
+            aria-label="Go to my location"
+            onClick={goToMyLocation}
+          >
+            Go to my location
+          </button>
+        </div>
+      )}
       {(onPlacementMapClick || tagFilter || timeFilter) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
           {onPlacementMapClick && (
