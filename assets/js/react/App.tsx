@@ -168,8 +168,12 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         lat: editLocation?.lat ?? modal.pin.latitude,
         lng: editLocation?.lng ?? modal.pin.longitude
       })
+    } else if (modal?.mode === "add") {
+      const lat = addLocation?.lat ?? modal.lat
+      const lng = addLocation?.lng ?? modal.lng
+      setPlacement({ intent: "add", lat, lng })
     }
-  }, [isDesktop, modal, editLocation])
+  }, [isDesktop, modal, editLocation, addLocation])
 
   const onPlacementMove = useCallback((lng: number, lat: number) => {
     setPlacement((prev) => (prev ? { ...prev, lat, lng } : null))
@@ -291,6 +295,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   const showPlacementOverlay = placement !== null
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
+  const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
 
   const onPopupOpen = useCallback((pinId: number) => {
     const path = window.location.pathname || "/map"
@@ -380,25 +385,42 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       {!isDesktop && showPlacementOverlay && (
         <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg flex gap-2 justify-center">
           {placement.intent === "add" ? (
-            <>
-              <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  if (!placement || placement.intent !== "add") return
-                  const now = new Date()
-                  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-                  setAddLocation({ lat: placement.lat, lng: placement.lng })
-                  setStartTime(dateToLocalInputValue(now))
-                  setEndTime(dateToLocalInputValue(inOneHour))
-                  setModal({ mode: "select-type", lat: placement.lat, lng: placement.lng })
-                  setPlacement(null)
-                }}
-              >
-                Create pin
-              </button>
-            </>
+            modal?.mode === "add" ? (
+              <>
+                <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (!placement || placement.intent !== "add") return
+                    setAddLocation({ lat: placement.lat, lng: placement.lng })
+                    setPlacement(null)
+                  }}
+                >
+                  Confirm
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (!placement || placement.intent !== "add") return
+                    const now = new Date()
+                    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+                    setAddLocation({ lat: placement.lat, lng: placement.lng })
+                    setStartTime(dateToLocalInputValue(now))
+                    setEndTime(dateToLocalInputValue(inOneHour))
+                    setModal({ mode: "select-type", lat: placement.lat, lng: placement.lng })
+                    setPlacement(null)
+                  }}
+                >
+                  Create pin
+                </button>
+              </>
+            )
           ) : (
             <>
               <button type="button" className="btn btn-ghost" onClick={() => setPlacement(null)}>Cancel</button>
@@ -425,7 +447,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           onCancel={() => { setModal(null); setAddLocation(null); setPinType(null) }}
         />
       )}
-      {!isDesktop && modal?.mode === "add" && (
+      {!isDesktop && showAddForm && modal?.mode === "add" && (
         <PinModal
           layout="modal"
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
