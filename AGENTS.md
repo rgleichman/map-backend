@@ -58,6 +58,7 @@ The application should work for both **desktop** and **cross-platform mobile web
 - **Always** use proper TypeScript types for API responses and component props
 - **Never** mix React state management with Phoenix LiveView state
 - **Never** bypass CSRF protection in API calls; always include the token
+- **Callback stability when passed to children:** If a callback (e.g. `onMapClick`) is passed to a child that uses it in a `useEffect` (or similar) dependency array, **do not** add frequently-changing state to the callback's `useCallback` dependency array if that would cause the child's effect to re-run (e.g. re-initializing a map or heavy DOM). **Prefer** keeping the callback reference stable: use a ref (e.g. `someRef.current = value` and read `someRef.current` inside the callback) so the callback can keep a minimal dependency array. Before adding a new dependency to a callback that is passed down, check whether the child includes that callback in an effect's dependency list; if so, use a ref for the value instead of adding it to the callback's deps.
 
 ### UI/UX & design guidelines
 
