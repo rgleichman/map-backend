@@ -86,6 +86,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onEditRef.current = onEdit
   const onDeleteRef = useRef(onDelete)
   onDeleteRef.current = onDelete
+  const onPopupOpenRef = useRef(onPopupOpen)
+  onPopupOpenRef.current = onPopupOpen
+  const onPopupCloseRef = useRef(onPopupClose)
+  onPopupCloseRef.current = onPopupClose
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
@@ -217,13 +221,13 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             if (pinId == null) return
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
-            onPopupOpen?.(pinId)
+            onPopupOpenRef.current?.(pinId)
             const [lng, lat] = (feature.geometry as { type: "Point"; coordinates: [number, number] }).coordinates
             const popup = new Popup({ closeButton: true })
               .setLngLat([lng, lat])
               .setHTML(buildPopupHtml(pin, navigator.userAgent))
               .addTo(map)
-            popup.on("close", () => onPopupClose?.())
+            popup.on("close", () => onPopupCloseRef.current?.())
           })
           map.on("mouseenter", "pin-icons-layer", () => {
             map.getCanvas().style.cursor = "pointer"
@@ -385,15 +389,15 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         setFilter(CLEARED_FILTER)
         initialPinIdAppliedRef.current = true
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
-        onPopupOpen?.(pin.id)
+        onPopupOpenRef.current?.(pin.id)
         const popup = new Popup({ closeButton: true })
           .setLngLat([pin.longitude, pin.latitude])
           .setHTML(buildPopupHtml(pin, navigator.userAgent))
           .addTo(map)
-        popup.on("close", () => onPopupClose?.())
+        popup.on("close", () => onPopupCloseRef.current?.())
       }
     }
-  }, [pinsToShow, mapReady, initialPinId, editingPinId, onPopupOpen, onPopupClose])
+  }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
   const goToMyLocation = () => {
     const map = mapRef.current
