@@ -1,6 +1,6 @@
 import React from "react"
 import type { Pin } from "../types"
-import { DEFAULT_FILTER, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, type FilterState } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
 
 function deriveTags(pins: Pin[]): string[] {
@@ -20,7 +20,7 @@ type Props = {
 
 export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigger, panelTopOffset }: Props) {
   const tags = deriveTags(pins)
-  const hasActiveFilter = filter.tag !== null || filter.time !== "now"
+  const hasActiveFilter = filter.tag !== null || filter.time !== null
 
   const setTag = (tag: string | null) => setFilter((f) => ({ ...f, tag }))
   const setTime = (time: FilterState["time"]) => setFilter((f) => ({ ...f, time }))
@@ -87,7 +87,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
         {hasActiveFilter && (
           <button
             type="button"
-            onClick={() => setFilter(DEFAULT_FILTER)}
+            onClick={() => setFilter(CLEARED_FILTER)}
             className="w-full btn btn-sm btn-ghost text-base-content"
           >
             Clear all

@@ -7,7 +7,10 @@ export type FilterState = {
   time: TimeFilter
 }
 
+/** Map opens with this (open now selected). */
 export const DEFAULT_FILTER: FilterState = { tag: null, time: "now" }
+/** Clear all = show all pins (no tag, no time filter). */
+export const CLEARED_FILTER: FilterState = { tag: null, time: null }
 
 export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
   return pins.filter((p) => {
