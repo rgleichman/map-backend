@@ -25,7 +25,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
   const setTag = (tag: string | null) => setFilter((f) => ({ ...f, tag }))
   const setTime = (time: FilterState["time"]) => setFilter((f) => ({ ...f, time }))
 
-  const clearButtonClass = "w-full btn btn-sm btn-ghost text-base-content"
+  const clearButtonClass = "w-full btn btn-sm btn-ghost text-base-content min-h-[44px] sm:min-h-0"
 
   return (
     <FloatingPanel
