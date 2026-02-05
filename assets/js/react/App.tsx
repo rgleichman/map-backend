@@ -234,6 +234,11 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     }
   }, [loading, initialPinId, pins])
 
+  // Clear API error when modal closes (e.g. user clicks Cancel) so it doesn't show for the next operation
+  useEffect(() => {
+    if (modal === null) setApiError(null)
+  }, [modal])
+
   // Helper function to update or add a pin while preserving is_owner
   const updateOrAddPin = useCallback((pin: Pin) => {
     setPins(prevPins => {
