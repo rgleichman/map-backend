@@ -5,7 +5,19 @@ defmodule StorymapWeb.PinJSON do
   alias Storymap.Pins.Pin
 
   # Keys we allow in pin JSON; user_id must never be included
-  @pin_data_keys [:id, :title, :latitude, :longitude, :pin_type, :description, :icon_url, :tags, :start_time, :end_time, :is_owner]
+  @pin_data_keys [
+    :id,
+    :title,
+    :latitude,
+    :longitude,
+    :pin_type,
+    :description,
+    :icon_url,
+    :tags,
+    :start_time,
+    :end_time,
+    :is_owner
+  ]
 
   @doc """
   Renders a list of pins.
@@ -48,6 +60,7 @@ defmodule StorymapWeb.PinJSON do
       start_time: pin.start_time && DateTime.to_iso8601(pin.start_time),
       end_time: pin.end_time && DateTime.to_iso8601(pin.end_time)
     }
+
     Map.take(base, @pin_data_keys -- [:is_owner])
   end
 
