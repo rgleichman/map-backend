@@ -1,5 +1,11 @@
 defmodule StorymapWeb.PinJSON do
+  @moduledoc """
+  JSON rendering for pins. Never includes user_id in any response (privacy / anti-enumeration).
+  """
   alias Storymap.Pins.Pin
+
+  # Keys we allow in pin JSON; user_id must never be included
+  @pin_data_keys [:id, :title, :latitude, :longitude, :pin_type, :description, :icon_url, :tags, :start_time, :end_time, :is_owner]
 
   @doc """
   Renders a list of pins.
@@ -30,7 +36,7 @@ defmodule StorymapWeb.PinJSON do
   Does not include user_id or is_owner to prevent user enumeration.
   """
   def data(%Pin{} = pin) do
-    %{
+    base = %{
       id: pin.id,
       title: pin.title,
       latitude: pin.latitude,
@@ -38,10 +44,11 @@ defmodule StorymapWeb.PinJSON do
       pin_type: pin.pin_type,
       description: pin.description,
       icon_url: pin.icon_url,
-      tags: Enum.map(pin.tags || [], & &1.name),
+      tags: (Map.get(pin, :tags) || []) |> Enum.map(& &1.name),
       start_time: pin.start_time && DateTime.to_iso8601(pin.start_time),
       end_time: pin.end_time && DateTime.to_iso8601(pin.end_time)
     }
+    Map.take(base, @pin_data_keys -- [:is_owner])
   end
 
   @doc """
@@ -52,5 +59,6 @@ defmodule StorymapWeb.PinJSON do
   def data_with_user(%Pin{} = pin, current_user_id) do
     data(pin)
     |> Map.put(:is_owner, pin.user_id == current_user_id)
+    |> Map.take(@pin_data_keys)
   end
 end
