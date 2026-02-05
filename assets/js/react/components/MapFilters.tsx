@@ -40,6 +40,27 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
       <div className="space-y-4">
         <section>
           <h4 className="font-medium text-base-content text-xs uppercase tracking-wide mb-2">
+            Time
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTime(null)}
+              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === null ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+            >
+              All times
+            </button>
+            <button
+              type="button"
+              onClick={() => setTime("now")}
+              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === "now" ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+            >
+              Open now
+            </button>
+          </div>
+        </section>
+        <section>
+          <h4 className="font-medium text-base-content text-xs uppercase tracking-wide mb-2">
             Tag
           </h4>
           <div className="flex flex-wrap gap-2">
@@ -60,28 +81,6 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
                 {tag}
               </button>
             ))}
-          </div>
-        </section>
-
-        <section>
-          <h4 className="font-medium text-base-content text-xs uppercase tracking-wide mb-2">
-            Time
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setTime("now")}
-              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === "now" ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
-            >
-              Open now
-            </button>
-            <button
-              type="button"
-              onClick={() => setTime(null)}
-              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === null ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
-            >
-              All times
-            </button>
           </div>
         </section>
 
