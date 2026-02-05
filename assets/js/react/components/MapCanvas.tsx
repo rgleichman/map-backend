@@ -7,6 +7,14 @@ import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
 import MapFilters from "./MapFilters"
 
+const PIN_LABEL_MAX_LEN = 22
+
+function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
+  const t = title.trim()
+  if (t.length <= max) return t
+  return t.slice(0, max - 1) + "…"
+}
+
 function getCurrentLocation(
   onSuccess: (lat: number, lng: number) => void,
   onError?: (error: GeolocationPositionError) => void
@@ -14,7 +22,7 @@ function getCurrentLocation(
   if (!navigator.geolocation) return
   navigator.geolocation.getCurrentPosition(
     (position) => onSuccess(position.coords.latitude, position.coords.longitude),
-    (err) => onError?.(err),  
+    (err) => onError?.(err),
     { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
   )
 }
@@ -54,6 +62,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
+  const labelsLayerAddedRef = useRef(false)
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -116,12 +125,13 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         }
         onMapClick(e.lngLat.lng, e.lngLat.lat)
       })
-      setMapReady(true)
+      map.on("load", () => setMapReady(true))
     }
     init()
 
     return () => {
       isMounted = false
+      labelsLayerAddedRef.current = false
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       mapRef.current?.remove()
@@ -260,6 +270,42 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         popup?.setHTML(popupHtml)
       }
     })
+
+    // Pin labels: GeoJSON source + symbol layer (truncated titles, collision hidden by MapLibre)
+    if (!labelsLayerAddedRef.current) {
+      map.addSource("pin-labels", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] }
+      })
+      map.addLayer({
+        id: "pin-labels-layer",
+        type: "symbol",
+        source: "pin-labels",
+        layout: {
+          "text-field": ["get", "title"],
+          "text-size": 14,
+          "text-anchor": "top",
+          "text-offset": [0, 0],
+          "text-allow-overlap": false,
+          "text-ignore-placement": false
+        },
+        paint: {
+          "text-color": "#000000",
+          "text-halo-color": "rgba(255,255,255,0.9)",
+          "text-halo-width": 2
+        }
+      })
+      labelsLayerAddedRef.current = true
+    }
+    const labelFeatures = pinsToShow.map((pin) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
+      properties: { title: truncateTitle(pin.title) }
+    }))
+      ; (map.getSource("pin-labels") as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: labelFeatures
+      })
 
     // Open shared-link pin once when marker exists
     if (initialPinId != null && !initialPinIdAppliedRef.current) {
