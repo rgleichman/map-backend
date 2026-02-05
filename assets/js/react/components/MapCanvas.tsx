@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
-import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
+import { createPinTypeMarkerElement, getPinTypeConfig } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
@@ -13,6 +13,18 @@ function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
   const t = title.trim()
   if (t.length <= max) return t
   return t.slice(0, max - 1) + "…"
+}
+
+/** Blend hex color with white for a desaturated halo that stays readable. */
+function desaturateHex(hex: string, whiteRatio = 0.85): string {
+  const n = hex.slice(1)
+  const r = parseInt(n.slice(0, 2), 16)
+  const g = parseInt(n.slice(2, 4), 16)
+  const b = parseInt(n.slice(4, 6), 16)
+  const wr = Math.round(whiteRatio * 255 + (1 - whiteRatio) * r)
+  const wg = Math.round(whiteRatio * 255 + (1 - whiteRatio) * g)
+  const wb = Math.round(whiteRatio * 255 + (1 - whiteRatio) * b)
+  return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
 }
 
 function getCurrentLocation(
@@ -290,18 +302,24 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
           "text-ignore-placement": false
         },
         paint: {
-          "text-color": "#000000",
-          "text-halo-color": "rgba(255,255,255,0.9)",
-          "text-halo-width": 2
+          "text-color": "#1f2937",
+          "text-halo-color": ["get", "haloColor"],
+          "text-halo-width": 1.7
         }
       })
       labelsLayerAddedRef.current = true
     }
-    const labelFeatures = pinsToShow.map((pin) => ({
-      type: "Feature" as const,
-      geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
-      properties: { title: truncateTitle(pin.title) }
-    }))
+    const labelFeatures = pinsToShow.map((pin) => {
+      const pinColor = getPinTypeConfig(pin.pin_type).color
+      return {
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
+        properties: {
+          title: truncateTitle(pin.title),
+          haloColor: desaturateHex(pinColor)
+        }
+      }
+    })
       ; (map.getSource("pin-labels") as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
         features: labelFeatures
