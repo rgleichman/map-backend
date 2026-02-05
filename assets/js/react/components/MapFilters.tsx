@@ -25,6 +25,8 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
   const setTag = (tag: string | null) => setFilter((f) => ({ ...f, tag }))
   const setTime = (time: FilterState["time"]) => setFilter((f) => ({ ...f, time }))
 
+  const clearButtonClass = "w-full btn btn-sm btn-ghost text-base-content"
+
   return (
     <FloatingPanel
       triggerLabel="Filters"
@@ -45,32 +47,27 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setTime(null)}
-              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === null ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
-            >
-              All times
-            </button>
-            <button
-              type="button"
               onClick={() => setTime("now")}
               className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === "now" ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
             >
               Open now
             </button>
           </div>
+          {filter.time !== null && (
+            <button
+              type="button"
+              onClick={() => setTime(null)}
+              className={clearButtonClass}
+            >
+              All times
+            </button>
+          )}
         </section>
         <section>
           <h4 className="font-medium text-base-content text-xs uppercase tracking-wide mb-2">
             Tag
           </h4>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setTag(null)}
-              className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.tag === null ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
-            >
-              All tags
-            </button>
             {tags.map((tag) => (
               <button
                 key={tag}
@@ -82,13 +79,22 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
               </button>
             ))}
           </div>
+          {filter.tag !== null && (
+            <button
+              type="button"
+              onClick={() => setTag(null)}
+              className={clearButtonClass}
+            >
+              Clear tags
+            </button>
+          )}
         </section>
 
         {hasActiveFilter && (
           <button
             type="button"
             onClick={() => setFilter(CLEARED_FILTER)}
-            className="w-full btn btn-sm btn-ghost text-base-content"
+            className={clearButtonClass}
           >
             Clear all
           </button>
