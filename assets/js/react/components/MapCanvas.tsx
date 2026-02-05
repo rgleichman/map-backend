@@ -9,7 +9,7 @@ import {
   PIN_TYPES
 } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
 import MapFilters from "./MapFilters"
 
@@ -205,10 +205,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
               }
             }
           })
-          ;(map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
-            type: "FeatureCollection",
-            features: initialFeatures
-          })
+            ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+              type: "FeatureCollection",
+              features: initialFeatures
+            })
 
           map.on("click", "pin-icons-layer", (e) => {
             const feature = e.features?.[0]
@@ -373,14 +373,16 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     pinsByIdRef.current = new Map(pinsToShow.map((p) => [p.id, p]))
 
     const features = buildPinFeatures(pinsToShow)
-    ;(map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
-      type: "FeatureCollection",
-      features
-    })
+      ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features
+      })
 
     if (initialPinId != null && !initialPinIdAppliedRef.current) {
-      const pin = pinsToShow.find((p) => p.id === initialPinId)
+      const pin = pins.find((p) => p.id === initialPinId)
       if (pin) {
+        // clear all filters in case the pin is not shown in the initial filters
+        setFilter(CLEARED_FILTER)
         initialPinIdAppliedRef.current = true
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
         onPopupOpen?.(pin.id)
