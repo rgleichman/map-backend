@@ -36,12 +36,8 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
             >
               <div className="flex items-start gap-3">
                 <span
-                  className="flex-shrink-0 rounded-full flex items-center justify-center w-10 h-10"
-                  style={{
-                    backgroundColor: config.backgroundColor,
-                    color: config.textColor,
-                    border: `2px solid ${config.borderColor}`
-                  }}
+                  className="pin-type-badge flex-shrink-0 rounded-full flex items-center justify-center w-10 h-10"
+                  data-pin-type={type}
                 >
                   <PinTypeIcon pinType={type} size={24} />
                 </span>

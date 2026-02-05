@@ -45,6 +45,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const initialPinIdAppliedRef = useRef(false)
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
   onPlacementMapClickRef.current = onPlacementMapClick
+  const onEditRef = useRef(onEdit)
+  onEditRef.current = onEdit
+  const onDeleteRef = useRef(onDelete)
+  onDeleteRef.current = onDelete
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<string | null>(null)
@@ -185,9 +189,9 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         const action = target.dataset.pinAction
         const pinId = parseInt(target.dataset.pinId || '0', 10)
         if (action === 'edit') {
-          onEdit(pinId)
+          onEditRef.current(pinId)
         } else if (action === 'delete') {
-          onDelete(pinId)
+          onDeleteRef.current(pinId)
         } else if (action === 'copy-link') {
           const path = window.location.pathname || '/map'
           const url = `${window.location.origin}${path}?pin=${pinId}`
@@ -217,7 +221,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     return () => {
       map.getContainer().removeEventListener('click', handlePopupClick)
     }
-  }, [mapReady, onEdit, onDelete])
+  }, [mapReady])
 
   // Sync markers with pins (exclude pin being edited; it is shown at pendingLocation)
   const pinsToShow = editingPinId != null

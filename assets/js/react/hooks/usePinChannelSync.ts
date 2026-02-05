@@ -17,21 +17,16 @@ export function usePinChannelSync({ onUpsertPin, onDeletePinId }: Params): void 
   onDeletePinIdRef.current = onDeletePinId
 
   useEffect(() => {
-    const handler = (payload: PinBroadcastPayload) => onUpsertPinRef.current(payload.pin)
-    worldChannel.on("marker_added", handler)
-    return () => worldChannel.off("marker_added", handler)
-  }, [])
-
-  useEffect(() => {
-    const handler = (payload: PinBroadcastPayload) => onUpsertPinRef.current(payload.pin)
-    worldChannel.on("marker_updated", handler)
-    return () => worldChannel.off("marker_updated", handler)
-  }, [])
-
-  useEffect(() => {
-    const handler = (payload: PinDeletedPayload) => onDeletePinIdRef.current(payload.pin_id)
-    worldChannel.on("marker_deleted", handler)
-    return () => worldChannel.off("marker_deleted", handler)
+    const onUpsert = (payload: PinBroadcastPayload) => onUpsertPinRef.current(payload.pin)
+    const onDeleted = (payload: PinDeletedPayload) => onDeletePinIdRef.current(payload.pin_id)
+    worldChannel.on("marker_added", onUpsert)
+    worldChannel.on("marker_updated", onUpsert)
+    worldChannel.on("marker_deleted", onDeleted)
+    return () => {
+      worldChannel.off("marker_added", onUpsert)
+      worldChannel.off("marker_updated", onUpsert)
+      worldChannel.off("marker_deleted", onDeleted)
+    }
   }, [])
 }
 
