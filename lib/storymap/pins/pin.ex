@@ -12,7 +12,9 @@ defmodule Storymap.Pins.Pin do
              :inserted_at,
              :updated_at,
              :description,
-             :icon_url
+             :icon_url,
+             :schedule_rrule,
+             :schedule_timezone
            ]}
 
   schema "pins" do
@@ -27,6 +29,11 @@ defmodule Storymap.Pins.Pin do
     field :start_time, :utc_datetime
     field :end_time, :utc_datetime
     field :pin_type, :string
+    # For pin_type "scheduled": iCal RRULE (e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=15;BYMINUTE=0)
+    field :schedule_rrule, :string
+
+    # IANA timezone for schedule (e.g. America/Los_Angeles). Interpret BYHOUR/BYMINUTE in this zone.
+    field :schedule_timezone, :string
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     timestamps(type: :utc_datetime)
@@ -44,7 +51,9 @@ defmodule Storymap.Pins.Pin do
         :icon_url,
         :start_time,
         :end_time,
-        :pin_type
+        :pin_type,
+        :schedule_rrule,
+        :schedule_timezone
       ])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank"])

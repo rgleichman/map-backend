@@ -15,6 +15,10 @@ type Props = {
   setStartTime: (t: string) => void
   endTime: string
   setEndTime: (t: string) => void
+  scheduleRrule: string
+  setScheduleRrule: (s: string) => void
+  scheduleTimezone: string
+  setScheduleTimezone: (s: string) => void
   latitude: number
   longitude: number
   onStartPickOnMap: () => void
@@ -35,6 +39,8 @@ export default function PinModal({
   tags, setTags,
   startTime, setStartTime,
   endTime, setEndTime,
+  scheduleRrule, setScheduleRrule,
+  scheduleTimezone, setScheduleTimezone,
   latitude, longitude,
   onStartPickOnMap,
   mode, onCancel, onSave, onDelete, canDelete, saving = false
@@ -115,6 +121,26 @@ export default function PinModal({
           type="datetime-local"
           value={endTime}
           onChange={e => setEndTime(e.target.value)}
+          className="w-full mb-2 px-3 py-2 rounded border"
+        />
+        <label htmlFor="pin-schedule-rrule" className="block font-medium mb-1 mt-2">Schedule (RRULE)</label>
+        <input
+          id="pin-schedule-rrule"
+          name="schedule_rrule"
+          type="text"
+          placeholder="e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=15;BYMINUTE=0"
+          value={scheduleRrule}
+          onChange={e => setScheduleRrule(e.target.value)}
+          className="w-full mb-2 px-3 py-2 rounded border"
+        />
+        <label htmlFor="pin-schedule-timezone" className="block font-medium mb-1">Schedule timezone</label>
+        <input
+          id="pin-schedule-timezone"
+          name="schedule_timezone"
+          type="text"
+          placeholder="e.g. America/Los_Angeles"
+          value={scheduleTimezone}
+          onChange={e => setScheduleTimezone(e.target.value)}
           className="w-full mb-2 px-3 py-2 rounded border"
         />
       </div>

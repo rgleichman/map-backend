@@ -16,6 +16,8 @@ defmodule StorymapWeb.PinJSON do
     :tags,
     :start_time,
     :end_time,
+    :schedule_rrule,
+    :schedule_timezone,
     :is_owner
   ]
 
@@ -58,7 +60,9 @@ defmodule StorymapWeb.PinJSON do
       icon_url: pin.icon_url,
       tags: (pin.tags || []) |> Enum.map(& &1.name),
       start_time: pin.start_time && DateTime.to_iso8601(pin.start_time),
-      end_time: pin.end_time && DateTime.to_iso8601(pin.end_time)
+      end_time: pin.end_time && DateTime.to_iso8601(pin.end_time),
+      schedule_rrule: pin.schedule_rrule,
+      schedule_timezone: pin.schedule_timezone
     }
 
     Map.take(base, @pin_data_keys -- [:is_owner])

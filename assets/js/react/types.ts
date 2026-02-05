@@ -12,6 +12,8 @@ export type Pin = {
   tags: string[]
   start_time?: string // ISO string
   end_time?: string // ISO string
+  schedule_rrule?: string // iCal RRULE for recurring schedule
+  schedule_timezone?: string // IANA timezone for schedule
 }
 
 
@@ -24,6 +26,8 @@ export type NewPin = {
   tags: string[]
   start_time?: string // ISO string
   end_time?: string // ISO string
+  schedule_rrule?: string
+  schedule_timezone?: string
 }
 
 
@@ -33,6 +37,8 @@ export type UpdatePin = {
   tags: string[]
   start_time?: string // ISO string
   end_time?: string // ISO string
+  schedule_rrule?: string
+  schedule_timezone?: string
   latitude?: number
   longitude?: number
 }

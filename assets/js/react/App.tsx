@@ -41,6 +41,8 @@ type DraftState = {
   tags: string[]
   startTime: string
   endTime: string
+  scheduleRrule: string
+  scheduleTimezone: string
   addLocation: { lat: number; lng: number } | null
   editLocation: { lat: number; lng: number } | null
 }
@@ -70,6 +72,8 @@ type Action =
   | { type: "set_tags"; tags: string[] }
   | { type: "set_start_time"; startTime: string }
   | { type: "set_end_time"; endTime: string }
+  | { type: "set_schedule_rrule"; scheduleRrule: string }
+  | { type: "set_schedule_timezone"; scheduleTimezone: string }
   | { type: "set_time_error"; timeError: string }
   | { type: "clear_time_error" }
   | { type: "clear_draft_locations" }
@@ -84,6 +88,8 @@ const makeDefaultDraft = (): DraftState => {
     tags: [],
     startTime: dateToLocalInputValue(now),
     endTime: dateToLocalInputValue(inOneHour),
+    scheduleRrule: "",
+    scheduleTimezone: "",
     addLocation: null,
     editLocation: null,
   }
@@ -158,6 +164,8 @@ function reducer(state: State, action: Action): State {
           tags: action.pin.tags || [],
           startTime: isoToLocalInputValue(action.pin.start_time),
           endTime: isoToLocalInputValue(action.pin.end_time),
+          scheduleRrule: action.pin.schedule_rrule ?? "",
+          scheduleTimezone: action.pin.schedule_timezone ?? "",
           editLocation: null,
         },
       }
@@ -179,6 +187,10 @@ function reducer(state: State, action: Action): State {
       return { ...state, draft: { ...state.draft, startTime: action.startTime } }
     case "set_end_time":
       return { ...state, draft: { ...state.draft, endTime: action.endTime } }
+    case "set_schedule_rrule":
+      return { ...state, draft: { ...state.draft, scheduleRrule: action.scheduleRrule } }
+    case "set_schedule_timezone":
+      return { ...state, draft: { ...state.draft, scheduleTimezone: action.scheduleTimezone } }
     case "set_time_error":
       return { ...state, timeError: action.timeError }
     case "clear_time_error":
@@ -199,7 +211,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [apiError, setApiError] = useState<string | null>(null)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone } = draft
   const modalRef = useRef(modal)
   modalRef.current = modal
   const escapePanelRef = useRef({ modal, isDesktop, dispatch })
@@ -358,7 +370,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         longitude: loc.lng,
         tags,
         start_time: localInputValueToISOString(startTime),
-        end_time: localInputValueToISOString(endTime)
+        end_time: localInputValueToISOString(endTime),
+        schedule_rrule: scheduleRrule || undefined,
+        schedule_timezone: scheduleTimezone || undefined
       }
       setSaving(true)
       try {
@@ -380,6 +394,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         tags,
         start_time: localInputValueToISOString(startTime),
         end_time: localInputValueToISOString(endTime),
+        schedule_rrule: scheduleRrule || undefined,
+        schedule_timezone: scheduleTimezone || undefined,
         latitude: lat,
         longitude: lng
       }
@@ -395,7 +411,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         setSaving(false)
       }
     }
-  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, csrfToken])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -492,6 +508,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
                 endTime={endTime}
                 setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
+                scheduleRrule={scheduleRrule}
+                setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
+                scheduleTimezone={scheduleTimezone}
+                setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
                 latitude={pinModalLat}
                 longitude={pinModalLng}
                 onStartPickOnMap={onStartPickOnMap}
@@ -585,6 +605,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
           endTime={endTime}
           setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
+          scheduleRrule={scheduleRrule}
+          setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
+          scheduleTimezone={scheduleTimezone}
+          setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
           latitude={pinModalLat}
           longitude={pinModalLng}
           onStartPickOnMap={onStartPickOnMap}
