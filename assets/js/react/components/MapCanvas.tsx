@@ -5,6 +5,7 @@ import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
+import MapFilters from "./MapFilters"
 
 function getCurrentLocation(
   onSuccess: (lat: number, lng: number) => void,
@@ -52,6 +53,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
+  const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -205,10 +207,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         const tag = target.dataset.tag
         if (tag) {
           setFilter((f) => ({ ...f, tag }))
-          // Close all popups
+          filterPanelOpenRef.current?.open()
           document.querySelectorAll('.maplibregl-popup').forEach((el) => {
-            (el as HTMLElement).style.display = 'none';
-          });
+            (el as HTMLElement).style.display = 'none'
+          })
         }
       }
     }
@@ -280,44 +282,40 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   return (
     <div className="relative w-full h-full">
       {mapReady && !drawerOpen && (
-        <div className="absolute top-14 left-2 z-10">
-          <button
-            type="button"
-            className="btn btn-sm btn-outline whitespace-nowrap bg-base-100/30"
-            aria-label="Go to my location"
-            onClick={goToMyLocation}
-          >
-            Go to my location
-          </button>
-        </div>
+        <>
+          <div className="absolute top-14 left-2 z-10 flex flex-col gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline whitespace-nowrap bg-base-100/30"
+              aria-label="Go to my location"
+              onClick={goToMyLocation}
+            >
+              Go to my location
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity whitespace-nowrap"
+              aria-label="Show filters"
+              onClick={() => filterPanelOpenRef.current?.open()}
+            >
+              Filters
+            </button>
+          </div>
+          <MapFilters
+            pins={pins}
+            filter={filter}
+            setFilter={setFilter}
+            openRef={filterPanelOpenRef}
+            hideTrigger
+            panelTopOffset="6.5rem"
+          />
+        </>
       )}
-      {(onPlacementMapClick || filter.tag || filter.time) && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
-          {onPlacementMapClick && (
-            <div className="bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
-              Click or tap on the map to set location
-            </div>
-          )}
-          {(filter.tag || filter.time) && (
-            <div className="bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
-              {filter.time && (
-                <span className="font-medium text-base-content">Showing pins open now</span>
-              )}
-              {filter.tag && (
-                <>
-                  {filter.time && <span className="text-base-content">•</span>}
-                  <span className="font-medium text-base-content">Filtered by tag:</span>
-                  <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{filter.tag}</span>
-                </>
-              )}
-              <button
-                className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
-                onClick={() => setFilter(DEFAULT_FILTER)}
-              >
-                Clear Filter
-              </button>
-            </div>
-          )}
+      {onPlacementMapClick && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+          <div className="bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
+            Click or tap on the map to set location
+          </div>
         </div>
       )}
       <div ref={containerRef} id="map" className="w-full h-full" />

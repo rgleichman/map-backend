@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react"
 
 const safeBottom = "max(1rem, env(safe-area-inset-bottom))"
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
+/** Below map search / location button. */
+const topLeftTop = "3.5rem"
 
 type Props = {
   triggerLabel: string
@@ -11,6 +13,14 @@ type Props = {
   children: React.ReactNode
   /** When true, panel is always visible on sm+ and trigger is hidden on desktop (PinTypeLegend style). */
   alwaysVisibleOnDesktop?: boolean
+  /** Position of trigger and panel. Default bottom-left. */
+  position?: "bottom-left" | "top-left"
+  /** Optional ref to open the panel from outside (e.g. when user clicks a tag in a popup). */
+  openRef?: React.RefObject<{ open(): void } | null>
+  /** When false, do not render the trigger (caller renders it and uses openRef to open). */
+  renderTrigger?: boolean
+  /** Override top for position="top-left" (e.g. "6.5rem" to sit below a stacked control group). */
+  topOffset?: string
 }
 
 export default function FloatingPanel({
@@ -19,10 +29,22 @@ export default function FloatingPanel({
   title,
   closeAriaLabel,
   children,
-  alwaysVisibleOnDesktop = false
+  alwaysVisibleOnDesktop = false,
+  position = "bottom-left",
+  openRef,
+  renderTrigger = true,
+  topOffset
 }: Props) {
   const [expanded, setExpanded] = useState(false)
   const close = useCallback(() => setExpanded(false), [])
+
+  useEffect(() => {
+    if (!openRef) return
+    openRef.current = { open: () => setExpanded(true) }
+    return () => {
+      openRef.current = null
+    }
+  }, [openRef])
 
   useEffect(() => {
     if (!expanded) return
@@ -36,10 +58,18 @@ export default function FloatingPanel({
   const showTrigger =
     alwaysVisibleOnDesktop ? expanded === false : true
   const triggerHiddenWhenExpanded = alwaysVisibleOnDesktop
+  const isTop = position === "top-left"
+  const top = topOffset ?? topLeftTop
+  const triggerStyle = isTop
+    ? { top: top, left: safeLeft }
+    : { bottom: safeBottom, left: safeLeft }
+  const panelStyle = isTop
+    ? { top: top, left: safeLeft }
+    : { bottom: safeBottom, left: safeLeft }
 
   return (
     <>
-      {showTrigger && (
+      {renderTrigger && showTrigger && (
         <button
           type="button"
           onClick={() => setExpanded(true)}
@@ -48,7 +78,7 @@ export default function FloatingPanel({
             alwaysVisibleOnDesktop && "sm:hidden",
             triggerHiddenWhenExpanded && expanded && "hidden"
           ].filter(Boolean).join(" ")}
-          style={{ bottom: safeBottom, left: safeLeft }}
+          style={triggerStyle}
           aria-label={triggerAriaLabel}
         >
           {triggerLabel}
@@ -71,7 +101,7 @@ export default function FloatingPanel({
           expanded ? "block" : "hidden",
           alwaysVisibleOnDesktop && "sm:block"
         ].filter(Boolean).join(" ")}
-        style={{ bottom: safeBottom, left: safeLeft }}
+        style={panelStyle}
       >
         <div className="flex items-center justify-between gap-2 mb-3">
           <h3 className="font-semibold text-base-content text-sm">{title}</h3>
