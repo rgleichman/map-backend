@@ -35,6 +35,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
       openRef={openRef}
       renderTrigger={!hideTrigger}
       topOffset={panelTopOffset}
+      elevated
     >
       <div className="space-y-4">
         <section>

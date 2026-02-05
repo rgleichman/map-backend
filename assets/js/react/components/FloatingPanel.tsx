@@ -21,6 +21,8 @@ type Props = {
   renderTrigger?: boolean
   /** Override top for position="top-left" (e.g. "6.5rem" to sit below a stacked control group). */
   topOffset?: string
+  /** When true, panel and backdrop use higher z-index so they draw over other floating panels. */
+  elevated?: boolean
 }
 
 export default function FloatingPanel({
@@ -33,7 +35,8 @@ export default function FloatingPanel({
   position = "bottom-left",
   openRef,
   renderTrigger = true,
-  topOffset
+  topOffset,
+  elevated = false
 }: Props) {
   const [expanded, setExpanded] = useState(false)
   const close = useCallback(() => setExpanded(false), [])
@@ -89,7 +92,7 @@ export default function FloatingPanel({
         type="button"
         onClick={close}
         className={[
-          "fixed inset-0 z-[9] bg-black/20",
+          elevated ? "fixed inset-0 z-[19] bg-black/20" : "fixed inset-0 z-[9] bg-black/20",
           !expanded && "hidden",
           alwaysVisibleOnDesktop && "sm:hidden"
         ].filter(Boolean).join(" ")}
@@ -97,7 +100,7 @@ export default function FloatingPanel({
       />
       <div
         className={[
-          "absolute z-10 bg-base-100 rounded-lg shadow-lg border border-base-300 p-4 max-w-xs w-[calc(100vw-2rem)] sm:w-auto sm:max-w-xs",
+          elevated ? "absolute z-20 bg-base-100 rounded-lg shadow-lg border border-base-300 p-4 max-w-xs w-[calc(100vw-2rem)] sm:w-auto sm:max-w-xs" : "absolute z-10 bg-base-100 rounded-lg shadow-lg border border-base-300 p-4 max-w-xs w-[calc(100vw-2rem)] sm:w-auto sm:max-w-xs",
           expanded ? "block" : "hidden",
           alwaysVisibleOnDesktop && "sm:block"
         ].filter(Boolean).join(" ")}

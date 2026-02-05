@@ -279,6 +279,12 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     getCurrentLocation((lat, lng) => map.flyTo({ center: [lng, lat], zoom: 10 }))
   }
 
+  const activeFilterParts =
+    (filter.time === "now" ? ["Open now"] : []).concat(filter.tag !== null ? [filter.tag] : [])
+  const activeFilterSummary = activeFilterParts.join(" · ")
+  const filtersAriaLabel =
+    activeFilterParts.length > 0 ? `Show filters. Active: ${activeFilterParts.join("; ")}` : "Show filters"
+
   return (
     <div className="relative w-full h-full">
       {mapReady && !drawerOpen && (
@@ -294,11 +300,16 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             </button>
             <button
               type="button"
-              className="flex items-center gap-2 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity whitespace-nowrap"
-              aria-label="Show filters"
+              className="flex flex-col items-start gap-0.5 min-w-0 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity text-left"
+              aria-label={filtersAriaLabel}
               onClick={() => filterPanelOpenRef.current?.open()}
             >
-              Filters
+              <span className="whitespace-nowrap">Filters</span>
+              {activeFilterParts.length > 0 && (
+                <span className="text-xs text-base-content/80 truncate max-w-[12rem]">
+                  {activeFilterSummary}
+                </span>
+              )}
             </button>
           </div>
           <MapFilters
