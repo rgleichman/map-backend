@@ -218,8 +218,9 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
             onPopupOpen?.(pinId)
+            const [lng, lat] = (feature.geometry as { type: "Point"; coordinates: [number, number] }).coordinates
             const popup = new Popup({ closeButton: true })
-              .setLngLat(e.lngLat)
+              .setLngLat([lng, lat])
               .setHTML(buildPopupHtml(pin, navigator.userAgent))
               .addTo(map)
             popup.on("close", () => onPopupClose?.())

@@ -65,8 +65,11 @@ export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeCo
   return pinTypeConfigs[key]
 }
 
-/** Icon transform to fit 24x24 viewBox into circle at (20,14) r=10 */
+/** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
 const MARKER_ICON_TRANSFORM = "translate(20,14) scale(0.833) translate(-12,-12)"
+
+const TEARDROP_PATH =
+  "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(pinType: PinType | null | undefined): string {
@@ -75,66 +78,23 @@ export function getPinTypeMarkerImageId(pinType: PinType | null | undefined): st
 }
 
 /**
- * Create an SVG marker for a specific pin type (data URL).
- * Embeds the pin-type icon path inside the teardrop for consistent rendering.
+ * Build the pin marker SVG string (teardrop + icon). Single source of truth for DOM marker and map images.
  */
-export function createPinTypeMarkerSVG(pinType: PinType | null | undefined): string {
+function buildPinMarkerSVGString(
+  pinType: PinType | null | undefined,
+  pending: boolean
+): string {
   const config = getPinTypeConfig(pinType)
   const iconFill = config.textColor
-
-  const svg = `
-    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
-        </filter>
-      </defs>
-      <path d="M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
-            fill="${config.color}"
-            filter="url(#shadow)"/>
-      <circle cx="20" cy="14" r="10" fill="${config.backgroundColor}"/>
-      <g transform="${MARKER_ICON_TRANSFORM}" fill="${iconFill}">
-        ${config.iconPath}
-      </g>
-      <path d="M20 2 C27 2 33 8 33 16 C33 26 20 44 20 44 C20 44 7 26 7 16 C7 8 13 2 20 2 Z"
-            fill="none"
-            stroke="${config.backgroundColor}"
-            stroke-width="1.5"
-            opacity="0.6"/>
-    </svg>
-  `
-
-  return `data:image/svg+xml;base64,${btoa(svg)}`
-}
-
-const TEARDROP_PATH =
-  "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
-
-export type CreatePinMarkerOptions = {
-  /** When true, draw pin outline and lighter fill for pending (create/edit) state. */
-  pending?: boolean
-}
-
-/**
- * Create a DOM element marker: single SVG (teardrop + icon), no rotation.
- */
-export function createPinTypeMarkerElement(
-  pinType: PinType,
-  options?: CreatePinMarkerOptions
-): HTMLElement {
-  const config = getPinTypeConfig(pinType)
-  const iconFill = config.textColor
-  const pending = options?.pending ?? false
 
   const outlinePath = pending
     ? `<path d="${TEARDROP_PATH}" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="round"/>`
     : ""
-
   const mainPathFillOpacity = pending ? "0.72" : "1"
   const circleFillOpacity = pending ? "0.85" : "1"
   const shadowFilter = pending ? "" : ' filter="url(#shadow)"'
 
-  const svg = `
+  return `
     <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -153,7 +113,29 @@ export function createPinTypeMarkerElement(
       </g>
     </svg>
   `
+}
 
+/**
+ * Create an SVG marker for a specific pin type (data URL). Uses same SVG as createPinTypeMarkerElement with pending false.
+ */
+export function createPinTypeMarkerSVG(pinType: PinType | null | undefined): string {
+  const svg = buildPinMarkerSVGString(pinType, false)
+  return `data:image/svg+xml;base64,${btoa(svg)}`
+}
+
+export type CreatePinMarkerOptions = {
+  /** When true, draw pin outline and lighter fill for pending (create/edit) state. */
+  pending?: boolean
+}
+
+/**
+ * Create a DOM element marker: single SVG (teardrop + icon), no rotation.
+ */
+export function createPinTypeMarkerElement(
+  pinType: PinType,
+  options?: CreatePinMarkerOptions
+): HTMLElement {
+  const svg = buildPinMarkerSVGString(pinType, options?.pending ?? false)
   const wrap = document.createElement("div")
   wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
   wrap.innerHTML = svg
