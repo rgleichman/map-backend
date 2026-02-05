@@ -8,7 +8,7 @@ defmodule StorymapWeb.PinController do
 
   def index(conn, _params) do
     current_user_id = get_current_user_id(conn)
-    pins = if current_user_id, do: Pins.list_pins(current_user_id), else: Pins.list_pins()
+    pins = Pins.list_pins()
     render(conn, :index, pins: pins, current_user_id: current_user_id)
   end
 
