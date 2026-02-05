@@ -2,17 +2,22 @@ import type { Pin } from "../../types"
 
 export type TimeFilter = "now" | null
 
-export function filterPins(pins: Pin[], tagFilter: string | null, timeFilter: TimeFilter): Pin[] {
+export type FilterState = {
+  tag: string | null
+  time: TimeFilter
+}
+
+export const DEFAULT_FILTER: FilterState = { tag: null, time: "now" }
+
+export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
   return pins.filter((p) => {
-    // Apply tag filter
-    if (tagFilter && (!p.tags || !p.tags.includes(tagFilter))) {
+    if (filter.tag && (!p.tags || !p.tags.includes(filter.tag))) {
       return false
     }
 
-    // Apply time filter (show pins open now by default)
-    if (timeFilter === "now") {
+    if (filter.time === "now") {
       const now = new Date()
-      if (!p.start_time && !p.end_time) return true // No time restrictions
+      if (!p.start_time && !p.end_time) return true
       const start = p.start_time ? new Date(p.start_time) : null
       const end = p.end_time ? new Date(p.end_time) : null
       if (start && end) return start <= now && now <= end
@@ -24,4 +29,3 @@ export function filterPins(pins: Pin[], tagFilter: string | null, timeFilter: Ti
     return true
   })
 }
-

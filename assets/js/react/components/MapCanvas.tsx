@@ -3,7 +3,7 @@ import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
 import { createPinTypeMarkerElement } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { filterPins, type TimeFilter } from "./map/filters"
+import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
 
 function getCurrentLocation(
@@ -51,8 +51,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onDeleteRef.current = onDelete
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [tagFilter, setTagFilter] = useState<string | null>(null)
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("now") // Active by default
+  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -64,8 +63,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     return () => toggle.removeEventListener("change", sync)
   }, [])
 
-  // Filter pins by tag and time
-  const filteredPins = filterPins(pins, tagFilter, timeFilter)
+  const filteredPins = filterPins(pins, filter)
 
   // Initialize map once
   useEffect(() => {
@@ -206,7 +204,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         e.stopPropagation()
         const tag = target.dataset.tag
         if (tag) {
-          setTagFilter(tag)
+          setFilter((f) => ({ ...f, tag }))
           // Close all popups
           document.querySelectorAll('.maplibregl-popup').forEach((el) => {
             (el as HTMLElement).style.display = 'none';
@@ -293,31 +291,28 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
           </button>
         </div>
       )}
-      {(onPlacementMapClick || tagFilter || timeFilter) && (
+      {(onPlacementMapClick || filter.tag || filter.time) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
           {onPlacementMapClick && (
             <div className="bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
               Click or tap on the map to set location
             </div>
           )}
-          {(tagFilter || timeFilter) && (
+          {(filter.tag || filter.time) && (
             <div className="bg-base-100/90 rounded shadow px-4 py-2 flex items-center gap-2">
-              {timeFilter && (
+              {filter.time && (
                 <span className="font-medium text-base-content">Showing pins open now</span>
               )}
-              {tagFilter && (
+              {filter.tag && (
                 <>
-                  {timeFilter && <span className="text-base-content">•</span>}
+                  {filter.time && <span className="text-base-content">•</span>}
                   <span className="font-medium text-base-content">Filtered by tag:</span>
-                  <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{tagFilter}</span>
+                  <span className="px-2 py-1 bg-base-200 text-base-content rounded text-sm">{filter.tag}</span>
                 </>
               )}
               <button
                 className="ml-2 px-2 py-1 text-xs rounded bg-base-200 hover:bg-base-300 transition text-base-content"
-                onClick={() => {
-                  setTagFilter(null)
-                  setTimeFilter(null)
-                }}
+                onClick={() => setFilter(DEFAULT_FILTER)}
               >
                 Clear Filter
               </button>
