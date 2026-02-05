@@ -68,6 +68,12 @@ export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeCo
 /** Icon transform to fit 24x24 viewBox into circle at (20,14) r=10 */
 const MARKER_ICON_TRANSFORM = "translate(20,14) scale(0.833) translate(-12,-12)"
 
+/** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
+export function getPinTypeMarkerImageId(pinType: PinType | null | undefined): string {
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : defaultPinType
+  return `pin-icon-${key}`
+}
+
 /**
  * Create an SVG marker for a specific pin type (data URL).
  * Embeds the pin-type icon path inside the teardrop for consistent rendering.

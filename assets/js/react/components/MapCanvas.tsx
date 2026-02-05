@@ -1,11 +1,26 @@
 import React, { useEffect, useRef, useState } from "react"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
-import { createPinTypeMarkerElement, getPinTypeConfig } from "../utils/pinTypeIcons"
+import {
+  createPinTypeMarkerElement,
+  createPinTypeMarkerSVG,
+  getPinTypeConfig,
+  getPinTypeMarkerImageId,
+  PIN_TYPES
+} from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
 import { buildPopupHtml } from "./map/popup"
 import MapFilters from "./MapFilters"
+
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error("Failed to load pin image"))
+    img.src = dataUrl
+  })
+}
 
 const PIN_LABEL_MAX_LEN = 22
 
@@ -61,9 +76,10 @@ type Props = {
 export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pendingLocation = null, pendingPinType = null, editingPinId = null, onPlacementMapClick, onPopupOpen, onPopupClose }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const markersRef = useRef<Map<number, Marker>>(new Map())
   const pendingMarkerRef = useRef<Marker | null>(null)
   const initialPinIdAppliedRef = useRef(false)
+  const pinLayersAddedRef = useRef(false)
+  const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
   onPlacementMapClickRef.current = onPlacementMapClick
   const onEditRef = useRef(onEdit)
@@ -74,7 +90,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
-  const labelsLayerAddedRef = useRef(false)
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -114,42 +129,124 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       map.addControl(control as unknown as maplibregl.IControl, "top-left");
       mapRef.current = map
       map.on("click", (e) => {
-        const el = e.originalEvent?.target as HTMLElement | undefined
-
         if (onPlacementMapClickRef.current) {
           onPlacementMapClickRef.current(e.lngLat.lng, e.lngLat.lat)
           return
         }
 
-        // Check if any popup is currently visible in the DOM
-        const hasVisiblePopup = document.querySelector('.maplibregl-popup') !== null
+        const hasVisiblePopup = document.querySelector(".maplibregl-popup") !== null
+        if (hasVisiblePopup) return
 
-        // Check if there's an open popup - if so, just let it close without creating a pin
-        if (hasVisiblePopup) {
-          return
-        }
+        // Ignore clicks on pin icons (handled by pin-icons-layer click)
+        const hit = map.queryRenderedFeatures(e.point, { layers: ["pin-icons-layer"] })
+        if (hit.length > 0) return
 
-        // ignore clicks on markers
-        let cur: HTMLElement | null | undefined = el
-        while (cur) {
-          if (cur.classList?.contains("maplibregl-marker")) return
-          cur = cur.parentElement
-        }
         onMapClick(e.lngLat.lng, e.lngLat.lat)
       })
-      map.on("load", () => setMapReady(true))
+      map.on("load", async () => {
+        const map = mapRef.current
+        if (!map) return
+        try {
+          for (const pinType of PIN_TYPES) {
+            const dataUrl = createPinTypeMarkerSVG(pinType)
+            const img = await loadImage(dataUrl)
+            map.addImage(getPinTypeMarkerImageId(pinType), img)
+          }
+          map.addSource("pin-features", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] }
+          })
+          map.addLayer({
+            id: "pin-icons-layer",
+            type: "symbol",
+            source: "pin-features",
+            layout: {
+              "icon-image": ["get", "pin_type_icon"],
+              "icon-size": 1,
+              "icon-anchor": "bottom",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true
+            }
+          })
+          map.addLayer({
+            id: "pin-labels-layer",
+            type: "symbol",
+            source: "pin-features",
+            layout: {
+              "text-field": ["get", "title"],
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold", "sans-serif"],
+              "text-size": 14,
+              "text-anchor": "top",
+              "text-offset": [0, 0],
+              "text-allow-overlap": false,
+              "text-ignore-placement": false
+            },
+            paint: {
+              "text-color": "#1f2937",
+              "text-halo-color": ["get", "haloColor"],
+              "text-halo-width": 1.7
+            }
+          })
+          pinLayersAddedRef.current = true
+
+          const initialPins = pinsToShowRef.current
+          pinsByIdRef.current = new Map(initialPins.map((p) => [p.id, p]))
+          const initialFeatures = initialPins.map((pin) => {
+            const pinColor = getPinTypeConfig(pin.pin_type).color
+            return {
+              type: "Feature" as const,
+              geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
+              properties: {
+                pin_id: pin.id,
+                title: truncateTitle(pin.title),
+                pin_type: pin.pin_type,
+                pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
+                haloColor: desaturateHex(pinColor)
+              }
+            }
+          })
+          ;(map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+            type: "FeatureCollection",
+            features: initialFeatures
+          })
+
+          map.on("click", "pin-icons-layer", (e) => {
+            const feature = e.features?.[0]
+            if (!feature) return
+            const pinId = feature.properties?.pin_id as number | undefined
+            if (pinId == null) return
+            const pin = pinsByIdRef.current.get(pinId)
+            if (!pin) return
+            onPopupOpen?.(pinId)
+            const popup = new Popup({ closeButton: true })
+              .setLngLat(e.lngLat)
+              .setHTML(buildPopupHtml(pin, navigator.userAgent))
+              .addTo(map)
+            popup.on("close", () => onPopupClose?.())
+          })
+          map.on("mouseenter", "pin-icons-layer", () => {
+            map.getCanvas().style.cursor = "pointer"
+          })
+          map.on("mouseleave", "pin-icons-layer", () => {
+            map.getCanvas().style.cursor = ""
+          })
+
+          setMapReady(true)
+        } catch (err) {
+          console.error("Failed to set up pin layers", err)
+          setMapReady(true)
+        }
+      })
     }
     init()
 
     return () => {
       isMounted = false
-      labelsLayerAddedRef.current = false
+      pinLayersAddedRef.current = false
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current.clear()
       setMapReady(false)
     }
   }, [styleUrl, onMapClick])
@@ -245,98 +342,55 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [mapReady])
 
-  // Sync markers with pins (exclude pin being edited; it is shown at pendingLocation)
   const pinsToShow = editingPinId != null
     ? filteredPins.filter((p) => p.id !== editingPinId)
     : filteredPins
+  const pinsToShowRef = useRef<Pin[]>(pinsToShow)
+  pinsToShowRef.current = pinsToShow
 
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady) return
-
-    const known = markersRef.current
-    const nextIds = new Set(pinsToShow.map((p) => p.id))
-
-    // remove stale
-    for (const [id, marker] of known) {
-      if (!nextIds.has(id)) {
-        marker.remove()
-        known.delete(id)
-      }
-    }
-
-    // add/update
-    pinsToShow.forEach((pin) => {
-      let marker = known.get(pin.id)
-      const popupHtml = buildPopupHtml(pin, navigator.userAgent)
-      if (!marker) {
-        const popup = new Popup().setHTML(popupHtml)
-        popup.on("open", () => onPopupOpen?.(pin.id))
-        popup.on("close", () => onPopupClose?.())
-        const markerElement = createPinTypeMarkerElement(pin.pin_type)
-        marker = new Marker({ element: markerElement, anchor: "bottom" }).setLngLat([pin.longitude, pin.latitude]).setPopup(popup).addTo(map)
-        known.set(pin.id, marker)
-      } else {
-        marker.setLngLat([pin.longitude, pin.latitude])
-        const popup = marker.getPopup()
-        popup?.setHTML(popupHtml)
-      }
-    })
-
-    // Pin labels: GeoJSON source + symbol layer (truncated titles, collision hidden by MapLibre)
-    if (!labelsLayerAddedRef.current) {
-      map.addSource("pin-labels", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] }
-      })
-      map.addLayer({
-        id: "pin-labels-layer",
-        type: "symbol",
-        source: "pin-labels",
-        layout: {
-          "text-field": ["get", "title"],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold", "sans-serif"],
-          "text-size": 14,
-          "text-anchor": "top",
-          "text-offset": [0, 0],
-          "text-allow-overlap": false,
-          "text-ignore-placement": false
-        },
-        paint: {
-          "text-color": "#1f2937",
-          "text-halo-color": ["get", "haloColor"],
-          "text-halo-width": 1.7
-        }
-      })
-      labelsLayerAddedRef.current = true
-    }
-    const labelFeatures = pinsToShow.map((pin) => {
+  function buildPinFeatures(pinList: Pin[]) {
+    return pinList.map((pin) => {
       const pinColor = getPinTypeConfig(pin.pin_type).color
       return {
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
         properties: {
+          pin_id: pin.id,
           title: truncateTitle(pin.title),
+          pin_type: pin.pin_type,
+          pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
           haloColor: desaturateHex(pinColor)
         }
       }
     })
-      ; (map.getSource("pin-labels") as maplibregl.GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: labelFeatures
-      })
+  }
 
-    // Open shared-link pin once when marker exists
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !pinLayersAddedRef.current) return
+
+    pinsByIdRef.current = new Map(pinsToShow.map((p) => [p.id, p]))
+
+    const features = buildPinFeatures(pinsToShow)
+    ;(map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features
+    })
+
     if (initialPinId != null && !initialPinIdAppliedRef.current) {
-      const marker = known.get(initialPinId)
       const pin = pinsToShow.find((p) => p.id === initialPinId)
-      if (marker && pin) {
+      if (pin) {
         initialPinIdAppliedRef.current = true
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
-        marker.togglePopup()
+        onPopupOpen?.(pin.id)
+        const popup = new Popup({ closeButton: true })
+          .setLngLat([pin.longitude, pin.latitude])
+          .setHTML(buildPopupHtml(pin, navigator.userAgent))
+          .addTo(map)
+        popup.on("close", () => onPopupClose?.())
       }
     }
-  }, [pinsToShow, mapReady, initialPinId, editingPinId])
+  }, [pinsToShow, mapReady, initialPinId, editingPinId, onPopupOpen, onPopupClose])
 
   const goToMyLocation = () => {
     const map = mapRef.current
