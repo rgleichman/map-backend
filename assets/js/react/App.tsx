@@ -282,7 +282,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         // Preserve is_owner from existing pin to prevent regression where users can't edit pins they created
         const existing = prevPins[existingIndex]
         const updated = [...prevPins]
-        updated[existingIndex] = { ...pin, is_owner: existing.is_owner ?? false }
+        updated[existingIndex] = { ...pin, is_owner: pin.is_owner ?? existing.is_owner ?? false }
         return updated
       }
       // New pin - broadcast doesn't include is_owner, so set it to false
@@ -405,7 +405,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setSaving(true)
       try {
         const { data: pinData } = await api.createPin(csrfToken, payload)
-        setPins((prev) => [...prev, pinData])
+        updateOrAddPin(pinData)
         dispatch({ type: "after_add_saved" })
       } catch (err) {
         const message = err instanceof Error ? err.message : "Save failed. Please try again."
