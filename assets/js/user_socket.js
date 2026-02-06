@@ -5,11 +5,14 @@
 import {Socket} from "phoenix"
 
 // And connect to the path in "lib/storymap_web/endpoint.ex". We pass the
-// token for authentication.
+// token for authentication (from meta tag set by the server).
 //
 // Read the [`Using Token Authentication`](https://hexdocs.pm/phoenix/channels.html#using-token-authentication)
 // section to see how the token should be used.
-let socket = new Socket("/socket", {authToken: window.userToken})
+const userToken =
+  document.querySelector('meta[name="user-token"]')?.getAttribute("content") ||
+  undefined
+let socket = new Socket("/socket", {authToken: userToken})
 socket.connect()
 
 // Now that you are connected, you can join channels with a topic.
