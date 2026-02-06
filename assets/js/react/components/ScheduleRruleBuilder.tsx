@@ -49,6 +49,7 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
   const timeToUse = timeOfDay ?? timeValue
   const hasSyncedFromValue = useRef(false)
   const prevTimeOfDayRef = useRef<string | undefined>(undefined)
+  const hasEmittedDefaultForEmpty = useRef(false)
 
   const parsed = useMemo(() => {
     if (!value || value.trim() === "") return null
@@ -114,6 +115,16 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
     if (next === "") onChange("")
     else onChange(next)
   }
+
+  // When value is empty on load, push the visible default to parent once so it gets saved
+  useEffect(() => {
+    if (value.trim() !== "" || hasEmittedDefaultForEmpty.current) return
+    const defaultRule = buildRuleString(selectedDays, timeToUse)
+    if (defaultRule) {
+      hasEmittedDefaultForEmpty.current = true
+      onChange(defaultRule)
+    }
+  }, [value, selectedDays, timeToUse, onChange])
 
   useEffect(() => {
     if (timeOfDay === undefined) return
