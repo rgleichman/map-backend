@@ -223,21 +223,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             if (pinId == null) return
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
-            onPopupOpenRef.current?.(pinId)
-            const [lng, lat] = (feature.geometry as { type: "Point"; coordinates: [number, number] }).coordinates
-            const popup = new Popup({ closeButton: true })
-              .setLngLat([lng, lat])
-              .setHTML(buildPopupHtml(pin, navigator.userAgent))
-              .addTo(map)
-            openPopupRef.current = popup
-            openPopupPinIdRef.current = pinId
-            popup.on("close", () => {
-              if (openPopupRef.current === popup) {
-                openPopupRef.current = null
-                openPopupPinIdRef.current = null
-                onPopupCloseRef.current?.()
-              }
-            })
+            openPinPopup(map, pin)
           })
           map.on("mouseenter", "pin-icons-layer", () => {
             map.getCanvas().style.cursor = "pointer"
@@ -380,6 +366,23 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     })
   }
 
+  function openPinPopup(map: MLMap, pin: Pin): void {
+    onPopupOpenRef.current?.(pin.id)
+    const popup = new Popup({ closeButton: true })
+      .setLngLat([pin.longitude, pin.latitude])
+      .setHTML(buildPopupHtml(pin, navigator.userAgent))
+      .addTo(map)
+    openPopupRef.current = popup
+    openPopupPinIdRef.current = pin.id
+    popup.on("close", () => {
+      if (openPopupRef.current === popup) {
+        openPopupRef.current = null
+        openPopupPinIdRef.current = null
+        onPopupCloseRef.current?.()
+      }
+    })
+  }
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady || !pinLayersAddedRef.current) return
@@ -406,20 +409,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         setFilter(CLEARED_FILTER)
         initialPinIdAppliedRef.current = true
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
-        onPopupOpenRef.current?.(pin.id)
-        const popup = new Popup({ closeButton: true })
-          .setLngLat([pin.longitude, pin.latitude])
-          .setHTML(buildPopupHtml(pin, navigator.userAgent))
-          .addTo(map)
-        openPopupRef.current = popup
-        openPopupPinIdRef.current = pin.id
-        popup.on("close", () => {
-          if (openPopupRef.current === popup) {
-            openPopupRef.current = null
-            openPopupPinIdRef.current = null
-            onPopupCloseRef.current?.()
-          }
-        })
+        openPinPopup(map, pin)
       }
     }
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
