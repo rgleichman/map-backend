@@ -42,16 +42,40 @@ function desaturateHex(hex: string, whiteRatio = 0.85): string {
   return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
 }
 
+
 function getCurrentLocation(
   onSuccess: (lat: number, lng: number) => void,
   onError?: (error: GeolocationPositionError) => void
 ) {
   if (!navigator.geolocation) return
-  navigator.geolocation.getCurrentPosition(
-    (position) => onSuccess(position.coords.latitude, position.coords.longitude),
-    (err) => onError?.(err),
-    { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
-  )
+
+  // Only accept a position if it arrives within rejectAfterSeconds; otherwise we call onError so the
+  // UI doesn't jump after a long delay. This is separate from the getCurrentPosition `timeout`
+  // option: that controls how long the browser will try before giving up. Here we reject a *successful*
+  // result if it took too long (e.g. user was on the permission prompt), to keep the experience snappy.
+  const run = (rejectAfterSeconds: number) => {
+    const startedAt = Date.now()
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (Date.now() - startedAt < rejectAfterSeconds * 1000) {
+          onSuccess(position.coords.latitude, position.coords.longitude)
+        } else {
+          onError?.({ code: 3, message: "Geolocation took longer than " + rejectAfterSeconds + " seconds" } as GeolocationPositionError)
+        }
+      },
+      (err) => onError?.(err),
+      { enableHighAccuracy: false, maximumAge: 5 * 60 * 1000 }
+    )
+  }
+  const noPermissionTimeoutSeconds = 3;
+  if (navigator.permissions?.query) {
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((result) => run(result.state === "prompt" ? 10 : noPermissionTimeoutSeconds))
+      .catch(() => run(noPermissionTimeoutSeconds))
+  } else {
+    run(noPermissionTimeoutSeconds)
+  }
 }
 
 type Props = {
