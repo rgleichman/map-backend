@@ -1,5 +1,13 @@
 import type { Pin } from "../../types"
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
 export function formatDateTime(iso?: string): string {
   if (!iso) return ""
   try {
@@ -57,6 +65,12 @@ export function buildPopupHtml(pin: Pin, userAgent: string): string {
       ? `<div style="margin: 0.5em 0;">
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>Start:</b> ${formatDateTime(pin.start_time)}</span><br/>
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>End:</b> ${formatDateTime(pin.end_time)}</span>
+            </div>`
+      : ""}
+            ${pin.schedule_rrule
+      ? `<div style="margin: 0.5em 0;">
+              <span style="font-size:0.95em; color:var(--color-base-content);"><b>Schedule:</b> ${escapeHtml(pin.schedule_rrule)}</span>
+              ${pin.schedule_timezone ? `<br/><span style="font-size:0.95em; color:var(--color-base-content);">(Timezone: ${escapeHtml(pin.schedule_timezone)})</span>` : ""}
             </div>`
       : ""}
             ${tagsHtml}

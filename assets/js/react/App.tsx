@@ -7,7 +7,7 @@ import LoginRequiredModal from "./components/LoginRequiredModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
 import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
-import { dateToLocalInputValue, isoToLocalInputValue, localInputValueToISOString } from "./utils/datetime"
+import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
@@ -149,7 +149,13 @@ function reducer(state: State, action: Action): State {
         modal: { mode: "add", lat: action.lat, lng: action.lng, pinType: action.pinType },
         placement: null,
         timeError: "",
-        draft: { ...state.draft, pinType: action.pinType },
+        draft: {
+          ...state.draft,
+          pinType: action.pinType,
+          ...((action.pinType === "scheduled" || action.pinType === "food_bank")
+            ? { startTime: "09:00", endTime: "17:00" }
+            : {}),
+        },
       }
     case "open_edit":
       return {
@@ -162,8 +168,12 @@ function reducer(state: State, action: Action): State {
           title: action.pin.title,
           description: action.pin.description || "",
           tags: action.pin.tags || [],
-          startTime: isoToLocalInputValue(action.pin.start_time),
-          endTime: isoToLocalInputValue(action.pin.end_time),
+          startTime: (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+            ? isoToTimeOnly(action.pin.start_time)
+            : isoToLocalInputValue(action.pin.start_time),
+          endTime: (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+            ? isoToTimeOnly(action.pin.end_time)
+            : isoToLocalInputValue(action.pin.end_time),
           scheduleRrule: action.pin.schedule_rrule ?? "",
           scheduleTimezone: action.pin.schedule_timezone ?? "",
           editLocation: null,
@@ -339,21 +349,29 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   }, [modal])
 
   const onSave = useCallback(async () => {
-    if (!modal) return
+    if (!modal || (modal.mode !== "add" && modal.mode !== "edit")) return
     dispatch({ type: "clear_time_error" })
     setApiError(null)
-    const start = startTime ? new Date(startTime) : undefined
-    const end = endTime ? new Date(endTime) : undefined
-    const now = new Date()
-    // Validation
-    if (start && end) {
-      if (end <= start) {
+    const effectiveType: PinType = modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type
+    const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
+    if (isTimeOnly) {
+      if (startTime && endTime && endTime <= startTime) {
         dispatch({ type: "set_time_error", timeError: "End time must be after start time." })
         return
       }
-      if (end < now) {
-        dispatch({ type: "set_time_error", timeError: "End time cannot be in the past." })
-        return
+    } else {
+      const start = startTime ? new Date(startTime) : undefined
+      const end = endTime ? new Date(endTime) : undefined
+      const now = new Date()
+      if (start && end) {
+        if (end <= start) {
+          dispatch({ type: "set_time_error", timeError: "End time must be after start time." })
+          return
+        }
+        if (end < now) {
+          dispatch({ type: "set_time_error", timeError: "End time cannot be in the past." })
+          return
+        }
       }
     }
     if (modal.mode === "add") {
@@ -369,10 +387,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         latitude: loc.lat,
         longitude: loc.lng,
         tags,
-        start_time: localInputValueToISOString(startTime),
-        end_time: localInputValueToISOString(endTime),
-        schedule_rrule: scheduleRrule || undefined,
-        schedule_timezone: scheduleTimezone || undefined
+        start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
+        end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
+        schedule_rrule: isTimeOnly ? (scheduleRrule || undefined) : undefined,
+        schedule_timezone: isTimeOnly ? (scheduleTimezone || undefined) : undefined
       }
       setSaving(true)
       try {
@@ -392,10 +410,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         title,
         description,
         tags,
-        start_time: localInputValueToISOString(startTime),
-        end_time: localInputValueToISOString(endTime),
-        schedule_rrule: scheduleRrule || undefined,
-        schedule_timezone: scheduleTimezone || undefined,
+        start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
+        end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
+        schedule_rrule: isTimeOnly ? (scheduleRrule || undefined) : undefined,
+        schedule_timezone: isTimeOnly ? (scheduleTimezone || undefined) : undefined,
         latitude: lat,
         longitude: lng
       }
@@ -498,6 +516,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             {(modal.mode === "add" || modal.mode === "edit") && (
               <PinModal
                 layout="panel"
+                pinType={modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type}
                 title={title}
                 setTitle={(t) => dispatch({ type: "set_title", title: t })}
                 description={description}
@@ -595,6 +614,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         <PinModal
           layout="modal"
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
+          pinType={modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type}
           title={title}
           setTitle={(t) => dispatch({ type: "set_title", title: t })}
           description={description}

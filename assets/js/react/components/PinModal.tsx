@@ -1,10 +1,13 @@
 import React, { useState } from "react"
 import { useIsDesktop } from "../utils/useMediaQuery"
+import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
+import type { PinType } from "../types"
 
 type Props = {
   layout?: "modal" | "panel"
   /** When true (mobile add from placement), location was just set; can hide or reword "Set location on map". */
   locationAlreadySetFromPlacement?: boolean
+  pinType: PinType
   title: string
   setTitle: (t: string) => void
   description: string
@@ -34,6 +37,7 @@ type Props = {
 export default function PinModal({
   layout = "modal",
   locationAlreadySetFromPlacement = false,
+  pinType,
   title, setTitle,
   description, setDescription,
   tags, setTags,
@@ -47,6 +51,7 @@ export default function PinModal({
 }: Props) {
   const isDesktop = useIsDesktop()
   const [tagInput, setTagInput] = useState("")
+  const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()
@@ -109,7 +114,7 @@ export default function PinModal({
         <input
           id="pin-start-time"
           name="start_time"
-          type="datetime-local"
+          type={isTimeOnly ? "time" : "datetime-local"}
           value={startTime}
           onChange={e => setStartTime(e.target.value)}
           className="w-full mb-2 px-3 py-2 rounded border"
@@ -118,31 +123,20 @@ export default function PinModal({
         <input
           id="pin-end-time"
           name="end_time"
-          type="datetime-local"
+          type={isTimeOnly ? "time" : "datetime-local"}
           value={endTime}
           onChange={e => setEndTime(e.target.value)}
           className="w-full mb-2 px-3 py-2 rounded border"
         />
-        <label htmlFor="pin-schedule-rrule" className="block font-medium mb-1 mt-2">Schedule (RRULE)</label>
-        <input
-          id="pin-schedule-rrule"
-          name="schedule_rrule"
-          type="text"
-          placeholder="e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=15;BYMINUTE=0"
-          value={scheduleRrule}
-          onChange={e => setScheduleRrule(e.target.value)}
-          className="w-full mb-2 px-3 py-2 rounded border"
-        />
-        <label htmlFor="pin-schedule-timezone" className="block font-medium mb-1">Schedule timezone</label>
-        <input
-          id="pin-schedule-timezone"
-          name="schedule_timezone"
-          type="text"
-          placeholder="e.g. America/Los_Angeles"
-          value={scheduleTimezone}
-          onChange={e => setScheduleTimezone(e.target.value)}
-          className="w-full mb-2 px-3 py-2 rounded border"
-        />
+        {isTimeOnly && (
+          <ScheduleRruleBuilder
+            value={scheduleRrule}
+            onChange={setScheduleRrule}
+            timezone={scheduleTimezone}
+            onTimezoneChange={setScheduleTimezone}
+            timeOfDay={startTime}
+          />
+        )}
       </div>
       <div className="mb-4">
         <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
