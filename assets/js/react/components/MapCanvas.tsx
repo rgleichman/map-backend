@@ -90,6 +90,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onPopupOpenRef.current = onPopupOpen
   const onPopupCloseRef = useRef(onPopupClose)
   onPopupCloseRef.current = onPopupClose
+  const openPopupRef = useRef<Popup | null>(null)
+  const openPopupPinIdRef = useRef<number | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
@@ -227,7 +229,13 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
               .setLngLat([lng, lat])
               .setHTML(buildPopupHtml(pin, navigator.userAgent))
               .addTo(map)
-            popup.on("close", () => onPopupCloseRef.current?.())
+            openPopupRef.current = popup
+            openPopupPinIdRef.current = pinId
+            popup.on("close", () => {
+              openPopupRef.current = null
+              openPopupPinIdRef.current = null
+              onPopupCloseRef.current?.()
+            })
           })
           map.on("mouseenter", "pin-icons-layer", () => {
             map.getCanvas().style.cursor = "pointer"
@@ -382,6 +390,13 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         features
       })
 
+    if (openPopupRef.current != null && openPopupPinIdRef.current != null) {
+      const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
+      if (pin) {
+        openPopupRef.current.setHTML(buildPopupHtml(pin, navigator.userAgent))
+      }
+    }
+
     if (initialPinId != null && !initialPinIdAppliedRef.current) {
       const pin = pins.find((p) => p.id === initialPinId)
       if (pin) {
@@ -394,7 +409,13 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
           .setLngLat([pin.longitude, pin.latitude])
           .setHTML(buildPopupHtml(pin, navigator.userAgent))
           .addTo(map)
-        popup.on("close", () => onPopupCloseRef.current?.())
+        openPopupRef.current = popup
+        openPopupPinIdRef.current = pin.id
+        popup.on("close", () => {
+          openPopupRef.current = null
+          openPopupPinIdRef.current = null
+          onPopupCloseRef.current?.()
+        })
       }
     }
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
