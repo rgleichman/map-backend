@@ -11,6 +11,21 @@ import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputV
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
+function buildPinTimeFields(
+  isTimeOnly: boolean,
+  startTime: string,
+  endTime: string,
+  scheduleRrule: string,
+  scheduleTimezone: string
+): Pick<NewPin, "start_time" | "end_time" | "schedule_rrule" | "schedule_timezone"> {
+  return {
+    start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
+    end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
+    schedule_rrule: isTimeOnly ? (scheduleRrule || undefined) : undefined,
+    schedule_timezone: isTimeOnly ? (scheduleTimezone || undefined) : undefined,
+  }
+}
+
 type Placement =
   | { intent: "add"; lat: number; lng: number }
   | { intent: "edit"; pin: Pin; lat: number; lng: number };
@@ -387,10 +402,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         latitude: loc.lat,
         longitude: loc.lng,
         tags,
-        start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
-        end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
-        schedule_rrule: isTimeOnly ? (scheduleRrule || undefined) : undefined,
-        schedule_timezone: isTimeOnly ? (scheduleTimezone || undefined) : undefined
+        ...buildPinTimeFields(isTimeOnly, startTime, endTime, scheduleRrule, scheduleTimezone),
       }
       setSaving(true)
       try {
@@ -410,12 +422,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         title,
         description,
         tags,
-        start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
-        end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
-        schedule_rrule: isTimeOnly ? (scheduleRrule || undefined) : undefined,
-        schedule_timezone: isTimeOnly ? (scheduleTimezone || undefined) : undefined,
+        ...buildPinTimeFields(isTimeOnly, startTime, endTime, scheduleRrule, scheduleTimezone),
         latitude: lat,
-        longitude: lng
+        longitude: lng,
       }
       setSaving(true)
       try {
