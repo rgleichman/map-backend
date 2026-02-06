@@ -58,12 +58,17 @@ defmodule Storymap.Pins do
   def create_pin(attrs, user_id) do
     attrs_with_user = Map.put(attrs, "user_id", user_id)
     tags = Map.get(attrs, "tags", [])
-    tag_structs = Storymap.Tags.get_or_create_tags_by_names(tags)
 
-    %Pin{}
-    |> Pin.changeset(attrs_with_user)
-    |> Ecto.Changeset.put_assoc(:tags, tag_structs)
-    |> Repo.insert()
+    case Storymap.Tags.get_or_create_tags_by_names(tags) do
+      {:ok, tag_structs} ->
+        %Pin{}
+        |> Pin.changeset(attrs_with_user)
+        |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+        |> Repo.insert()
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
   @doc """
@@ -80,12 +85,17 @@ defmodule Storymap.Pins do
   """
   def update_pin(%Pin{} = pin, attrs) do
     tags = Map.get(attrs, "tags", [])
-    tag_structs = Storymap.Tags.get_or_create_tags_by_names(tags)
 
-    pin
-    |> Pin.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:tags, tag_structs)
-    |> Repo.update()
+    case Storymap.Tags.get_or_create_tags_by_names(tags) do
+      {:ok, tag_structs} ->
+        pin
+        |> Pin.changeset(attrs)
+        |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+        |> Repo.update()
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
   @doc """

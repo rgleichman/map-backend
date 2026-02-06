@@ -26,13 +26,18 @@ defmodule Storymap.Tags do
 
   @doc """
   Gets all tags for a list of names.
+  Returns `{:ok, [%Tag{}]}` or `{:error, changeset}` if any tag creation fails.
   """
   def get_or_create_tags_by_names(names) do
     names
     |> Enum.map(&get_or_create_tag_by_name/1)
-    |> Enum.map(fn
-      {:ok, tag} -> tag
-      tag -> tag
+    |> Enum.reduce_while([], fn
+      {:ok, tag}, acc -> {:cont, [tag | acc]}
+      {:error, changeset}, _acc -> {:halt, {:error, changeset}}
     end)
+    |> case do
+      {:error, changeset} -> {:error, changeset}
+      tags -> {:ok, Enum.reverse(tags)}
+    end
   end
 end
