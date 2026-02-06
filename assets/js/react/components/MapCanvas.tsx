@@ -232,9 +232,11 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             openPopupRef.current = popup
             openPopupPinIdRef.current = pinId
             popup.on("close", () => {
-              openPopupRef.current = null
-              openPopupPinIdRef.current = null
-              onPopupCloseRef.current?.()
+              if (openPopupRef.current === popup) {
+                openPopupRef.current = null
+                openPopupPinIdRef.current = null
+                onPopupCloseRef.current?.()
+              }
             })
           })
           map.on("mouseenter", "pin-icons-layer", () => {
@@ -412,9 +414,11 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         openPopupRef.current = popup
         openPopupPinIdRef.current = pin.id
         popup.on("close", () => {
-          openPopupRef.current = null
-          openPopupPinIdRef.current = null
-          onPopupCloseRef.current?.()
+          if (openPopupRef.current === popup) {
+            openPopupRef.current = null
+            openPopupPinIdRef.current = null
+            onPopupCloseRef.current?.()
+          }
         })
       }
     }
