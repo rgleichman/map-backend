@@ -133,7 +133,6 @@ export default function PinModal({
             value={scheduleRrule}
             onChange={setScheduleRrule}
             timezone={scheduleTimezone}
-            onTimezoneChange={setScheduleTimezone}
             timeOfDay={startTime}
           />
         )}

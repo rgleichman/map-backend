@@ -52,8 +52,7 @@ defmodule Storymap.Pins.Pin do
         :start_time,
         :end_time,
         :pin_type,
-        :schedule_rrule,
-        :schedule_timezone
+        :schedule_rrule
       ])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank"])
@@ -68,6 +67,21 @@ defmodule Storymap.Pins.Pin do
         end
       else
         changeset
+      end
+
+    changeset =
+      case {Ecto.Changeset.get_change(changeset, :latitude) || pin.latitude,
+            Ecto.Changeset.get_change(changeset, :longitude) || pin.longitude} do
+        {lat, lng}
+        when is_number(lat) and lat >= -90 and lat <= 90 and
+               is_number(lng) and lng >= -180 and lng <= 180 ->
+          case TzWorld.timezone_at({lng, lat}) do
+            {:ok, tz} -> put_change(changeset, :schedule_timezone, tz)
+            {:error, :time_zone_not_found} -> put_change(changeset, :schedule_timezone, nil)
+          end
+
+        _ ->
+          changeset
       end
 
     changeset

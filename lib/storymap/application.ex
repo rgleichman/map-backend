@@ -10,6 +10,7 @@ defmodule Storymap.Application do
     children = [
       StorymapWeb.Telemetry,
       Storymap.Repo,
+      TzWorld.Backend.EtsWithIndexCache,
       {DNSCluster, query: Application.get_env(:storymap, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Storymap.PubSub},
       # Start a worker by calling: Storymap.Worker.start_link(arg)

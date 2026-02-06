@@ -69,6 +69,7 @@ defmodule Storymap.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:resend, "~> 0.4.0"},
+      {:tz_world, "~> 1.3"},
       {:dotenv_parser, "~> 2.0"}
     ]
   end

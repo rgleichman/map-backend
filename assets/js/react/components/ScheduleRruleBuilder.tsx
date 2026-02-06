@@ -36,13 +36,14 @@ function byHourMinuteToTime(hour: number, minute: number): string {
 type Props = {
   value: string
   onChange: (rrule: string) => void
+  /** Timezone from pin location (read-only; backend sets from lat/lng). */
   timezone: string
-  onTimezoneChange: (tz: string) => void
+  onTimezoneChange?: (tz: string) => void
   /** When set, time comes from parent (Start time); hide internal time input and use this for BYHOUR/BYMINUTE. */
   timeOfDay?: string
 }
 
-export default function ScheduleRruleBuilder({ value, onChange, timezone, onTimezoneChange, timeOfDay }: Props) {
+export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOfDay }: Props) {
   const [selectedDays, setSelectedDays] = useState<Set<string>>(() => new Set(["MO"]))
   const [timeValue, setTimeValue] = useState("09:00")
   const timeToUse = timeOfDay ?? timeValue
@@ -185,18 +186,15 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, onTime
           />
         </>
       )}
-      <label htmlFor="pin-schedule-timezone" className="block font-medium mb-1">
-        Schedule timezone
-      </label>
-      <input
-        id="pin-schedule-timezone"
-        name="schedule_timezone"
-        type="text"
-        placeholder="e.g. America/Los_Angeles"
-        value={timezone}
-        onChange={(e) => onTimezoneChange(e.target.value)}
-        className="w-full mb-2 px-3 py-2 rounded border"
-      />
+      {timezone ? (
+        <p className="text-sm text-base-content/80 mb-2">
+          Timezone: {timezone} (from pin location)
+        </p>
+      ) : (
+        <p className="text-sm text-base-content/60 mb-2">
+          Timezone will be set from the pin location when you save.
+        </p>
+      )}
       {currentRrule && (
         <div className="mt-2 text-sm">
           <span className="font-medium text-base-content/80">Rule: </span>

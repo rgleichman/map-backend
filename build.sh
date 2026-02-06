@@ -4,6 +4,7 @@ set -o errexit
 
 # Initial setup
 mix deps.get --only prod
+MIX_ENV=prod mix tz_world.update --include-oceans
 MIX_ENV=prod mix compile
 
 # Install npm dependencies
