@@ -129,6 +129,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       const style = await fetch(styleUrl).then((r) => r.json())
       if (!isMounted) return
       const control = new MapLibreSearchControl({
+        minWaitPeriodMs: 500,
         onResultSelected: feature => {
           void feature
         },
