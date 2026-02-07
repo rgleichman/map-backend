@@ -1,7 +1,16 @@
 import React from "react"
+import { RRule } from "rrule"
 import type { Pin } from "../../types"
 
 const SENTINEL_DATE_PREFIX = "2000-01-01T"
+
+function rruleToHumanReadable(rruleStr: string): string {
+  try {
+    return RRule.fromString(rruleStr).toText()
+  } catch {
+    return rruleStr
+  }
+}
 
 function formatDateTime(iso?: string): string {
   if (!iso) return ""
@@ -57,7 +66,7 @@ export default function PopupContent({ pin }: Props) {
       {pin.schedule_rrule && (
         <div className={popupContentClasses} style={{ margin: "0.5em 0" }}>
           <span>
-            <b>Schedule:</b> {pin.schedule_rrule}
+            <b>Schedule:</b> {rruleToHumanReadable(pin.schedule_rrule)}
           </span>
         </div>
       )}

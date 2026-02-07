@@ -90,17 +90,12 @@ export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
       if (endParts && !partsLte(nowParts, endParts)) return false
       return true
     }
-
-    if (p.pin_type === "scheduled" || p.pin_type === "food_bank") {
+    if (p.schedule_rrule?.trim()) {
       const startTime = p.start_time ? parseTimeOnlyFromISO(p.start_time) : null
       const endTime = p.end_time ? parseTimeOnlyFromISO(p.end_time) : null
       const inTimeWindow = timeOnlyInRange(nowParts.hour, nowParts.minute, startTime, endTime)
-      if (p.pin_type === "scheduled" && p.schedule_rrule?.trim()) {
-        return inTimeWindow && isTodayRecurrenceDay(p.schedule_rrule, p.schedule_timezone)
-      }
-      return inTimeWindow
+      return inTimeWindow && isTodayRecurrenceDay(p.schedule_rrule, p.schedule_timezone)
     }
-
     return true
   })
 }

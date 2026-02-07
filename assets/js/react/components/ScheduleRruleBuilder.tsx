@@ -21,34 +21,16 @@ const WEEKDAY_MAP = {
   SU: RRule.SU,
 } as const
 
-function timeToByHourMinute(timeValue: string): { hour: number; minute: number } {
-  if (!timeValue || timeValue.length < 5) return { hour: 9, minute: 0 }
-  const [h, m] = timeValue.split(":").map(Number)
-  return { hour: Number.isNaN(h) ? 9 : h, minute: Number.isNaN(m) ? 0 : m }
-}
-
-function byHourMinuteToTime(hour: number, minute: number): string {
-  const h = Math.max(0, Math.min(23, hour))
-  const m = Math.max(0, Math.min(59, minute))
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-}
-
 type Props = {
   value: string
   onChange: (rrule: string) => void
   /** Timezone from pin location (read-only; backend sets from lat/lng). */
   timezone: string
   onTimezoneChange?: (tz: string) => void
-  /** When set, time comes from parent (Start time); hide internal time input and use this for BYHOUR/BYMINUTE. */
-  timeOfDay?: string
 }
 
-export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOfDay }: Props) {
+export default function ScheduleRruleBuilder({ value, onChange, timezone }: Props) {
   const [selectedDays, setSelectedDays] = useState<Set<string>>(() => new Set(["MO"]))
-  const [timeValue, setTimeValue] = useState("09:00")
-  const timeToUse = timeOfDay ?? timeValue
-  const hasSyncedFromValue = useRef(false)
-  const prevTimeOfDayRef = useRef<string | undefined>(undefined)
   const hasEmittedDefaultForEmpty = useRef(false)
 
   const parsed = useMemo(() => {
@@ -61,10 +43,7 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
   }, [value])
 
   useEffect(() => {
-    if (!parsed) {
-      if (!value || value.trim() === "") hasSyncedFromValue.current = true
-      return
-    }
+    if (!parsed) return
     const opts = parsed.options
     const days = new Set<string>()
     if (opts.byweekday && opts.byweekday.length > 0) {
@@ -82,36 +61,21 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
         if (s) days.add(s)
       }
     }
-    if (days.size > 0) {
-      setSelectedDays(days)
-      prevTimeOfDayRef.current = undefined
-    }
-    if (timeOfDay === undefined) {
-      const h = opts.byhour?.[0] ?? 9
-      const m = opts.byminute?.[0] ?? 0
-      setTimeValue(byHourMinuteToTime(h, m))
-    }
-  }, [parsed, timeOfDay, value])
+    if (days.size > 0) setSelectedDays(days)
+  }, [parsed])
 
-  useEffect(() => {
-    if (timeOfDay !== undefined && value?.trim()) hasSyncedFromValue.current = true
-  }, [selectedDays, timeOfDay, value])
-
-  const buildRuleString = (days: Set<string>, time: string): string => {
+  const buildRuleString = (days: Set<string>): string => {
     const byweekday = DAYS.filter((d) => days.has(d.key)).map((d) => WEEKDAY_MAP[d.key])
     if (byweekday.length === 0) return ""
-    const { hour, minute } = timeToByHourMinute(time)
     const rule = new RRule({
       freq: RRule.WEEKLY,
       byweekday,
-      byhour: [hour],
-      byminute: [minute],
     })
     return rule.toString()
   }
 
-  const emitRule = (days: Set<string>, time: string) => {
-    const next = buildRuleString(days, time)
+  const emitRule = (days: Set<string>) => {
+    const next = buildRuleString(days)
     if (next === "") onChange("")
     else onChange(next)
   }
@@ -119,53 +83,22 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
   // When value is empty on load, push the visible default to parent once so it gets saved
   useEffect(() => {
     if (value.trim() !== "" || hasEmittedDefaultForEmpty.current) return
-    const defaultRule = buildRuleString(selectedDays, timeToUse)
+    const defaultRule = buildRuleString(selectedDays)
     if (defaultRule) {
       hasEmittedDefaultForEmpty.current = true
       onChange(defaultRule)
     }
-  }, [value, selectedDays, timeToUse, onChange])
-
-  useEffect(() => {
-    if (timeOfDay === undefined) return
-    const synced = hasSyncedFromValue.current
-    if (!synced) return
-    if (!timeOfDay || timeOfDay.length < 5) return
-    if (prevTimeOfDayRef.current === undefined) {
-      prevTimeOfDayRef.current = timeOfDay
-      return
-    }
-    if (prevTimeOfDayRef.current === timeOfDay) return
-    prevTimeOfDayRef.current = timeOfDay
-    const next = buildRuleString(selectedDays, timeOfDay)
-    const normNext = next
-    const normValue = value
-    const willEmit = next !== "" && normNext !== normValue
-    if (next === "") {
-      onChange("")
-      return
-    }
-    if (willEmit) onChange(next)
-  }, [timeOfDay])
+  }, [value, selectedDays, onChange])
 
   const toggleDay = (key: string) => {
     const next = new Set(selectedDays)
     if (next.has(key)) next.delete(key)
     else next.add(key)
     setSelectedDays(next)
-    emitRule(next, timeToUse)
+    emitRule(next)
   }
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value
-    setTimeValue(v)
-    emitRule(selectedDays, v)
-  }
-
-  const currentRrule = useMemo(
-    () => buildRuleString(selectedDays, timeToUse),
-    [selectedDays, timeToUse]
-  )
+  const currentRrule = useMemo(() => buildRuleString(selectedDays), [selectedDays])
 
   return (
     <div className="mb-4">
@@ -183,20 +116,6 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone, timeOf
           </label>
         ))}
       </div>
-      {timeOfDay === undefined && (
-        <>
-          <label htmlFor="pin-schedule-time-of-day" className="block font-medium mb-1">
-            Time
-          </label>
-          <input
-            id="pin-schedule-time-of-day"
-            type="time"
-            value={timeValue}
-            onChange={handleTimeChange}
-            className="w-full mb-2 px-3 py-2 rounded border"
-          />
-        </>
-      )}
       {timezone ? (
         <p className="text-sm text-base-content/80 mb-2">
           Timezone: {timezone} (from pin location)
