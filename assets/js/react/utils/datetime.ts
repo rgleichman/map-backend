@@ -10,7 +10,8 @@ export function isoToLocalInputValue(s?: string): string {
 }
 
 export function localInputValueToISOString(s: string): string | undefined {
-  return s ? new Date(s).toISOString() : undefined
+  if (!s || s.length < 16) return undefined
+  return `${s}:00`
 }
 
 // Time-only "HH:mm" (e.g. from type="time") -> ISO with sentinel date for API.
@@ -21,16 +22,16 @@ export function timeOnlyToISOString(timeValue: string): string | undefined {
   if (Number.isNaN(h) || Number.isNaN(m)) return undefined
   const hour = Math.max(0, Math.min(23, h))
   const minute = Math.max(0, Math.min(59, m))
-  return `${SENTINEL_DATE}T${pad2(hour)}:${pad2(minute)}:00.000Z`
+  return `${SENTINEL_DATE}T${pad2(hour)}:${pad2(minute)}:00`
 }
 
-// ISO string -> "HH:mm" (extract time part).
+// ISO string (no Z = local) -> "HH:mm" (extract time part as local).
 export function isoToTimeOnly(iso?: string): string {
   if (!iso) return ""
   try {
     const d = new Date(iso)
     if (Number.isNaN(d.getTime())) return ""
-    return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
   } catch {
     return ""
   }

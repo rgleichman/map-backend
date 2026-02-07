@@ -8,18 +8,14 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
 }
 
-const TIME_ONLY_PIN_TYPES = ["scheduled", "food_bank"] as const
-
-/** Format ISO datetime. Use UTC for time-only pin types (scheduled/food_bank); local for one-time (matches modal). */
-export function formatDateTime(iso?: string, pinType?: string): string {
+/** Format ISO datetime (no Z = local). Always use local so displayed time matches stored. */
+export function formatDateTime(iso?: string, _pinType?: string): string {
   if (!iso) return ""
   try {
     const d = new Date(iso)
     if (Number.isNaN(d.getTime())) return iso
-    const useUtc = pinType !== undefined && TIME_ONLY_PIN_TYPES.includes(pinType as (typeof TIME_ONLY_PIN_TYPES)[number])
-    const tz = useUtc ? "UTC" : undefined
-    const dateStr = d.toLocaleString(undefined, { timeZone: tz, month: "short", day: "numeric", year: "numeric" })
-    const timeStr = d.toLocaleString(undefined, { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true })
+    const dateStr = d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    const timeStr = d.toLocaleString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
     return `${dateStr}, ${timeStr}`
   } catch {
     return iso
@@ -78,9 +74,9 @@ export function buildPopupHtml(pin: Pin, userAgent: string): string {
             ${pin.schedule_rrule
       ? `<div style="margin: 0.5em 0;">
               <span style="font-size:0.95em; color:var(--color-base-content);"><b>Schedule:</b> ${escapeHtml(pin.schedule_rrule)}</span>
-              ${pin.schedule_timezone ? `<br/><span style="font-size:0.95em; color:var(--color-base-content);">(Timezone: ${escapeHtml(pin.schedule_timezone)})</span>` : ""}
             </div>`
       : ""}
+            ${pin.schedule_timezone ? `<div style="margin: 0.5em 0;"><span style="font-size:0.95em; color:var(--color-base-content);">Timezone: ${escapeHtml(pin.schedule_timezone)}</span></div>` : ""}
             ${tagsHtml}
             <div style="margin-top: 0.5em;">
               <a href="${openInMapsUrl}" target="_blank" rel="noopener noreferrer" style="margin-right: 0.5em; padding: 0.3em 0.6em; background: #3182ce; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">Get directions</a>
