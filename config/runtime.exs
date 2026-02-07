@@ -58,6 +58,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # We use EXTERNAL_HOSTNAME instead of PHX_HOST for the endpoint host.
   host = System.get_env("EXTERNAL_HOSTNAME") || "localhost"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
