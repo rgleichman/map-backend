@@ -4,22 +4,8 @@ defmodule StorymapWeb.PinJSON do
   """
   alias Storymap.Pins.Pin
 
-  # Keys we allow in pin JSON; user_id must never be included
-  @pin_data_keys [
-    :id,
-    :title,
-    :latitude,
-    :longitude,
-    :pin_type,
-    :description,
-    :icon_url,
-    :tags,
-    :start_time,
-    :end_time,
-    :schedule_rrule,
-    :schedule_timezone,
-    :is_owner
-  ]
+  # Pin schema fields (no user_id) plus view-only keys: tags (from association), is_owner (computed).
+  @pin_data_keys Pin.public_json_fields() ++ [:tags, :is_owner]
 
   @doc """
   Renders a list of pins.
@@ -50,20 +36,15 @@ defmodule StorymapWeb.PinJSON do
   Does not include user_id or is_owner to prevent user enumeration.
   """
   def data(%Pin{} = pin) do
-    base = %{
-      id: pin.id,
-      title: pin.title,
-      latitude: pin.latitude,
-      longitude: pin.longitude,
-      pin_type: pin.pin_type,
-      description: pin.description,
-      icon_url: pin.icon_url,
-      tags: (pin.tags || []) |> Enum.map(& &1.name),
-      start_time: pin.start_time && DateTime.to_iso8601(pin.start_time),
-      end_time: pin.end_time && DateTime.to_iso8601(pin.end_time),
-      schedule_rrule: pin.schedule_rrule,
-      schedule_timezone: pin.schedule_timezone
-    }
+    base =
+      Pin.public_json_fields()
+      |> Enum.map(fn
+        :start_time -> {:start_time, pin.start_time && DateTime.to_iso8601(pin.start_time)}
+        :end_time -> {:end_time, pin.end_time && DateTime.to_iso8601(pin.end_time)}
+        key -> {key, Map.get(pin, key)}
+      end)
+      |> Map.new()
+      |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
 
     Map.take(base, @pin_data_keys -- [:is_owner])
   end

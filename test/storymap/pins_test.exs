@@ -68,5 +68,20 @@ defmodule Storymap.PinsTest do
       pin = pin_fixture()
       assert %Ecto.Changeset{} = Pins.change_pin(pin)
     end
+
+    test "Jason.encode!/1 includes start_time and end_time and never user_id" do
+      pin =
+        pin_fixture(%{
+          "start_time" => "2025-01-01T12:00:00Z",
+          "end_time" => "2025-01-01T13:00:00Z"
+        })
+
+      pin = Storymap.Repo.get!(Pin, pin.id)
+
+      json = Jason.encode!(pin) |> Jason.decode!()
+      assert Map.has_key?(json, "start_time")
+      assert Map.has_key?(json, "end_time")
+      refute Map.has_key?(json, "user_id")
+    end
   end
 end

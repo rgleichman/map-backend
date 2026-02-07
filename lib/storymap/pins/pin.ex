@@ -1,21 +1,31 @@
 defmodule Storymap.Pins.Pin do
+  @moduledoc """
+  Pin schema. Any new schema field that should appear in JSON must be added to
+  `@public_json_fields` (and must not be user_id, for privacy).
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder,
-           only: [
-             :id,
-             :title,
-             :latitude,
-             :longitude,
-             :pin_type,
-             :inserted_at,
-             :updated_at,
-             :description,
-             :icon_url,
-             :schedule_rrule,
-             :schedule_timezone
-           ]}
+  # Single source of truth for JSON-safe fields (schema fields minus user_id).
+  # Used by @derive and by PinJSON so encode and API stay in sync.
+  # Associations (e.g. tags) are not included—PinJSON adds those as view-only keys.
+  @public_json_fields [
+    :id,
+    :title,
+    :latitude,
+    :longitude,
+    :pin_type,
+    :description,
+    :icon_url,
+    :start_time,
+    :end_time,
+    :schedule_rrule,
+    :schedule_timezone,
+    :inserted_at,
+    :updated_at
+  ]
+
+  @derive {Jason.Encoder, only: @public_json_fields}
 
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
@@ -88,4 +98,10 @@ defmodule Storymap.Pins.Pin do
     |> validate_required([:user_id])
     |> foreign_key_constraint(:user_id)
   end
+
+  @doc """
+  Fields safe to include in JSON (schema fields minus user_id).
+  Used by PinJSON so the API and Jason.Encoder stay in sync.
+  """
+  def public_json_fields, do: @public_json_fields
 end
