@@ -93,7 +93,13 @@ defmodule Storymap.MixProject do
         "esbuild storymap --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warning-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warning-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "vitest.run"
+      ]
     ]
   end
 end
