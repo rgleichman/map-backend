@@ -16,9 +16,11 @@ type Props = {
   hideTrigger?: boolean
   /** When hideTrigger, panel top offset (e.g. "6.5rem") so panel opens below the stack. */
   panelTopOffset?: string
+  /** Panel/trigger position. */
+  position?: "top-left" | "top-right"
 }
 
-export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigger, panelTopOffset }: Props) {
+export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigger, panelTopOffset, position = "top-left" }: Props) {
   const tags = deriveTags(pins)
   const hasActiveFilter = filter.tag !== null || filter.time !== null
 
@@ -33,7 +35,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
       triggerAriaLabel="Show filters"
       title="Filters"
       closeAriaLabel="Close filters"
-      position="top-left"
+      position={position}
       openRef={openRef}
       renderTrigger={!hideTrigger}
       topOffset={panelTopOffset}

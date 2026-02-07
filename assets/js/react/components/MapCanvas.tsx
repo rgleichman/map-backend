@@ -87,6 +87,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [searchActive, setSearchActive] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
 
@@ -99,6 +100,21 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     toggle.addEventListener("change", sync)
     return () => toggle.removeEventListener("change", sync)
   }, [])
+
+  // Track search input focus so we can hide filters on mobile while searching
+  useEffect(() => {
+    if (!mapReady || !containerRef.current) return
+    const input = containerRef.current.querySelector<HTMLInputElement>(".maplibre-search-box input")
+    if (!input) return
+    const onFocus = () => setSearchActive(true)
+    const onBlur = () => setTimeout(() => setSearchActive(false), 150)
+    input.addEventListener("focus", onFocus)
+    input.addEventListener("blur", onBlur)
+    return () => {
+      input.removeEventListener("focus", onFocus)
+      input.removeEventListener("blur", onBlur)
+    }
+  }, [mapReady])
 
   const filteredPins = filterPins(pins, filter)
 
@@ -127,7 +143,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       })
       // The search control is implemented against a different maplibre-gl type instance;
       // coerce it to the expected IControl to satisfy TypeScript.
-      map.addControl(control as unknown as maplibregl.IControl, "top-left");
+      map.addControl(control as unknown as maplibregl.IControl, "top-left")
       const geolocateControl = new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: false },
         trackUserLocation: false
@@ -434,8 +450,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   return (
     <div className="relative w-full h-full">
       {mapReady && !drawerOpen && (
-        <>
-          <div className="absolute top-14 left-2 z-10 flex flex-col gap-2">
+        <div className={searchActive ? "max-sm:hidden" : "contents"}>
+          <div className="absolute top-13 right-2 z-10 flex flex-col gap-2">
             <button
               type="button"
               className="flex flex-col items-start gap-0.5 min-w-0 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity text-left"
@@ -456,9 +472,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             setFilter={setFilter}
             openRef={filterPanelOpenRef}
             hideTrigger
-            panelTopOffset="6.5rem"
+            position="top-right"
+            panelTopOffset="7.5rem"
           />
-        </>
+        </div>
       )}
       {onPlacementMapClick && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
