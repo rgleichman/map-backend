@@ -112,6 +112,7 @@
   background: var(--color-base-100) !important;
   color: var(--color-base-content) !important;
   border: 1px solid var(--color-base-300) !important;
+  padding: 0.35rem !important;
 }
 
 .maplibregl-popup-content div {
@@ -179,11 +180,13 @@ body {
   color: #7c2d12;
   border: 2px solid #f97316;
 }
+
 .pin-type-badge[data-pin-type="scheduled"] {
   background-color: #dbeafe;
   color: #1e3a8a;
   border: 2px solid #3b82f6;
 }
+
 .pin-type-badge[data-pin-type="food_bank"] {
   background-color: #dcfce7;
   color: #166534;

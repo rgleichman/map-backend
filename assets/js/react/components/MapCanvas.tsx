@@ -152,7 +152,9 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         container: containerRef.current!,
         style,
         center: [0, 0],
-        zoom: 2
+        zoom: 2,
+        // performance optimization
+        validateStyle: false,
       })
       // The search control is implemented against a different maplibre-gl type instance;
       // coerce it to the expected IControl to satisfy TypeScript.
@@ -392,7 +394,11 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   function openPinPopup(map: MLMap, pin: Pin): void {
     onPopupOpenRef.current?.(pin.id)
-    const popup = new Popup({ closeButton: true })
+    const popup = new Popup({
+      closeButton: false,
+      locationOccludedOpacity: 0.7,
+      maxWidth: "80%",
+    })
       .setLngLat([pin.longitude, pin.latitude])
       .setHTML(buildPopupHtml(pin, navigator.userAgent))
       .addTo(map)
