@@ -8,7 +8,7 @@ MIX_ENV=prod mix tz_world.update --include-oceans
 MIX_ENV=prod mix compile
 
 # Install npm dependencies
-cd assets && npm install && cd ..
+cd assets && npm install --include=prod && cd ..
 
 # Compile assets
 # Make sure tailwind and esbuild are installed
