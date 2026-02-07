@@ -1,13 +1,16 @@
 import React from "react"
 import type { Pin } from "../../types"
 
+const SENTINEL_DATE_PREFIX = "2000-01-01T"
+
 function formatDateTime(iso?: string): string {
   if (!iso) return ""
   try {
     const d = new Date(iso)
     if (Number.isNaN(d.getTime())) return iso
-    const dateStr = d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" })
     const timeStr = d.toLocaleString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
+    if (iso.startsWith(SENTINEL_DATE_PREFIX)) return timeStr
+    const dateStr = d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" })
     return `${dateStr}, ${timeStr}`
   } catch {
     return iso
