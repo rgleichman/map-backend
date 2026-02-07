@@ -90,6 +90,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const [searchActive, setSearchActive] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
+  const searchDismissingClickRef = useRef(false)
+  const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -151,7 +153,20 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       map.addControl(geolocateControl, "top-right")
       geolocateControlRef.current = geolocateControl
       mapRef.current = map
+      const container = map.getContainer()
+      const onMapMouseDown = () => {
+        const searchBox = container.querySelector(".maplibre-search-box")
+        if (searchBox?.contains(document.activeElement)) {
+          searchDismissingClickRef.current = true
+        }
+      }
+      mapMouseDownHandlerRef.current = onMapMouseDown
+      container.addEventListener("mousedown", onMapMouseDown)
       map.on("click", (e) => {
+        if (searchDismissingClickRef.current) {
+          searchDismissingClickRef.current = false
+          return
+        }
         if (onPlacementMapClickRef.current) {
           onPlacementMapClickRef.current(e.lngLat.lng, e.lngLat.lat)
           return
@@ -262,6 +277,12 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       isMounted = false
       pinLayersAddedRef.current = false
       initialGeolocateTriggeredRef.current = false
+      const map = mapRef.current
+      const handler = mapMouseDownHandlerRef.current
+      if (map && handler) {
+        map.getContainer().removeEventListener("mousedown", handler)
+        mapMouseDownHandlerRef.current = null
+      }
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       geolocateControlRef.current = null
