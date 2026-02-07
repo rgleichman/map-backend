@@ -213,7 +213,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
             source: "pin-features",
             layout: {
               "text-field": ["get", "title"],
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold", "sans-serif"],
+              "text-font": ["Open Sans Bold", "sans-serif"],
               "text-size": 14,
               "text-anchor": "top",
               "text-offset": [0, 0],
