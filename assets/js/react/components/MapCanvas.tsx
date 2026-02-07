@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
+import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
 import {
@@ -10,7 +11,7 @@ import {
 } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { CLEARED_FILTER, DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
-import { buildPopupHtml } from "./map/popup"
+import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -116,6 +117,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   onPopupCloseRef.current = onPopupClose
   const openPopupRef = useRef<Popup | null>(null)
   const openPopupPinIdRef = useRef<number | null>(null)
+  const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
@@ -394,20 +396,26 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
 
   function openPinPopup(map: MLMap, pin: Pin): void {
     onPopupOpenRef.current?.(pin.id)
+    const container = document.createElement("div")
+    const root = createRoot(container)
+    root.render(<PopupContent pin={pin} />)
     const popup = new Popup({
       closeButton: false,
       locationOccludedOpacity: 0.7,
       maxWidth: "80%",
     })
       .setLngLat([pin.longitude, pin.latitude])
-      .setHTML(buildPopupHtml(pin, navigator.userAgent))
+      .setDOMContent(container)
       .addTo(map)
     openPopupRef.current = popup
     openPopupPinIdRef.current = pin.id
+    popupRootRef.current = root
     popup.on("close", () => {
       if (openPopupRef.current === popup) {
         openPopupRef.current = null
         openPopupPinIdRef.current = null
+        popupRootRef.current = null
+        root.unmount()
         onPopupCloseRef.current?.()
       }
     })
@@ -425,10 +433,10 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
         features
       })
 
-    if (openPopupRef.current != null && openPopupPinIdRef.current != null) {
+    if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
       const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
       if (pin) {
-        openPopupRef.current.setHTML(buildPopupHtml(pin, navigator.userAgent))
+        popupRootRef.current.render(<PopupContent pin={pin} />)
       }
     }
 
