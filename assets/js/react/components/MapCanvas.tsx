@@ -44,41 +44,6 @@ function desaturateHex(hex: string, whiteRatio = 0.85): string {
 }
 
 
-function getCurrentLocation(
-  onSuccess: (lat: number, lng: number) => void,
-  onError?: (error: GeolocationPositionError) => void
-) {
-  if (!navigator.geolocation) return
-
-  // Only accept a position if it arrives within rejectAfterSeconds; otherwise we call onError so the
-  // UI doesn't jump after a long delay. This is separate from the getCurrentPosition `timeout`
-  // option: that controls how long the browser will try before giving up. Here we reject a *successful*
-  // result if it took too long (e.g. user was on the permission prompt), to keep the experience snappy.
-  const run = (rejectAfterSeconds: number) => {
-    const startedAt = Date.now()
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (Date.now() - startedAt < rejectAfterSeconds * 1000) {
-          onSuccess(position.coords.latitude, position.coords.longitude)
-        } else {
-          onError?.({ code: 3, message: "Geolocation took longer than " + rejectAfterSeconds + " seconds" } as GeolocationPositionError)
-        }
-      },
-      (err) => onError?.(err),
-      { enableHighAccuracy: false, maximumAge: 5 * 60 * 1000 }
-    )
-  }
-  const noPermissionTimeoutSeconds = 3;
-  if (navigator.permissions?.query) {
-    navigator.permissions
-      .query({ name: "geolocation" })
-      .then((result) => run(result.state === "prompt" ? 10 : noPermissionTimeoutSeconds))
-      .catch(() => run(noPermissionTimeoutSeconds))
-  } else {
-    run(noPermissionTimeoutSeconds)
-  }
-}
-
 type Props = {
   styleUrl: string
   pins: Pin[]
@@ -118,6 +83,8 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const openPopupRef = useRef<Popup | null>(null)
   const openPopupPinIdRef = useRef<number | null>(null)
   const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
+  const geolocateControlRef = useRef<InstanceType<typeof maplibregl.GeolocateControl> | null>(null)
+  const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
@@ -161,6 +128,12 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       // The search control is implemented against a different maplibre-gl type instance;
       // coerce it to the expected IControl to satisfy TypeScript.
       map.addControl(control as unknown as maplibregl.IControl, "top-left");
+      const geolocateControl = new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: false },
+        trackUserLocation: false
+      })
+      map.addControl(geolocateControl, "top-right")
+      geolocateControlRef.current = geolocateControl
       mapRef.current = map
       map.on("click", (e) => {
         if (onPlacementMapClickRef.current) {
@@ -272,23 +245,23 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     return () => {
       isMounted = false
       pinLayersAddedRef.current = false
+      initialGeolocateTriggeredRef.current = false
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
+      geolocateControlRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
       setMapReady(false)
     }
   }, [styleUrl, onMapClick])
 
-  // Get user's location and center map (skip when opening a shared pin link)
+  // Center on user location once on first load (skip when opening a shared pin link)
   useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady || initialPinId != null) return
-
-    getCurrentLocation(
-      (lat, lng) => map.jumpTo({ center: [lng, lat], zoom: 10 }),
-      (error) => console.log('Geolocation not available or denied:', error.message)
-    )
+    if (!mapReady || initialPinId != null || initialGeolocateTriggeredRef.current) return
+    const control = geolocateControlRef.current
+    if (!control) return
+    initialGeolocateTriggeredRef.current = true
+    control.trigger()
   }, [mapReady, initialPinId])
 
   // Pending location: actual pin (highlighted) + flyTo
@@ -452,12 +425,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
-  const goToMyLocation = () => {
-    const map = mapRef.current
-    if (!map) return
-    getCurrentLocation((lat, lng) => map.flyTo({ center: [lng, lat], zoom: 10 }))
-  }
-
   const activeFilterParts =
     (filter.time === "now" ? ["Open now"] : []).concat(filter.tag !== null ? [filter.tag] : [])
   const activeFilterSummary = activeFilterParts.join(" · ")
@@ -469,14 +436,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
       {mapReady && !drawerOpen && (
         <>
           <div className="absolute top-14 left-2 z-10 flex flex-col gap-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline whitespace-nowrap bg-base-100/30"
-              aria-label="Go to my location"
-              onClick={goToMyLocation}
-            >
-              Go to my location
-            </button>
             <button
               type="button"
               className="flex flex-col items-start gap-0.5 min-w-0 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity text-left"
