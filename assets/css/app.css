@@ -130,6 +130,17 @@
   background: var(--color-base-100) !important;
   color: var(--color-base-content) !important;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS-friendly modal max heights: dvh overrides vh where supported (visible viewport) */
+.max-h-modal-mobile {
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+.max-h-modal-mobile-90 {
+  max-height: 90vh;
+  max-height: 90dvh;
 }
 
 .pin-modal-content h2 {

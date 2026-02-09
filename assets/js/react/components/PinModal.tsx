@@ -68,7 +68,7 @@ export default function PinModal({
   const formatCoord = (n: number) => n.toFixed(5)
 
   const formContent = (
-    <div className="pin-modal-content rounded-lg min-w-[300px] max-h-[100vh] overflow-y-auto overscroll-contain shadow-xl p-6">
+    <div className="pin-modal-content max-h-modal-mobile rounded-lg min-w-[300px] overflow-y-auto overscroll-contain shadow-xl p-6">
       <h2 className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
       <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
       <input

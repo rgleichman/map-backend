@@ -18,7 +18,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
   }
 
   const content = (
-    <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300 max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300 max-h-modal-mobile-90 flex flex-col overflow-hidden">
       <div className="p-6 border-b border-base-300 flex-shrink-0">
         <h2 id="pin-type-modal-title" className="text-xl font-semibold text-base-content">
           What type of food offering is this?
