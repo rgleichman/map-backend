@@ -85,9 +85,20 @@ defmodule Storymap.Pins.Pin do
         {lat, lng}
         when is_number(lat) and lat >= -90 and lat <= 90 and
                is_number(lng) and lng >= -180 and lng <= 180 ->
-          case TzWorld.timezone_at({lng, lat}) do
-            {:ok, tz} -> put_change(changeset, :schedule_timezone, tz)
-            {:error, :time_zone_not_found} -> put_change(changeset, :schedule_timezone, nil)
+          case TzWorld.version() do
+            {:error, :enoent} ->
+              changeset
+              |> put_change(:schedule_timezone, nil)
+              |> add_error(
+                :schedule_timezone,
+                "Run `mix tz_world.update --include-oceans` on the server to install time zone data."
+              )
+
+            {:ok, _} ->
+              case TzWorld.timezone_at({lng, lat}) do
+                {:ok, tz} -> put_change(changeset, :schedule_timezone, tz)
+                {:error, :time_zone_not_found} -> put_change(changeset, :schedule_timezone, nil)
+              end
           end
 
         _ ->
