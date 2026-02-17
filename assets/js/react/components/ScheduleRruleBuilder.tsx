@@ -125,12 +125,12 @@ export default function ScheduleRruleBuilder({ value, onChange, timezone }: Prop
           Timezone will be set from the pin location when you save.
         </p>
       )}
-      {currentRrule && (
+      {/* {currentRrule && (
         <div className="mt-2 text-sm">
           <span className="font-medium text-base-content/80">Rule: </span>
           <code className="block mt-1 p-2 bg-base-200 rounded text-xs break-all">{currentRrule}</code>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
