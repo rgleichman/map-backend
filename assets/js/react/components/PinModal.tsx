@@ -22,6 +22,9 @@ type Props = {
   setScheduleRrule: (s: string) => void
   scheduleTimezone: string
   setScheduleTimezone: (s: string) => void
+  /** Only for food_bank: when true, open 24/7 (time/schedule fields hidden). */
+  open24_7?: boolean
+  setOpen24_7?: (v: boolean) => void
   latitude: number
   longitude: number
   onStartPickOnMap: () => void
@@ -45,6 +48,8 @@ export default function PinModal({
   endTime, setEndTime,
   scheduleRrule, setScheduleRrule,
   scheduleTimezone, setScheduleTimezone,
+  open24_7 = true,
+  setOpen24_7,
   latitude, longitude,
   onStartPickOnMap,
   mode, onCancel, onSave, onDelete, canDelete, saving = false
@@ -52,6 +57,8 @@ export default function PinModal({
   const isDesktop = useIsDesktop()
   const [tagInput, setTagInput] = useState("")
   const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
+  const isFoodBank = pinType === "food_bank"
+  const showTimeFields = !(isFoodBank && open24_7)
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()
@@ -109,33 +116,48 @@ export default function PinModal({
         </div>
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="pin-start-time" className="block font-medium mb-1">Start Time</label>
-        <input
-          id="pin-start-time"
-          name="start_time"
-          type={isTimeOnly ? "time" : "datetime-local"}
-          value={startTime}
-          onChange={e => setStartTime(e.target.value)}
-          className="w-full mb-2 px-3 py-2 rounded border"
-        />
-        <label htmlFor="pin-end-time" className="block font-medium mb-1">End Time</label>
-        <input
-          id="pin-end-time"
-          name="end_time"
-          type={isTimeOnly ? "time" : "datetime-local"}
-          value={endTime}
-          onChange={e => setEndTime(e.target.value)}
-          className="w-full mb-2 px-3 py-2 rounded border"
-        />
-        {isTimeOnly && (
-          <ScheduleRruleBuilder
-            value={scheduleRrule}
-            onChange={setScheduleRrule}
-            timezone={scheduleTimezone}
+      {(isFoodBank && setOpen24_7) && (
+        <div className="mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={open24_7}
+              onChange={e => setOpen24_7(e.target.checked)}
+              className="checkbox checkbox-sm"
+            />
+            <span className="font-medium">Open 24/7</span>
+          </label>
+        </div>
+      )}
+      {showTimeFields && (
+        <div className="mb-4">
+          <label htmlFor="pin-start-time" className="block font-medium mb-1">Start Time</label>
+          <input
+            id="pin-start-time"
+            name="start_time"
+            type={isTimeOnly ? "time" : "datetime-local"}
+            value={startTime}
+            onChange={e => setStartTime(e.target.value)}
+            className="w-full mb-2 px-3 py-2 rounded border"
           />
-        )}
-      </div>
+          <label htmlFor="pin-end-time" className="block font-medium mb-1">End Time</label>
+          <input
+            id="pin-end-time"
+            name="end_time"
+            type={isTimeOnly ? "time" : "datetime-local"}
+            value={endTime}
+            onChange={e => setEndTime(e.target.value)}
+            className="w-full mb-2 px-3 py-2 rounded border"
+          />
+          {isTimeOnly && (
+            <ScheduleRruleBuilder
+              value={scheduleRrule}
+              onChange={setScheduleRrule}
+              timezone={scheduleTimezone}
+            />
+          )}
+        </div>
+      )}
       <div className="mb-4">
         <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
         <div className="flex gap-2 mb-2">

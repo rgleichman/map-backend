@@ -12,11 +12,16 @@ import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 function buildPinTimeFields(
-  isTimeOnly: boolean,
+  effectiveType: PinType,
+  open24_7: boolean,
   startTime: string,
   endTime: string,
   scheduleRrule: string
-): Pick<NewPin, "start_time" | "end_time" | "schedule_rrule"> {
+): Pick<NewPin, "start_time" | "end_time" | "schedule_rrule"> & { start_time?: string | null; end_time?: string | null; schedule_rrule?: string | null } {
+  if (effectiveType === "food_bank" && open24_7) {
+    return { start_time: null, end_time: null, schedule_rrule: null }
+  }
+  const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
   return {
     start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
     end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),
@@ -56,6 +61,7 @@ type DraftState = {
   endTime: string
   scheduleRrule: string
   scheduleTimezone: string
+  open24_7: boolean
   addLocation: { lat: number; lng: number } | null
   editLocation: { lat: number; lng: number } | null
 }
@@ -87,6 +93,7 @@ type Action =
   | { type: "set_end_time"; endTime: string }
   | { type: "set_schedule_rrule"; scheduleRrule: string }
   | { type: "set_schedule_timezone"; scheduleTimezone: string }
+  | { type: "set_open_24_7"; open24_7: boolean }
   | { type: "set_time_error"; timeError: string }
   | { type: "clear_time_error" }
   | { type: "clear_draft_locations" }
@@ -103,6 +110,7 @@ const makeDefaultDraft = (): DraftState => {
     endTime: dateToLocalInputValue(inOneHour),
     scheduleRrule: "",
     scheduleTimezone: "",
+    open24_7: true,
     addLocation: null,
     editLocation: null,
   }
@@ -165,9 +173,11 @@ function reducer(state: State, action: Action): State {
         draft: {
           ...state.draft,
           pinType: action.pinType,
-          ...((action.pinType === "scheduled" || action.pinType === "food_bank")
-            ? { startTime: "09:00", endTime: "17:00" }
-            : {}),
+          ...(action.pinType === "food_bank"
+            ? { open24_7: true }
+            : action.pinType === "scheduled"
+              ? { startTime: "09:00", endTime: "17:00" }
+              : {}),
         },
       }
     case "open_edit":
@@ -189,6 +199,9 @@ function reducer(state: State, action: Action): State {
             : isoToLocalInputValue(action.pin.end_time),
           scheduleRrule: action.pin.schedule_rrule ?? "",
           scheduleTimezone: action.pin.schedule_timezone ?? "",
+          open24_7: action.pin.pin_type === "food_bank"
+            ? !(action.pin.start_time || action.pin.end_time || action.pin.schedule_rrule)
+            : state.draft.open24_7,
           editLocation: null,
         },
       }
@@ -214,6 +227,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, draft: { ...state.draft, scheduleRrule: action.scheduleRrule } }
     case "set_schedule_timezone":
       return { ...state, draft: { ...state.draft, scheduleTimezone: action.scheduleTimezone } }
+    case "set_open_24_7":
+      return { ...state, draft: { ...state.draft, open24_7: action.open24_7 } }
     case "set_time_error":
       return { ...state, timeError: action.timeError }
     case "clear_time_error":
@@ -234,7 +249,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [apiError, setApiError] = useState<string | null>(null)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7 } = draft
   const modalRef = useRef(modal)
   modalRef.current = modal
   const escapePanelRef = useRef({ modal, isDesktop, dispatch })
@@ -367,12 +382,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setApiError(null)
     const effectiveType: PinType = modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type
     const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
-    if (isTimeOnly) {
+    const skipTimeValidation = effectiveType === "food_bank" && open24_7
+    if (!skipTimeValidation && isTimeOnly) {
       if (startTime && endTime && endTime <= startTime) {
         dispatch({ type: "set_time_error", timeError: "End time must be after start time." })
         return
       }
-    } else {
+    } else if (!skipTimeValidation) {
       const start = startTime ? new Date(startTime) : undefined
       const end = endTime ? new Date(endTime) : undefined
       const now = new Date()
@@ -400,7 +416,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         latitude: loc.lat,
         longitude: loc.lng,
         tags,
-        ...buildPinTimeFields(isTimeOnly, startTime, endTime, scheduleRrule),
+        ...buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule),
       }
       setSaving(true)
       try {
@@ -420,7 +436,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         title,
         description,
         tags,
-        ...buildPinTimeFields(isTimeOnly, startTime, endTime, scheduleRrule),
+        ...buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule),
         latitude: lat,
         longitude: lng,
       }
@@ -436,7 +452,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         setSaving(false)
       }
     }
-  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, csrfToken])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -538,6 +554,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
                 setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
                 scheduleTimezone={scheduleTimezone}
                 setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
+                open24_7={open24_7}
+                setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
                 latitude={pinModalLat}
                 longitude={pinModalLng}
                 onStartPickOnMap={onStartPickOnMap}
@@ -636,6 +654,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
           setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
           scheduleTimezone={scheduleTimezone}
           setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
+          open24_7={open24_7}
+          setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
           latitude={pinModalLat}
           longitude={pinModalLng}
           onStartPickOnMap={onStartPickOnMap}

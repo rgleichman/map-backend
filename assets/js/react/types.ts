@@ -35,10 +35,10 @@ export type UpdatePin = {
   title: string
   description?: string
   tags: string[]
-  start_time?: string // ISO string
-  end_time?: string // ISO string
-  schedule_rrule?: string
-  schedule_timezone?: string
+  start_time?: string | null
+  end_time?: string | null
+  schedule_rrule?: string | null
+  schedule_timezone?: string | null
   latitude?: number
   longitude?: number
 }
