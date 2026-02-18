@@ -45,7 +45,10 @@ defmodule StorymapWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+
+  plug Plug.Telemetry,
+    event_prefix: [:phoenix, :endpoint],
+    log: {StorymapWeb.Endpoint, :telemetry_log_level, []}
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -56,4 +59,12 @@ defmodule StorymapWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug StorymapWeb.Router
+
+  def telemetry_log_level(conn) do
+    path = conn.request_path
+
+    if String.starts_with?(path, "/api/tiles") or path == "/api/map/tiles.json",
+      do: :debug,
+      else: :info
+  end
 end

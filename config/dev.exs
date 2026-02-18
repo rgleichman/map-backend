@@ -10,6 +10,12 @@ config :storymap, Storymap.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# Enable debug logs (e.g. MapTiler request/response)
+# config :logger, level: :info
+
+# Server-side MapTiler tile cache (proxy + disk cache); disabled in prod
+config :storymap, :tile_cache_enabled, true
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

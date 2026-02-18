@@ -33,6 +33,9 @@ storymap-*.tar
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json
 
+# Server-side tile cache (when using config :tile_cache_dir under repo)
+/priv/tile_cache/
+
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
 /assets/node_modules/

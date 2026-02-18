@@ -18,6 +18,9 @@ config :swoosh, local: false
 # Do not print debug messages in production
 config :logger, level: :info
 
+# Server-side tile cache disabled in prod (client requests MapTiler directly)
+config :storymap, :tile_cache_enabled, false
+
 config :storymap, Storymap.Mailer, adapter: Resend.Swoosh.Adapter
 
 # Runtime production configuration, including reading

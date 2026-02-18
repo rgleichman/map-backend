@@ -40,6 +40,8 @@ defmodule StorymapWeb.Router do
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
     get "/map/style", MapController, :style
+    get "/map/tiles.json", MapController, :tiles_json
+    get "/tiles/:layer/:z/:x/:y", MapController, :tile
   end
 
   # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),

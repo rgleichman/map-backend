@@ -8,6 +8,9 @@ end
 
 config :storymap, :maptiler_api_key, System.get_env("MAPTILER_API_KEY")
 
+# Optional: custom tile cache directory (defaults to app_dir/priv/tile_cache)
+# config :storymap, :tile_cache_dir, "/var/cache/storymap/tiles"
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
