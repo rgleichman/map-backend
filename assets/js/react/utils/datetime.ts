@@ -114,6 +114,20 @@ export function partsGte(a: DateTimeParts, b: DateTimeParts): boolean {
   return compareParts(a, b) >= 0
 }
 
+/** Add hours to date/time parts with day/month/year rollover. Uses UTC for consistent calendar math. */
+export function addHoursToParts(parts: DateTimeParts, hours: number): DateTimeParts {
+  const d = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour + hours, parts.minute)
+  )
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+  }
+}
+
 /** Weekday (0=MO .. 6=SU) for a Gregorian calendar date. RRule convention. Timezone-independent. */
 export function getWeekdayInTimezone(
   year: number,

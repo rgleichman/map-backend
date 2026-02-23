@@ -464,7 +464,7 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
   const activeFilterParts =
-    (filter.time === "now" ? ["Open now"] : []).concat(filter.tag !== null ? [filter.tag] : [])
+    (filter.time === "now" ? ["Open now or within 2 hours"] : []).concat(filter.tag !== null ? [filter.tag] : [])
   const activeFilterSummary = activeFilterParts.join(" · ")
   const filtersAriaLabel =
     activeFilterParts.length > 0 ? `Show filters. Active: ${activeFilterParts.join("; ")}` : "Show filters"

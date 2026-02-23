@@ -52,7 +52,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
               onClick={() => setTime("now")}
               className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === "now" ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
             >
-              Open now
+              Open now or within 2 hours
             </button>
           </div>
           {filter.time !== null && (
