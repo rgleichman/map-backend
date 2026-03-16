@@ -73,6 +73,18 @@ defmodule StorymapWeb.PinControllerTest do
       conn = put(conn, ~p"/api/pins/#{pin}", pin: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
+
+    test "allows admin to update any pin", %{conn: conn} do
+      owner = Storymap.AccountsFixtures.user_fixture()
+      pin = pin_fixture(%{}, owner)
+      admin = Storymap.AccountsFixtures.user_fixture()
+      admin = Storymap.Repo.update!(Ecto.Changeset.change(admin, admin_level: 1))
+      conn = log_in_user(conn, admin)
+
+      conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
+      assert %{"id" => id} = json_response(conn, 200)["data"]
+      assert id == pin.id
+    end
   end
 
   describe "delete pin" do
@@ -85,6 +97,17 @@ defmodule StorymapWeb.PinControllerTest do
       assert_error_sent 404, fn ->
         get(conn, ~p"/api/pins/#{pin}")
       end
+    end
+
+    test "allows admin to delete any pin", %{conn: conn} do
+      owner = Storymap.AccountsFixtures.user_fixture()
+      pin = pin_fixture(%{}, owner)
+      admin = Storymap.AccountsFixtures.user_fixture()
+      admin = Storymap.Repo.update!(Ecto.Changeset.change(admin, admin_level: 1))
+      conn = log_in_user(conn, admin)
+
+      conn = delete(conn, ~p"/api/pins/#{pin}")
+      assert response(conn, 204)
     end
   end
 

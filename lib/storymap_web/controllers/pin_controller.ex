@@ -7,21 +7,21 @@ defmodule StorymapWeb.PinController do
   action_fallback StorymapWeb.FallbackController
 
   def index(conn, _params) do
-    current_user_id = get_current_user_id(conn)
+    current_user = get_current_user(conn)
     pins = Pins.list_pins()
-    render(conn, :index, pins: pins, current_user_id: current_user_id)
+    render(conn, :index, pins: pins, current_user: current_user)
   end
 
-  defp get_current_user_id(conn) do
+  defp get_current_user(conn) do
     case conn.assigns[:current_scope] do
-      %{user: %{id: user_id}} -> user_id
+      %{user: %{} = user} -> user
       _ -> nil
     end
   end
 
   def create(conn, %{"pin" => pin_params}) do
-    user_id = conn.assigns.current_scope.user.id
-    pin_result = Pins.create_pin(pin_params, user_id)
+    user = conn.assigns.current_scope.user
+    pin_result = Pins.create_pin(pin_params, user.id)
 
     with {:ok, %Pin{} = pin} <- pin_result do
       pin = Storymap.Repo.preload(pin, :tags)
@@ -30,29 +30,27 @@ defmodule StorymapWeb.PinController do
       StorymapWeb.Endpoint.broadcast(
         "map:world",
         "marker_added",
-        %{
-          pin: StorymapWeb.PinJSON.data(pin)
-        }
+        %{pin: StorymapWeb.PinJSON.data(pin)}
       )
 
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/pins/#{pin}")
-      |> render(:show, pin: pin, current_user_id: user_id)
+      |> render(:show, pin: pin, current_user: user)
     end
   end
 
   def show(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id)
     # Only include user_id if user is authenticated
-    render(conn, :show, pin: pin, current_user_id: get_current_user_id(conn))
+    render(conn, :show, pin: pin, current_user: get_current_user(conn))
   end
 
   def update(conn, %{"id" => id, "pin" => pin_params}) do
     pin = Pins.get_pin!(id)
-    current_user_id = conn.assigns.current_scope.user.id
+    current_user = conn.assigns.current_scope.user
 
-    if pin.user_id != current_user_id do
+    if pin.user_id != current_user.id and current_user.admin_level < 1 do
       conn
       |> put_status(:forbidden)
       |> put_view(json: StorymapWeb.ErrorJSON)
@@ -65,21 +63,19 @@ defmodule StorymapWeb.PinController do
         StorymapWeb.Endpoint.broadcast(
           "map:world",
           "marker_updated",
-          %{
-            pin: StorymapWeb.PinJSON.data(pin)
-          }
+          %{pin: StorymapWeb.PinJSON.data(pin)}
         )
 
-        render(conn, :show, pin: pin, current_user_id: current_user_id)
+        render(conn, :show, pin: pin, current_user: current_user)
       end
     end
   end
 
   def delete(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id)
-    current_user_id = conn.assigns.current_scope.user.id
+    current_user = conn.assigns.current_scope.user
 
-    if pin.user_id != current_user_id do
+    if pin.user_id != current_user.id and current_user.admin_level < 1 do
       conn
       |> put_status(:forbidden)
       |> put_view(json: StorymapWeb.ErrorJSON)
@@ -92,9 +88,7 @@ defmodule StorymapWeb.PinController do
         StorymapWeb.Endpoint.broadcast(
           "map:world",
           "marker_deleted",
-          %{
-            pin_id: pin_id
-          }
+          %{pin_id: pin_id}
         )
 
         send_resp(conn, :no_content, "")
