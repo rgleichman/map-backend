@@ -1,20 +1,25 @@
 import React from "react"
 import type { PinType } from "../types"
+import { useIsDesktop } from "../utils/useMediaQuery"
 import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
 import FloatingPanel from "./FloatingPanel"
 
 type Props = {
   onSelectType?: (type: PinType) => void
+  closeRef?: React.RefObject<{ close(): void } | null>
 }
 
-export default function PinTypeLegend({ onSelectType }: Props) {
+export default function PinTypeLegend({ onSelectType, closeRef }: Props) {
+  const isDesktop = useIsDesktop()
   return (
     <FloatingPanel
       triggerLabel="Pin types"
       triggerAriaLabel="Show pin types legend"
       title="Pin Types"
       closeAriaLabel="Close legend"
-      alwaysVisibleOnDesktop
+      closeRef={closeRef}
+      compact
+      defaultExpanded={isDesktop}
     >
       <div className="space-y-1">
         {PIN_TYPES.map((pinType) => {

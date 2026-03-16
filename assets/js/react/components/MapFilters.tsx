@@ -40,6 +40,7 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
       renderTrigger={!hideTrigger}
       topOffset={panelTopOffset}
       elevated
+      compact
     >
       <div className="space-y-4">
         <section>

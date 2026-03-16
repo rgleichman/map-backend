@@ -254,6 +254,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   modalRef.current = modal
   const escapePanelRef = useRef({ modal, isDesktop, dispatch })
   escapePanelRef.current = { modal, isDesktop, dispatch }
+  const legendCloseRef = useRef<{ close(): void } | null>(null)
 
   // Escape closes desktop type-selection panel; listener registered on mount so it runs before map
   useEffect(() => {
@@ -484,6 +485,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
 
   const onPopupOpen = useCallback((pinId: number) => {
+    legendCloseRef.current?.close()
     const path = window.location.pathname || "/map"
     window.history.replaceState(null, "", `${path}?pin=${pinId}`)
   }, [])
@@ -518,7 +520,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             onPopupOpen={onPopupOpen}
             onPopupClose={onPopupClose}
           />
-          <PinTypeLegend />
+          <PinTypeLegend closeRef={legendCloseRef} />
         </>
       )}
       {modal?.mode === "login-required" && (

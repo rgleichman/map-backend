@@ -18,12 +18,18 @@ type Props = {
   position?: "bottom-left" | "top-left" | "top-right"
   /** Optional ref to open the panel from outside (e.g. when user clicks a tag in a popup). */
   openRef?: React.RefObject<{ open(): void } | null>
+  /** Optional ref so parent can close the panel (e.g. when a pin is clicked). */
+  closeRef?: React.RefObject<{ close(): void } | null>
   /** When false, do not render the trigger (caller renders it and uses openRef to open). */
   renderTrigger?: boolean
   /** Override top for position="top-left" (e.g. "6.5rem" to sit below a stacked control group). */
   topOffset?: string
   /** When true, panel and backdrop use higher z-index so they draw over other floating panels. */
   elevated?: boolean
+  /** When true, use compact styling (narrower, softer shadow) for map-overlay style. */
+  compact?: boolean
+  /** When true, panel starts expanded (e.g. on desktop). */
+  defaultExpanded?: boolean
 }
 
 export default function FloatingPanel({
@@ -35,11 +41,14 @@ export default function FloatingPanel({
   alwaysVisibleOnDesktop = false,
   position = "bottom-left",
   openRef,
+  closeRef,
   renderTrigger = true,
   topOffset,
-  elevated = false
+  elevated = false,
+  compact = false,
+  defaultExpanded = false
 }: Props) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const close = useCallback(() => setExpanded(false), [])
 
   useEffect(() => {
@@ -49,6 +58,14 @@ export default function FloatingPanel({
       openRef.current = null
     }
   }, [openRef])
+
+  useEffect(() => {
+    if (!closeRef) return
+    closeRef.current = { close }
+    return () => {
+      closeRef.current = null
+    }
+  }, [closeRef, close])
 
   useEffect(() => {
     if (!expanded) return
@@ -86,7 +103,7 @@ export default function FloatingPanel({
           className={[
             "absolute z-10 flex items-center gap-2 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity",
             alwaysVisibleOnDesktop && "sm:hidden",
-            triggerHiddenWhenExpanded && expanded && "hidden"
+            (triggerHiddenWhenExpanded || expanded) && "hidden"
           ].filter(Boolean).join(" ")}
           style={triggerStyle}
           aria-label={triggerAriaLabel}
@@ -97,14 +114,15 @@ export default function FloatingPanel({
 
       <div
         className={[
-          elevated ? "absolute z-20 bg-base-100 rounded-lg shadow-lg border border-base-300 p-4 max-w-xs w-[calc(100vw-2rem)] sm:w-auto sm:max-w-xs" : "absolute z-10 bg-base-100 rounded-lg shadow-lg border border-base-300 p-4 max-w-xs w-[calc(100vw-2rem)] sm:w-auto sm:max-w-xs",
+          elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
+          compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
           expanded ? "block" : "hidden",
           alwaysVisibleOnDesktop && "sm:block"
         ].filter(Boolean).join(" ")}
         style={panelStyle}
       >
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h3 className="font-semibold text-base-content text-sm">{title}</h3>
+        <div className={["flex items-center justify-between gap-2", compact ? "mb-2" : "mb-3"].filter(Boolean).join(" ")}>
+          <h3 className={["font-semibold text-base-content", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
           <button
             type="button"
             onClick={close}
