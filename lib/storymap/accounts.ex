@@ -7,6 +7,7 @@ defmodule Storymap.Accounts do
   alias Storymap.Repo
 
   alias Storymap.Accounts.{User, UserToken, UserNotifier}
+  alias Storymap.Accounts.Scope
 
   ## Database getters
 
@@ -41,6 +42,27 @@ defmodule Storymap.Accounts do
 
   """
   def get_user!(id), do: Repo.get!(User, id)
+
+  def list_users_for_admin(%Scope{user: %User{admin_level: admin_level}})
+      when admin_level >= 10 do
+    from(u in User, order_by: [desc: u.inserted_at])
+    |> Repo.all()
+  end
+
+  def list_users_for_admin(_scope), do: []
+
+  def update_user_admin_level(
+        %Scope{user: %User{admin_level: admin_level}},
+        %User{} = user,
+        attrs
+      )
+      when admin_level >= 10 do
+    user
+    |> User.admin_level_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_user_admin_level(_scope, _user, _attrs), do: {:error, :unauthorized}
 
   ## User registration
 

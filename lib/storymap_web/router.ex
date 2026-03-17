@@ -91,6 +91,14 @@ defmodule StorymapWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
 
+    live_session :require_admin,
+      on_mount: [
+        {StorymapWeb.UserAuth, :require_authenticated},
+        {StorymapWeb.AdminAuth, {:require_admin_level, 10}}
+      ] do
+      live "/admin/users", AdminLive.Users, :index
+    end
+
     post "/users/update-password", UserSessionController, :update_password
   end
 

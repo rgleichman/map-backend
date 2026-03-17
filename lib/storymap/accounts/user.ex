@@ -64,4 +64,11 @@ defmodule Storymap.Accounts.User do
     now = DateTime.utc_now(:second)
     change(user, confirmed_at: now)
   end
+
+  def admin_level_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:admin_level])
+    |> validate_required([:admin_level])
+    |> validate_number(:admin_level, greater_than_or_equal_to: 0, less_than_or_equal_to: 10)
+  end
 end

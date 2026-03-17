@@ -144,6 +144,20 @@ defmodule StorymapWeb.Layouts do
           <span class="block px-4 py-2">{@current_scope.user.email}</span>
         <% end %>
       </li>
+      <%= if @current_scope.user.admin_level >= 10 do %>
+        <li>
+          <%= if @variant == "desktop" do %>
+            <.link href={~p"/admin/users"}>Admin</.link>
+          <% else %>
+            <.link
+              href={~p"/admin/users"}
+              class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+            >
+              Admin
+            </.link>
+          <% end %>
+        </li>
+      <% end %>
       <li>
         <%= if @variant == "desktop" do %>
           <.link href={~p"/users/settings"}>Settings</.link>
