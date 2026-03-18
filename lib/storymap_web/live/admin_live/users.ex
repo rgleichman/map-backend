@@ -16,6 +16,37 @@ defmodule StorymapWeb.AdminLive.Users do
   end
 
   @impl true
+  def handle_event("mute_toggle", %{"id" => id, "muted" => muted}, socket) do
+    target_user = Accounts.get_user!(String.to_integer(id))
+
+    current_user = Accounts.get_user!(socket.assigns.current_scope.user.id)
+    scope = Scope.for_user(current_user)
+
+    muted? = muted == "true"
+
+    if current_user.admin_level < 10 do
+      {:noreply,
+       socket
+       |> put_flash(:error, "You are not authorized to mute users.")
+       |> push_navigate(to: ~p"/")}
+    else
+      case Accounts.set_user_muted(scope, target_user, muted?) do
+        {:ok, %User{} = updated_user} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, mute_flash_message(updated_user))
+           |> stream_insert(:users, updated_user)}
+
+        {:error, :unauthorized} ->
+          {:noreply, socket |> put_flash(:error, "You are not authorized to mute users.")}
+
+        _ ->
+          {:noreply, socket |> put_flash(:error, "Could not update mute status.")}
+      end
+    end
+  end
+
+  @impl true
   def handle_event(
         "save_admin_level",
         %{"_id" => id, "user" => %{"admin_level" => admin_level}},
@@ -69,6 +100,9 @@ defmodule StorymapWeb.AdminLive.Users do
     end
   end
 
+  defp mute_flash_message(%User{email: email, muted_at: nil}), do: "Unmuted #{email}."
+  defp mute_flash_message(%User{email: email}), do: "Muted #{email}."
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -88,6 +122,7 @@ defmodule StorymapWeb.AdminLive.Users do
                 <tr>
                   <th>Email</th>
                   <th>Confirmed</th>
+                  <th>Muted</th>
                   <th>Admin level</th>
                   <th class="text-right">User ID</th>
                 </tr>
@@ -100,6 +135,35 @@ defmodule StorymapWeb.AdminLive.Users do
                       <span class="badge badge-success badge-outline">Yes</span>
                     <% else %>
                       <span class="badge badge-ghost">No</span>
+                    <% end %>
+                  </td>
+                  <td class="w-44">
+                    <%= if user.muted_at do %>
+                      <div class="flex items-center gap-2">
+                        <span class="badge badge-warning badge-outline">Muted</span>
+                        <button
+                          type="button"
+                          class="btn btn-ghost btn-xs"
+                          phx-click="mute_toggle"
+                          phx-value-id={user.id}
+                          phx-value-muted="false"
+                        >
+                          Unmute
+                        </button>
+                      </div>
+                    <% else %>
+                      <div class="flex items-center gap-2">
+                        <span class="badge badge-ghost">No</span>
+                        <button
+                          type="button"
+                          class="btn btn-outline btn-error btn-xs"
+                          phx-click="mute_toggle"
+                          phx-value-id={user.id}
+                          phx-value-muted="true"
+                        >
+                          Mute
+                        </button>
+                      </div>
                     <% end %>
                   </td>
                   <td class="w-48">

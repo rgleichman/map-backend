@@ -37,4 +37,29 @@ defmodule StorymapWeb.AdminLive.UsersTest do
 
     assert has_element?(view, "tr#users-#{target.id}", target.email)
   end
+
+  test "admin can mute and unmute a user", %{conn: conn} do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+
+    target = AccountsFixtures.user_fixture()
+
+    conn = log_in_user(conn, admin)
+    {:ok, view, _html} = live(conn, ~p"/admin/users")
+
+    assert has_element?(view, "tr#users-#{target.id}")
+    assert has_element?(view, "tr#users-#{target.id} .badge", "No")
+
+    view
+    |> element("tr#users-#{target.id} button[phx-value-muted='true']")
+    |> render_click()
+
+    assert has_element?(view, "tr#users-#{target.id} .badge", "Muted")
+
+    view
+    |> element("tr#users-#{target.id} button[phx-value-muted='false']")
+    |> render_click()
+
+    assert has_element?(view, "tr#users-#{target.id} .badge", "No")
+  end
 end

@@ -64,6 +64,15 @@ defmodule Storymap.Accounts do
 
   def update_user_admin_level(_scope, _user, _attrs), do: {:error, :unauthorized}
 
+  def set_user_muted(%Scope{user: %User{admin_level: admin_level}}, %User{} = user, muted?)
+      when admin_level >= 10 and is_boolean(muted?) do
+    user
+    |> User.muted_changeset(muted?)
+    |> Repo.update()
+  end
+
+  def set_user_muted(_scope, _user, _muted?), do: {:error, :unauthorized}
+
   ## User registration
 
   @doc """

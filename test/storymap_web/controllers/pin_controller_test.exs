@@ -50,6 +50,16 @@ defmodule StorymapWeb.PinControllerTest do
       conn = post(conn, ~p"/api/pins", pin: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
+
+    test "forbids create when user is muted", %{conn: conn, user: user} do
+      user =
+        Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+
+      conn = log_in_user(conn, user)
+
+      conn = post(conn, ~p"/api/pins", pin: @create_attrs)
+      assert json_response(conn, 403)["errors"] != %{}
+    end
   end
 
   describe "update pin" do
@@ -85,6 +95,16 @@ defmodule StorymapWeb.PinControllerTest do
       assert %{"id" => id} = json_response(conn, 200)["data"]
       assert id == pin.id
     end
+
+    test "forbids update when user is muted", %{conn: conn, user: user, pin: pin} do
+      user =
+        Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+
+      conn = log_in_user(conn, user)
+
+      conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
+      assert json_response(conn, 403)["errors"] != %{}
+    end
   end
 
   describe "delete pin" do
@@ -108,6 +128,16 @@ defmodule StorymapWeb.PinControllerTest do
 
       conn = delete(conn, ~p"/api/pins/#{pin}")
       assert response(conn, 204)
+    end
+
+    test "forbids delete when user is muted", %{conn: conn, user: user, pin: pin} do
+      user =
+        Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+
+      conn = log_in_user(conn, user)
+
+      conn = delete(conn, ~p"/api/pins/#{pin}")
+      assert json_response(conn, 403)["errors"] != %{}
     end
   end
 

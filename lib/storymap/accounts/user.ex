@@ -5,6 +5,7 @@ defmodule Storymap.Accounts.User do
   schema "users" do
     field :email, :string
     field :admin_level, :integer, default: 0
+    field :muted_at, :utc_datetime
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
 
@@ -70,5 +71,10 @@ defmodule Storymap.Accounts.User do
     |> cast(attrs, [:admin_level])
     |> validate_required([:admin_level])
     |> validate_number(:admin_level, greater_than_or_equal_to: 0, less_than_or_equal_to: 10)
+  end
+
+  def muted_changeset(user, muted?) when is_boolean(muted?) do
+    muted_at = if muted?, do: DateTime.utc_now(:second), else: nil
+    change(user, muted_at: muted_at)
   end
 end
