@@ -4,6 +4,7 @@ defmodule StorymapWeb.AdminLive.UsersTest do
   import Phoenix.LiveViewTest
 
   alias Storymap.AccountsFixtures
+  alias Storymap.PinsFixtures
   alias Storymap.Repo
 
   test "non-admin cannot access admin dashboard", %{conn: conn} do
@@ -61,5 +62,38 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     |> render_click()
 
     assert has_element?(view, "tr#users-#{target.id} .badge", "No")
+  end
+
+  test "admin can expand a user row to view that user's pins", %{conn: conn} do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+
+    target = AccountsFixtures.user_fixture()
+    pin1 = PinsFixtures.pin_fixture(%{title: "Pin one", description: "first line"}, target)
+
+    pin2 =
+      PinsFixtures.pin_fixture(
+        %{title: "Pin two", description: "second line\nmore details for moderation"},
+        target
+      )
+
+    conn = log_in_user(conn, admin)
+    {:ok, view, _html} = live(conn, ~p"/admin/users")
+
+    refute has_element?(view, "#users-#{target.id}-pins")
+
+    view
+    |> element("tr#users-#{target.id} button[phx-click='toggle_user_pins']")
+    |> render_click()
+
+    assert has_element?(view, "#users-#{target.id}-pins", "Pins by #{target.email}")
+    assert has_element?(view, "#users-#{target.id}-pins", "Pin one")
+    assert has_element?(view, "#users-#{target.id}-pins", "Pin two")
+
+    assert has_element?(view, "#users-#{target.id}-pins", "second line")
+    assert has_element?(view, "#users-#{target.id}-pins", "more details for moderation")
+
+    assert has_element?(view, "#users-#{target.id}-pins a[href='/?pin=#{pin1.id}']")
+    assert has_element?(view, "#users-#{target.id}-pins a[href='/?pin=#{pin2.id}']")
   end
 end

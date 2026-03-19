@@ -4,6 +4,7 @@ defmodule StorymapWeb.AdminLive.Users do
   alias Storymap.Accounts
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
+  alias Storymap.Pins
 
   @impl true
   def mount(_params, _session, socket) do
@@ -12,7 +13,47 @@ defmodule StorymapWeb.AdminLive.Users do
     {:ok,
      socket
      |> assign(:page_title, "Admin · Users")
+     |> assign(:expanded_user_ids, MapSet.new())
+     |> assign(:pins_by_user_id, %{})
      |> stream(:users, users)}
+  end
+
+  @impl true
+  def handle_event("toggle_user_pins", %{"id" => id}, socket) do
+    user_id = String.to_integer(id)
+    target_user = Accounts.get_user!(user_id)
+    current_user = Accounts.get_user!(socket.assigns.current_scope.user.id)
+
+    if current_user.admin_level < 10 do
+      {:noreply,
+       socket
+       |> put_flash(:error, "You are not authorized to view user pins.")
+       |> push_navigate(to: ~p"/")}
+    else
+      expanded_user_ids = socket.assigns.expanded_user_ids
+      pins_by_user_id = socket.assigns.pins_by_user_id
+      expanded? = MapSet.member?(expanded_user_ids, user_id)
+
+      if expanded? do
+        {:noreply,
+         socket
+         |> assign(:expanded_user_ids, MapSet.delete(expanded_user_ids, user_id))
+         |> stream_insert(:users, target_user)}
+      else
+        pins_by_user_id =
+          if Map.has_key?(pins_by_user_id, user_id) do
+            pins_by_user_id
+          else
+            Map.put(pins_by_user_id, user_id, Pins.list_pins_by_user(user_id))
+          end
+
+        {:noreply,
+         socket
+         |> assign(:pins_by_user_id, pins_by_user_id)
+         |> assign(:expanded_user_ids, MapSet.put(expanded_user_ids, user_id))
+         |> stream_insert(:users, target_user)}
+      end
+    end
   end
 
   @impl true
@@ -123,6 +164,7 @@ defmodule StorymapWeb.AdminLive.Users do
                   <th>Email</th>
                   <th>Confirmed</th>
                   <th>Muted</th>
+                  <th>Pins</th>
                   <th>Admin level</th>
                   <th class="text-right">User ID</th>
                 </tr>
@@ -166,10 +208,70 @@ defmodule StorymapWeb.AdminLive.Users do
                       </div>
                     <% end %>
                   </td>
+                  <td class="w-32 align-top">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      phx-click="toggle_user_pins"
+                      phx-value-id={user.id}
+                    >
+                      <%= if MapSet.member?(@expanded_user_ids, user.id) do %>
+                        Hide pins
+                      <% else %>
+                        Pins
+                      <% end %>
+                    </button>
+                    <div
+                      :if={MapSet.member?(@expanded_user_ids, user.id)}
+                      id={"#{dom_id}-pins"}
+                      class="mt-3 rounded-box border border-base-300 bg-base-100 p-3"
+                    >
+                      <h3 class="text-sm font-semibold mb-2">
+                        Pins by {user.email} ({length(Map.get(@pins_by_user_id, user.id, []))})
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                          <thead>
+                            <tr>
+                              <th>Title</th>
+                              <th>Description</th>
+                              <th>Link</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <%= for pin <- Map.get(@pins_by_user_id, user.id, []) do %>
+                              <tr id={"user-#{user.id}-pin-#{pin.id}"}>
+                                <td class="align-top font-medium">{pin.title}</td>
+                                <td class="align-top break-words">
+                                  {pin.description || ""}
+                                </td>
+                                <td class="align-top">
+                                  <.link
+                                    href={"/?pin=#{pin.id}"}
+                                    target="_blank"
+                                    class="link link-primary"
+                                  >
+                                    /?pin={pin.id}
+                                  </.link>
+                                </td>
+                              </tr>
+                            <% end %>
+                            <tr :if={Map.get(@pins_by_user_id, user.id, []) == []}>
+                              <td colspan="3" class="opacity-70">No pins created by this user.</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </td>
                   <td class="w-48">
                     <% form = to_form(%{"admin_level" => user.admin_level}, as: :user) %>
 
-                    <.form for={form} id={"admin-level-form-#{user.id}"} phx-submit="save_admin_level">
+                    <.form
+                      for={form}
+                      id={"admin-level-form-#{user.id}"}
+                      phx-submit="save_admin_level"
+                    >
                       <input type="hidden" name="_id" value={user.id} />
                       <.input
                         id={"user-#{user.id}-admin_level"}
@@ -180,7 +282,7 @@ defmodule StorymapWeb.AdminLive.Users do
                       <button class="btn btn-primary btn-sm mt-2" type="submit">Save</button>
                     </.form>
                   </td>
-                  <td class="text-right text-xs opacity-70">{user.id}</td>
+                  <td class="text-right text-xs opacity-70 align-top">{user.id}</td>
                 </tr>
               </tbody>
             </table>

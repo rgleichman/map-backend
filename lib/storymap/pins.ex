@@ -27,6 +27,15 @@ defmodule Storymap.Pins do
     list_pins()
   end
 
+  def list_pins_by_user(user_id) when is_integer(user_id) do
+    from(p in Pin,
+      where: p.user_id == ^user_id,
+      order_by: [desc: p.inserted_at],
+      preload: [:tags]
+    )
+    |> Repo.all()
+  end
+
   @doc """
   Gets a single pin.
 
