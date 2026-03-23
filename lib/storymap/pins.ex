@@ -9,7 +9,7 @@ defmodule Storymap.Pins do
   alias Storymap.Pins.Pin
 
   @doc """
-  Returns the list of pins.
+  Returns the list of pins ordered by most recently updated/created first.
 
   ## Examples
 
@@ -19,7 +19,7 @@ defmodule Storymap.Pins do
   """
 
   def list_pins do
-    Repo.all(from p in Pin, preload: [:tags])
+    Repo.all(from p in Pin, preload: [:tags], order_by: [desc: p.updated_at])
   end
 
   def list_pins(current_user_id) when not is_nil(current_user_id) do

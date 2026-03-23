@@ -1,0 +1,99 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-4xl mx-auto mt-12 px-4 py-8">
+    <div class="mb-12">
+      <h1 class="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+        Pins
+      </h1>
+      <p class="text-zinc-600 dark:text-zinc-400">
+        Explore all pins on the map, ordered by most recently updated
+      </p>
+    </div>
+
+    <%= if Enum.empty?(@pins) do %>
+      <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-8 text-center">
+        <p class="text-zinc-600 dark:text-zinc-400">No pins yet. Be the first to add one!</p>
+      </div>
+    <% else %>
+      <div class="space-y-4">
+        <%= for pin <- @pins do %>
+          <div class="bg-white dark:bg-zinc-900 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 p-6 border border-zinc-200 dark:border-zinc-800">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-2">
+                  <%= if pin.icon_url do %>
+                    <img
+                      src={pin.icon_url}
+                      alt={pin.pin_type}
+                      class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    />
+                  <% end %>
+                  <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                    {pin.title}
+                  </h2>
+                </div>
+
+                <%= if pin.description do %>
+                  <p class="text-zinc-700 dark:text-zinc-300 mb-3 line-clamp-2">
+                    {pin.description}
+                  </p>
+                <% end %>
+
+                <div class="flex flex-wrap gap-3 text-sm text-zinc-600 dark:text-zinc-400">
+                  <span class="inline-flex items-center">
+                    <span
+                      class="inline-block w-2 h-2 rounded-full mr-2"
+                      style={
+                        case pin.pin_type do
+                          "one_time" -> "background-color: #3b82f6"
+                          "scheduled" -> "background-color: #8b5cf6"
+                          "food_bank" -> "background-color: #ec4899"
+                          _ -> "background-color: #6b7280"
+                        end
+                      }
+                    >
+                    </span>
+                    <span class="capitalize">{String.replace(pin.pin_type, "_", " ")}</span>
+                  </span>
+
+                  <%= if pin.latitude && pin.longitude do %>
+                    <span>
+                      ({Float.round(pin.latitude, 2)}, {Float.round(pin.longitude, 2)})
+                    </span>
+                  <% end %>
+
+                  <%= if pin.tags && !Enum.empty?(pin.tags) do %>
+                    <div class="flex flex-wrap gap-2 mt-2 w-full">
+                      <%= for tag <- pin.tags do %>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                          {tag.name}
+                        </span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <div class="flex-shrink-0 text-right">
+                <.link
+                  navigate={~p"/map?pin=#{pin.id}"}
+                  class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors duration-200"
+                >
+                  View on Map
+                </.link>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+              <div>Updated {format_relative_time(pin.updated_at)}</div>
+              <%= if @is_admin && pin.user do %>
+                <div class="mt-2 text-zinc-600 dark:text-zinc-300 font-medium">
+                  Created by: {pin.user.email}
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</Layouts.app>

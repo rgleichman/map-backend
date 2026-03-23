@@ -117,6 +117,8 @@ defmodule StorymapWeb.Router do
       live "/users/log-in/:token", UserLive.Confirmation, :new
       # Public user profile page
       live "/user/:user_id", UserLive.Show, :show
+      # Public pins list page
+      live "/pins", PinLive.Index, :index
     end
 
     delete "/users/log-out", UserSessionController, :delete
