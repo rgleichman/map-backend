@@ -85,10 +85,12 @@
 
             <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
               <div>Updated {format_relative_time(pin.updated_at)}</div>
-              <%= if @is_admin && pin.user do %>
-                <div class="mt-2 text-zinc-600 dark:text-zinc-300 font-medium">
-                  Created by: {pin.user.email}
-                </div>
+              <%= if @is_admin do %>
+                <%= if pin.user do %>
+                  <div class="mt-2 text-zinc-600 dark:text-zinc-300 font-medium">
+                    Created by: {pin.user.email}
+                  </div>
+                <% end %>
               <% end %>
             </div>
           </div>

@@ -5,11 +5,13 @@ defmodule StorymapWeb.PinLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    pins = Pins.list_pins() |> Storymap.Repo.preload(:user)
     current_user = get_current_user(socket)
-    is_admin = is_super_admin?(current_user)
+    is_admin = super_admin?(current_user)
 
-    {:ok, assign(socket, pins: pins, current_user: current_user, is_admin: is_admin)}
+    pins = Pins.list_pins()
+    pins = if is_admin, do: Storymap.Repo.preload(pins, :user), else: pins
+
+    {:ok, assign(socket, pins: pins, is_admin: is_admin)}
   end
 
   defp get_current_user(socket) do
@@ -19,9 +21,8 @@ defmodule StorymapWeb.PinLive.Index do
     end
   end
 
-  defp is_super_admin?(user) do
-    user && user.admin_level && user.admin_level >= 10
-  end
+  defp super_admin?(%{admin_level: level}) when is_integer(level) and level >= 10, do: true
+  defp super_admin?(_), do: false
 
   def format_relative_time(%DateTime{} = datetime) do
     now = DateTime.utc_now()
