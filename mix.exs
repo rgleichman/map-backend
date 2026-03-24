@@ -97,6 +97,7 @@ defmodule Storymap.MixProject do
         "compile --warning-as-errors",
         "deps.unlock --unused",
         "format",
+        "tsc.run",
         "test",
         "vitest.run"
       ]
