@@ -18,6 +18,9 @@ function buildPinTimeFields(
   endTime: string,
   scheduleRrule: string
 ): Pick<NewPin, "start_time" | "end_time" | "schedule_rrule"> & { start_time?: string | null; end_time?: string | null; schedule_rrule?: string | null } {
+  if (effectiveType === "other") {
+    return { start_time: null, end_time: null, schedule_rrule: null }
+  }
   if (effectiveType === "food_bank" && open24_7) {
     return { start_time: null, end_time: null, schedule_rrule: null }
   }
@@ -383,7 +386,8 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     setApiError(null)
     const effectiveType: PinType = modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type
     const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
-    const skipTimeValidation = effectiveType === "food_bank" && open24_7
+    const skipTimeValidation =
+      effectiveType === "other" || (effectiveType === "food_bank" && open24_7)
     if (!skipTimeValidation && isTimeOnly) {
       if (startTime && endTime && endTime <= startTime) {
         dispatch({ type: "set_time_error", timeError: "End time must be after start time." })

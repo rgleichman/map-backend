@@ -1,4 +1,4 @@
-export type PinType = "one_time" | "scheduled" | "food_bank"
+export type PinType = "one_time" | "scheduled" | "food_bank" | "other"
 
 export type Pin = {
   id: number

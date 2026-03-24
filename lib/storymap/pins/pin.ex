@@ -65,7 +65,7 @@ defmodule Storymap.Pins.Pin do
         :schedule_rrule
       ])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
-      |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank"])
+      |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank", "other"])
 
     # Set user_id programmatically only for new pins (creation)
     # This prevents users from changing ownership via user input during updates
@@ -100,6 +100,19 @@ defmodule Storymap.Pins.Pin do
                 {:error, :time_zone_not_found} -> put_change(changeset, :schedule_timezone, nil)
               end
           end
+
+        _ ->
+          changeset
+      end
+
+    changeset =
+      case get_field(changeset, :pin_type) do
+        "other" ->
+          changeset
+          |> put_change(:start_time, nil)
+          |> put_change(:end_time, nil)
+          |> put_change(:schedule_rrule, nil)
+          |> put_change(:schedule_timezone, nil)
 
         _ ->
           changeset

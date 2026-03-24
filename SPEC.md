@@ -20,7 +20,8 @@ authenticated users can create, edit, and delete their own pins.
 ### Pin Data Model
 
 - **Title** (required)
-- **Pin type** (required): `one_time`, `scheduled`, or `food_bank`
+- **Pin type** (required): `one_time`, `scheduled`, `food_bank`, or `other`
+  (`other`: landmarks / POIs — no start/end time or schedule)
 - **Location** (required): latitude and longitude
 - **Description** (optional, markdown)
 - **Tags** (optional, multiple per pin)

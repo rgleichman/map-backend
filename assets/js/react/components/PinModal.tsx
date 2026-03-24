@@ -58,7 +58,8 @@ export default function PinModal({
   const [tagInput, setTagInput] = useState("")
   const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
   const isFoodBank = pinType === "food_bank"
-  const showTimeFields = !(isFoodBank && open24_7)
+  const isOther = pinType === "other"
+  const showTimeFields = !isOther && !(isFoodBank && open24_7)
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()

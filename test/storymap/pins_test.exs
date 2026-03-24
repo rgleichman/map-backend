@@ -36,6 +36,25 @@ defmodule Storymap.PinsTest do
       assert pin.longitude == 120.5
     end
 
+    test "create_pin/2 with pin_type other clears time and schedule fields" do
+      user = user_fixture()
+
+      attrs =
+        Map.merge(@valid_attrs, %{
+          "pin_type" => "other",
+          "start_time" => "2025-01-01T12:00:00Z",
+          "end_time" => "2025-01-01T13:00:00Z",
+          "schedule_rrule" => "FREQ=WEEKLY;BYDAY=MO"
+        })
+
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
+      assert pin.pin_type == "other"
+      assert is_nil(pin.start_time)
+      assert is_nil(pin.end_time)
+      assert is_nil(pin.schedule_rrule)
+      assert is_nil(pin.schedule_timezone)
+    end
+
     test "create_pin/2 with invalid data returns error changeset" do
       user = user_fixture()
       assert {:error, %Ecto.Changeset{}} = Pins.create_pin(@invalid_attrs, user.id)
