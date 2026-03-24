@@ -54,6 +54,9 @@ const filterMatchOpacityExpr: maplibregl.ExpressionSpecification = [
   FILTER_DIMMED_OPACITY,
 ]
 
+/** Only draw labels for pins that match the filter so dimmed pins do not affect label collision. */
+const pinLabelsMatchFilter: maplibregl.FilterSpecification = ["==", ["get", "filter_match"], 1]
+
 function buildPinFeatures(pinList: Pin[], filterState: FilterState) {
   return pinList.map((pin) => {
     const pinColor = getPinTypeConfig(pin.pin_type).color
@@ -263,6 +266,7 @@ export default function MapCanvas({
             id: "pin-labels-layer",
             type: "symbol",
             source: "pin-features",
+            filter: pinLabelsMatchFilter,
             layout: {
               "text-field": ["get", "title"],
               "text-font": ["Open Sans Bold", "sans-serif"],
@@ -276,7 +280,6 @@ export default function MapCanvas({
               "text-color": "#1f2937",
               "text-halo-color": ["get", "haloColor"],
               "text-halo-width": 1.7,
-              "text-opacity": filterMatchOpacityExpr,
             },
           })
           pinLayersAddedRef.current = true
