@@ -5,11 +5,14 @@ import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
 import FloatingPanel from "./FloatingPanel"
 
 type Props = {
-  onSelectType?: (type: PinType) => void
+  /** When set, that row is highlighted (same source as map Filters). */
+  selectedPinType?: PinType | null
+  /** Toggle: same type again clears the filter. */
+  onTogglePinType?: (type: PinType) => void
   closeRef?: React.RefObject<{ close(): void } | null>
 }
 
-export default function PinTypeLegend({ onSelectType, closeRef }: Props) {
+export default function PinTypeLegend({ selectedPinType = null, onTogglePinType, closeRef }: Props) {
   const isDesktop = useIsDesktop()
   return (
     <FloatingPanel
@@ -28,8 +31,14 @@ export default function PinTypeLegend({ onSelectType, closeRef }: Props) {
             <button
               key={pinType}
               type="button"
-              className="flex w-full items-center gap-2 text-left text-sm cursor-pointer hover:opacity-80 active:opacity-70 transition-opacity min-h-[44px] py-2 px-1 -mx-1 rounded-md hover:bg-base-200/50"
-              onClick={() => onSelectType?.(pinType)}
+              aria-pressed={selectedPinType === pinType}
+              className={[
+                "flex w-full items-center gap-2 text-left text-sm cursor-pointer transition-opacity min-h-[44px] py-2 px-1 -mx-1 rounded-md",
+                selectedPinType === pinType
+                  ? "bg-primary/15 ring-1 ring-primary/40"
+                  : "hover:opacity-80 active:opacity-70 hover:bg-base-200/50",
+              ].join(" ")}
+              onClick={() => onTogglePinType?.(pinType)}
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"

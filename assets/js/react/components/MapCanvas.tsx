@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
@@ -6,11 +6,12 @@ import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   getPinTypeConfig,
+  getPinTypeLabel,
   getPinTypeMarkerImageId,
   PIN_TYPES
 } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { CLEARED_FILTER, DEFAULT_FILTER, filterPins, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, filterPins, type FilterState } from "./map/filters"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 
@@ -61,9 +62,26 @@ type Props = {
   onPlacementMapClick?: (lng: number, lat: number) => void
   onPopupOpen?: (pinId: number) => void
   onPopupClose?: () => void
+  filter: FilterState
+  setFilter: Dispatch<SetStateAction<FilterState>>
 }
 
-export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapClick, onEdit, onDelete, pendingLocation = null, pendingPinType = null, editingPinId = null, onPlacementMapClick, onPopupOpen, onPopupClose }: Props) {
+export default function MapCanvas({
+  styleUrl,
+  pins,
+  initialPinId = null,
+  onMapClick,
+  onEdit,
+  onDelete,
+  pendingLocation = null,
+  pendingPinType = null,
+  editingPinId = null,
+  onPlacementMapClick,
+  onPopupOpen,
+  onPopupClose,
+  filter,
+  setFilter,
+}: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
@@ -88,7 +106,6 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
   const [mapReady, setMapReady] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchActive, setSearchActive] = useState(false)
-  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
   const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
@@ -463,8 +480,9 @@ export default function MapCanvas({ styleUrl, pins, initialPinId = null, onMapCl
     }
   }, [pinsToShow, mapReady, initialPinId, editingPinId])
 
-  const activeFilterParts =
-    (filter.time === "now" ? ["Open now or within 2 hours"] : []).concat(filter.tag !== null ? [filter.tag] : [])
+  const activeFilterParts = (filter.time === "now" ? ["Open now or within 2 hours"] : [])
+    .concat(filter.pinType !== null ? [getPinTypeLabel(filter.pinType)] : [])
+    .concat(filter.tag !== null ? [filter.tag] : [])
   const activeFilterSummary = activeFilterParts.join(" · ")
   const filtersAriaLabel =
     activeFilterParts.length > 0 ? `Show filters. Active: ${activeFilterParts.join("; ")}` : "Show filters"

@@ -9,6 +9,7 @@ import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
+import { DEFAULT_FILTER, type FilterState } from "./components/map/filters"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 function buildPinTimeFields(
@@ -247,6 +248,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const isDesktop = useIsDesktop()
   const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
+  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -502,6 +504,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
     })
   }, [])
 
+  const toggleMapPinTypeFilter = useCallback((pinType: PinType) => {
+    setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
+  }, [])
+
   const pinModalLat = modal?.mode === "add" ? (addLocation?.lat ?? modal.lat) : modal?.mode === "edit" ? (editLocation?.lat ?? modal.pin.latitude) : 0
   const pinModalLng = modal?.mode === "add" ? (addLocation?.lng ?? modal.lng) : modal?.mode === "edit" ? (editLocation?.lng ?? modal.pin.longitude) : 0
   const locationAlreadySetFromPlacement = !isDesktop && modal?.mode === "add" && addLocation !== null
@@ -523,8 +529,14 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             onPlacementMapClick={placement ? onPlacementMapClick : undefined}
             onPopupOpen={onPopupOpen}
             onPopupClose={onPopupClose}
+            filter={filter}
+            setFilter={setFilter}
           />
-          <PinTypeLegend closeRef={legendCloseRef} />
+          <PinTypeLegend
+            closeRef={legendCloseRef}
+            selectedPinType={filter.pinType}
+            onTogglePinType={toggleMapPinTypeFilter}
+          />
         </>
       )}
       {modal?.mode === "login-required" && (

@@ -1,5 +1,5 @@
 import { RRule } from "rrule"
-import type { Pin } from "../../types"
+import type { Pin, PinType } from "../../types"
 import {
   addHoursToParts,
   getNowInTimezone,
@@ -15,12 +15,14 @@ export type TimeFilter = "now" | null
 export type FilterState = {
   tag: string | null
   time: TimeFilter
+  /** When set, only pins of this type are shown. */
+  pinType: PinType | null
 }
 
 /** Map opens with this (open now selected). */
-export const DEFAULT_FILTER: FilterState = { tag: null, time: "now" }
-/** Clear all = show all pins (no tag, no time filter). */
-export const CLEARED_FILTER: FilterState = { tag: null, time: null }
+export const DEFAULT_FILTER: FilterState = { tag: null, time: "now", pinType: null }
+/** Clear all = show all pins (no tag, no time filter, all pin types). */
+export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null }
 
 function toMinutes(h: number, m: number): number {
   return h * 60 + m
@@ -99,6 +101,10 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
 
 export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
   return pins.filter((p) => {
+    if (filter.pinType !== null && p.pin_type !== filter.pinType) {
+      return false
+    }
+
     if (filter.tag && (!p.tags || !p.tags.includes(filter.tag))) {
       return false
     }

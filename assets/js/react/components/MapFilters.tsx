@@ -1,5 +1,6 @@
 import React from "react"
-import type { Pin } from "../types"
+import type { Pin, PinType } from "../types"
+import { getPinTypeConfig, PIN_TYPES } from "../utils/pinTypeIcons"
 import { CLEARED_FILTER, type FilterState } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
 
@@ -22,10 +23,12 @@ type Props = {
 
 export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigger, panelTopOffset, position = "top-left" }: Props) {
   const tags = deriveTags(pins)
-  const hasActiveFilter = filter.tag !== null || filter.time !== null
+  const hasActiveFilter = filter.tag !== null || filter.time !== null || filter.pinType !== null
 
   const setTag = (tag: string | null) => setFilter((f) => ({ ...f, tag }))
   const setTime = (time: FilterState["time"]) => setFilter((f) => ({ ...f, time }))
+  const togglePinType = (pinType: PinType) =>
+    setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
 
   const clearButtonClass = "w-full btn btn-sm btn-ghost text-base-content min-h-[44px] sm:min-h-0"
 
@@ -89,6 +92,35 @@ export default function MapFilters({ pins, filter, setFilter, openRef, hideTrigg
               className={clearButtonClass}
             >
               Clear tags
+            </button>
+          )}
+        </section>
+        <section>
+          <h4 className="font-medium text-base-content text-xs uppercase tracking-wide mb-2">
+            Pin type
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {PIN_TYPES.map((pinType) => {
+              const label = getPinTypeConfig(pinType).label
+              return (
+                <button
+                  key={pinType}
+                  type="button"
+                  onClick={() => togglePinType(pinType)}
+                  className={`px-3 py-1.5 rounded-md text-sm transition min-h-[44px] sm:min-h-0 ${filter.pinType === pinType ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {filter.pinType !== null && (
+            <button
+              type="button"
+              onClick={() => setFilter((f) => ({ ...f, pinType: null }))}
+              className={clearButtonClass}
+            >
+              All pin types
             </button>
           )}
         </section>
