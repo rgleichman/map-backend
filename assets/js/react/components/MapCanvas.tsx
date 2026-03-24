@@ -193,6 +193,7 @@ export default function MapCanvas({
         style,
         center: [0, 0],
         zoom: 2,
+        fadeDuration: 50,
         // performance optimization
         validateStyle: false,
       })
