@@ -11,7 +11,7 @@ import {
   PIN_TYPES
 } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { CLEARED_FILTER, filterPins, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filters"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 
@@ -44,6 +44,33 @@ function desaturateHex(hex: string, whiteRatio = 0.85): string {
   return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
 }
 
+/** Opacity for pins that do not match the active filters (still visible and clickable). */
+const FILTER_DIMMED_OPACITY = 0.25
+
+const filterMatchOpacityExpr: maplibregl.ExpressionSpecification = [
+  "case",
+  ["==", ["get", "filter_match"], 1],
+  1,
+  FILTER_DIMMED_OPACITY,
+]
+
+function buildPinFeatures(pinList: Pin[], filterState: FilterState) {
+  return pinList.map((pin) => {
+    const pinColor = getPinTypeConfig(pin.pin_type).color
+    return {
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
+      properties: {
+        pin_id: pin.id,
+        title: truncateTitle(pin.title),
+        pin_type: pin.pin_type,
+        pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
+        haloColor: desaturateHex(pinColor),
+        filter_match: pinMatchesFilter(pin, filterState) ? 1 : 0,
+      },
+    }
+  })
+}
 
 type Props = {
   styleUrl: string
@@ -109,6 +136,13 @@ export default function MapCanvas({
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
   const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
+  const filterRef = useRef(filter)
+  filterRef.current = filter
+
+  const pinsForMap =
+    editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
+  const pinsForMapRef = useRef<Pin[]>(pinsForMap)
+  pinsForMapRef.current = pinsForMap
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -134,8 +168,6 @@ export default function MapCanvas({
       input.removeEventListener("blur", onBlur)
     }
   }, [mapReady])
-
-  const filteredPins = filterPins(pins, filter)
 
   // Initialize map once
   useEffect(() => {
@@ -222,7 +254,10 @@ export default function MapCanvas({
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true
-            }
+            },
+            paint: {
+              "icon-opacity": filterMatchOpacityExpr,
+            },
           })
           map.addLayer({
             id: "pin-labels-layer",
@@ -240,27 +275,15 @@ export default function MapCanvas({
             paint: {
               "text-color": "#1f2937",
               "text-halo-color": ["get", "haloColor"],
-              "text-halo-width": 1.7
-            }
+              "text-halo-width": 1.7,
+              "text-opacity": filterMatchOpacityExpr,
+            },
           })
           pinLayersAddedRef.current = true
 
-          const initialPins = pinsToShowRef.current
+          const initialPins = pinsForMapRef.current
           pinsByIdRef.current = new Map(initialPins.map((p) => [p.id, p]))
-          const initialFeatures = initialPins.map((pin) => {
-            const pinColor = getPinTypeConfig(pin.pin_type).color
-            return {
-              type: "Feature" as const,
-              geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
-              properties: {
-                pin_id: pin.id,
-                title: truncateTitle(pin.title),
-                pin_type: pin.pin_type,
-                pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
-                haloColor: desaturateHex(pinColor)
-              }
-            }
-          })
+          const initialFeatures = buildPinFeatures(initialPins, filterRef.current)
             ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
               type: "FeatureCollection",
               features: initialFeatures
@@ -399,29 +422,6 @@ export default function MapCanvas({
     }
   }, [mapReady])
 
-  const pinsToShow = editingPinId != null
-    ? filteredPins.filter((p) => p.id !== editingPinId)
-    : filteredPins
-  const pinsToShowRef = useRef<Pin[]>(pinsToShow)
-  pinsToShowRef.current = pinsToShow
-
-  function buildPinFeatures(pinList: Pin[]) {
-    return pinList.map((pin) => {
-      const pinColor = getPinTypeConfig(pin.pin_type).color
-      return {
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
-        properties: {
-          pin_id: pin.id,
-          title: truncateTitle(pin.title),
-          pin_type: pin.pin_type,
-          pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
-          haloColor: desaturateHex(pinColor)
-        }
-      }
-    })
-  }
-
   function openPinPopup(map: MLMap, pin: Pin): void {
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
@@ -453,9 +453,9 @@ export default function MapCanvas({
     const map = mapRef.current
     if (!map || !mapReady || !pinLayersAddedRef.current) return
 
-    pinsByIdRef.current = new Map(pinsToShow.map((p) => [p.id, p]))
+    pinsByIdRef.current = new Map(pinsForMap.map((p) => [p.id, p]))
 
-    const features = buildPinFeatures(pinsToShow)
+    const features = buildPinFeatures(pinsForMap, filter)
       ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
         features
@@ -478,7 +478,7 @@ export default function MapCanvas({
         openPinPopup(map, pin)
       }
     }
-  }, [pinsToShow, mapReady, initialPinId, editingPinId])
+  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter])
 
   const activeFilterParts = (filter.time === "now" ? ["Open now or within 2 hours"] : [])
     .concat(filter.pinType !== null ? [getPinTypeLabel(filter.pinType)] : [])

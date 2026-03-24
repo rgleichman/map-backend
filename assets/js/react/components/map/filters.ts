@@ -99,58 +99,61 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
   return isRecurrenceDayForParts(nowParts, rruleStr, ianaTimezone)
 }
 
-export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
-  return pins.filter((p) => {
-    if (filter.pinType !== null && p.pin_type !== filter.pinType) {
-      return false
-    }
+/** True if the pin passes the current tag, time, and pin-type filter rules. */
+export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
+  if (filter.pinType !== null && p.pin_type !== filter.pinType) {
+    return false
+  }
 
-    if (filter.tag && (!p.tags || !p.tags.includes(filter.tag))) {
-      return false
-    }
+  if (filter.tag && (!p.tags || !p.tags.includes(filter.tag))) {
+    return false
+  }
 
-    if (filter.time !== "now") return true
+  if (filter.time !== "now") return true
 
-    if (!p.schedule_timezone) return true
-    if (!p.start_time && !p.end_time && !p.schedule_rrule) return true
+  if (!p.schedule_timezone) return true
+  if (!p.start_time && !p.end_time && !p.schedule_rrule) return true
 
-    const nowParts = getNowInTimezone(p.schedule_timezone)
-    if (!nowParts) return true
+  const nowParts = getNowInTimezone(p.schedule_timezone)
+  if (!nowParts) return true
 
-    const nowPlus2hParts = addHoursToParts(nowParts, 2)
+  const nowPlus2hParts = addHoursToParts(nowParts, 2)
 
-    if (p.pin_type === "one_time") {
-      const startParts = p.start_time ? parseDateTimeFromISO(p.start_time) : null
-      const endParts = p.end_time ? parseDateTimeFromISO(p.end_time) : null
-      if (!startParts && !endParts) return true
-      if (startParts && !partsLte(startParts, nowPlus2hParts)) return false
-      if (endParts && partsGte(nowParts, endParts)) return false
-      return true
-    }
-    if (p.schedule_rrule?.trim()) {
-      const startTime = p.start_time ? parseTimeOnlyFromISO(p.start_time) : null
-      const endTime = p.end_time ? parseTimeOnlyFromISO(p.end_time) : null
-      const inTimeWindow = timeOnlyInRange(nowParts.hour, nowParts.minute, startTime, endTime)
-      const nowTime = { hour: nowParts.hour, minute: nowParts.minute }
-      const nowPlus2hTime = { hour: nowPlus2hParts.hour, minute: nowPlus2hParts.minute }
-      const opensWithin2h =
-        startTime &&
-        timeOnlyInRangeWrapping(startTime, nowTime, nowPlus2hTime)
-      const windowCrossesMidnight =
-        nowParts.year !== nowPlus2hParts.year ||
-        nowParts.month !== nowPlus2hParts.month ||
-        nowParts.day !== nowPlus2hParts.day
-      const opensWithin2hNextDay =
-        windowCrossesMidnight &&
-        startTime &&
-        isRecurrenceDayForParts(nowPlus2hParts, p.schedule_rrule, p.schedule_timezone) &&
-        timeOnlyInRange(startTime.hour, startTime.minute, { hour: 0, minute: 0 }, nowPlus2hTime)
-      return (
-        (isTodayRecurrenceDay(p.schedule_rrule, p.schedule_timezone) &&
-          (inTimeWindow || !!opensWithin2h)) ||
-        !!opensWithin2hNextDay
-      )
-    }
+  if (p.pin_type === "one_time") {
+    const startParts = p.start_time ? parseDateTimeFromISO(p.start_time) : null
+    const endParts = p.end_time ? parseDateTimeFromISO(p.end_time) : null
+    if (!startParts && !endParts) return true
+    if (startParts && !partsLte(startParts, nowPlus2hParts)) return false
+    if (endParts && partsGte(nowParts, endParts)) return false
     return true
-  })
+  }
+  if (p.schedule_rrule?.trim()) {
+    const startTime = p.start_time ? parseTimeOnlyFromISO(p.start_time) : null
+    const endTime = p.end_time ? parseTimeOnlyFromISO(p.end_time) : null
+    const inTimeWindow = timeOnlyInRange(nowParts.hour, nowParts.minute, startTime, endTime)
+    const nowTime = { hour: nowParts.hour, minute: nowParts.minute }
+    const nowPlus2hTime = { hour: nowPlus2hParts.hour, minute: nowPlus2hParts.minute }
+    const opensWithin2h =
+      startTime &&
+      timeOnlyInRangeWrapping(startTime, nowTime, nowPlus2hTime)
+    const windowCrossesMidnight =
+      nowParts.year !== nowPlus2hParts.year ||
+      nowParts.month !== nowPlus2hParts.month ||
+      nowParts.day !== nowPlus2hParts.day
+    const opensWithin2hNextDay =
+      windowCrossesMidnight &&
+      startTime &&
+      isRecurrenceDayForParts(nowPlus2hParts, p.schedule_rrule, p.schedule_timezone) &&
+      timeOnlyInRange(startTime.hour, startTime.minute, { hour: 0, minute: 0 }, nowPlus2hTime)
+    return (
+      (isTodayRecurrenceDay(p.schedule_rrule, p.schedule_timezone) &&
+        (inTimeWindow || !!opensWithin2h)) ||
+      !!opensWithin2hNextDay
+    )
+  }
+  return true
+}
+
+export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
+  return pins.filter((p) => pinMatchesFilter(p, filter))
 }
