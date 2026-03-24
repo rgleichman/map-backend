@@ -256,7 +256,8 @@ export default function MapCanvas({
               "icon-size": 1,
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
-              "icon-ignore-placement": true
+              "icon-ignore-placement": true,
+              "symbol-sort-key": ["get", "filter_match"],
             },
             paint: {
               "icon-opacity": filterMatchOpacityExpr,
@@ -274,7 +275,8 @@ export default function MapCanvas({
               "text-anchor": "top",
               "text-offset": [0, 0],
               "text-allow-overlap": false,
-              "text-ignore-placement": false
+              "text-ignore-placement": false,
+              "symbol-sort-key": ["get", "filter_match"],
             },
             paint: {
               "text-color": "#1f2937",
