@@ -226,9 +226,9 @@ defmodule StorymapWeb.AdminLive.Users do
                       id={"#{dom_id}-pins"}
                       class="mt-3 rounded-box border border-base-300 bg-base-100 p-3"
                     >
-                      <h3 class="text-sm font-semibold mb-2">
+                      <h2 class="text-sm font-semibold mb-2">
                         Pins by {user.email} ({length(Map.get(@pins_by_user_id, user.id, []))})
-                      </h3>
+                      </h2>
                       <div class="overflow-x-auto">
                         <table class="table table-sm">
                           <thead>
