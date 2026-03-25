@@ -192,6 +192,7 @@ export default function MapCanvas({
         style,
         center: [0, 0],
         zoom: 2,
+        maxZoom: 17,
         fadeDuration: 50,
         // performance optimization
         validateStyle: false,
@@ -245,7 +246,8 @@ export default function MapCanvas({
           }
           map.addSource("pin-features", {
             type: "geojson",
-            data: { type: "FeatureCollection", features: [] }
+            data: { type: "FeatureCollection", features: [] },
+            maxzoom: 5,
           })
           map.addLayer({
             id: "pin-icons-layer",
