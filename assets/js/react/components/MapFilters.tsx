@@ -255,7 +255,7 @@ export default function MapFilters({
                   className={[
                     "flex w-full items-center gap-2.5 text-left text-sm rounded-xl transition min-h-[44px] py-2 px-2.5",
                     selected
-                      ? "bg-primary/15 ring-1 ring-primary/45 dark:ring-primary/50 text-base-content"
+                      ? "bg-primary text-primary-content"
                       : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80"
                   ].join(" ")}
                 >

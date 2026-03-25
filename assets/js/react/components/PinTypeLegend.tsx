@@ -33,15 +33,15 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
               type="button"
               aria-pressed={selectedPinType === pinType}
               className={[
-                "flex w-full items-center gap-2 text-left text-sm cursor-pointer transition-opacity min-h-[44px] py-2 px-1 -mx-1 rounded-md",
+                "flex w-full items-center gap-2.5 text-left text-sm rounded-xl transition min-h-[44px] py-2 px-2.5",
                 selectedPinType === pinType
-                  ? "bg-primary/15 ring-1 ring-primary/40"
-                  : "hover:opacity-80 active:opacity-70 hover:bg-base-200/50",
+                  ? "bg-primary text-primary-content"
+                  : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80"
               ].join(" ")}
               onClick={() => onTogglePinType?.(pinType)}
             >
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: config.color,
                   border: `2px solid ${config.borderColor}`,
@@ -50,7 +50,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
               >
                 <PinTypeIcon pinType={pinType} size={20} />
               </div>
-              <span className="text-base-content">{config.label}</span>
+              <span className="font-medium">{config.label}</span>
             </button>
           )
         })}
