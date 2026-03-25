@@ -47,8 +47,27 @@ defmodule StorymapWeb.MapControllerTest do
       conn = get(conn, ~p"/api/map/tiles.json?layer=satellite-v2")
       assert response(conn, 200)
       body = json_response(conn, 200)
-      assert body["tiles"] == ["/api/tiles/satellite-v2/{z}/{x}/{y}"]
+      [tile_url] = body["tiles"]
+      assert String.starts_with?(tile_url, "http")
+      assert String.contains?(tile_url, "/api/tiles/satellite-v2/{z}/{x}/{y}")
       assert get_resp_header(conn, "cache-control") != []
+    end
+
+    test "returns absolute tile URLs (repro for worker Request URL error)", %{conn: conn} do
+      raw =
+        ~s|{"tiles":["https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg"],"version":1}|
+
+      rewritten =
+        TileCache.rewrite_tiles_json_tile_urls(raw, "satellite-v2", "/api/tiles/satellite-v2")
+
+      TileCache.put_tiles_json("satellite-v2", rewritten)
+
+      conn = get(conn, ~p"/api/map/tiles.json?layer=satellite-v2")
+      body = json_response(conn, 200)
+      [tile_url] = body["tiles"]
+
+      assert String.starts_with?(tile_url, "http")
+      assert String.contains?(tile_url, "/api/tiles/satellite-v2/{z}/{x}/{y}")
     end
   end
 

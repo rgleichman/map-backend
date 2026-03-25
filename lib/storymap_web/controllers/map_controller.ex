@@ -39,7 +39,9 @@ defmodule StorymapWeb.MapController do
       |> put_status(:bad_request)
       |> json(%{error: "invalid layer"})
     else
-      base_path = "/api/tiles/#{layer}"
+      base_path =
+        URI.merge(request_origin(conn), "/api/tiles/#{layer}")
+        |> URI.to_string()
 
       result =
         case TileCache.get_tiles_json(layer) do
