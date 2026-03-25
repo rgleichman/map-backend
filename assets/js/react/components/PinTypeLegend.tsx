@@ -42,6 +42,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                aria-hidden
                 style={{
                   backgroundColor: config.color,
                   border: `2px solid ${config.borderColor}`,

@@ -1,5 +1,4 @@
-import React, { useState } from "react"
-import { useIsDesktop } from "../utils/useMediaQuery"
+import React, { useEffect, useId, useState } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import type { PinType } from "../types"
 
@@ -54,7 +53,10 @@ export default function PinModal({
   onStartPickOnMap,
   mode, onCancel, onSave, onDelete, canDelete, saving = false
 }: Props) {
-  const isDesktop = useIsDesktop()
+  const uid = useId()
+  const headingId = `${uid}-pin-modal-title`
+  const locationLabelId = `${uid}-pin-location-label`
+  const open247Id = `${uid}-pin-open-24-7`
   const [tagInput, setTagInput] = useState("")
   const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
   const isFoodBank = pinType === "food_bank"
@@ -75,9 +77,17 @@ export default function PinModal({
 
   const formatCoord = (n: number) => n.toFixed(5)
 
+  useEffect(() => {
+    if (layout !== "modal") return
+    const id = window.requestAnimationFrame(() => {
+      document.getElementById("pin-title")?.focus()
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [layout])
+
   const formContent = (
     <div className="pin-modal-content max-h-modal-mobile rounded-lg min-w-[300px] overflow-y-auto overscroll-contain shadow-xl p-6">
-      <h2 className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
+      <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
       <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
       <input
         id="pin-title"
@@ -87,7 +97,6 @@ export default function PinModal({
         autoComplete="off"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        autoFocus={mode === "add" && isDesktop}
         className="w-full mb-4 px-3 py-2 rounded border"
       />
       <label htmlFor="pin-description" className="block font-medium mb-1">Description</label>
@@ -102,8 +111,10 @@ export default function PinModal({
       />
 
       <div className="mb-4">
-        <label className="block font-medium mb-1">Location</label>
-        <p className="text-sm text-base-content/80 mb-2">
+        <p id={locationLabelId} className="block font-medium mb-1">
+          Location
+        </p>
+        <p className="text-sm text-base-content/80 mb-2" aria-labelledby={locationLabelId}>
           {formatCoord(latitude)}, {formatCoord(longitude)}
         </p>
         <div className="flex flex-wrap gap-2 mb-2">
@@ -119,8 +130,9 @@ export default function PinModal({
 
       {(isFoodBank && setOpen24_7) && (
         <div className="mb-4">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label htmlFor={open247Id} className="flex items-center gap-2 cursor-pointer">
             <input
+              id={open247Id}
               type="checkbox"
               checked={open24_7}
               onChange={e => setOpen24_7(e.target.checked)}
@@ -198,7 +210,15 @@ export default function PinModal({
 
   if (layout === "panel") return formContent
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={headingId}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onCancel()
+      }}
+    >
       {formContent}
     </div>
   )

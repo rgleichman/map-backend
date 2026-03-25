@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useId, useState } from "react"
 
 const safeBottom = "max(1rem, env(safe-area-inset-bottom))"
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
@@ -14,7 +14,11 @@ type Props = {
   /** Optional controls next to the title (e.g. Clear all). */
   headerActions?: React.ReactNode
   /** Replaces the default pill trigger. Wrapper hides while the panel is open. */
-  renderCustomTrigger?: (ctx: { open: () => void; expanded: boolean }) => React.ReactNode
+  renderCustomTrigger?: (ctx: {
+    open: () => void
+    expanded: boolean
+    panelId: string
+  }) => React.ReactNode
   /** Replaces the default panel header (title, headerActions, close). */
   renderPanelHeader?: (close: () => void) => React.ReactNode
   children: React.ReactNode
@@ -57,6 +61,7 @@ export default function FloatingPanel({
   compact = false,
   defaultExpanded = false
 }: Props) {
+  const panelId = useId()
   const [expanded, setExpanded] = useState(defaultExpanded)
   const close = useCallback(() => setExpanded(false), [])
 
@@ -120,7 +125,7 @@ export default function FloatingPanel({
             .join(" ")}
           style={customTriggerWrapperStyle}
         >
-          {renderCustomTrigger({ open: () => setExpanded(true), expanded })}
+          {renderCustomTrigger({ open: () => setExpanded(true), expanded, panelId })}
         </div>
       )}
       {renderTrigger && showTrigger && !renderCustomTrigger && (
@@ -133,6 +138,8 @@ export default function FloatingPanel({
             (triggerHiddenWhenExpanded || expanded) && "hidden"
           ].filter(Boolean).join(" ")}
           style={triggerStyle}
+          aria-expanded={expanded}
+          aria-controls={panelId}
           aria-label={triggerAriaLabel}
         >
           {triggerLabel}
@@ -140,6 +147,7 @@ export default function FloatingPanel({
       )}
 
       <div
+        id={panelId}
         className={[
           elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
           compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",

@@ -507,7 +507,13 @@ export default function MapCanvas({
           </div>
         </div>
       )}
-      <div ref={containerRef} id="map" className="w-full h-full" />
+      <div
+        ref={containerRef}
+        id="map"
+        className="w-full h-full"
+        role="region"
+        aria-label="Interactive map. Pinch or scroll to zoom; drag to pan."
+      />
     </div>
   )
 }

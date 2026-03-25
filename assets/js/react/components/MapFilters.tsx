@@ -65,6 +65,7 @@ function ActiveFilterChips({
             {pinCfg != null && chipPinType != null && (
               <span
                 className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                aria-hidden
                 style={{
                   backgroundColor: pinCfg.color,
                   border: `2px solid ${pinCfg.borderColor}`,
@@ -132,7 +133,7 @@ export default function MapFilters({
       topOffset={panelTopOffset}
       elevated
       compact={false}
-      renderCustomTrigger={({ open }) => (
+      renderCustomTrigger={({ open, expanded, panelId }) => (
         <div
           className={[
             "flex gap-2 min-w-0 w-full sm:max-w-[min(100vw-2rem,22rem)]",
@@ -155,6 +156,8 @@ export default function MapFilters({
             type="button"
             onClick={open}
             className="inline-flex shrink-0 items-center gap-1 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg hover:bg-base-200/90 dark:hover:bg-base-200/85 active:opacity-90 transition-colors"
+            aria-expanded={expanded}
+            aria-controls={panelId}
             aria-label={`${filtersSummary}. Add or change filters.`}
           >
             <span>Filter by</span>
@@ -263,6 +266,7 @@ export default function MapFilters({
                 >
                   <span
                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    aria-hidden
                     style={{
                       backgroundColor: config.color,
                       border: `2px solid ${config.borderColor}`,

@@ -37,7 +37,7 @@ defmodule StorymapWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <main class="flex-1 h-full">
+    <main id="main-content" class="flex-1 h-full" tabindex="-1">
       <div class="h-full">
         {render_slot(@inner_block)}
       </div>
@@ -117,11 +117,15 @@ defmodule StorymapWeb.Layouts do
     <% end %>
     <li>
       <%= if @variant == "desktop" do %>
-        <button id="party-button" class="btn btn-ghost">🎉 Party</button>
+        <button id="party-button" type="button" class="btn btn-ghost" aria-label="Party mode">
+          🎉 Party
+        </button>
       <% else %>
         <button
           id="party-button-mobile"
+          type="button"
           class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          aria-label="Party mode"
         >
           🎉 Party
         </button>
