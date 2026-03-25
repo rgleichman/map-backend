@@ -1,6 +1,6 @@
 import React from "react"
 import type { Pin, PinType } from "../types"
-import { getPinTypeConfig, PIN_TYPES } from "../utils/pinTypeIcons"
+import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
 import {
   CLEARED_FILTER,
   clearFilterDimension,
@@ -55,24 +55,39 @@ function ActiveFilterChips({
 
   return (
     <div className={["flex flex-wrap gap-1.5 min-w-0", className].filter(Boolean).join(" ")}>
-      {chips.map(({ dimension, label }) => (
-        <span
-          key={dimension}
-          className="inline-flex items-center gap-0.5 max-w-full min-h-[32px] rounded-full bg-primary/15 text-primary text-xs font-medium border border-primary/30 pl-2.5 pr-0.5"
-        >
-          <span className="truncate min-w-0 py-1">{label}</span>
-          <button
-            type="button"
-            className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full hover:bg-primary/20 active:opacity-80 transition-opacity"
-            aria-label={`Remove filter: ${label}`}
-            onClick={() => setFilter((f) => clearFilterDimension(f, dimension))}
+      {chips.map(({ dimension, label, pinType: chipPinType }) => {
+        const pinCfg = chipPinType != null ? getPinTypeConfig(chipPinType) : null
+        return (
+          <span
+            key={dimension}
+            className="inline-flex items-center gap-1 max-w-full min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5"
           >
-            <span className="text-base leading-none text-primary/90" aria-hidden>
-              ×
-            </span>
-          </button>
-        </span>
-      ))}
+            {pinCfg != null && chipPinType != null && (
+              <span
+                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: pinCfg.color,
+                  border: `2px solid ${pinCfg.borderColor}`,
+                  color: pinCfg.textColor
+                }}
+              >
+                <PinTypeIcon pinType={chipPinType} size={14} />
+              </span>
+            )}
+            <span className="truncate min-w-0 py-1 pl-0.5">{label}</span>
+            <button
+              type="button"
+              className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full text-base-content/70 hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity"
+              aria-label={`Remove filter: ${label}`}
+              onClick={() => setFilter((f) => clearFilterDimension(f, dimension))}
+            >
+              <span className="text-base leading-none" aria-hidden>
+                ×
+              </span>
+            </button>
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -223,17 +238,34 @@ export default function MapFilters({
 
         <section>
           <h4 className={sectionTitle}>Pin type</h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-1.5">
             {PIN_TYPES.map((pinType) => {
-              const label = getPinTypeConfig(pinType).label
+              const config = getPinTypeConfig(pinType)
+              const selected = filter.pinType === pinType
               return (
                 <button
                   key={pinType}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => togglePinType(pinType)}
-                  className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.pinType === pinType ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+                  className={[
+                    "flex w-full items-center gap-2.5 text-left text-sm rounded-xl transition min-h-[44px] py-2 px-2.5",
+                    selected
+                      ? "bg-primary/15 ring-1 ring-primary/45 dark:ring-primary/50 text-base-content"
+                      : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80"
+                  ].join(" ")}
                 >
-                  {label}
+                  <span
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: config.color,
+                      border: `2px solid ${config.borderColor}`,
+                      color: config.textColor
+                    }}
+                  >
+                    <PinTypeIcon pinType={pinType} size={20} />
+                  </span>
+                  <span className="font-medium">{config.label}</span>
                 </button>
               )
             })}

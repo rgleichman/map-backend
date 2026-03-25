@@ -44,6 +44,8 @@ export function clearFilterDimension(filter: FilterState, dim: FilterDimension):
 export type ActiveFilterChip = {
   dimension: FilterDimension
   label: string
+  /** Set when `dimension` is `"pinType"` (for icons in the UI). */
+  pinType?: PinType
 }
 
 /** One chip per active constraint (time, tag, pin type), in stable order. */
@@ -56,7 +58,11 @@ export function listActiveFilterChips(filter: FilterState): ActiveFilterChip[] {
     chips.push({ dimension: "tag", label: filter.tag })
   }
   if (filter.pinType !== null) {
-    chips.push({ dimension: "pinType", label: getPinTypeLabel(filter.pinType) })
+    chips.push({
+      dimension: "pinType",
+      label: getPinTypeLabel(filter.pinType),
+      pinType: filter.pinType
+    })
   }
   return chips
 }
