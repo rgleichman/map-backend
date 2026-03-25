@@ -247,7 +247,6 @@ export default function MapCanvas({
           map.addSource("pin-features", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
-            maxzoom: 5,
           })
           map.addLayer({
             id: "pin-icons-layer",
