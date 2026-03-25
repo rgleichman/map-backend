@@ -97,6 +97,10 @@ export default function FloatingPanel({
     : isTopRight
       ? { top: top, right: safeRight }
       : { bottom: safeBottom, left: safeLeft }
+  /** Top custom triggers span both horizontal safe insets so inner `w-full` uses real map width. */
+  const customTriggerWrapperStyle = isTop
+    ? { top, left: safeLeft, right: safeRight }
+    : triggerStyle
   const panelStyle = isTopLeft
     ? { top: top, left: safeLeft }
     : isTopRight
@@ -114,7 +118,7 @@ export default function FloatingPanel({
           ]
             .filter(Boolean)
             .join(" ")}
-          style={triggerStyle}
+          style={customTriggerWrapperStyle}
         >
           {renderCustomTrigger({ open: () => setExpanded(true), expanded })}
         </div>

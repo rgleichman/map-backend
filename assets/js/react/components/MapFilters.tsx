@@ -60,7 +60,7 @@ function ActiveFilterChips({
         return (
           <span
             key={dimension}
-            className="inline-flex items-center gap-1 max-w-full min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5"
+            className="flex min-w-0 max-w-full items-center gap-1 min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5"
           >
             {pinCfg != null && chipPinType != null && (
               <span
@@ -74,7 +74,7 @@ function ActiveFilterChips({
                 <PinTypeIcon pinType={chipPinType} size={14} />
               </span>
             )}
-            <span className="truncate min-w-0 py-1 pl-0.5">{label}</span>
+            <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
             <button
               type="button"
               className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full text-base-content/70 hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity"
@@ -135,26 +135,30 @@ export default function MapFilters({
       renderCustomTrigger={({ open }) => (
         <div
           className={[
-            "flex flex-wrap items-center gap-2 min-w-0 max-w-[min(100vw-2rem,22rem)] rounded-2xl border border-base-300 bg-base-100/95 dark:bg-base-100/90 shadow-lg backdrop-blur-sm px-2.5 py-2",
-            filterChips.length > 0 && "ring-2 ring-primary ring-offset-2 ring-offset-base-100 dark:ring-offset-base-100",
-            filterChips.length === 0 && "justify-end"
+            "flex gap-2 min-w-0 w-full sm:max-w-[min(100vw-2rem,22rem)]",
+            "flex-row items-start",
+            filterChips.length === 0 && "justify-end",
+            "sm:flex-col-reverse sm:items-end",
+            position === "top-right" && "sm:ml-auto"
           ]
             .filter(Boolean)
             .join(" ")}
         >
           {filterChips.length > 0 && (
-            <div className="flex-1 min-w-0">
-              <ActiveFilterChips filter={filter} setFilter={setFilter} />
-            </div>
+            <ActiveFilterChips
+              filter={filter}
+              setFilter={setFilter}
+              className="min-w-0 flex-1 justify-start sm:flex-none sm:w-full sm:justify-end"
+            />
           )}
           <button
             type="button"
             onClick={open}
-            className="btn btn-ghost btn-sm shrink-0 min-h-10 px-2 gap-1 text-base-content border border-base-300/80 rounded-xl hover:bg-base-200/80"
+            className="inline-flex shrink-0 items-center gap-1 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg hover:bg-base-200/90 dark:hover:bg-base-200/85 active:opacity-90 transition-colors"
             aria-label={`${filtersSummary}. Add or change filters.`}
           >
-            <span className="text-xs font-medium whitespace-nowrap">Filter by</span>
-            <ChevronDownIcon className="opacity-70" />
+            <span>Filter by</span>
+            <ChevronDownIcon className="opacity-70 shrink-0" />
           </button>
         </div>
       )}
