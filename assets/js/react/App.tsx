@@ -450,7 +450,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setSaving(true)
       try {
         const { data } = await api.updatePin(csrfToken, modal.pin.id, changes)
-        setPins((prev) => prev.map((p) => p.id === data.id ? { ...p, ...data } : p))
+        updateOrAddPin(data)
         dispatch({ type: "after_edit_saved" })
       } catch (err) {
         const message = err instanceof Error ? err.message : "Save failed. Please try again."
@@ -459,7 +459,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         setSaving(false)
       }
     }
-  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken, updateOrAddPin])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
