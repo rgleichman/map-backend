@@ -161,6 +161,8 @@ export default function MapCanvas({
     if (!mapReady || !containerRef.current) return
     const input = containerRef.current.querySelector<HTMLInputElement>(".maplibre-search-box input")
     if (!input) return
+    // Placeholder is not a label; the control is created by MapLibreSearchControl without a <label>.
+    input.setAttribute("aria-label", "Search for places")
     const onFocus = () => setSearchActive(true)
     const onBlur = () => setTimeout(() => setSearchActive(false), 150)
     input.addEventListener("focus", onFocus)

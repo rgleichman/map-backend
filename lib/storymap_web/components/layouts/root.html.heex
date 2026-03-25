@@ -41,7 +41,12 @@
       Skip to main content
     </a>
     <div class="drawer h-full">
-      <input type="checkbox" id="drawer-toggle" class="drawer-toggle" />
+      <input
+        type="checkbox"
+        id="drawer-toggle"
+        class="drawer-toggle"
+        aria-label="Open menu"
+      />
 
       <div class="drawer-content flex flex-col h-full">
         <!-- Navigation bar with hamburger (mobile) and horizontal menu (desktop) -->
@@ -73,7 +78,12 @@
       
 <!-- Drawer side menu (mobile) -->
       <div class="drawer-side">
-        <label for="drawer-toggle" class="drawer-overlay"></label>
+        <button
+          type="button"
+          class="drawer-overlay drawer-close m-0 cursor-pointer border-0 p-0 font-inherit"
+          aria-label="Close menu"
+        >
+        </button>
         <ul class="flex flex-col py-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
           <.nav_menu_items
             variant="mobile"
