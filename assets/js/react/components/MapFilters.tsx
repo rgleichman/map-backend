@@ -204,7 +204,7 @@ export default function MapFilters({
         <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/50">Add or change</p>
 
         <section>
-          <h4 className={sectionTitle}>Time</h4>
+          <p className={sectionTitle}>Time</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -226,7 +226,7 @@ export default function MapFilters({
         </section>
 
         <section>
-          <h4 className={sectionTitle}>Tag</h4>
+          <p className={sectionTitle}>Tag</p>
           {tags.length === 0 ? (
             <p className="text-sm text-base-content/55">No tags on the map yet.</p>
           ) : (
@@ -246,7 +246,7 @@ export default function MapFilters({
         </section>
 
         <section>
-          <h4 className={sectionTitle}>Pin type</h4>
+          <p className={sectionTitle}>Pin type</p>
           <div className="flex flex-col gap-1.5">
             {PIN_TYPES.map((pinType) => {
               const config = getPinTypeConfig(pinType)
