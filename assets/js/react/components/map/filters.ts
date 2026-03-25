@@ -1,5 +1,6 @@
 import { RRule } from "rrule"
 import type { Pin, PinType } from "../../types"
+import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import {
   addHoursToParts,
   getNowInTimezone,
@@ -23,6 +24,42 @@ export type FilterState = {
 export const DEFAULT_FILTER: FilterState = { tag: null, time: "now", pinType: null }
 /** Clear all = show all pins (no tag, no time filter, all pin types). */
 export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null }
+
+/** Label shown on filter chips and in the time section. */
+export const TIME_FILTER_LABEL = "Open now or within 2 hours"
+
+export type FilterDimension = "time" | "tag" | "pinType"
+
+export function clearFilterDimension(filter: FilterState, dim: FilterDimension): FilterState {
+  switch (dim) {
+    case "time":
+      return { ...filter, time: null }
+    case "tag":
+      return { ...filter, tag: null }
+    case "pinType":
+      return { ...filter, pinType: null }
+  }
+}
+
+export type ActiveFilterChip = {
+  dimension: FilterDimension
+  label: string
+}
+
+/** One chip per active constraint (time, tag, pin type), in stable order. */
+export function listActiveFilterChips(filter: FilterState): ActiveFilterChip[] {
+  const chips: ActiveFilterChip[] = []
+  if (filter.time === "now") {
+    chips.push({ dimension: "time", label: TIME_FILTER_LABEL })
+  }
+  if (filter.tag !== null) {
+    chips.push({ dimension: "tag", label: filter.tag })
+  }
+  if (filter.pinType !== null) {
+    chips.push({ dimension: "pinType", label: getPinTypeLabel(filter.pinType) })
+  }
+  return chips
+}
 
 function toMinutes(h: number, m: number): number {
   return h * 60 + m

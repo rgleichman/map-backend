@@ -7,10 +7,16 @@ const safeRight = "max(1rem, env(safe-area-inset-right))"
 const topLeftTop = "3.5rem"
 
 type Props = {
-  triggerLabel: string
-  triggerAriaLabel: string
+  triggerLabel?: string
+  triggerAriaLabel?: string
   title: string
   closeAriaLabel: string
+  /** Optional controls next to the title (e.g. Clear all). */
+  headerActions?: React.ReactNode
+  /** Replaces the default pill trigger. Wrapper hides while the panel is open. */
+  renderCustomTrigger?: (ctx: { open: () => void; expanded: boolean }) => React.ReactNode
+  /** Replaces the default panel header (title, headerActions, close). */
+  renderPanelHeader?: (close: () => void) => React.ReactNode
   children: React.ReactNode
   /** When true, panel is always visible on sm+ and trigger is hidden on desktop (PinTypeLegend style). */
   alwaysVisibleOnDesktop?: boolean
@@ -33,10 +39,13 @@ type Props = {
 }
 
 export default function FloatingPanel({
-  triggerLabel,
-  triggerAriaLabel,
+  triggerLabel = "",
+  triggerAriaLabel = "",
   title,
   closeAriaLabel,
+  headerActions,
+  renderCustomTrigger,
+  renderPanelHeader,
   children,
   alwaysVisibleOnDesktop = false,
   position = "bottom-left",
@@ -96,7 +105,21 @@ export default function FloatingPanel({
 
   return (
     <>
-      {renderTrigger && showTrigger && (
+      {renderTrigger && showTrigger && renderCustomTrigger && (
+        <div
+          className={[
+            "absolute z-10",
+            alwaysVisibleOnDesktop && "sm:hidden",
+            (triggerHiddenWhenExpanded || expanded) && "hidden"
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={triggerStyle}
+        >
+          {renderCustomTrigger({ open: () => setExpanded(true), expanded })}
+        </div>
+      )}
+      {renderTrigger && showTrigger && !renderCustomTrigger && (
         <button
           type="button"
           onClick={() => setExpanded(true)}
@@ -121,20 +144,27 @@ export default function FloatingPanel({
         ].filter(Boolean).join(" ")}
         style={panelStyle}
       >
-        <div className={["flex items-center justify-between gap-2", compact ? "mb-2" : "mb-3"].filter(Boolean).join(" ")}>
-          <h3 className={["font-semibold text-base-content", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
-          <button
-            type="button"
-            onClick={close}
-            className={[
-              "p-2 -m-2 rounded-md hover:bg-base-200 active:opacity-80 transition-opacity",
-              alwaysVisibleOnDesktop && "sm:hidden"
-            ].filter(Boolean).join(" ")}
-            aria-label={closeAriaLabel}
-          >
-            <span className="text-base-content/70 text-lg leading-none">×</span>
-          </button>
-        </div>
+        {renderPanelHeader ? (
+          renderPanelHeader(close)
+        ) : (
+          <div className={["flex flex-wrap items-center justify-between gap-2", compact ? "mb-2" : "mb-3"].filter(Boolean).join(" ")}>
+            <h3 className={["font-semibold text-base-content shrink-0", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
+            <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {headerActions}
+              <button
+                type="button"
+                onClick={close}
+                className={[
+                  "p-2 -m-2 rounded-md hover:bg-base-200 active:opacity-80 transition-opacity",
+                  alwaysVisibleOnDesktop && "sm:hidden"
+                ].filter(Boolean).join(" ")}
+                aria-label={closeAriaLabel}
+              >
+                <span className="text-base-content/70 text-lg leading-none">×</span>
+              </button>
+            </div>
+          </div>
+        )}
         {children}
       </div>
     </>

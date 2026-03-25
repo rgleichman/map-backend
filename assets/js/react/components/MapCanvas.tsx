@@ -6,7 +6,6 @@ import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   getPinTypeConfig,
-  getPinTypeLabel,
   getPinTypeMarkerImageId,
   PIN_TYPES
 } from "../utils/pinTypeIcons"
@@ -486,40 +485,17 @@ export default function MapCanvas({
     }
   }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter])
 
-  const activeFilterParts = (filter.time === "now" ? ["Open now or within 2 hours"] : [])
-    .concat(filter.pinType !== null ? [getPinTypeLabel(filter.pinType)] : [])
-    .concat(filter.tag !== null ? [filter.tag] : [])
-  const activeFilterSummary = activeFilterParts.join(" · ")
-  const filtersAriaLabel =
-    activeFilterParts.length > 0 ? `Show filters. Active: ${activeFilterParts.join("; ")}` : "Show filters"
-
   return (
     <div className="relative w-full h-full">
       {mapReady && !drawerOpen && (
         <div className={searchActive ? "max-sm:hidden" : "contents"}>
-          <div className="absolute top-13 right-2 z-10 flex flex-col gap-2">
-            <button
-              type="button"
-              className="flex flex-col items-start gap-0.5 min-w-0 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity text-left"
-              aria-label={filtersAriaLabel}
-              onClick={() => filterPanelOpenRef.current?.open()}
-            >
-              <span className="whitespace-nowrap">Filters</span>
-              {activeFilterParts.length > 0 && (
-                <span className="text-xs text-base-content/80 truncate max-w-[12rem]">
-                  {activeFilterSummary}
-                </span>
-              )}
-            </button>
-          </div>
           <MapFilters
             pins={pins}
             filter={filter}
             setFilter={setFilter}
             openRef={filterPanelOpenRef}
-            hideTrigger
             position="top-right"
-            panelTopOffset="7.5rem"
+            panelTopOffset="3.25rem"
           />
         </div>
       )}
