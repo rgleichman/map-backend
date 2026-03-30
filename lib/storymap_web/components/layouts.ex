@@ -140,6 +140,18 @@ defmodule StorymapWeb.Layouts do
         </a>
       <% end %>
     </li>
+    <li>
+      <%= if @variant == "desktop" do %>
+        <.link navigate={~p"/privacy-policy"} class="btn btn-ghost">Privacy Policy</.link>
+      <% else %>
+        <.link
+          navigate={~p"/privacy-policy"}
+          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+        >
+          Privacy Policy
+        </.link>
+      <% end %>
+    </li>
     <%= if @current_scope do %>
       <li>
         <%= if @variant == "desktop" do %>

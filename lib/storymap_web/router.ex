@@ -119,6 +119,7 @@ defmodule StorymapWeb.Router do
       live "/user/:user_id", UserLive.Show, :show
       # Public pins list page
       live "/pins", PinLive.Index, :index
+      live "/privacy-policy", StaticLive.Privacy, :show
     end
 
     delete "/users/log-out", UserSessionController, :delete
