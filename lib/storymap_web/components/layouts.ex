@@ -163,7 +163,7 @@ defmodule StorymapWeb.Layouts do
       <%= if @current_scope.user.admin_level >= 10 do %>
         <li>
           <%= if @variant == "desktop" do %>
-            <.link href={~p"/admin/users"}>Admin</.link>
+            <.link href={~p"/admin/users"} class="btn btn-ghost">Admin</.link>
           <% else %>
             <.link
               href={~p"/admin/users"}
@@ -176,7 +176,7 @@ defmodule StorymapWeb.Layouts do
       <% end %>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/settings"}>Settings</.link>
+          <.link href={~p"/users/settings"} class="btn btn-ghost">Settings</.link>
         <% else %>
           <.link
             href={~p"/users/settings"}
@@ -188,7 +188,7 @@ defmodule StorymapWeb.Layouts do
       </li>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/log-out"} method="delete">Log out</.link>
+          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost">Log out</.link>
         <% else %>
           <.link
             href={~p"/users/log-out"}
@@ -202,7 +202,7 @@ defmodule StorymapWeb.Layouts do
     <% else %>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/register"}>Register</.link>
+          <.link href={~p"/users/register"} class="btn btn-ghost">Register</.link>
         <% else %>
           <.link
             href={~p"/users/register"}
@@ -214,7 +214,7 @@ defmodule StorymapWeb.Layouts do
       </li>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/log-in"}>Log in</.link>
+          <.link href={~p"/users/log-in"} class="btn btn-ghost">Log in</.link>
         <% else %>
           <.link
             href={~p"/users/log-in"}
