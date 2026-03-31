@@ -131,15 +131,6 @@ defmodule StorymapWeb.Layouts do
         </button>
       <% end %>
     </li>
-    <li>
-      <%= if @variant == "desktop" do %>
-        <a href={@github_url} class="btn btn-ghost">GitHub</a>
-      <% else %>
-        <a href={@github_url} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">
-          GitHub
-        </a>
-      <% end %>
-    </li>
     <%= if @current_scope do %>
       <li>
         <%= if @variant == "desktop" do %>
@@ -149,14 +140,6 @@ defmodule StorymapWeb.Layouts do
               tabindex="0"
               class="dropdown-content menu bg-base-100 rounded-box !z-[60] w-52 p-2 shadow"
             >
-              <li>
-                <.link
-                  navigate={~p"/privacy-policy"}
-                  class="w-full px-4 py-2 text-left cursor-pointer hover:bg-base-200"
-                >
-                  Privacy Policy
-                </.link>
-              </li>
               <li>
                 <.link
                   href={~p"/users/settings"}
@@ -181,14 +164,6 @@ defmodule StorymapWeb.Layouts do
         <% end %>
       </li>
       <%= if @variant == "mobile" && @current_scope do %>
-        <li>
-          <.link
-            navigate={~p"/privacy-policy"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
-          >
-            Privacy Policy
-          </.link>
-        </li>
         <li>
           <.link
             href={~p"/users/settings"}
