@@ -140,26 +140,73 @@ defmodule StorymapWeb.Layouts do
         </a>
       <% end %>
     </li>
-    <li>
-      <%= if @variant == "desktop" do %>
-        <.link navigate={~p"/privacy-policy"} class="btn btn-ghost">Privacy Policy</.link>
-      <% else %>
-        <.link
-          navigate={~p"/privacy-policy"}
-          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
-        >
-          Privacy Policy
-        </.link>
-      <% end %>
-    </li>
     <%= if @current_scope do %>
       <li>
         <%= if @variant == "desktop" do %>
-          {@current_scope.user.email}
+          <div class="dropdown dropdown-end !z-[60]">
+            <div tabindex="0" role="button" class="btn btn-ghost">{@current_scope.user.email}</div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu bg-base-100 rounded-box !z-[60] w-52 p-2 shadow"
+            >
+              <li>
+                <.link
+                  navigate={~p"/privacy-policy"}
+                  class="w-full px-4 py-2 text-left cursor-pointer hover:bg-base-200"
+                >
+                  Privacy Policy
+                </.link>
+              </li>
+              <li>
+                <.link
+                  href={~p"/users/settings"}
+                  class="w-full px-4 py-2 text-left cursor-pointer hover:bg-base-200"
+                >
+                  Settings
+                </.link>
+              </li>
+              <li>
+                <.link
+                  href={~p"/users/log-out"}
+                  method="delete"
+                  class="w-full px-4 py-2 text-left cursor-pointer hover:bg-base-200"
+                >
+                  Log out
+                </.link>
+              </li>
+            </ul>
+          </div>
         <% else %>
           <span class="block px-4 py-2">{@current_scope.user.email}</span>
         <% end %>
       </li>
+      <%= if @variant == "mobile" && @current_scope do %>
+        <li>
+          <.link
+            navigate={~p"/privacy-policy"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Privacy Policy
+          </.link>
+        </li>
+        <li>
+          <.link
+            href={~p"/users/settings"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Settings
+          </.link>
+        </li>
+        <li>
+          <.link
+            href={~p"/users/log-out"}
+            method="delete"
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Log out
+          </.link>
+        </li>
+      <% end %>
       <%= if @current_scope.user.admin_level >= 10 do %>
         <li>
           <%= if @variant == "desktop" do %>
@@ -174,31 +221,6 @@ defmodule StorymapWeb.Layouts do
           <% end %>
         </li>
       <% end %>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/settings"} class="btn btn-ghost">Settings</.link>
-        <% else %>
-          <.link
-            href={~p"/users/settings"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
-          >
-            Settings
-          </.link>
-        <% end %>
-      </li>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost">Log out</.link>
-        <% else %>
-          <.link
-            href={~p"/users/log-out"}
-            method="delete"
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
-          >
-            Log out
-          </.link>
-        <% end %>
-      </li>
     <% else %>
       <li>
         <%= if @variant == "desktop" do %>
