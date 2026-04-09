@@ -50,7 +50,7 @@
 
       <div class="drawer-content flex flex-col h-full">
         <!-- Navigation bar: brand (all sizes), menu + theme (desktop), theme + hamburger (mobile) -->
-        <div class="w-full relative z-50 flex min-h-14 flex-shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div class="w-full relative z-50 flex h-14 flex-shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <.link
             navigate={~p"/"}
             class="btn btn-ghost shrink-0 text-lg font-semibold tracking-tight text-base-content"
@@ -83,10 +83,10 @@
       </div>
       
 <!-- Drawer side menu (mobile) -->
-      <div class="drawer-side">
+      <div class="drawer-side top-14 h-[calc(100%-3.5rem)]">
         <button
           type="button"
-          class="drawer-overlay drawer-close m-0 cursor-pointer border-0 p-0 font-inherit"
+          class="drawer-overlay drawer-close m-0 cursor-pointer border-0 p-0 font-inherit top-14 h-[calc(100%-3.5rem)]"
           aria-label="Close menu"
         >
         </button>
