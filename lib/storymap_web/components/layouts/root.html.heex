@@ -65,7 +65,9 @@
                 current_scope={@current_scope}
               />
             </ul>
-            <.theme_toggle variant="compact" />
+            <div class="hidden md:block">
+              <.theme_toggle variant="compact" />
+            </div>
             <label
               for="drawer-toggle"
               class="btn btn-ghost drawer-button shrink-0 md:hidden"
@@ -96,6 +98,12 @@
             current_path={@conn.request_path}
             current_scope={@current_scope}
           />
+          <li class="px-4 pb-3">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm font-medium text-base-content/70">Theme</span>
+              <.theme_toggle variant="compact" />
+            </div>
+          </li>
         </ul>
       </div>
     </div>
