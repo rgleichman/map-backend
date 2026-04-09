@@ -280,6 +280,81 @@ defmodule StorymapWeb.CoreComponents do
   end
 
   @doc """
+  Theme switcher (system / light / dark). Dispatches `phx:set-theme` handled in `root.html.heex`.
+
+  ## Examples
+
+      <.theme_toggle />
+      <.theme_toggle variant="compact" />
+  """
+  attr :variant, :string, default: "default", values: ["default", "compact"]
+
+  def theme_toggle(assigns) do
+    ~H"""
+    <div
+      class={[
+        "card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full",
+        @variant == "compact" && "inline-flex origin-right scale-90"
+      ]}
+      style="width: fit-content;"
+    >
+      <div class="absolute w-1/3 h-full rounded-full border border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+
+      <button
+        type="button"
+        class={[
+          "flex w-1/3 cursor-pointer",
+          @variant == "default" && "p-2",
+          @variant == "compact" && "p-1.5"
+        ]}
+        phx-click={JS.dispatch("phx:set-theme")}
+        data-phx-theme="system"
+        aria-label={gettext("Use system theme")}
+      >
+        <.icon
+          name="hero-computer-desktop-micro"
+          class={theme_toggle_icon_class(@variant)}
+        />
+      </button>
+
+      <button
+        type="button"
+        class={[
+          "flex w-1/3 cursor-pointer",
+          @variant == "default" && "p-2",
+          @variant == "compact" && "p-1.5"
+        ]}
+        phx-click={JS.dispatch("phx:set-theme")}
+        data-phx-theme="light"
+        aria-label={gettext("Use light theme")}
+      >
+        <.icon
+          name="hero-sun-micro"
+          class={theme_toggle_icon_class(@variant)}
+        />
+      </button>
+
+      <button
+        type="button"
+        class={[
+          "flex w-1/3 cursor-pointer",
+          @variant == "default" && "p-2",
+          @variant == "compact" && "p-1.5"
+        ]}
+        phx-click={JS.dispatch("phx:set-theme")}
+        data-phx-theme="dark"
+        aria-label={gettext("Use dark theme")}
+      >
+        <.icon
+          name="hero-moon-micro"
+          class={theme_toggle_icon_class(@variant)}
+        />
+      </button>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a header with title.
   """
   slot :inner_block, required: true
@@ -441,6 +516,9 @@ defmodule StorymapWeb.CoreComponents do
          "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
     )
   end
+
+  defp theme_toggle_icon_class("compact"), do: "size-3.5 opacity-75 hover:opacity-100"
+  defp theme_toggle_icon_class(_), do: "size-4 opacity-75 hover:opacity-100"
 
   @doc """
   Translates an error message using gettext.

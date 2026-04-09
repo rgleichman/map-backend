@@ -103,21 +103,35 @@ defmodule StorymapWeb.Layouts do
   attr :current_scope, :map, default: nil
 
   def nav_menu_items(assigns) do
-    assigns = assign(assigns, :github_url, @github_repo)
+    path = assigns.current_path
+
+    assigns =
+      assigns
+      |> assign(:github_url, @github_repo)
+      |> assign(:privacy_active?, path == "/privacy-policy")
+      |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
+      |> assign(:admin_active?, String.starts_with?(path, "/admin"))
+      |> assign(:register_active?, path == "/users/register")
+      |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
 
     ~H"""
     <%= if @current_path != "/" && @current_path != "/map" do %>
       <li>
         <%= if @variant == "desktop" do %>
-          <a href="/" class="btn btn-ghost">Map</a>
+          <.link navigate={~p"/"} class={nav_btn_classes(false)}>Map</.link>
         <% else %>
-          <a href="/" class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">Map</a>
+          <.link
+            navigate={~p"/"}
+            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          >
+            Map
+          </.link>
         <% end %>
       </li>
     <% end %>
     <li>
       <%= if @variant == "desktop" do %>
-        <button id="party-button" type="button" class="btn btn-ghost" aria-label="Party mode">
+        <button id="party-button" type="button" class={nav_btn_classes(false)} aria-label="Party mode">
           🎉 Party
         </button>
       <% else %>
@@ -133,63 +147,132 @@ defmodule StorymapWeb.Layouts do
     </li>
     <li>
       <%= if @variant == "desktop" do %>
-        <a href={@github_url} class="btn btn-ghost">GitHub</a>
+        <a
+          href={@github_url}
+          class={nav_btn_classes(false)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
       <% else %>
-        <a href={@github_url} class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300">
+        <a
+          href={@github_url}
+          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           GitHub
         </a>
       <% end %>
     </li>
     <li>
       <%= if @variant == "desktop" do %>
-        <.link navigate={~p"/privacy-policy"} class="btn btn-ghost">Privacy Policy</.link>
+        <.link
+          navigate={~p"/privacy-policy"}
+          class={nav_btn_classes(@privacy_active?)}
+          aria-current={if(@privacy_active?, do: "page")}
+        >
+          Privacy Policy
+        </.link>
       <% else %>
         <.link
           navigate={~p"/privacy-policy"}
-          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          class={[
+            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+            @privacy_active? && "bg-base-300 font-medium"
+          ]}
+          aria-current={if(@privacy_active?, do: "page")}
         >
           Privacy Policy
         </.link>
       <% end %>
     </li>
     <%= if @current_scope do %>
-      <li>
-        <%= if @variant == "desktop" do %>
-          {@current_scope.user.email}
-        <% else %>
-          <span class="block px-4 py-2">{@current_scope.user.email}</span>
-        <% end %>
-      </li>
-      <%= if @current_scope.user.admin_level >= 10 do %>
+      <%= if @variant == "desktop" do %>
+        <li class="dropdown dropdown-end hidden md:block">
+          <button
+            type="button"
+            tabindex="0"
+            class="btn btn-ghost max-w-[14rem] gap-1 font-normal"
+            aria-haspopup="menu"
+            aria-label={gettext("Account menu")}
+          >
+            <span class="truncate" title={@current_scope.user.email}>
+              {@current_scope.user.email}
+            </span>
+            <.icon name="hero-chevron-down" class="size-4 shrink-0 opacity-60" />
+          </button>
+          <ul
+            tabindex="0"
+            class="dropdown-content menu bg-base-200 rounded-box z-[60] w-56 p-2 shadow-lg border border-base-300"
+          >
+            <li
+              class="menu-title max-w-[13rem] truncate text-xs font-normal normal-case opacity-80"
+              title={@current_scope.user.email}
+            >
+              {@current_scope.user.email}
+            </li>
+            <%= if @current_scope.user.admin_level >= 10 do %>
+              <li>
+                <.link
+                  href={~p"/admin/users"}
+                  class={["rounded-lg", @admin_active? && "active"]}
+                  aria-current={if(@admin_active?, do: "page")}
+                >
+                  Admin
+                </.link>
+              </li>
+            <% end %>
+            <li>
+              <.link
+                href={~p"/users/settings"}
+                class={["rounded-lg", @settings_active? && "active"]}
+                aria-current={if(@settings_active?, do: "page")}
+              >
+                Settings
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/users/log-out"} method="delete" class="rounded-lg">
+                Log out
+              </.link>
+            </li>
+          </ul>
+        </li>
+      <% else %>
         <li>
-          <%= if @variant == "desktop" do %>
-            <.link href={~p"/admin/users"} class="btn btn-ghost">Admin</.link>
-          <% else %>
+          <span class="block px-4 py-2 text-sm font-medium text-base-content/70 border-t border-base-300 mt-2">
+            {@current_scope.user.email}
+          </span>
+        </li>
+        <%= if @current_scope.user.admin_level >= 10 do %>
+          <li>
             <.link
               href={~p"/admin/users"}
-              class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+              class={[
+                "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+                @admin_active? && "bg-base-300 font-medium"
+              ]}
+              aria-current={if(@admin_active?, do: "page")}
             >
               Admin
             </.link>
-          <% end %>
-        </li>
-      <% end %>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/settings"} class="btn btn-ghost">Settings</.link>
-        <% else %>
+          </li>
+        <% end %>
+        <li>
           <.link
             href={~p"/users/settings"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+            class={[
+              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+              @settings_active? && "bg-base-300 font-medium"
+            ]}
+            aria-current={if(@settings_active?, do: "page")}
           >
             Settings
           </.link>
-        <% end %>
-      </li>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost">Log out</.link>
-        <% else %>
+        </li>
+        <li>
           <.link
             href={~p"/users/log-out"}
             method="delete"
@@ -197,16 +280,26 @@ defmodule StorymapWeb.Layouts do
           >
             Log out
           </.link>
-        <% end %>
-      </li>
+        </li>
+      <% end %>
     <% else %>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/register"} class="btn btn-ghost">Register</.link>
+          <.link
+            href={~p"/users/register"}
+            class={nav_btn_classes(@register_active?)}
+            aria-current={if(@register_active?, do: "page")}
+          >
+            Register
+          </.link>
         <% else %>
           <.link
             href={~p"/users/register"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+            class={[
+              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+              @register_active? && "bg-base-300 font-medium"
+            ]}
+            aria-current={if(@register_active?, do: "page")}
           >
             Register
           </.link>
@@ -214,11 +307,21 @@ defmodule StorymapWeb.Layouts do
       </li>
       <li>
         <%= if @variant == "desktop" do %>
-          <.link href={~p"/users/log-in"} class="btn btn-ghost">Log in</.link>
+          <.link
+            href={~p"/users/log-in"}
+            class={nav_btn_classes(@login_active?)}
+            aria-current={if(@login_active?, do: "page")}
+          >
+            Log in
+          </.link>
         <% else %>
           <.link
             href={~p"/users/log-in"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+            class={[
+              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+              @login_active? && "bg-base-300 font-medium"
+            ]}
+            aria-current={if(@login_active?, do: "page")}
           >
             Log in
           </.link>
@@ -226,5 +329,9 @@ defmodule StorymapWeb.Layouts do
       </li>
     <% end %>
     """
+  end
+
+  defp nav_btn_classes(active?) do
+    ["btn", "btn-ghost", if(active?, do: "btn-active")]
   end
 end

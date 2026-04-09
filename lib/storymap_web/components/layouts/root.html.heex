@@ -49,25 +49,31 @@
       />
 
       <div class="drawer-content flex flex-col h-full">
-        <!-- Navigation bar with hamburger (mobile) and horizontal menu (desktop) -->
-        <div class="w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 flex-shrink-0">
-          <!-- Horizontal menu (desktop only) -->
-          <ul class="menu menu-horizontal hidden md:flex items-center gap-4 ml-auto">
-            <.nav_menu_items
-              variant="desktop"
-              current_path={@conn.request_path}
-              current_scope={@current_scope}
-            />
-          </ul>
-          
-<!-- Hamburger button (mobile only) -->
-          <label
-            for="drawer-toggle"
-            class="btn btn-ghost drawer-button md:hidden ml-auto"
-            aria-label="Open menu"
+        <!-- Navigation bar: brand (all sizes), menu + theme (desktop), theme + hamburger (mobile) -->
+        <div class="w-full relative z-50 flex min-h-14 flex-shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <.link
+            navigate={~p"/"}
+            class="btn btn-ghost shrink-0 text-lg font-semibold tracking-tight text-base-content"
           >
-            <span aria-hidden="true"><.icon name="hero-bars-3" class="size-6" /></span>
-          </label>
+            Mapgarden
+          </.link>
+          <div class="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
+            <ul class="menu menu-horizontal hidden min-w-0 flex-1 items-center justify-end gap-1 md:flex lg:gap-2">
+              <.nav_menu_items
+                variant="desktop"
+                current_path={@conn.request_path}
+                current_scope={@current_scope}
+              />
+            </ul>
+            <.theme_toggle variant="compact" />
+            <label
+              for="drawer-toggle"
+              class="btn btn-ghost drawer-button shrink-0 md:hidden"
+              aria-label="Open menu"
+            >
+              <span aria-hidden="true"><.icon name="hero-bars-3" class="size-6" /></span>
+            </label>
+          </div>
         </div>
         
 <!-- Page content -->
