@@ -145,17 +145,8 @@ defmodule StorymapWeb.Layouts do
         </button>
       <% end %>
     </li>
-    <li>
-      <%= if @variant == "desktop" do %>
-        <a
-          href={@github_url}
-          class={nav_btn_classes(false)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          GitHub
-        </a>
-      <% else %>
+    <%= if @variant == "mobile" do %>
+      <li>
         <a
           href={@github_url}
           class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
@@ -164,18 +155,8 @@ defmodule StorymapWeb.Layouts do
         >
           GitHub
         </a>
-      <% end %>
-    </li>
-    <li>
-      <%= if @variant == "desktop" do %>
-        <.link
-          navigate={~p"/privacy-policy"}
-          class={nav_btn_classes(@privacy_active?)}
-          aria-current={if(@privacy_active?, do: "page")}
-        >
-          Privacy Policy
-        </.link>
-      <% else %>
+      </li>
+      <li>
         <.link
           navigate={~p"/privacy-policy"}
           class={[
@@ -186,8 +167,8 @@ defmodule StorymapWeb.Layouts do
         >
           Privacy Policy
         </.link>
-      <% end %>
-    </li>
+      </li>
+    <% end %>
     <%= if @current_scope do %>
       <%= if @variant == "desktop" do %>
         <li class="dropdown dropdown-end hidden md:block">
@@ -328,6 +309,55 @@ defmodule StorymapWeb.Layouts do
         <% end %>
       </li>
     <% end %>
+    """
+  end
+
+  @doc """
+  Desktop-only floating GitHub and Privacy links at the bottom of the viewport.
+  """
+  attr :current_path, :string, required: true
+
+  def desktop_floating_footer_links(assigns) do
+    assigns =
+      assigns
+      |> assign(:github_url, @github_repo)
+      |> assign(:privacy_active?, assigns.current_path == "/privacy-policy")
+
+    footer_link_base =
+      "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
+        "text-white bg-transparent shadow-none transition-opacity hover:opacity-80 " <>
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-0 " <>
+        "[text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000," <>
+        "-1px_0_0_#000,1px_0_0_#000,0_-1px_0_#000,0_1px_0_#000]"
+
+    assigns = assign(assigns, :footer_link_base, footer_link_base)
+
+    ~H"""
+    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-40 hidden pb-5 md:flex md:justify-center">
+      <nav
+        class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 sm:gap-4"
+        aria-label="Site links"
+      >
+        <a
+          href={@github_url}
+          class={@footer_link_base}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
+        <.link
+          navigate={~p"/privacy-policy"}
+          class={[
+            @footer_link_base,
+            @privacy_active? && "font-semibold underline decoration-2 underline-offset-2"
+          ]}
+          aria-current={if(@privacy_active?, do: "page")}
+        >
+          Privacy Policy
+        </.link>
+      </nav>
+    </div>
     """
   end
 
