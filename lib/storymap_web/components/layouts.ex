@@ -333,7 +333,8 @@ defmodule StorymapWeb.Layouts do
     assigns = assign(assigns, :footer_link_base, footer_link_base)
 
     ~H"""
-    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-40 hidden pb-5 md:flex md:justify-center">
+    <%!-- z-30: below map React overlays (placement bar, side panel) at z-40 --%>
+    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden pb-5 md:flex md:justify-center">
       <nav
         class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 sm:gap-4"
         aria-label="Site links"
