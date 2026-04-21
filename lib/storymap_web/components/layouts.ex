@@ -362,6 +362,24 @@ defmodule StorymapWeb.Layouts do
     """
   end
 
+  @doc "True for `/` and `/map` after normalizing trailing slashes (e.g. `/map/`)."
+  def full_viewport_map_path?(request_path) when is_binary(request_path) do
+    case normalize_request_path_for_layout(request_path) do
+      "/" -> true
+      "/map" -> true
+      _ -> false
+    end
+  end
+
+  defp normalize_request_path_for_layout(path) do
+    path
+    |> String.trim_trailing("/")
+    |> case do
+      "" -> "/"
+      p -> p
+    end
+  end
+
   defp nav_btn_classes(active?) do
     ["btn", "btn-ghost", if(active?, do: "btn-active")]
   end

@@ -82,7 +82,7 @@
 <!-- Page content -->
         <div class={[
           "flex-1 min-h-0",
-          if(@conn.request_path not in ["/", "/map"], do: "md:pb-24")
+          unless(full_viewport_map_path?(@conn.request_path), do: "md:pb-24")
         ]}>
           {@inner_content}
         </div>
