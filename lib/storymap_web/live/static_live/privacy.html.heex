@@ -1,6 +1,270 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-base-content mb-4">Privacy Policy</h1>
-    <p class="text-base-content/70">Content coming soon.</p>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="space-y-2 mb-8">
+      <h1 class="text-3xl font-bold text-base-content">Privacy Policy</h1>
+      <p class="text-sm text-base-content/70">Last updated: April 21, 2026</p>
+    </div>
+
+    <div class="space-y-8 text-base-content">
+      <section class="space-y-3" aria-labelledby="privacy-summary">
+        <h2 id="privacy-summary" class="text-xl font-semibold">Summary</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li>
+            We store the minimum needed to run Mapgarden: an account identifier (we store an
+            <a
+              href="https://en.wikipedia.org/wiki/HMAC"
+              class="link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              HMAC
+            </a>
+            of your email,
+            not the plaintext email), authentication/session tokens, and the pins you create.
+          </li>
+          <li>
+            Pins are public. If you add a pin, its contents (including location coordinates) can be viewed by others.
+          </li>
+          <li>
+            We use these third parties: Render.com (hosting), Resend (transactional email), MapTiler (map tiles),
+            and Stadia Maps (place search on the map).
+          </li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="info-we-collect">
+        <h2 id="info-we-collect" class="text-xl font-semibold">Information we collect</h2>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Account information</h3>
+          <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+            <li>
+              <span class="font-medium">Email (for login)</span>: we use your email address to send login links and account emails.
+              We do <span class="font-medium">not</span>
+              store your plaintext email address in the database; we store a cryptographic
+              <a
+                href="https://en.wikipedia.org/wiki/HMAC"
+                class="link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                HMAC
+              </a>
+              identifier derived from it.
+            </li>
+            <li>
+              <span class="font-medium">Account metadata</span>: confirmation timestamps and basic administrative flags
+              (for example, whether an account is confirmed or muted).
+            </li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Authentication and security data</h3>
+          <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+            <li>
+              <span class="font-medium">Session tokens</span>: stored so we can expire sessions and keep your account secure.
+            </li>
+            <li>
+              <span class="font-medium">Magic-link / email-change tokens</span>: tokens are stored in hashed form when delivered by email.
+            </li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Public content you create</h3>
+          <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+            <li>
+              <span class="font-medium">Pins</span>: title, description, icon URL (if provided), type, and optional schedule/time fields.
+            </li>
+            <li>
+              <span class="font-medium">Location</span>: latitude and longitude associated with pins.
+            </li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Technical data</h3>
+          <p class="text-base-content/80">
+            Like most websites, our servers may receive and log basic request data (such as IP address, user agent, and timestamps)
+            for security, debugging, and reliability.
+          </p>
+        </div>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="how-we-use">
+        <h2 id="how-we-use" class="text-xl font-semibold">How we use information</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li>Provide and operate Mapgarden, including creating and displaying pins.</li>
+          <li>Authenticate you and keep your account secure.</li>
+          <li>
+            Send transactional emails (for example, login links and email-change confirmations).
+          </li>
+          <li>Prevent abuse and troubleshoot issues.</li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="how-we-share">
+        <h2 id="how-we-share" class="text-xl font-semibold">How we share information</h2>
+        <p class="text-base-content/80">
+          We do not sell your personal information. We share information only as needed to run the service:
+        </p>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Render.com (hosting)</h3>
+          <p class="text-base-content/80">
+            Mapgarden is hosted on Render.com. Render processes web requests and stores application data on our behalf
+            (for example, in the database and server storage).
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Resend (email delivery)</h3>
+          <p class="text-base-content/80">
+            We use Resend to send transactional emails. Resend receives the recipient email address and the email contents
+            needed to deliver login and account-related messages.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">MapTiler (map tiles)</h3>
+          <p class="text-base-content/80">
+            We use MapTiler to render maps. Your browser requests map tiles directly from MapTiler, which means
+            MapTiler may receive information such as your IP address and browser details as part of serving those requests.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Stadia Maps (place search)</h3>
+          <p class="text-base-content/80">
+            The map includes a search box provided by Stadia Maps. When you search for a place, your browser sends that query
+            to Stadia's servers to return results. Stadia may receive information such as your IP address, browser details, and
+            the text you typed into search.
+          </p>
+        </div>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="cookies">
+        <h2 id="cookies" class="text-xl font-semibold">Cookies</h2>
+        <p class="text-base-content/80">
+          Mapgarden uses essential cookies and similar technologies required for core functionality (such as maintaining your session
+          and protecting against request forgery). We do not use cookies for third-party advertising.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="retention">
+        <h2 id="retention" class="text-xl font-semibold">Data retention</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li>We retain your account and pins until you delete your account.</li>
+          <li>
+            Authentication tokens are retained only as long as needed for security and expiry.
+          </li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="choices">
+        <h2 id="choices" class="text-xl font-semibold">Your choices</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li>
+            You can update your email address from your <.link
+              navigate={~p"/users/settings"}
+              class="link"
+            >account settings</.link>.
+          </li>
+          <li>
+            You can delete your account from your <.link
+              navigate={~p"/users/settings"}
+              class="link"
+            >account settings</.link>, which deletes your pins and
+            authentication tokens.
+          </li>
+          <li>
+            Because pins are public, consider avoiding sensitive information in pin titles or descriptions.
+          </li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="security">
+        <h2 id="security" class="text-xl font-semibold">Security</h2>
+        <p class="text-base-content/80">
+          We use industry-standard security measures. For example, we store a cryptographic identifier for your email
+          (rather than plaintext), and email-delivered tokens are stored in hashed form.
+        </p>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-semibold">Email identifiers (HMAC)</h3>
+          <p class="text-base-content/80">
+            We store a keyed hash (
+            <a
+              href="https://en.wikipedia.org/wiki/HMAC"
+              class="link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              HMAC
+            </a>
+            ) of your normalized email instead of the plaintext address. This means that:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+            <li>
+              <span class="font-medium">Reading the database alone</span>
+              does not expose your email as a normal readable column
+              the way storing plaintext would.
+            </li>
+            <li>
+              <span class="font-medium">The stored HMAC is not “decryptable”</span>
+              back to your email from those bytes alone.
+              Recovering an email would require guessing addresses and checking for a match (impractical for arbitrary addresses).
+            </li>
+            <li>
+              <span class="font-medium">Someone with full access to our production systems</span>
+              (including the database and the
+              secret key used to derive email identifiers) could
+              <span class="font-medium">test whether a specific candidate email</span>
+              belongs to a given account, by computing the same HMAC and comparing it to what we store—the same kind of check we
+              use when you sign in. They cannot simply export a list of plaintext emails from the database without trying
+              candidate addresses.
+            </li>
+            <li>
+              <span class="font-medium">
+                Someone with a copy of the database but not the secret key
+              </span>
+              cannot compute HMACs for
+              candidate emails, so they generally cannot match a known email address to a stored account row from the backup alone.
+            </li>
+            <li>
+              <span class="font-medium">Using the public site</span>
+              does not give people a way to look up your Mapgarden account
+              from an email address they know, or to derive your email from your public profile—the email identifier is not exposed
+              for that purpose.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="changes">
+        <h2 id="changes" class="text-xl font-semibold">Changes to this policy</h2>
+        <p class="text-base-content/80">
+          We may update this policy from time to time. We will post the updated version on this page and update the “Last updated”
+          date above.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="contact">
+        <h2 id="contact" class="text-xl font-semibold">Contact</h2>
+        <p class="text-base-content/80">
+          Questions about privacy? Post in our
+          <a
+            href="https://github.com/rgleichman/map-backend/discussions/categories/q-a"
+            class="link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub Discussions Q&amp;A
+          </a>
+          category.
+        </p>
+      </section>
+    </div>
   </div>
 </Layouts.app>

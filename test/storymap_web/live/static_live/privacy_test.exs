@@ -3,10 +3,10 @@ defmodule StorymapWeb.StaticLive.PrivacyTest do
 
   import Phoenix.LiveViewTest
 
-  test "renders stub privacy policy page when unauthenticated", %{conn: conn} do
-    {:ok, _lv, html} = live(conn, ~p"/privacy-policy")
+  test "renders privacy policy page when unauthenticated", %{conn: conn} do
+    {:ok, lv, _html} = live(conn, ~p"/privacy-policy")
 
-    assert html =~ "Privacy Policy"
-    assert html =~ "Content coming soon."
+    assert has_element?(lv, "h1", "Privacy Policy")
+    assert has_element?(lv, "#privacy-summary", "Summary")
   end
 end
