@@ -3,6 +3,8 @@ defmodule StorymapWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Mapgarden"
+    html = html_response(conn, 200)
+    assert html =~ "Mapgarden"
+    assert html =~ "(beta)"
   end
 end

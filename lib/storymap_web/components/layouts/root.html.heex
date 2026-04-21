@@ -53,9 +53,10 @@
         <div class="w-full relative z-50 flex h-14 flex-shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <.link
             navigate={~p"/"}
-            class="btn btn-ghost shrink-0 text-lg font-semibold tracking-tight text-base-content"
+            class="btn btn-ghost shrink-0 text-lg tracking-tight text-base-content"
           >
-            Mapgarden
+            <span class="font-semibold">{gettext("Mapgarden")}</span>
+            <span class="font-normal">{" "}{gettext("(beta)")}</span>
           </.link>
           <div class="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
             <ul class="menu menu-horizontal hidden min-w-0 flex-1 items-center justify-end gap-1 md:flex lg:gap-2">
