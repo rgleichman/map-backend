@@ -57,9 +57,12 @@ defmodule StorymapWeb.UserLive.Registration do
   def handle_event("save", %{"user" => user_params}, socket) do
     case Accounts.register_user(user_params) do
       {:ok, user} ->
+        email = user_params["email"]
+
         {:ok, _} =
           Accounts.deliver_login_instructions(
             user,
+            email,
             &url(~p"/users/log-in/#{&1}")
           )
 
@@ -67,8 +70,9 @@ defmodule StorymapWeb.UserLive.Registration do
          socket
          |> put_flash(
            :info,
-           "An email was sent to #{user.email}, please access it to confirm your account."
+           "Check your email to confirm your account."
          )
+         |> put_flash(:email, email)
          |> push_navigate(to: ~p"/users/log-in")}
 
       {:error, %Ecto.Changeset{} = changeset} ->

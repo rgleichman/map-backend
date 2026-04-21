@@ -112,7 +112,7 @@ defmodule StorymapWeb.AdminLive.Users do
              }) do
         {:noreply,
          socket
-         |> put_flash(:info, "Updated admin level for #{updated_user.email}.")
+         |> put_flash(:info, "Updated admin level for user #{updated_user.id}.")
          |> stream_insert(:users, updated_user)}
       else
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -141,8 +141,8 @@ defmodule StorymapWeb.AdminLive.Users do
     end
   end
 
-  defp mute_flash_message(%User{email: email, muted_at: nil}), do: "Unmuted #{email}."
-  defp mute_flash_message(%User{email: email}), do: "Muted #{email}."
+  defp mute_flash_message(%User{id: id, muted_at: nil}), do: "Unmuted user #{id}."
+  defp mute_flash_message(%User{id: id}), do: "Muted user #{id}."
 
   @impl true
   def render(assigns) do
@@ -161,17 +161,16 @@ defmodule StorymapWeb.AdminLive.Users do
             <table class="table">
               <thead>
                 <tr>
-                  <th>Email</th>
+                  <th>User</th>
                   <th>Confirmed</th>
                   <th>Muted</th>
                   <th>Pins</th>
                   <th>Admin level</th>
-                  <th class="text-right">User ID</th>
                 </tr>
               </thead>
               <tbody id="admin-users" phx-update="stream">
                 <tr :for={{dom_id, user} <- @streams.users} id={dom_id}>
-                  <td class="font-medium">{user.email}</td>
+                  <td class="font-medium">{"#"}{user.id}</td>
                   <td>
                     <%= if user.confirmed_at do %>
                       <span class="badge badge-success badge-outline">Yes</span>
@@ -227,7 +226,7 @@ defmodule StorymapWeb.AdminLive.Users do
                       class="mt-3 rounded-box border border-base-300 bg-base-100 p-3"
                     >
                       <h2 class="text-sm font-semibold mb-2">
-                        Pins by {user.email} ({length(Map.get(@pins_by_user_id, user.id, []))})
+                        Pins by {"user #"}{user.id} ({length(Map.get(@pins_by_user_id, user.id, []))})
                       </h2>
                       <div class="overflow-x-auto">
                         <table class="table table-sm">
@@ -282,7 +281,6 @@ defmodule StorymapWeb.AdminLive.Users do
                       <button class="btn btn-primary btn-sm mt-2" type="submit">Save</button>
                     </.form>
                   </td>
-                  <td class="text-right text-xs opacity-70 align-top">{user.id}</td>
                 </tr>
               </tbody>
             </table>

@@ -92,3 +92,8 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+config :storymap,
+       :email_identifier_secret,
+       System.get_env("EMAIL_IDENTIFIER_SECRET") ||
+         "dev_email_identifier_secret_do_not_use_in_prod_32b"

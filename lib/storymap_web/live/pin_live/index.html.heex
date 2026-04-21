@@ -89,7 +89,7 @@
               <%= if @is_admin do %>
                 <%= if pin.user do %>
                   <div class="mt-2 text-base-content/80 font-medium">
-                    Created by: {pin.user.email}
+                    Created by: {"user #"}{pin.user.id}
                   </div>
                 <% end %>
               <% end %>

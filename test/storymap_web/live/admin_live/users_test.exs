@@ -28,7 +28,7 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     {:ok, view, _html} = live(conn, ~p"/admin/users")
 
     assert has_element?(view, "#admin-users")
-    assert has_element?(view, "tr", target.email)
+    assert has_element?(view, "tr", "##{target.id}")
 
     form_id = "#admin-level-form-#{target.id}"
 
@@ -36,7 +36,7 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     |> form(form_id, %{user: %{admin_level: "7"}, _id: "#{target.id}"})
     |> render_submit()
 
-    assert has_element?(view, "tr#users-#{target.id}", target.email)
+    assert has_element?(view, "tr#users-#{target.id}", "##{target.id}")
   end
 
   test "admin can mute and unmute a user", %{conn: conn} do
@@ -86,7 +86,7 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     |> element("tr#users-#{target.id} button[phx-click='toggle_user_pins']")
     |> render_click()
 
-    assert has_element?(view, "#users-#{target.id}-pins", "Pins by #{target.email}")
+    assert has_element?(view, "#users-#{target.id}-pins", "Pins by user ##{target.id}")
     assert has_element?(view, "#users-#{target.id}-pins", "Pin one")
     assert has_element?(view, "#users-#{target.id}-pins", "Pin two")
 

@@ -96,7 +96,6 @@ defmodule StorymapWeb.UserLive.Settings do
 
     socket =
       socket
-      |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:trigger_submit, false)
       |> assign(:show_delete_modal, false)
@@ -154,9 +153,11 @@ defmodule StorymapWeb.UserLive.Settings do
 
     case Accounts.change_user_email(user, user_params) do
       %{valid?: true} = changeset ->
+        new_email = Ecto.Changeset.get_change(changeset, :email)
+
         Accounts.deliver_user_update_email_instructions(
-          Ecto.Changeset.apply_action!(changeset, :insert),
-          user.email,
+          user,
+          new_email,
           &url(~p"/users/settings/confirm-email/#{&1}")
         )
 

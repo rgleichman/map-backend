@@ -4,7 +4,7 @@ defmodule Storymap.AccountsTest do
   alias Storymap.Accounts
 
   import Storymap.AccountsFixtures
-  alias Storymap.Accounts.{User, UserToken}
+  alias Storymap.Accounts.{EmailIdentifier, User, UserToken}
 
   describe "get_user_by_email/1" do
     test "does not return the user if the email does not exist" do
@@ -13,7 +13,7 @@ defmodule Storymap.AccountsTest do
 
     test "returns the user if the email exists" do
       %{id: id} = user = user_fixture()
-      assert %User{id: ^id} = Accounts.get_user_by_email(user.email)
+      assert %User{id: ^id} = Accounts.get_user_by_email(registered_email(user))
     end
   end
 
@@ -50,7 +50,7 @@ defmodule Storymap.AccountsTest do
     end
 
     test "validates email uniqueness" do
-      %{email: email} = user_fixture()
+      email = registered_email(user_fixture())
       {:error, changeset} = Accounts.register_user(%{email: email})
       assert "has already been taken" in errors_on(changeset).email
 
@@ -62,7 +62,7 @@ defmodule Storymap.AccountsTest do
     test "registers users" do
       email = unique_user_email()
       {:ok, user} = Accounts.register_user(valid_user_attributes(email: email))
-      assert user.email == email
+      assert user.email_hmac == EmailIdentifier.hash(email)
       assert is_nil(user.confirmed_at)
     end
   end
@@ -99,63 +99,74 @@ defmodule Storymap.AccountsTest do
     end
 
     test "sends token through notification", %{user: user} do
+      new_email = unique_user_email()
+
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_user_update_email_instructions(user, "current@example.com", url)
+          Accounts.deliver_user_update_email_instructions(user, new_email, url)
         end)
 
       {:ok, token} = Base.url_decode64(token, padding: false)
       assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
       assert user_token.user_id == user.id
-      assert user_token.sent_to == user.email
-      assert user_token.context == "change:current@example.com"
+      assert user_token.sent_to == EmailIdentifier.hash(new_email)
+      assert user_token.context == EmailIdentifier.change_email_context(user)
     end
   end
 
   describe "update_user_email/2" do
     setup do
       user = unconfirmed_user_fixture()
-      email = unique_user_email()
+      new_email = unique_user_email()
 
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_user_update_email_instructions(%{user | email: email}, user.email, url)
+          Accounts.deliver_user_update_email_instructions(user, new_email, url)
         end)
 
-      %{user: user, token: token, email: email}
+      user = Accounts.get_user!(user.id)
+      %{user: user, token: token, new_email: new_email}
     end
 
-    test "updates the email with a valid token", %{user: user, token: token, email: email} do
-      assert {:ok, %{email: ^email}} = Accounts.update_user_email(user, token)
-      changed_user = Repo.get!(User, user.id)
-      assert changed_user.email != user.email
-      assert changed_user.email == email
+    test "updates the email with a valid token", %{user: user, token: token, new_email: new_email} do
+      assert {:ok, updated} = Accounts.update_user_email(user, token)
+      changed_user = Repo.get!(User, updated.id)
+      assert changed_user.email_hmac == EmailIdentifier.hash(new_email)
       refute Repo.get_by(UserToken, user_id: user.id)
     end
 
     test "does not update email with invalid token", %{user: user} do
+      old_hmac = user.email_hmac
+
       assert Accounts.update_user_email(user, "oops") ==
                {:error, :transaction_aborted}
 
-      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get!(User, user.id).email_hmac == old_hmac
       assert Repo.get_by(UserToken, user_id: user.id)
     end
 
-    test "does not update email if user email changed", %{user: user, token: token} do
-      assert Accounts.update_user_email(%{user | email: "current@example.com"}, token) ==
+    test "does not update email if user identifier does not match token context", %{
+      user: user,
+      token: token
+    } do
+      old_hmac = user.email_hmac
+      wrong = %{user | email_hmac: :crypto.strong_rand_bytes(64)}
+
+      assert Accounts.update_user_email(wrong, token) ==
                {:error, :transaction_aborted}
 
-      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get!(User, user.id).email_hmac == old_hmac
       assert Repo.get_by(UserToken, user_id: user.id)
     end
 
     test "does not update email if token expired", %{user: user, token: token} do
+      old_hmac = user.email_hmac
       {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
 
       assert Accounts.update_user_email(user, token) ==
                {:error, :transaction_aborted}
 
-      assert Repo.get!(User, user.id).email == user.email
+      assert Repo.get!(User, user.id).email_hmac == old_hmac
       assert Repo.get_by(UserToken, user_id: user.id)
     end
   end
@@ -253,7 +264,8 @@ defmodule Storymap.AccountsTest do
       user = user_fixture()
       assert user.confirmed_at
       {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-      assert {:ok, {^user, []}} = Accounts.login_user_by_magic_link(encoded_token)
+      assert {:ok, {%User{id: user_id}, []}} = Accounts.login_user_by_magic_link(encoded_token)
+      assert user_id == user.id
       # one time use only
       assert {:error, :not_found} = Accounts.login_user_by_magic_link(encoded_token)
     end
@@ -268,21 +280,23 @@ defmodule Storymap.AccountsTest do
     end
   end
 
-  describe "deliver_login_instructions/2" do
+  describe "deliver_login_instructions/3" do
     setup do
       %{user: unconfirmed_user_fixture()}
     end
 
     test "sends token through notification", %{user: user} do
+      email = registered_email(user)
+
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
+          Accounts.deliver_login_instructions(user, email, url)
         end)
 
       {:ok, token} = Base.url_decode64(token, padding: false)
       assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
       assert user_token.user_id == user.id
-      assert user_token.sent_to == user.email
+      assert user_token.sent_to == user.email_hmac
       assert user_token.context == "login"
     end
   end

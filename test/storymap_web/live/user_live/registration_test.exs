@@ -46,8 +46,7 @@ defmodule StorymapWeb.UserLive.RegistrationTest do
         render_submit(form)
         |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert html =~
-               ~r/An email was sent to .*, please access it to confirm your account/
+      assert html =~ "Check your email to confirm your account"
     end
 
     test "renders errors for duplicated email", %{conn: conn} do
@@ -58,7 +57,7 @@ defmodule StorymapWeb.UserLive.RegistrationTest do
       result =
         lv
         |> form("#registration_form",
-          user: %{"email" => user.email}
+          user: %{"email" => registered_email(user)}
         )
         |> render_submit()
 

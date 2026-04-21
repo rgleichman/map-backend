@@ -1,9 +1,14 @@
 defmodule Storymap.Accounts.User do
   use Ecto.Schema
+  import Ecto.Query
   import Ecto.Changeset
 
+  alias Storymap.Accounts.EmailIdentifier
+  alias Storymap.Repo
+
   schema "users" do
-    field :email, :string
+    field :email_hmac, :binary
+    field :email, :string, virtual: true
     field :admin_level, :integer, default: 0
     field :muted_at, :utc_datetime
     field :confirmed_at, :utc_datetime
@@ -39,23 +44,74 @@ defmodule Storymap.Accounts.User do
         message: "must have the @ sign and no spaces"
       )
       |> validate_length(:email, max: 160)
+      |> put_email_hmac_from_change()
 
-    if Keyword.get(opts, :validate_unique, true) do
-      changeset
-      |> unsafe_validate_unique(:email, Storymap.Repo)
-      |> unique_constraint(:email)
-      |> validate_email_changed()
-    else
-      changeset
+    changeset =
+      if Keyword.get(opts, :validate_unique, true) do
+        validate_unique_email_hmac(changeset, opts)
+      else
+        changeset
+      end
+
+    changeset
+    |> validate_email_changed()
+  end
+
+  defp put_email_hmac_from_change(changeset) do
+    case get_change(changeset, :email) do
+      nil -> changeset
+      email -> put_change(changeset, :email_hmac, EmailIdentifier.hash(email))
+    end
+  end
+
+  defp validate_unique_email_hmac(changeset, _opts) do
+    case get_change(changeset, :email_hmac) do
+      nil ->
+        changeset
+
+      hmac ->
+        id = changeset.data.id
+
+        query =
+          from u in __MODULE__,
+            where: u.email_hmac == ^hmac
+
+        query =
+          if id,
+            do: where(query, [u], u.id != ^id),
+            else: query
+
+        if Repo.exists?(query),
+          do: add_error(changeset, :email, "has already been taken"),
+          else: changeset
     end
   end
 
   defp validate_email_changed(changeset) do
-    if get_field(changeset, :email) && get_change(changeset, :email) == nil do
-      add_error(changeset, :email, "did not change")
-    else
-      changeset
+    case {get_change(changeset, :email), changeset.data.email_hmac} do
+      {nil, _} ->
+        changeset
+
+      {_new, nil} ->
+        changeset
+
+      {new_email, old_hmac} when is_binary(new_email) and is_binary(old_hmac) ->
+        if EmailIdentifier.hash(new_email) == old_hmac do
+          add_error(changeset, :email, "did not change")
+        else
+          changeset
+        end
+
+      _ ->
+        changeset
     end
+  end
+
+  @doc """
+  Updates `email_hmac` from a precomputed binary (e.g. email change confirmation).
+  """
+  def email_hmac_changeset(user, new_email_hmac) when is_binary(new_email_hmac) do
+    change(user, email_hmac: new_email_hmac)
   end
 
   @doc """

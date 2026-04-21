@@ -23,7 +23,7 @@ defmodule StorymapWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ user.email
+      assert response =~ "Account"
       assert response =~ ~p"/users/settings"
       assert response =~ ~p"/users/log-out"
     end
@@ -47,7 +47,7 @@ defmodule StorymapWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ user.email
+      assert response =~ "Account"
       assert response =~ ~p"/users/settings"
       assert response =~ ~p"/users/log-out"
     end

@@ -61,6 +61,15 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  email_identifier_secret =
+    System.get_env("EMAIL_IDENTIFIER_SECRET") ||
+      raise """
+      environment variable EMAIL_IDENTIFIER_SECRET is missing.
+      Use a long random secret (for example mix phx.gen.secret). It is used to derive login identifiers from email addresses.
+      """
+
+  config :storymap, :email_identifier_secret, email_identifier_secret
+
   # We use EXTERNAL_HOSTNAME instead of PHX_HOST for the endpoint host.
   host = System.get_env("EXTERNAL_HOSTNAME") || "localhost"
   port = String.to_integer(System.get_env("PORT") || "4000")

@@ -38,6 +38,8 @@ config :storymap, StorymapWeb.Plugs.RateLimit, enabled: false
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
+config :storymap, :email_identifier_secret, "test_email_identifier_secret_32bytes_x"
+
 # Tile cache: enabled in test so MapController tile tests run; use temp dir
 config :storymap, :tile_cache_enabled, true
 config :storymap, :tile_cache_dir, Path.join(System.tmp_dir!(), "storymap_tile_cache_test")

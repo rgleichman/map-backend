@@ -9,6 +9,8 @@ defmodule Storymap.AccountsFixtures do
   alias Storymap.Accounts
   alias Storymap.Accounts.Scope
 
+  @process_emails_key {__MODULE__, :registered_user_emails}
+
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
 
   def valid_user_attributes(attrs \\ %{}) do
@@ -17,12 +19,24 @@ defmodule Storymap.AccountsFixtures do
     })
   end
 
-  def unconfirmed_user_fixture(attrs \\ %{}) do
-    {:ok, user} =
-      attrs
-      |> valid_user_attributes()
-      |> Accounts.register_user()
+  @doc """
+  Returns the email string used when registering the user (plaintext is not stored on `%User{}`).
+  """
+  def registered_email(%Storymap.Accounts.User{id: id}) do
+    Process.get(@process_emails_key, %{})
+    |> Map.fetch!(id)
+  end
 
+  defp remember_registered_email(%Storymap.Accounts.User{id: id}, email)
+       when is_binary(email) do
+    map = Process.get(@process_emails_key, %{})
+    Process.put(@process_emails_key, Map.put(map, id, email))
+  end
+
+  def unconfirmed_user_fixture(attrs \\ %{}) do
+    merged = valid_user_attributes(attrs)
+    {:ok, user} = Accounts.register_user(merged)
+    remember_registered_email(user, merged.email)
     user
   end
 
@@ -31,7 +45,7 @@ defmodule Storymap.AccountsFixtures do
 
     token =
       extract_user_token(fn url ->
-        Accounts.deliver_login_instructions(user, url)
+        Accounts.deliver_login_instructions(user, registered_email(user), url)
       end)
 
     {:ok, {user, _expired_tokens}} =
@@ -65,7 +79,9 @@ defmodule Storymap.AccountsFixtures do
   end
 
   def generate_user_magic_link_token(user) do
-    {encoded_token, user_token} = Accounts.UserToken.build_email_token(user, "login")
+    {encoded_token, user_token} =
+      Accounts.UserToken.build_email_token(user, "login", user.email_hmac)
+
     Storymap.Repo.insert!(user_token)
     {encoded_token, user_token.token}
   end

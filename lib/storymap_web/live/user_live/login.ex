@@ -43,7 +43,7 @@ defmodule StorymapWeb.UserLive.Login do
           phx-submit="submit_magic"
         >
           <.input
-            readonly={!!@current_scope}
+            readonly={false}
             field={f[:email]}
             type="email"
             label="Email"
@@ -64,9 +64,7 @@ defmodule StorymapWeb.UserLive.Login do
 
   @impl true
   def mount(_params, _session, socket) do
-    email =
-      Phoenix.Flash.get(socket.assigns.flash, :email) ||
-        get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:email)])
+    email = Phoenix.Flash.get(socket.assigns.flash, :email) || ""
 
     form = to_form(%{"email" => email}, as: "user")
 
@@ -78,6 +76,7 @@ defmodule StorymapWeb.UserLive.Login do
     if user = Accounts.get_user_by_email(email) do
       Accounts.deliver_login_instructions(
         user,
+        email,
         &url(~p"/users/log-in/#{&1}")
       )
     end

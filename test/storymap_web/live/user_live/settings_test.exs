@@ -55,7 +55,7 @@ defmodule StorymapWeb.UserLive.SettingsTest do
         |> render_submit()
 
       assert result =~ "A link to confirm your email"
-      assert Accounts.get_user_by_email(user.email)
+      assert Accounts.get_user_by_email(registered_email(user))
     end
 
     test "renders errors with invalid data (phx-change)", %{conn: conn} do
@@ -79,7 +79,7 @@ defmodule StorymapWeb.UserLive.SettingsTest do
       result =
         lv
         |> form("#email_form", %{
-          "user" => %{"email" => user.email}
+          "user" => %{"email" => registered_email(user)}
         })
         |> render_submit()
 
@@ -95,20 +95,22 @@ defmodule StorymapWeb.UserLive.SettingsTest do
 
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_user_update_email_instructions(%{user | email: email}, user.email, url)
+          Accounts.deliver_user_update_email_instructions(user, email, url)
         end)
 
       %{conn: log_in_user(conn, user), token: token, email: email, user: user}
     end
 
     test "updates the user email once", %{conn: conn, user: user, token: token, email: email} do
+      old_email = registered_email(user)
+
       {:error, redirect} = live(conn, ~p"/users/settings/confirm-email/#{token}")
 
       assert {:live_redirect, %{to: path, flash: flash}} = redirect
       assert path == ~p"/users/settings"
       assert %{"info" => message} = flash
       assert message == "Email changed successfully."
-      refute Accounts.get_user_by_email(user.email)
+      refute Accounts.get_user_by_email(old_email)
       assert Accounts.get_user_by_email(email)
 
       # use confirm token again
@@ -125,7 +127,7 @@ defmodule StorymapWeb.UserLive.SettingsTest do
       assert path == ~p"/users/settings"
       assert %{"error" => message} = flash
       assert message == "Email change link is invalid or it has expired."
-      assert Accounts.get_user_by_email(user.email)
+      assert Accounts.get_user_by_email(registered_email(user))
     end
 
     test "redirects if user is not logged in", %{token: token} do

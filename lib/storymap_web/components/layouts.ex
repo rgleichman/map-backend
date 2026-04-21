@@ -179,8 +179,8 @@ defmodule StorymapWeb.Layouts do
             aria-haspopup="menu"
             aria-label={gettext("Account menu")}
           >
-            <span class="truncate" title={@current_scope.user.email}>
-              {@current_scope.user.email}
+            <span class="truncate" title={"User ##{@current_scope.user.id}"}>
+              Account
             </span>
             <.icon name="hero-chevron-down" class="size-4 shrink-0 opacity-60" />
           </button>
@@ -190,9 +190,9 @@ defmodule StorymapWeb.Layouts do
           >
             <li
               class="menu-title max-w-[13rem] truncate text-xs font-normal normal-case opacity-80"
-              title={@current_scope.user.email}
+              title={"User ##{@current_scope.user.id}"}
             >
-              {@current_scope.user.email}
+              User #{@current_scope.user.id}
             </li>
             <%= if @current_scope.user.admin_level >= 10 do %>
               <li>
@@ -224,7 +224,7 @@ defmodule StorymapWeb.Layouts do
       <% else %>
         <li>
           <span class="block px-4 py-2 text-sm font-medium text-base-content/70 border-t border-base-300 mt-2">
-            {@current_scope.user.email}
+            User #{@current_scope.user.id}
           </span>
         </li>
         <%= if @current_scope.user.admin_level >= 10 do %>

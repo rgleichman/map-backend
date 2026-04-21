@@ -14,7 +14,7 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
     test "renders confirmation page for unconfirmed user", %{conn: conn, unconfirmed_user: user} do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
+          Accounts.deliver_login_instructions(user, registered_email(user), url)
         end)
 
       {:ok, _lv, html} = live(conn, ~p"/users/log-in/#{token}")
@@ -24,7 +24,7 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
     test "renders login page for confirmed user", %{conn: conn, confirmed_user: user} do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
+          Accounts.deliver_login_instructions(user, registered_email(user), url)
         end)
 
       {:ok, _lv, html} = live(conn, ~p"/users/log-in/#{token}")
@@ -35,7 +35,7 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
     test "confirms the given token once", %{conn: conn, unconfirmed_user: user} do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
+          Accounts.deliver_login_instructions(user, registered_email(user), url)
         end)
 
       {:ok, lv, _html} = live(conn, ~p"/users/log-in/#{token}")
@@ -69,7 +69,7 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
     } do
       token =
         extract_user_token(fn url ->
-          Accounts.deliver_login_instructions(user, url)
+          Accounts.deliver_login_instructions(user, registered_email(user), url)
         end)
 
       {:ok, lv, _html} = live(conn, ~p"/users/log-in/#{token}")

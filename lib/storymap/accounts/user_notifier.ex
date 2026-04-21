@@ -19,14 +19,14 @@ defmodule Storymap.Accounts.UserNotifier do
   end
 
   @doc """
-  Deliver instructions to update a user email.
+  Deliver instructions to update a user email (`recipient` is the new address).
   """
-  def deliver_update_email_instructions(user, url) do
-    deliver(user.email, "Update email instructions", """
+  def deliver_update_email_instructions(recipient, url) when is_binary(recipient) do
+    deliver(recipient, "Update email instructions", """
 
     ==============================
 
-    Hi #{user.email},
+    Hi,
 
     You can change your email by visiting the URL below:
 
@@ -39,21 +39,21 @@ defmodule Storymap.Accounts.UserNotifier do
   end
 
   @doc """
-  Deliver instructions to log in with a magic link.
+  Deliver instructions to log in with a magic link or confirm a new account.
   """
-  def deliver_login_instructions(user, url) do
+  def deliver_login_instructions(recipient, url, %User{} = user) when is_binary(recipient) do
     case user do
-      %User{confirmed_at: nil} -> deliver_confirmation_instructions(user, url)
-      _ -> deliver_magic_link_instructions(user, url)
+      %User{confirmed_at: nil} -> deliver_confirmation_instructions(recipient, url)
+      _ -> deliver_magic_link_instructions(recipient, url)
     end
   end
 
-  defp deliver_magic_link_instructions(user, url) do
-    deliver(user.email, "Log in instructions", """
+  defp deliver_magic_link_instructions(recipient, url) do
+    deliver(recipient, "Log in instructions", """
 
     ==============================
 
-    Hi #{user.email},
+    Hi,
 
     You can log into your account by visiting the URL below:
 
@@ -65,12 +65,12 @@ defmodule Storymap.Accounts.UserNotifier do
     """)
   end
 
-  defp deliver_confirmation_instructions(user, url) do
-    deliver(user.email, "Confirmation instructions", """
+  defp deliver_confirmation_instructions(recipient, url) do
+    deliver(recipient, "Confirmation instructions", """
 
     ==============================
 
-    Hi #{user.email},
+    Hi,
 
     You can confirm your account by visiting the URL below:
 

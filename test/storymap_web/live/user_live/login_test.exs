@@ -21,7 +21,7 @@ defmodule StorymapWeb.UserLive.LoginTest do
       {:ok, lv, _html} = live(conn, ~p"/users/log-in")
 
       {:ok, _lv, html} =
-        form(lv, "#login_form_magic", user: %{email: user.email})
+        form(lv, "#login_form_magic", user: %{email: registered_email(user)})
         |> render_submit()
         |> follow_redirect(conn, ~p"/users/log-in")
 
@@ -63,15 +63,14 @@ defmodule StorymapWeb.UserLive.LoginTest do
       %{user: user, conn: log_in_user(conn, user)}
     end
 
-    test "shows login page with email filled in", %{conn: conn, user: user} do
+    test "shows login page for sudo (email not stored; field starts empty)", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")
 
       assert html =~ "You need to reauthenticate"
       refute html =~ "Register"
       assert html =~ "Log in with email"
 
-      assert html =~
-               ~s(<input type="email" name="user[email]" id="login_form_magic_email" value="#{user.email}")
+      assert html =~ ~s(id="login_form_magic_email" value="")
     end
   end
 end

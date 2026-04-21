@@ -6,25 +6,16 @@ defmodule Storymap.Accounts do
   import Ecto.Query, warn: false
   alias Storymap.Repo
 
-  alias Storymap.Accounts.{User, UserToken, UserNotifier}
+  alias Storymap.Accounts.{EmailIdentifier, User, UserToken, UserNotifier}
   alias Storymap.Accounts.Scope
 
   ## Database getters
 
   @doc """
-  Gets a user by email.
-
-  ## Examples
-
-      iex> get_user_by_email("foo@example.com")
-      %User{}
-
-      iex> get_user_by_email("unknown@example.com")
-      nil
-
+  Gets a user by email address using the stored HMAC identifier (plaintext email is not persisted).
   """
   def get_user_by_email(email) when is_binary(email) do
-    Repo.get_by(User, email: email)
+    Repo.get_by(User, email_hmac: EmailIdentifier.hash(email))
   end
 
   @doc """
@@ -130,12 +121,12 @@ defmodule Storymap.Accounts do
   If the token matches, the user email is updated and the token is deleted.
   """
   def update_user_email(user, token) do
-    context = "change:#{user.email}"
+    context = EmailIdentifier.change_email_context(user)
 
     Repo.transact(fn ->
       with {:ok, query} <- UserToken.verify_change_email_token_query(token, context),
-           %UserToken{sent_to: email} <- Repo.one(query),
-           {:ok, user} <- Repo.update(User.email_changeset(user, %{email: email})),
+           %UserToken{sent_to: new_email_hmac} <- Repo.one(query),
+           {:ok, user} <- Repo.update(User.email_hmac_changeset(user, new_email_hmac)),
            {_count, _result} <-
              Repo.delete_all(from(UserToken, where: [user_id: ^user.id, context: ^context])) do
         {:ok, user}
@@ -214,31 +205,43 @@ defmodule Storymap.Accounts do
     end
   end
 
-  @doc ~S"""
-  Delivers the update email instructions to the given user.
-
-  ## Examples
-
-      iex> deliver_user_update_email_instructions(user, current_email, &url(~p"/users/settings/confirm-email/#{&1}"))
-      {:ok, %{to: ..., body: ...}}
-
+  @doc """
+  Delivers update-email instructions to `new_email` (plaintext used only for delivery).
   """
-  def deliver_user_update_email_instructions(%User{} = user, current_email, update_email_url_fun)
-      when is_function(update_email_url_fun, 1) do
-    {encoded_token, user_token} = UserToken.build_email_token(user, "change:#{current_email}")
+  def deliver_user_update_email_instructions(
+        %User{} = user,
+        new_email,
+        update_email_url_fun
+      )
+      when is_binary(new_email) and is_function(update_email_url_fun, 1) do
+    context = EmailIdentifier.change_email_context(user)
+    new_hmac = EmailIdentifier.hash(new_email)
+
+    {encoded_token, user_token} = UserToken.build_email_token(user, context, new_hmac)
 
     Repo.insert!(user_token)
-    UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
+
+    UserNotifier.deliver_update_email_instructions(
+      new_email,
+      update_email_url_fun.(encoded_token)
+    )
   end
 
   @doc """
   Delivers the magic link login instructions to the given user.
   """
-  def deliver_login_instructions(%User{} = user, magic_link_url_fun)
-      when is_function(magic_link_url_fun, 1) do
-    {encoded_token, user_token} = UserToken.build_email_token(user, "login")
+  def deliver_login_instructions(%User{} = user, recipient_email, magic_link_url_fun)
+      when is_binary(recipient_email) and is_function(magic_link_url_fun, 1) do
+    {encoded_token, user_token} =
+      UserToken.build_email_token(user, "login", user.email_hmac)
+
     Repo.insert!(user_token)
-    UserNotifier.deliver_login_instructions(user, magic_link_url_fun.(encoded_token))
+
+    UserNotifier.deliver_login_instructions(
+      recipient_email,
+      magic_link_url_fun.(encoded_token),
+      user
+    )
   end
 
   @doc """
