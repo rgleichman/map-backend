@@ -49,18 +49,20 @@ function ActiveFilterChips({
   if (chips.length === 0) {
     if (!emptyLabel) return null
     return (
-      <p className={["text-sm text-base-content/55 min-w-0", className].filter(Boolean).join(" ")}>{emptyLabel}</p>
+      <p className={["text-sm text-base-content/55 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
+        {emptyLabel}
+      </p>
     )
   }
 
   return (
-    <div className={["flex flex-wrap gap-1.5 min-w-0", className].filter(Boolean).join(" ")}>
+    <div className={["flex flex-wrap gap-1.5 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
       {chips.map(({ dimension, label, pinType: chipPinType }) => {
         const pinCfg = chipPinType != null ? getPinTypeConfig(chipPinType) : null
         return (
           <span
             key={dimension}
-            className="flex min-w-0 max-w-full items-center gap-1 min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5"
+            className="flex min-w-0 max-w-full items-center gap-1 min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5 pointer-events-auto"
           >
             {pinCfg != null && chipPinType != null && (
               <span
@@ -140,7 +142,8 @@ export default function MapFilters({
             "flex-row items-start",
             filterChips.length === 0 && "justify-end",
             "sm:flex-col-reverse sm:items-end",
-            position === "top-right" && "sm:ml-auto"
+            position === "top-right" && "sm:ml-auto",
+            "pointer-events-none"
           ]
             .filter(Boolean)
             .join(" ")}
@@ -155,7 +158,7 @@ export default function MapFilters({
           <button
             type="button"
             onClick={open}
-            className="inline-flex shrink-0 items-center gap-1 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg hover:bg-base-200/90 dark:hover:bg-base-200/85 active:opacity-90 transition-colors"
+            className="inline-flex shrink-0 items-center gap-1 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg hover:bg-base-200/90 dark:hover:bg-base-200/85 active:opacity-90 transition-colors pointer-events-auto"
             aria-expanded={expanded}
             aria-controls={panelId}
             aria-label={`${filtersSummary}. Add or change filters.`}

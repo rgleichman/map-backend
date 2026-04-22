@@ -95,17 +95,12 @@ export default function FloatingPanel({
   const triggerHiddenWhenExpanded = alwaysVisibleOnDesktop
   const isTopLeft = position === "top-left"
   const isTopRight = position === "top-right"
-  const isTop = isTopLeft || isTopRight
   const top = topOffset ?? topLeftTop
   const triggerStyle = isTopLeft
     ? { top: top, left: safeLeft }
     : isTopRight
       ? { top: top, right: safeRight }
       : { bottom: safeBottom, left: safeLeft }
-  /** Top custom triggers span both horizontal safe insets so inner `w-full` uses real map width. */
-  const customTriggerWrapperStyle = isTop
-    ? { top, left: safeLeft, right: safeRight }
-    : triggerStyle
   const panelStyle = isTopLeft
     ? { top: top, left: safeLeft }
     : isTopRight
@@ -117,13 +112,13 @@ export default function FloatingPanel({
       {renderTrigger && showTrigger && renderCustomTrigger && (
         <div
           className={[
-            "absolute z-10",
+            "absolute z-10 pointer-events-none",
             alwaysVisibleOnDesktop && "sm:hidden",
             (triggerHiddenWhenExpanded || expanded) && "hidden"
           ]
             .filter(Boolean)
             .join(" ")}
-          style={customTriggerWrapperStyle}
+          style={triggerStyle}
         >
           {renderCustomTrigger({ open: () => setExpanded(true), expanded, panelId })}
         </div>
