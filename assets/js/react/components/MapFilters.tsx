@@ -138,23 +138,14 @@ export default function MapFilters({
       renderCustomTrigger={({ open, expanded, panelId }) => (
         <div
           className={[
-            "flex gap-2 min-w-0 w-full sm:max-w-[min(100vw-2rem,22rem)]",
-            "flex-row items-start",
+            "flex flex-col items-end gap-2 min-w-0 w-full sm:max-w-[min(100vw-2rem,22rem)]",
             filterChips.length === 0 && "justify-end",
-            "sm:flex-col-reverse sm:items-end",
             position === "top-right" && "sm:ml-auto",
             "pointer-events-none"
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          {filterChips.length > 0 && (
-            <ActiveFilterChips
-              filter={filter}
-              setFilter={setFilter}
-              className="min-w-0 flex-1 justify-start sm:flex-none sm:w-full sm:justify-end"
-            />
-          )}
           <button
             type="button"
             onClick={open}
@@ -166,6 +157,13 @@ export default function MapFilters({
             <span>Filter by</span>
             <ChevronDownIcon className="opacity-70 shrink-0" />
           </button>
+          {filterChips.length > 0 && (
+            <ActiveFilterChips
+              filter={filter}
+              setFilter={setFilter}
+              className="w-full justify-end"
+            />
+          )}
         </div>
       )}
       renderPanelHeader={(close) => (
