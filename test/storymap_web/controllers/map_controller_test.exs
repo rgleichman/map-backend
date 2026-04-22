@@ -18,8 +18,13 @@ defmodule StorymapWeb.MapControllerTest do
       body = json_response(conn, 200)
       assert body["projection"] == %{"type" => "globe"}
       sources = body["sources"] || %{}
-      assert sources["satellite"]["url"] == "/api/map/tiles.json?layer=satellite-v2"
       assert sources["openmaptiles"]["url"] == "/api/map/tiles.json?layer=v3"
+
+      # Some styles (e.g. :street) don't include satellite sources.
+      case sources["satellite"] do
+        %{"url" => url} -> assert url == "/api/map/tiles.json?layer=satellite-v2"
+        _ -> :ok
+      end
     end
   end
 

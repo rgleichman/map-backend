@@ -12,7 +12,7 @@ defmodule StorymapWeb.MapController do
     maptiler_key = Application.get_env(:storymap, :maptiler_api_key)
 
     spec =
-      MapLibre.new(style: :terrain, key: maptiler_key)
+      MapLibre.new(style: :street, key: maptiler_key)
       |> MapLibre.to_spec()
       |> Map.put("projection", %{"type" => "globe"})
       |> maybe_rewrite_style_for_tile_cache()
