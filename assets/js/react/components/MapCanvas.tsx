@@ -133,6 +133,7 @@ export default function MapCanvas({
   const geolocateControlRef = useRef<InstanceType<typeof maplibregl.GeolocateControl> | null>(null)
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
+  const [mapInitError, setMapInitError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchActive, setSearchActive] = useState(false)
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
@@ -177,6 +178,7 @@ export default function MapCanvas({
   useEffect(() => {
     if (!containerRef.current) return
     let isMounted = true
+    setMapInitError(null)
 
     const init = async () => {
       const res = await fetch(styleUrl, { cache: "force-cache" })
@@ -195,7 +197,7 @@ export default function MapCanvas({
         container: containerRef.current!,
         style,
         center: [0, 0],
-        zoom: 2,
+        zoom: 0,
         maxZoom: 17,
         fadeDuration: 50,
         // performance optimization
@@ -324,6 +326,9 @@ export default function MapCanvas({
     }
     init().catch((err) => {
       console.error("Failed to initialize map", err)
+      if (!isMounted) return
+      const message = err instanceof Error ? err.message : "Failed to initialize map"
+      setMapInitError(message)
     })
 
     return () => {
@@ -342,6 +347,7 @@ export default function MapCanvas({
       mapRef.current?.remove()
       mapRef.current = null
       setMapReady(false)
+      setMapInitError(null)
     }
   }, [styleUrl, onMapClick])
 
@@ -494,6 +500,26 @@ export default function MapCanvas({
 
   return (
     <div className="relative w-full h-full">
+      {!mapReady && mapInitError == null && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-base-100/60 text-base-content">
+          <div className="rounded-box bg-base-100 shadow px-4 py-3 text-sm font-medium">
+            Loading map…
+          </div>
+        </div>
+      )}
+      {!mapReady && mapInitError != null && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-base-100/70 text-base-content">
+          <div className="max-w-md rounded-box bg-base-100 shadow px-4 py-3 text-sm">
+            <div className="font-semibold">Map failed to load</div>
+            <div className="mt-1 opacity-80 break-words">{mapInitError}</div>
+            <div className="mt-3">
+              <button className="btn btn-sm" type="button" onClick={() => window.location.reload()}>
+                Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {mapReady && !drawerOpen && (
         <div className={searchActive ? "max-sm:hidden" : "contents"}>
           <MapFilters
