@@ -16,6 +16,7 @@ defmodule StorymapWeb.MapController do
       |> MapLibre.to_spec()
       |> Map.put("projection", %{"type" => "globe"})
       |> maybe_rewrite_style_for_tile_cache()
+      |> clamp_openmaptiles_maxzoom(16)
 
     body = Jason.encode!(spec)
 
@@ -140,6 +141,18 @@ defmodule StorymapWeb.MapController do
 
   defp maybe_rewrite_style_for_tile_cache(spec) do
     if tile_cache_enabled?(), do: rewrite_style_source_urls(spec), else: spec
+  end
+
+  defp clamp_openmaptiles_maxzoom(spec, maxzoom) when is_integer(maxzoom) do
+    sources = spec["sources"] || %{}
+
+    sources =
+      Map.update(sources, "openmaptiles", nil, fn
+        source when is_map(source) -> Map.put(source, "maxzoom", maxzoom)
+        other -> other
+      end)
+
+    Map.put(spec, "sources", sources)
   end
 
   defp request_origin(conn) do

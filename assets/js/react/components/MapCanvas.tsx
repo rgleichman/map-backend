@@ -197,8 +197,10 @@ export default function MapCanvas({
         container: containerRef.current!,
         style,
         center: [0, 0],
-        zoom: 0,
-        maxZoom: 17,
+        zoom: 2,
+        maxZoom: 20,
+        renderWorldCopies: false,
+        refreshExpiredTiles: false,
         fadeDuration: 50,
         // performance optimization
         validateStyle: false,

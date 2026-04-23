@@ -19,6 +19,7 @@ defmodule StorymapWeb.MapControllerTest do
       assert body["projection"] == %{"type" => "globe"}
       sources = body["sources"] || %{}
       assert sources["openmaptiles"]["url"] == "/api/map/tiles.json?layer=v3"
+      assert sources["openmaptiles"]["maxzoom"] == 16
 
       # Some styles (e.g. :street) don't include satellite sources.
       case sources["satellite"] do
