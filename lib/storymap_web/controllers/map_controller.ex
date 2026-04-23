@@ -147,10 +147,13 @@ defmodule StorymapWeb.MapController do
     sources = spec["sources"] || %{}
 
     sources =
-      Map.update(sources, "openmaptiles", nil, fn
-        source when is_map(source) -> Map.put(source, "maxzoom", maxzoom)
-        other -> other
-      end)
+      case sources["openmaptiles"] do
+        source when is_map(source) ->
+          Map.put(sources, "openmaptiles", Map.put(source, "maxzoom", maxzoom))
+
+        _ ->
+          sources
+      end
 
     Map.put(spec, "sources", sources)
   end
