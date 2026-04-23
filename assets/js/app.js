@@ -20,9 +20,9 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
-import {Socket} from "phoenix"
-import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/storymap"
+import { Socket } from "phoenix"
+import { LiveSocket } from "phoenix_live_view"
+import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
 import topbar from "../vendor/topbar"
 import "./user_socket.js"
 // React map is loaded dynamically below when #react-root is present
@@ -30,12 +30,12 @@ import "./user_socket.js"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  params: { _csrf_token: csrfToken },
+  hooks: { ...colocatedHooks },
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
@@ -55,7 +55,7 @@ window.liveSocket = liveSocket
 //     2. click on elements to jump to their definitions in your code editor
 //
 if (process.env.NODE_ENV === "development") {
-  window.addEventListener("phx:live_reload:attached", ({detail: reloader}) => {
+  window.addEventListener("phx:live_reload:attached", ({ detail: reloader }) => {
     // Enable server log streaming to client.
     // Disable with reloader.disableServerLogs()
     reloader.enableServerLogs()
@@ -68,11 +68,11 @@ if (process.env.NODE_ENV === "development") {
     window.addEventListener("keydown", e => keyDown = e.key)
     window.addEventListener("keyup", e => keyDown = null)
     window.addEventListener("click", e => {
-      if(keyDown === "c"){
+      if (keyDown === "c") {
         e.preventDefault()
         e.stopImmediatePropagation()
         reloader.openEditorAtCaller(e.target)
-      } else if(keyDown === "d"){
+      } else if (keyDown === "d") {
         e.preventDefault()
         e.stopImmediatePropagation()
         reloader.openEditorAtDef(e.target)
@@ -87,6 +87,15 @@ if (process.env.NODE_ENV === "development") {
 const reactRoot = document.getElementById("react-root")
 if (reactRoot) {
   import("./react/main.tsx")
+}
+
+// Best-effort client-side caching for MapTiler requests (tiles/sprites/glyphs).
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("Service worker registration failed", err)
+    })
+  })
 }
 
 // Party mode toggle
@@ -119,20 +128,20 @@ const initPartyMode = () => {
     document.getElementById("party-button"),
     document.getElementById("party-button-mobile")
   ].filter(Boolean)
-  
+
   partyButtons.forEach(partyButton => {
     if (!partyButton.dataset.partyInitialized) {
       partyButton.dataset.partyInitialized = "true"
       partyButton.addEventListener("click", () => {
         const isActive = document.body.classList.contains("party-mode")
-        
+
         if (isActive) {
           stopPartyMode(partyButtons[0] || partyButtons[1])
         } else {
           document.documentElement.classList.add("party-mode")
           document.body.classList.add("party-mode")
           partyButtons.forEach(btn => btn.textContent = "🛑 Stop")
-          
+
           let hue = 0
           partyModeInterval = setInterval(() => {
             hue = (hue + 5) % 360
@@ -140,7 +149,7 @@ const initPartyMode = () => {
             document.documentElement.style.filter = filter
             document.body.style.filter = filter
           }, 50)
-          
+
           // Auto-stop after 60 seconds
           partyModeTimeout = setTimeout(() => {
             stopPartyMode(partyButtons[0] || partyButtons[1])

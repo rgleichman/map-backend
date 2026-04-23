@@ -179,7 +179,9 @@ export default function MapCanvas({
     let isMounted = true
 
     const init = async () => {
-      const style = await fetch(styleUrl).then((r) => r.json())
+      const res = await fetch(styleUrl, { cache: "force-cache" })
+      if (!res.ok) throw new Error(`Failed to load map style (${res.status})`)
+      const style = await res.json()
       if (!isMounted) return
       const control = new MapLibreSearchControl({
         minWaitPeriodMs: 500,
@@ -320,7 +322,9 @@ export default function MapCanvas({
         }
       })
     }
-    init()
+    init().catch((err) => {
+      console.error("Failed to initialize map", err)
+    })
 
     return () => {
       isMounted = false

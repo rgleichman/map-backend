@@ -17,7 +17,28 @@ defmodule StorymapWeb.MapController do
       |> Map.put("projection", %{"type" => "globe"})
       |> maybe_rewrite_style_for_tile_cache()
 
-    json(conn, spec)
+    body = Jason.encode!(spec)
+
+    etag =
+      :crypto.hash(:sha256, body)
+      |> Base.encode16(case: :lower)
+      |> then(&"\"#{&1}\"")
+
+    cache_control = "public, max-age=86400, stale-while-revalidate=604800"
+
+    if_none_match = get_req_header(conn, "if-none-match") |> List.first()
+
+    conn =
+      conn
+      |> put_resp_content_type("application/json")
+      |> put_resp_header("cache-control", cache_control)
+      |> put_resp_header("etag", etag)
+
+    if if_none_match == etag do
+      send_resp(conn, 304, "")
+    else
+      send_resp(conn, 200, body)
+    end
   end
 
   def tiles_json(conn, params) do
