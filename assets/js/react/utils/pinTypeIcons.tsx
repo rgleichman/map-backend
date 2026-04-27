@@ -33,7 +33,7 @@ export type PinTypeConfig = {
 const pinTypeConfigs: Record<PinType, PinTypeConfig> = {
   one_time: {
     label: "One-Time Offering",
-    description: "A single food offering event at a specific time",
+    description: "A single food offering at a specific time",
     color: "#f97316",
     backgroundColor: "#fed7aa",
     borderColor: "#f97316",
