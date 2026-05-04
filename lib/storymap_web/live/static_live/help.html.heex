@@ -1,0 +1,96 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="space-y-2 mb-8">
+      <h1 class="text-3xl font-bold text-base-content">Help</h1>
+      <p class="text-base-content/70">
+        How to use Map Garden, and where to get help.
+      </p>
+    </div>
+
+    <div class="space-y-8 text-base-content">
+      <section class="space-y-3" aria-labelledby="help-intro">
+        <h2 id="help-intro" class="text-xl font-semibold">What is Map Garden?</h2>
+        <p class="text-base-content/80">
+          Map Garden is a developing web app. Currently, it allows people to create points of
+          interest across the globe, with special features for Food Banks and similar organizations.
+          Learn more on the <.link navigate={~p"/about"} class="link">About</.link>
+          and <.link navigate={~p"/vision"} class="link">Vision</.link>
+          pages.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-map-guide">
+        <h2 id="help-map-guide" class="text-xl font-semibold">Map guide</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li>Click and drag to interact with the map.</li>
+          <li>
+            Create an account via <span class="font-medium">Register</span>
+            in the top right to be able to create pins.
+          </li>
+          <li>Use the address bar in the map's top-left to search for an address or location.</li>
+          <li>
+            Use the filter button in the map's top-right to filter by pin type and other unique qualities.
+          </li>
+          <li>Note the key in the lower-left for understanding the pin types you are seeing.</li>
+          <li>
+            Clicking on the various pin types described by the key allows you to select them as a filter.
+          </li>
+          <li>
+            To add a pin, log in and click the map where you want the pin. You'll be asked to choose a pin type and fill in details.
+          </li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-top-bar-guide">
+        <h2 id="help-top-bar-guide" class="text-xl font-semibold">Top bar guide</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li><span class="font-medium">Party Mode:</span> Try it yourself!</li>
+          <li><span class="font-medium">Register:</span> To create an account.</li>
+          <li><span class="font-medium">Log In:</span> To get back into your account.</li>
+          <li>
+            <span class="font-medium">Light/Dark Mode:</span>
+            Toggle the map between match-system-settings, light mode, or dark mode.
+          </li>
+        </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-tell-friends">
+        <h2 id="help-tell-friends" class="text-xl font-semibold">Tell your friends</h2>
+        <p class="text-base-content/80">
+          Map Garden grows when more people add the places they know. Share the site with
+          friends, neighbors, and any local organizations who might benefit.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-report">
+        <h2 id="help-report" class="text-xl font-semibold">Report an issue</h2>
+        <p class="text-base-content/80">
+          Found a bug, or have an idea? Please <a
+            href="https://github.com/rgleichman/map-backend/issues/new/choose"
+            class="link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >open an issue on GitHub</a>. You can also ask questions in our
+          <a
+            href="https://github.com/rgleichman/map-backend/discussions/categories/q-a"
+            class="link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub Discussions Q&amp;A
+          </a>
+          category.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-more">
+        <h2 id="help-more" class="text-xl font-semibold">More</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li><.link navigate={~p"/about"} class="link">About Map Garden</.link></li>
+          <li><.link navigate={~p"/vision"} class="link">Our vision</.link></li>
+          <li><.link navigate={~p"/privacy-policy"} class="link">Privacy Policy</.link></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</Layouts.app>

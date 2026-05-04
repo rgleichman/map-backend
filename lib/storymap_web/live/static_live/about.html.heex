@@ -1,0 +1,72 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="space-y-2 mb-8">
+      <h1 class="text-3xl font-bold text-base-content">About Map Garden</h1>
+      <p class="text-base-content/70">
+        Who we are and why we made this.
+      </p>
+    </div>
+
+    <div class="space-y-8 text-base-content">
+      <section class="space-y-3" aria-labelledby="about-what">
+        <h2 id="about-what" class="text-xl font-semibold">What is Map Garden?</h2>
+        <p class="text-base-content/80">
+          Map Garden is a developing web app that lets people create and discover points of interest
+          across the globe. It includes special features for Food Banks and similar organizations,
+          such as schedules and 24/7 availability, so communities can find resources when they need them.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="about-why">
+        <h2 id="about-why" class="text-xl font-semibold">Why we made it</h2>
+        <p class="text-base-content/80">
+          We wanted a fast, friendly map where anyone can contribute the places that matter to them
+          and their community. Existing maps are great for navigation, but they're not optimized for
+          local resources, recurring events, or community-shared knowledge. Map Garden is our take on
+          that gap, built in the open.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="about-team">
+        <h2 id="about-team" class="text-xl font-semibold">Who we are</h2>
+        <p class="text-base-content/80">
+          Map Garden is built by a small team that cares about open data, accessibility, and helping
+          local organizations reach the people they serve. The project is open source on <a
+            href="https://github.com/rgleichman/map-backend"
+            class="link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >GitHub</a>.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="about-tell-friends">
+        <h2 id="about-tell-friends" class="text-xl font-semibold">Tell your friends</h2>
+        <p class="text-base-content/80">
+          Map Garden grows when more people add the places they know. If you find it useful, please
+          share it with friends, neighbors, and any local organizations who might benefit.
+        </p>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="about-links">
+        <h2 id="about-links" class="text-xl font-semibold">Learn more</h2>
+        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
+          <li><.link navigate={~p"/vision"} class="link">Our vision for Map Garden</.link></li>
+          <li>
+            <.link navigate={~p"/help"} class="link">Help &amp; how to use Map Garden</.link>
+          </li>
+          <li>
+            <a
+              href="https://github.com/rgleichman/map-backend/issues/new/choose"
+              class="link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Report an issue or request a feature
+            </a>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</Layouts.app>

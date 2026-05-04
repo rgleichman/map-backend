@@ -4,6 +4,7 @@ import PinModal from "./components/PinModal"
 import PinTypeModal from "./components/PinTypeModal"
 import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
+import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
 import type { NewPin, Pin, PinType, UpdatePin } from "./types"
 import * as api from "./api/client"
@@ -244,6 +245,8 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
+
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
   const isDesktop = useIsDesktop()
   const [initialPinId] = useState(parseInitialPinId)
@@ -252,6 +255,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [showWelcome, setShowWelcome] = useState(false)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
   const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7 } = draft
@@ -281,6 +285,28 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       setPins(data)
     }).finally(() => setLoading(false))
   }, [])
+
+  // Show welcome modal on first visit (per browser). Errors reading localStorage
+  // (e.g. private mode, storage disabled) are non-fatal: we just don't show it.
+  useEffect(() => {
+    try {
+      const seen = window.localStorage.getItem(WELCOME_SEEN_STORAGE_KEY)
+      if (!seen) setShowWelcome(true)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const closeWelcome = useCallback(() => {
+    setShowWelcome(false)
+    try {
+      window.localStorage.setItem(WELCOME_SEEN_STORAGE_KEY, "1")
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const openWelcome = useCallback(() => setShowWelcome(true), [])
 
   // Clear stale ?pin= from URL if pin not in list
   useEffect(() => {
@@ -542,6 +568,20 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       {modal?.mode === "login-required" && (
         <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
       )}
+
+      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+
+      {/* Floating Help button: re-opens the welcome/help modal on the map. z-30 keeps it below
+          placement bar (z-40) and modals (z-50+). */}
+      <button
+        type="button"
+        onClick={openWelcome}
+        aria-label="Open help"
+        title="Help"
+        className="fixed right-3 bottom-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+      >
+        ?
+      </button>
 
       {/* Desktop: side panel for type selection and add/edit form (hidden while picking location) */}
       {isDesktop && !placement && modal && (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit") && (

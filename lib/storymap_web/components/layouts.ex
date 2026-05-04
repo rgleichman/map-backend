@@ -12,6 +12,7 @@ defmodule StorymapWeb.Layouts do
   embed_templates "layouts/*"
 
   @github_repo "https://github.com/rgleichman/map-backend"
+  @github_issues_new "https://github.com/rgleichman/map-backend/issues/new/choose"
 
   @doc """
   Renders your app layout.
@@ -108,11 +109,15 @@ defmodule StorymapWeb.Layouts do
     assigns =
       assigns
       |> assign(:github_url, @github_repo)
+      |> assign(:github_issues_new_url, @github_issues_new)
       |> assign(:privacy_active?, path == "/privacy-policy")
       |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
       |> assign(:admin_active?, String.starts_with?(path, "/admin"))
       |> assign(:register_active?, path == "/users/register")
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
+      |> assign(:about_active?, path == "/about")
+      |> assign(:vision_active?, path == "/vision")
+      |> assign(:help_active?, path == "/help")
 
     ~H"""
     <%= if @current_path != "/" && @current_path != "/map" do %>
@@ -145,7 +150,63 @@ defmodule StorymapWeb.Layouts do
         </button>
       <% end %>
     </li>
+    <li>
+      <%= if @variant == "desktop" do %>
+        <.link
+          navigate={~p"/help"}
+          class={nav_btn_classes(@help_active?)}
+          aria-current={if(@help_active?, do: "page")}
+        >
+          Help
+        </.link>
+      <% else %>
+        <.link
+          navigate={~p"/help"}
+          class={[
+            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+            @help_active? && "bg-base-300 font-medium"
+          ]}
+          aria-current={if(@help_active?, do: "page")}
+        >
+          Help
+        </.link>
+      <% end %>
+    </li>
     <%= if @variant == "mobile" do %>
+      <li>
+        <.link
+          navigate={~p"/about"}
+          class={[
+            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+            @about_active? && "bg-base-300 font-medium"
+          ]}
+          aria-current={if(@about_active?, do: "page")}
+        >
+          About
+        </.link>
+      </li>
+      <li>
+        <.link
+          navigate={~p"/vision"}
+          class={[
+            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+            @vision_active? && "bg-base-300 font-medium"
+          ]}
+          aria-current={if(@vision_active?, do: "page")}
+        >
+          Vision
+        </.link>
+      </li>
+      <li>
+        <a
+          href={@github_issues_new_url}
+          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Report an issue
+        </a>
+      </li>
       <li>
         <a
           href={@github_url}
@@ -321,7 +382,11 @@ defmodule StorymapWeb.Layouts do
     assigns =
       assigns
       |> assign(:github_url, @github_repo)
+      |> assign(:github_issues_new_url, @github_issues_new)
       |> assign(:privacy_active?, assigns.current_path == "/privacy-policy")
+      |> assign(:about_active?, assigns.current_path == "/about")
+      |> assign(:vision_active?, assigns.current_path == "/vision")
+      |> assign(:help_active?, assigns.current_path == "/help")
 
     footer_link_base =
       "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
@@ -331,6 +396,8 @@ defmodule StorymapWeb.Layouts do
         "-1px_0_0_#000,1px_0_0_#000,0_-1px_0_#000,0_1px_0_#000]"
 
     assigns = assign(assigns, :footer_link_base, footer_link_base)
+    active_classes = "font-semibold underline decoration-2 underline-offset-2"
+    assigns = assign(assigns, :footer_active_classes, active_classes)
 
     ~H"""
     <%!-- z-30: below map React overlays (placement bar, side panel) at z-40 --%>
@@ -339,6 +406,53 @@ defmodule StorymapWeb.Layouts do
         class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 sm:gap-4"
         aria-label="Site links"
       >
+        <.link
+          navigate={~p"/about"}
+          class={[
+            @footer_link_base,
+            @about_active? && @footer_active_classes
+          ]}
+          data-footer-nav
+          data-footer-path="/about"
+          data-footer-active-classes={@footer_active_classes}
+          aria-current={if(@about_active?, do: "page")}
+        >
+          About
+        </.link>
+        <.link
+          navigate={~p"/vision"}
+          class={[
+            @footer_link_base,
+            @vision_active? && @footer_active_classes
+          ]}
+          data-footer-nav
+          data-footer-path="/vision"
+          data-footer-active-classes={@footer_active_classes}
+          aria-current={if(@vision_active?, do: "page")}
+        >
+          Vision
+        </.link>
+        <.link
+          navigate={~p"/help"}
+          class={[
+            @footer_link_base,
+            @help_active? && @footer_active_classes
+          ]}
+          data-footer-nav
+          data-footer-path="/help"
+          data-footer-active-classes={@footer_active_classes}
+          aria-current={if(@help_active?, do: "page")}
+        >
+          Help
+        </.link>
+        <a
+          href={@github_issues_new_url}
+          class={@footer_link_base}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Report an issue
+        </a>
         <a
           href={@github_url}
           class={@footer_link_base}
@@ -351,8 +465,11 @@ defmodule StorymapWeb.Layouts do
           navigate={~p"/privacy-policy"}
           class={[
             @footer_link_base,
-            @privacy_active? && "font-semibold underline decoration-2 underline-offset-2"
+            @privacy_active? && @footer_active_classes
           ]}
+          data-footer-nav
+          data-footer-path="/privacy-policy"
+          data-footer-active-classes={@footer_active_classes}
           aria-current={if(@privacy_active?, do: "page")}
         >
           Privacy Policy

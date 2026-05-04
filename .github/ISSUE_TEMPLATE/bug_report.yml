@@ -1,0 +1,93 @@
+name: Bug report
+description: Report a problem with Map Garden so we can fix it.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! The more detail you provide, the faster we can fix it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the problem you encountered.
+      placeholder: When I clicked on the map, ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click '...'
+        3. Scroll to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: false
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Include any error messages.
+    validations:
+      required: false
+  - type: input
+    id: page-url
+    attributes:
+      label: Page URL
+      description: The URL where the issue occurred (please remove anything sensitive).
+      placeholder: https://mapgarden.example/...
+    validations:
+      required: false
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      multiple: false
+      options:
+        - Desktop
+        - Mobile
+        - Tablet
+        - Other
+    validations:
+      required: false
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: e.g. Chrome 124, Firefox 126, Safari 17.4
+      placeholder: Chrome 124
+    validations:
+      required: false
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: e.g. macOS 14.5, Windows 11, iOS 17, Android 14, Ubuntu 24.04
+      placeholder: macOS 14.5
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: If applicable, drag and drop images or a short recording here.
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else we should know?
+    validations:
+      required: false

@@ -170,6 +170,33 @@ if (document.readyState === "loading") {
 // Re-initialize after LiveView navigation
 window.addEventListener("phx:page-loading-stop", initPartyMode)
 
+// Desktop floating footer active link highlighting.
+// The footer lives in the root layout (outside LiveView inner content), so it doesn't re-render
+// on navigation. Instead, update active styles on page load + LiveView navigation.
+const initFooterNavActive = () => {
+  const normalizePath = (p) => {
+    const trimmed = (p || "").replace(/\/+$/, "")
+    return trimmed === "" ? "/" : trimmed
+  }
+  const currentPath = normalizePath(window.location?.pathname)
+  const nodes = Array.from(document.querySelectorAll("[data-footer-nav][data-footer-path]"))
+  nodes.forEach((node) => {
+    const expected = normalizePath(node.getAttribute("data-footer-path"))
+    const activeClasses = (node.getAttribute("data-footer-active-classes") || "").split(" ").filter(Boolean)
+    const isActive = expected === currentPath
+    node.setAttribute("aria-current", isActive ? "page" : "false")
+    activeClasses.forEach((cls) => node.classList.toggle(cls, isActive))
+  })
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initFooterNavActive)
+} else {
+  initFooterNavActive()
+}
+
+window.addEventListener("phx:page-loading-stop", initFooterNavActive)
+
 // Close drawer when clicking drawer-close elements
 const initDrawerClose = () => {
   document.querySelectorAll(".drawer-close").forEach(element => {
