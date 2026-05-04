@@ -177,6 +177,12 @@
   display: none !important;
 }
 
+/* Readability for text over map imagery */
+.text-shadow-map-ui {
+  text-shadow:
+    1px 1px 3px #000;
+}
+
 /* Global height constraints to prevent scrollbar overflow */
 html,
 body {

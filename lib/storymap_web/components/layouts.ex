@@ -390,10 +390,10 @@ defmodule StorymapWeb.Layouts do
 
     footer_link_base =
       "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
-        "text-white bg-transparent shadow-none transition-opacity hover:opacity-80 " <>
+        "text-white drop-shadow-md shadow-md hover:shadow-lg transition-shadow transition-opacity hover:opacity-80 " <>
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-0 " <>
-        "[text-shadow:-1px_-1px_0_#000,1px_-1px_0_#000,-1px_1px_0_#000,1px_1px_0_#000," <>
-        "-1px_0_0_#000,1px_0_0_#000,0_-1px_0_#000,0_1px_0_#000]"
+        "text-shadow-map-ui " <>
+        "bg-black/15"
 
     assigns = assign(assigns, :footer_link_base, footer_link_base)
     active_classes = "font-semibold underline decoration-2 underline-offset-2"
