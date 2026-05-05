@@ -25,6 +25,9 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
 
 const PIN_LABEL_MAX_LEN = 22
 
+const CLUSTER_RADIUS_PX = 16
+const CLUSTER_MAX_ZOOM = 15
+
 function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
   const t = title.trim()
   if (t.length <= max) return t
@@ -55,6 +58,11 @@ const filterMatchOpacityExpr: maplibregl.ExpressionSpecification = [
 
 /** Only draw labels for pins that match the filter so dimmed pins do not affect label collision. */
 const pinLabelsMatchFilter: maplibregl.FilterSpecification = ["==", ["get", "filter_match"], 1]
+const pinLabelsVisibleFilter: maplibregl.FilterSpecification = [
+  "all",
+  ["!", ["has", "point_count"]],
+  ["==", ["get", "filter_match"], 1],
+]
 
 function buildPinFeatures(pinList: Pin[], filterState: FilterState) {
   return pinList.map((pin) => {
@@ -237,8 +245,10 @@ export default function MapCanvas({
         const hasVisiblePopup = document.querySelector(".maplibregl-popup") !== null
         if (hasVisiblePopup) return
 
-        // Ignore clicks on pin icons (handled by pin-icons-layer click)
-        const hit = map.queryRenderedFeatures(e.point, { layers: ["pin-icons-layer"] })
+        // Ignore clicks on pins / clusters (handled by layer click handlers)
+        const hit = map.queryRenderedFeatures(e.point, {
+          layers: ["pin-icons-layer", "pin-clusters-layer", "pin-cluster-count-layer"],
+        })
         if (hit.length > 0) return
 
         onMapClick(e.lngLat.lng, e.lngLat.lat)
@@ -255,11 +265,60 @@ export default function MapCanvas({
           map.addSource("pin-features", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
+            cluster: true,
+            clusterRadius: CLUSTER_RADIUS_PX,
+            clusterMaxZoom: CLUSTER_MAX_ZOOM,
+          })
+          map.addLayer({
+            id: "pin-clusters-layer",
+            type: "circle",
+            source: "pin-features",
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-color": [
+                "step",
+                ["get", "point_count"],
+                "#60a5fa", // blue-400
+                10,
+                "#34d399", // emerald-400
+                50,
+                "#f59e0b", // amber-500
+              ],
+              "circle-radius": [
+                "step",
+                ["get", "point_count"],
+                14,
+                10,
+                18,
+                50,
+                24,
+              ],
+              "circle-opacity": 0.9,
+              "circle-stroke-color": "#ffffff",
+              "circle-stroke-width": 2,
+            },
+          })
+          map.addLayer({
+            id: "pin-cluster-count-layer",
+            type: "symbol",
+            source: "pin-features",
+            filter: ["has", "point_count"],
+            layout: {
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-font": ["Open Sans Bold", "sans-serif"],
+              "text-size": 12,
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+            },
+            paint: {
+              "text-color": "#0b1220",
+            },
           })
           map.addLayer({
             id: "pin-icons-layer",
             type: "symbol",
             source: "pin-features",
+            filter: ["!", ["has", "point_count"]],
             layout: {
               "icon-image": ["get", "pin_type_icon"],
               "icon-size": 1,
@@ -276,7 +335,7 @@ export default function MapCanvas({
             id: "pin-labels-layer",
             type: "symbol",
             source: "pin-features",
-            filter: pinLabelsMatchFilter,
+            filter: pinLabelsVisibleFilter,
             layout: {
               "text-field": ["get", "title"],
               "text-font": ["Open Sans Bold", "sans-serif"],
@@ -312,10 +371,33 @@ export default function MapCanvas({
             if (!pin) return
             openPinPopup(map, pin)
           })
+          map.on("click", "pin-clusters-layer", (e) => {
+            const feature = e.features?.[0]
+            if (!feature) return
+            const clusterId = feature.properties?.cluster_id as number | undefined
+            if (clusterId == null) return
+
+            const source = map.getSource("pin-features") as maplibregl.GeoJSONSource
+            source.getClusterExpansionZoom(clusterId).then((zoom) => {
+              const coords = feature.geometry.type === "Point" ? feature.geometry.coordinates : null
+              if (!coords) return
+              map.easeTo({
+                center: coords as [number, number],
+                zoom,
+                duration: 350,
+              })
+            })
+          })
           map.on("mouseenter", "pin-icons-layer", () => {
             map.getCanvas().style.cursor = "pointer"
           })
           map.on("mouseleave", "pin-icons-layer", () => {
+            map.getCanvas().style.cursor = ""
+          })
+          map.on("mouseenter", "pin-clusters-layer", () => {
+            map.getCanvas().style.cursor = "pointer"
+          })
+          map.on("mouseleave", "pin-clusters-layer", () => {
             map.getCanvas().style.cursor = ""
           })
 
