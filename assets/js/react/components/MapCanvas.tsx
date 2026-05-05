@@ -386,6 +386,8 @@ export default function MapCanvas({
                 zoom,
                 duration: 350,
               })
+            }).catch((err) => {
+              console.warn("Cluster expansion zoom failed", err)
             })
           })
           map.on("mouseenter", "pin-icons-layer", () => {
@@ -633,5 +635,4 @@ export default function MapCanvas({
     </div>
   )
 }
-
 
