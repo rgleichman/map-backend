@@ -64,5 +64,5 @@ msgstr ""
 
 #: lib/storymap_web/components/layouts/root.html.heex:58
 #, elixir-autogen, elixir-format
-msgid "Mapgarden"
+msgid "Map Garden"
 msgstr ""

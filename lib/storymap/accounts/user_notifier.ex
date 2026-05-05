@@ -9,7 +9,7 @@ defmodule Storymap.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"Mapgarden", "no-reply@mapgarden.net"})
+      |> from({"Map Garden", "no-reply@mapgarden.net"})
       |> subject(subject)
       |> text_body(body)
 
