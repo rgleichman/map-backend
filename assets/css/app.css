@@ -109,6 +109,16 @@
   display: contents
 }
 
+/* Match MapLibre UI chrome (controls, popups, attribution) to the site font.
+   Overrides the library default of "Helvetica Neue, Arial, Helvetica, sans-serif"
+   so map controls/popups/attribution use Raleway via inheritance from body. */
+.maplibregl-map,
+.maplibregl-map .maplibregl-ctrl,
+.maplibregl-popup-content,
+.maplibregl-ctrl-attrib {
+  font-family: inherit;
+}
+
 /* Fix MapLibre popup contrast to adapt to browser theme */
 .maplibregl-popup-content {
   background: var(--color-base-100) !important;
