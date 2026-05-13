@@ -83,6 +83,66 @@
         </p>
       </section>
 
+      <section class="space-y-3" aria-labelledby="contact-us">
+        <h2 id="contact-us" class="text-xl font-semibold">Contact Us</h2>
+
+        <%= if @contact_sent do %>
+          <div class="alert alert-success" role="status">
+            Thanks! Your message has been sent to the Map Garden Team. We'll be in touch.
+          </div>
+        <% else %>
+          <p class="text-base-content/80">
+            Send us a note and we'll get back to you by email.
+          </p>
+
+          <.form
+            for={@contact_form}
+            id="contact-form"
+            phx-change="validate_contact"
+            phx-submit="send_contact"
+            class="relative space-y-3 max-w-md"
+          >
+            <%!-- Honeypot: bots often fill every field; humans should not see or tab to this. --%>
+            <div
+              class="absolute -left-[9999px] top-auto h-px w-px overflow-hidden"
+              aria-hidden="true"
+            >
+              <label for="contact-website">Website</label>
+              <input
+                type="text"
+                name="contact[website]"
+                id="contact-website"
+                autocomplete="off"
+                tabindex="-1"
+                value=""
+              />
+            </div>
+            <.input field={@contact_form[:name]} type="text" label="Name" required />
+            <.input field={@contact_form[:email]} type="email" label="Email" required />
+            <.input
+              field={@contact_form[:message]}
+              type="textarea"
+              label="Message"
+              rows="5"
+              required
+            />
+            <button class="btn btn-primary" type="submit" phx-disable-with="Sending…">
+              Send message
+            </button>
+          </.form>
+
+          <p class="text-sm text-base-content/60">
+            Prefer your own email client? Email us directly at
+            <a
+              href="mailto:info@mapgarden.net?subject=Map%20Garden%20Inquiry"
+              class="link link-primary"
+            >
+              info@mapgarden.net
+            </a>.
+          </p>
+        <% end %>
+      </section>
+
       <section class="space-y-3" aria-labelledby="help-more">
         <h2 id="help-more" class="text-xl font-semibold">More</h2>
         <ul class="list-disc pl-5 space-y-2 text-base-content/80">

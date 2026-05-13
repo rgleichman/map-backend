@@ -27,6 +27,19 @@ defmodule StorymapWeb.Plugs.RateLimit do
     end
   end
 
+  @doc """
+  Sliding-window limit for Help page contact form submissions, keyed by client IP string.
+  Uses the same ETS table as `call/2` but a distinct key prefix so limits stay independent
+  of other plugs. Respects the same `enabled: false` config as the plug (e.g. in test).
+  """
+  def contact_form_check(client_ip) when is_binary(client_ip) do
+    if enabled?() do
+      check("contact_form:" <> client_ip, 5, 3600)
+    else
+      :allow
+    end
+  end
+
   defp enabled? do
     Application.get_env(:storymap, __MODULE__, [])[:enabled] != false
   end
