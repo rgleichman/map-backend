@@ -474,7 +474,31 @@ defmodule StorymapWeb.Layouts do
         >
           Privacy Policy
         </.link>
+        <span class={[@footer_link_base, "cursor-default select-none opacity-80"]}>
+          © {current_year()} Map Garden
+        </span>
       </nav>
+    </div>
+    """
+  end
+
+  @doc "Returns the current UTC year, used for the site-wide copyright footer."
+  def current_year, do: Date.utc_today().year
+
+  @doc """
+  Small fixed-position copyright shown only on screens narrower than `md`,
+  where the desktop floating link bar is hidden. Stays unobtrusive at the
+  bottom of the viewport so it's present on every page including the map.
+  """
+  def mobile_site_copyright(assigns) do
+    ~H"""
+    <div
+      class="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center pb-1 md:hidden"
+      aria-hidden="true"
+    >
+      <span class="rounded-full bg-base-100/80 px-2 py-0.5 text-[11px] text-base-content/70 backdrop-blur-sm select-none shadow-sm">
+        © {current_year()} Map Garden
+      </span>
     </div>
     """
   end
