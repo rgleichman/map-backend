@@ -102,6 +102,7 @@ defmodule StorymapWeb.Layouts do
   attr :variant, :string, required: true, values: ["desktop", "mobile"]
   attr :current_path, :string, required: true
   attr :current_scope, :map, default: nil
+  attr :admin_activity_unread_count, :integer, default: 0
 
   def nav_menu_items(assigns) do
     path = assigns.current_path
@@ -112,7 +113,8 @@ defmodule StorymapWeb.Layouts do
       |> assign(:github_issues_new_url, @github_issues_new)
       |> assign(:privacy_active?, path == "/privacy-policy")
       |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
-      |> assign(:admin_active?, String.starts_with?(path, "/admin"))
+      |> assign(:admin_active?, String.starts_with?(path, "/admin/users"))
+      |> assign(:admin_activity_active?, String.starts_with?(path, "/admin/activity"))
       |> assign(:register_active?, path == "/users/register")
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
       |> assign(:about_active?, path == "/about")
@@ -232,6 +234,32 @@ defmodule StorymapWeb.Layouts do
     <% end %>
     <%= if @current_scope do %>
       <%= if @variant == "desktop" do %>
+        <%= if @current_scope.user.admin_level >= 10 do %>
+          <li>
+            <.link
+              navigate={~p"/admin/activity"}
+              class={[
+                nav_btn_classes(@admin_activity_active?),
+                "relative"
+              ]}
+              aria-current={if(@admin_activity_active?, do: "page")}
+              aria-label="Admin activity"
+            >
+              <.icon name="hero-bell" class="size-5" />
+              <span class="sr-only">Activity</span>
+              <span
+                class={[
+                  "badge badge-primary badge-sm absolute -top-2 -right-2",
+                  @admin_activity_unread_count == 0 && "hidden"
+                ]}
+                id="admin-activity-unread-badge"
+              >
+                {@admin_activity_unread_count}
+              </span>
+            </.link>
+          </li>
+        <% end %>
+
         <li class="dropdown dropdown-end hidden md:block">
           <button
             type="button"
@@ -288,6 +316,35 @@ defmodule StorymapWeb.Layouts do
             User #{@current_scope.user.id}
           </span>
         </li>
+        <%= if @current_scope.user.admin_level >= 10 do %>
+          <li>
+            <.link
+              href={~p"/admin/activity"}
+              class={[
+                "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+                @admin_activity_active? && "bg-base-300 font-medium"
+              ]}
+              aria-current={if(@admin_activity_active?, do: "page")}
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <.icon name="hero-bell" class="size-5 opacity-80" />
+                  <span>Activity</span>
+                </div>
+                <span
+                  class={[
+                    "badge badge-primary badge-sm",
+                    @admin_activity_unread_count == 0 && "hidden"
+                  ]}
+                  id="admin-activity-unread-badge-mobile"
+                >
+                  {@admin_activity_unread_count}
+                </span>
+              </div>
+            </.link>
+          </li>
+        <% end %>
+
         <%= if @current_scope.user.admin_level >= 10 do %>
           <li>
             <.link

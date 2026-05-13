@@ -1,6 +1,7 @@
 defmodule StorymapWeb.AdminLive.Users do
   use StorymapWeb, :live_view
 
+  alias Storymap.AdminActivity
   alias Storymap.Accounts
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
@@ -73,6 +74,12 @@ defmodule StorymapWeb.AdminLive.Users do
     else
       case Accounts.set_user_muted(scope, target_user, muted?) do
         {:ok, %User{} = updated_user} ->
+          _ =
+            AdminActivity.record_event("user_mute_toggled", current_user.id, %{
+              "target_user_id" => updated_user.id,
+              "muted" => muted?
+            })
+
           {:noreply,
            socket
            |> put_flash(:info, mute_flash_message(updated_user))
@@ -110,6 +117,12 @@ defmodule StorymapWeb.AdminLive.Users do
              Accounts.update_user_admin_level(scope, target_user, %{
                "admin_level" => admin_level
              }) do
+        _ =
+          AdminActivity.record_event("user_admin_level_updated", current_user.id, %{
+            "target_user_id" => updated_user.id,
+            "admin_level" => updated_user.admin_level
+          })
+
         {:noreply,
          socket
          |> put_flash(:info, "Updated admin level for user #{updated_user.id}.")

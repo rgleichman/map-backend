@@ -11,6 +11,7 @@ defmodule StorymapWeb.UserSocket do
   # pointing to the `StorymapWeb.RoomChannel`:
   #
   channel "map:*", StorymapWeb.MapChannel
+  channel "admin:*", StorymapWeb.AdminActivityChannel
   #
   # To create a channel file, use the mix task:
   #

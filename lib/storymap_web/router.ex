@@ -2,6 +2,7 @@ defmodule StorymapWeb.Router do
   use StorymapWeb, :router
 
   import StorymapWeb.UserAuth
+  alias StorymapWeb.Plugs.RequireAdminLevel
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -15,6 +16,10 @@ defmodule StorymapWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :require_admin_api do
+    plug RequireAdminLevel, min_admin_level: 10
   end
 
   pipeline :rate_limit_login do
@@ -42,6 +47,18 @@ defmodule StorymapWeb.Router do
     get "/map/style", MapController, :style
     get "/map/tiles.json", MapController, :tiles_json
     get "/tiles/:layer/:z/:x/:y", MapController, :tile
+  end
+
+  scope "/api/admin", StorymapWeb do
+    pipe_through [
+      :api,
+      :fetch_session,
+      :fetch_current_scope_for_user,
+      :require_authenticated_user,
+      :require_admin_api
+    ]
+
+    get "/activity/unread-count", AdminActivityController, :unread_count
   end
 
   # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),
@@ -97,6 +114,7 @@ defmodule StorymapWeb.Router do
         {StorymapWeb.AdminAuth, {:require_admin_level, 10}}
       ] do
       live "/admin/users", AdminLive.Users, :index
+      live "/admin/activity", AdminLive.Activity, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password

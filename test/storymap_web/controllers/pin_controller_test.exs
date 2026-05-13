@@ -31,6 +31,30 @@ defmodule StorymapWeb.PinControllerTest do
   describe "create pin" do
     setup :register_and_log_in_user
 
+    test "records pin_created admin activity event", %{conn: conn, user: user} do
+      import Ecto.Query
+
+      title = "admin-audit-create-#{System.unique_integer([:positive])}"
+      attrs = Map.put(@create_attrs, :title, title)
+
+      conn = post(conn, ~p"/api/pins", pin: attrs)
+      assert %{"id" => pin_id} = json_response(conn, 201)["data"]
+
+      event =
+        Storymap.Repo.one!(
+          from(e in Storymap.AdminActivity.Event,
+            where:
+              e.type == "pin_created" and
+                e.actor_user_id == ^user.id and
+                fragment("?->>'title' = ?", e.metadata, ^title),
+            order_by: [desc: e.id],
+            limit: 1
+          )
+        )
+
+      assert event.metadata["pin_id"] == pin_id
+    end
+
     test "renders pin when data is valid", %{conn: conn} do
       conn = post(conn, ~p"/api/pins", pin: @create_attrs)
       assert %{"id" => id} = json_response(conn, 201)["data"]
@@ -77,6 +101,27 @@ defmodule StorymapWeb.PinControllerTest do
                "longitude" => 456.7,
                "title" => "some updated title"
              } = json_response(conn, 200)["data"]
+    end
+
+    test "records pin_updated admin activity event with diff", %{conn: conn, pin: pin} do
+      import Ecto.Query
+
+      conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
+      assert json_response(conn, 200)
+
+      event =
+        Storymap.Repo.one!(
+          from(e in Storymap.AdminActivity.Event,
+            where:
+              e.type == "pin_updated" and
+                fragment("(?->>'pin_id')::integer = ?", e.metadata, ^pin.id),
+            order_by: [desc: e.id],
+            limit: 1
+          )
+        )
+
+      assert %{"changes" => changes} = event.metadata["diff"]
+      assert Map.has_key?(changes, "title")
     end
 
     test "renders errors when data is invalid", %{conn: conn, pin: pin} do

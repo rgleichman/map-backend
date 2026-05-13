@@ -6,6 +6,7 @@ defmodule Storymap.Accounts do
   import Ecto.Query, warn: false
   alias Storymap.Repo
 
+  alias Storymap.AdminActivity
   alias Storymap.Accounts.{EmailIdentifier, User, UserToken, UserNotifier}
   alias Storymap.Accounts.Scope
 
@@ -33,6 +34,11 @@ defmodule Storymap.Accounts do
 
   """
   def get_user!(id), do: Repo.get!(User, id)
+
+  @doc """
+  Gets a single user, or `nil` if the user does not exist.
+  """
+  def get_user(id) when is_integer(id), do: Repo.get(User, id)
 
   def list_users_for_admin(%Scope{user: %User{admin_level: admin_level}})
       when admin_level >= 10 do
@@ -82,6 +88,14 @@ defmodule Storymap.Accounts do
     %User{}
     |> User.email_changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, %User{} = user} ->
+        _ = AdminActivity.record_event("user_registered", user.id, %{"user_id" => user.id})
+        {:ok, user}
+
+      {:error, _} = err ->
+        err
+    end
   end
 
   ## Settings

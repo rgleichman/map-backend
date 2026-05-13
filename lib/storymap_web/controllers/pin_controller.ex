@@ -1,8 +1,10 @@
 defmodule StorymapWeb.PinController do
   use StorymapWeb, :controller
 
+  alias Storymap.AdminActivity
   alias Storymap.Pins
   alias Storymap.Pins.Pin
+  alias Storymap.Pins.PinDiff
 
   action_fallback StorymapWeb.FallbackController
 
@@ -32,6 +34,13 @@ defmodule StorymapWeb.PinController do
 
       with {:ok, %Pin{} = pin} <- pin_result do
         pin = Storymap.Repo.preload(pin, :tags)
+
+        _ =
+          AdminActivity.record_event("pin_created", user.id, %{
+            "pin_id" => pin.id,
+            "title" => pin.title
+          })
+
         # Broadcast without user_id to prevent user enumeration
         # Creator receives full pin data (with user_id) from API response
         StorymapWeb.Endpoint.broadcast(
@@ -70,8 +79,19 @@ defmodule StorymapWeb.PinController do
         |> put_view(json: StorymapWeb.ErrorJSON)
         |> render(:"403")
       else
+        pin = Storymap.Repo.preload(pin, :tags)
+        before_pin = pin
+
         with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params) do
           pin = Storymap.Repo.preload(pin, :tags)
+
+          _ =
+            AdminActivity.record_event("pin_updated", current_user.id, %{
+              "pin_id" => pin.id,
+              "title" => pin.title,
+              "diff" => PinDiff.diff(before_pin, pin)
+            })
+
           # Broadcast without user_id to prevent user enumeration
           # Editor receives full pin data (with user_id) from API response
           StorymapWeb.Endpoint.broadcast(
@@ -103,8 +123,15 @@ defmodule StorymapWeb.PinController do
         |> render(:"403")
       else
         pin_id = pin.id
+        pin_title = pin.title
 
         with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
+          _ =
+            AdminActivity.record_event("pin_deleted", current_user.id, %{
+              "pin_id" => pin_id,
+              "title" => pin_title
+            })
+
           # Broadcast deletion to all users
           StorymapWeb.Endpoint.broadcast(
             "map:world",

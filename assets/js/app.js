@@ -1,6 +1,5 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
-// to get started and then uncomment the line below.
-// import "./user_socket.js"
+// Phoenix channels: `user_socket.js` (imported below) connects the map channel and admin
+// activity unread refresh.
 
 // You can include dependencies in two ways.
 //
@@ -221,4 +220,36 @@ if (document.readyState === "loading") {
 
 // Re-initialize after LiveView navigation
 window.addEventListener("phx:page-loading-stop", initDrawerClose)
+
+// Format <time data-utc="..."> nodes into local time.
+const initLocalTimes = () => {
+  const nodes = Array.from(document.querySelectorAll("time[data-utc]"))
+  if (nodes.length === 0) return
+
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })
+
+  nodes.forEach((node) => {
+    const iso = node.getAttribute("data-utc")
+    if (!iso) return
+    const date = new Date(iso)
+    if (isNaN(date.getTime())) return
+    node.textContent = formatter.format(date)
+    node.setAttribute("title", Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time")
+  })
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLocalTimes)
+} else {
+  initLocalTimes()
+}
+
+window.addEventListener("phx:page-loading-stop", initLocalTimes)
 
