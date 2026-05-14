@@ -9,7 +9,11 @@ defmodule Storymap.Pins do
   alias Storymap.Pins.Pin
 
   @doc """
-  Returns the list of pins ordered by most recently updated/created first.
+  Returns every pin for the public map catalog, ordered by most recently updated first.
+
+  This does not filter by viewer. Callers that need per-user semantics (for example
+  `is_owner` in JSON or templates) must derive that from `current_scope` / `user_id`
+  when building the response. To list only one author's pins, use `list_pins_by_user/1`.
 
   ## Examples
 
@@ -17,14 +21,8 @@ defmodule Storymap.Pins do
       [%Pin{}, ...]
 
   """
-
   def list_pins do
     Repo.all(from p in Pin, preload: [:tags], order_by: [desc: p.updated_at])
-  end
-
-  def list_pins(current_user_id) when not is_nil(current_user_id) do
-    # Return same full Pin structs with tags as list_pins(); view adds is_owner from current_user_id
-    list_pins()
   end
 
   def list_pins_by_user(user_id) when is_integer(user_id) do
