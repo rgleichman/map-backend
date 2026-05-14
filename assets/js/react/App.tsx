@@ -557,6 +557,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
             onPopupClose={onPopupClose}
             filter={filter}
             setFilter={setFilter}
+            csrfToken={csrfToken}
           />
           <PinTypeLegend
             closeRef={legendCloseRef}

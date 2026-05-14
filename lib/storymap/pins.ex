@@ -53,6 +53,16 @@ defmodule Storymap.Pins do
   def get_pin!(id), do: Repo.get!(Pin, id) |> Repo.preload(:tags)
 
   @doc """
+  Gets a single pin or `nil` if it does not exist.
+  """
+  def get_pin(id) when is_integer(id) do
+    case Repo.get(Pin, id) do
+      nil -> nil
+      %Pin{} = pin -> Repo.preload(pin, :tags)
+    end
+  end
+
+  @doc """
   Creates a pin.
 
   ## Examples

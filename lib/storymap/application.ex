@@ -13,6 +13,7 @@ defmodule Storymap.Application do
       TzWorld.Backend.DetsWithIndexCache,
       {DNSCluster, query: Application.get_env(:storymap, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Storymap.PubSub},
+      Storymap.RateLimitPurge,
       # Start a worker by calling: Storymap.Worker.start_link(arg)
       # {Storymap.Worker, arg},
       # Start to serve requests, typically the last entry

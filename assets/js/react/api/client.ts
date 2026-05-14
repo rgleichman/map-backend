@@ -1,4 +1,4 @@
-import type { NewPin, Pin, UpdatePin } from "../types"
+import type { ContentReportPayload, NewPin, Pin, UpdatePin } from "../types"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -52,6 +52,29 @@ export async function deletePin(csrf: string | undefined, id: number): Promise<v
     headers: {
       ...(csrf ? { "x-csrf-token": csrf } : {}),
     },
+    credentials: "same-origin",
+  })
+}
+
+export function submitReport(
+  csrf: string | undefined,
+  payload: ContentReportPayload
+): Promise<{ data: Record<string, unknown> }> {
+  const report = {
+    subject_type: payload.subject_type,
+    subject_id: payload.subject_id,
+    category: payload.category,
+    ...(payload.details != null && payload.details !== ""
+      ? { details: payload.details }
+      : {}),
+  }
+  return jsonFetch("/api/reports", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    body: JSON.stringify({ report }),
     credentials: "same-origin",
   })
 }

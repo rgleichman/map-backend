@@ -101,6 +101,7 @@ type Props = {
   onPopupClose?: () => void
   filter: FilterState
   setFilter: Dispatch<SetStateAction<FilterState>>
+  csrfToken?: string
 }
 
 export default function MapCanvas({
@@ -118,6 +119,7 @@ export default function MapCanvas({
   onPopupClose,
   filter,
   setFilter,
+  csrfToken,
 }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -530,7 +532,7 @@ export default function MapCanvas({
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
-    root.render(<PopupContent pin={pin} />)
+    root.render(<PopupContent pin={pin} csrfToken={csrfToken} />)
     const popup = new Popup({
       closeButton: false,
       locationOccludedOpacity: 0.7,
@@ -568,7 +570,7 @@ export default function MapCanvas({
     if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
       const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
       if (pin) {
-        popupRootRef.current.render(<PopupContent pin={pin} />)
+        popupRootRef.current.render(<PopupContent pin={pin} csrfToken={csrfToken} />)
       }
     }
 
@@ -582,7 +584,7 @@ export default function MapCanvas({
         openPinPopup(map, pin)
       }
     }
-  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter])
+  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken])
 
   return (
     <div className="relative w-full h-full">

@@ -43,3 +43,12 @@ export type UpdatePin = {
   longitude?: number
 }
 
+export type ReportCategory = "inaccurate" | "abusive_or_hateful" | "spam" | "other"
+
+export type ContentReportPayload = {
+  subject_type: "pin"
+  subject_id: number
+  category: ReportCategory
+  details?: string
+}
+

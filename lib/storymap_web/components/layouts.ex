@@ -103,6 +103,7 @@ defmodule StorymapWeb.Layouts do
   attr :current_path, :string, required: true
   attr :current_scope, :map, default: nil
   attr :admin_activity_unread_count, :integer, default: 0
+  attr :admin_reports_unresolved_count, :integer, default: 0
 
   def nav_menu_items(assigns) do
     path = assigns.current_path
@@ -115,6 +116,7 @@ defmodule StorymapWeb.Layouts do
       |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
       |> assign(:admin_active?, String.starts_with?(path, "/admin/users"))
       |> assign(:admin_activity_active?, String.starts_with?(path, "/admin/activity"))
+      |> assign(:admin_reports_active?, String.starts_with?(path, "/admin/reports"))
       |> assign(:register_active?, path == "/users/register")
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
       |> assign(:about_active?, path == "/about")
@@ -258,6 +260,29 @@ defmodule StorymapWeb.Layouts do
               </span>
             </.link>
           </li>
+          <li>
+            <.link
+              navigate={~p"/admin/reports"}
+              class={[
+                nav_btn_classes(@admin_reports_active?),
+                "relative"
+              ]}
+              aria-current={if(@admin_reports_active?, do: "page")}
+              aria-label="Admin content reports"
+            >
+              <.icon name="hero-exclamation-triangle" class="size-5" />
+              <span class="sr-only">Reports</span>
+              <span
+                class={[
+                  "badge badge-secondary badge-sm absolute -top-2 -right-2",
+                  @admin_reports_unresolved_count == 0 && "hidden"
+                ]}
+                id="admin-reports-unresolved-badge"
+              >
+                {@admin_reports_unresolved_count}
+              </span>
+            </.link>
+          </li>
         <% end %>
 
         <li class="dropdown dropdown-end hidden md:block">
@@ -291,6 +316,15 @@ defmodule StorymapWeb.Layouts do
                   aria-current={if(@admin_active?, do: "page")}
                 >
                   Admin
+                </.link>
+              </li>
+              <li>
+                <.link
+                  href={~p"/admin/reports"}
+                  class={["rounded-lg", @admin_reports_active? && "active"]}
+                  aria-current={if(@admin_reports_active?, do: "page")}
+                >
+                  Reports
                 </.link>
               </li>
             <% end %>
@@ -339,6 +373,32 @@ defmodule StorymapWeb.Layouts do
                   id="admin-activity-unread-badge-mobile"
                 >
                   {@admin_activity_unread_count}
+                </span>
+              </div>
+            </.link>
+          </li>
+          <li>
+            <.link
+              href={~p"/admin/reports"}
+              class={[
+                "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+                @admin_reports_active? && "bg-base-300 font-medium"
+              ]}
+              aria-current={if(@admin_reports_active?, do: "page")}
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <.icon name="hero-exclamation-triangle" class="size-5 opacity-80" />
+                  <span>Reports</span>
+                </div>
+                <span
+                  class={[
+                    "badge badge-secondary badge-sm",
+                    @admin_reports_unresolved_count == 0 && "hidden"
+                  ]}
+                  id="admin-reports-unresolved-badge-mobile"
+                >
+                  {@admin_reports_unresolved_count}
                 </span>
               </div>
             </.link>

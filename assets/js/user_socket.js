@@ -1,10 +1,10 @@
 // NOTE: This file is imported from `assets/js/app.js` when channels are enabled.
 
-// Bring in Phoenix channels client library:
+// Bring in the Phoenix channels client library:
 import { Socket } from "phoenix"
 
 // And connect to the path in "lib/storymap_web/endpoint.ex". We pass the
-// token for authentication (from meta tag set by the server).
+// token for authentication (from the meta tag set by the server).
 //
 // Read the [`Using Token Authentication`](https://hexdocs.pm/phoenix/channels.html#using-token-authentication)
 // section to see how the token should be used.
@@ -16,7 +16,7 @@ socket.connect()
 
 // Now that you are connected, you can join channels with a topic.
 // Let's assume you have a channel with a topic named `room` and the
-// subtopic is its id - in this case 42:
+// subtopic is its id - in this case, 42:
 let worldChannel = socket.channel("map:world", {})
 
 worldChannel.join()
@@ -56,12 +56,48 @@ const refreshAdminUnreadCount = async () => {
   }
 }
 
-// If admin bell is present, join admin activity channel and update count on events.
-const hasAdminBell =
+const updateReportsUnresolvedBadges = (unresolvedCount) => {
+  const ids = ["admin-reports-unresolved-badge", "admin-reports-unresolved-badge-mobile"]
+  ids.forEach((id) => {
+    const el = document.getElementById(id)
+    if (!el) return
+
+    if (unresolvedCount > 0) {
+      el.textContent = String(unresolvedCount)
+      el.classList.remove("hidden")
+    } else {
+      el.textContent = ""
+      el.classList.add("hidden")
+    }
+  })
+}
+
+const refreshReportsUnresolvedCount = async () => {
+  try {
+    const resp = await fetch("/api/admin/reports/unresolved-count", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+    })
+
+    if (!resp.ok) return
+    const data = await resp.json()
+    const count = typeof data?.unresolved_count === "number" ? data.unresolved_count : 0
+    updateReportsUnresolvedBadges(count)
+  } catch (_e) {
+    // ignore
+  }
+}
+
+const hasAdminActivityBell =
   document.getElementById("admin-activity-unread-badge") ||
   document.getElementById("admin-activity-unread-badge-mobile")
 
-if (hasAdminBell) {
+const hasAdminReportsBell =
+  document.getElementById("admin-reports-unresolved-badge") ||
+  document.getElementById("admin-reports-unresolved-badge-mobile")
+
+if (hasAdminActivityBell) {
   const adminChannel = socket.channel("admin:activity", {})
 
   adminChannel
@@ -72,9 +108,27 @@ if (hasAdminBell) {
     })
 
   adminChannel.on("new_event", () => refreshAdminUnreadCount())
+}
 
-  // Also refresh after LiveView navigation
-  window.addEventListener("phx:page-loading-stop", refreshAdminUnreadCount)
+if (hasAdminReportsBell) {
+  const reportsChannel = socket.channel("admin:reports", {})
+
+  reportsChannel
+    .join()
+    .receive("ok", () => refreshReportsUnresolvedCount())
+    .receive("error", () => {
+      // not an admin / not authed
+    })
+
+  reportsChannel.on("counts_changed", () => refreshReportsUnresolvedCount())
+}
+
+if (hasAdminActivityBell || hasAdminReportsBell) {
+  const refreshAdminCounts = () => {
+    if (hasAdminActivityBell) void refreshAdminUnreadCount()
+    if (hasAdminReportsBell) void refreshReportsUnresolvedCount()
+  }
+  window.addEventListener("phx:page-loading-stop", refreshAdminCounts)
 }
 
 // channel.on("marker_added", payload => {

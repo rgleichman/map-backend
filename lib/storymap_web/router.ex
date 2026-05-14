@@ -49,6 +49,18 @@ defmodule StorymapWeb.Router do
     get "/tiles/:layer/:z/:x/:y", MapController, :tile
   end
 
+  scope "/api", StorymapWeb do
+    pipe_through [
+      :api,
+      :fetch_session,
+      :protect_from_forgery,
+      :fetch_current_scope_for_user,
+      StorymapWeb.Plugs.RateLimitReportCreate
+    ]
+
+    post "/reports", ReportController, :create
+  end
+
   scope "/api/admin", StorymapWeb do
     pipe_through [
       :api,
@@ -59,6 +71,7 @@ defmodule StorymapWeb.Router do
     ]
 
     get "/activity/unread-count", AdminActivityController, :unread_count
+    get "/reports/unresolved-count", AdminReportsController, :unresolved_count
   end
 
   # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),
@@ -115,6 +128,7 @@ defmodule StorymapWeb.Router do
       ] do
       live "/admin/users", AdminLive.Users, :index
       live "/admin/activity", AdminLive.Activity, :index
+      live "/admin/reports", AdminLive.Reports, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password

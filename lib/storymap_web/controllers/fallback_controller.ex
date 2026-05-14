@@ -21,4 +21,10 @@ defmodule StorymapWeb.FallbackController do
     |> put_view(html: StorymapWeb.ErrorHTML, json: StorymapWeb.ErrorJSON)
     |> render(:"404")
   end
+
+  def call(conn, {:error, :invalid_subject}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{errors: %{subject: "Invalid subject_type or subject_id"}})
+  end
 end
