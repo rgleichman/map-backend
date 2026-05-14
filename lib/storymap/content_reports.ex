@@ -9,6 +9,7 @@ defmodule Storymap.ContentReports do
   alias Storymap.Accounts.User
   alias Storymap.AdminActivity
   alias Storymap.ContentReports.ContentReport
+  alias Storymap.Notifications
   alias Storymap.Pins
   alias Storymap.Pins.Pin
   alias Storymap.Repo
@@ -51,7 +52,7 @@ defmodule Storymap.ContentReports do
             {:content_report_created, report}
           )
 
-          StorymapWeb.Endpoint.broadcast("admin:reports", "counts_changed", %{})
+          Notifications.admin_reports_counts_changed()
 
           {:ok, report}
 
@@ -169,7 +170,7 @@ defmodule Storymap.ContentReports do
       {:content_reports_bulk_resolved, %{}}
     )
 
-    StorymapWeb.Endpoint.broadcast("admin:reports", "counts_changed", %{})
+    Notifications.admin_reports_counts_changed()
     :ok
   end
 
@@ -178,6 +179,6 @@ defmodule Storymap.ContentReports do
   defp broadcast_updated(_scope, %ContentReport{} = report) do
     report = Repo.preload(report, :reporter)
     Phoenix.PubSub.broadcast(Storymap.PubSub, @pubsub_topic, {:content_report_updated, report})
-    StorymapWeb.Endpoint.broadcast("admin:reports", "counts_changed", %{})
+    Notifications.admin_reports_counts_changed()
   end
 end

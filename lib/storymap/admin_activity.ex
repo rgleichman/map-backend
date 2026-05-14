@@ -9,6 +9,7 @@ defmodule Storymap.AdminActivity do
   alias Storymap.Accounts.User
   alias Storymap.AdminActivity.Event
   alias Storymap.AdminActivity.Read
+  alias Storymap.Notifications
   alias Storymap.Repo
 
   @pubsub_topic "admin_activity:events"
@@ -24,7 +25,7 @@ defmodule Storymap.AdminActivity do
     |> case do
       {:ok, %Event{} = event} ->
         Phoenix.PubSub.broadcast(Storymap.PubSub, @pubsub_topic, {:admin_activity_event, event})
-        StorymapWeb.Endpoint.broadcast("admin:activity", "new_event", %{event_id: event.id})
+        Notifications.admin_activity_new_event(event.id)
         {:ok, event}
 
       {:error, _} = err ->
