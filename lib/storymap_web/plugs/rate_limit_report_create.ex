@@ -1,6 +1,7 @@
 defmodule StorymapWeb.Plugs.RateLimitReportCreate do
   @moduledoc """
-  Applies sliding-window rate limits for public report submission (see `RateLimit.report_create_check/1`).
+  Applies **fixed-window** rate limits for report submission, using the same ETS counter
+  strategy as `StorymapWeb.Plugs.RateLimit` (see `RateLimit.report_create_check/1`).
   """
 
   alias StorymapWeb.Plugs.RateLimit
