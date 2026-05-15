@@ -42,15 +42,7 @@
                   <span class="inline-flex items-center">
                     <span
                       class="inline-block w-2 h-2 rounded-full mr-2"
-                      style={
-                        case pin.pin_type do
-                          "one_time" -> "background-color: #3b82f6"
-                          "scheduled" -> "background-color: #8b5cf6"
-                          "food_bank" -> "background-color: #ec4899"
-                          "other" -> "background-color: #a855f7"
-                          _ -> "background-color: #6b7280"
-                        end
-                      }
+                      style={"background-color: #{PinTypeColors.color(pin.pin_type)}"}
                     >
                     </span>
                     <span class="capitalize">{String.replace(pin.pin_type, "_", " ")}</span>

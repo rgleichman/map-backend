@@ -1,5 +1,11 @@
 import React from "react"
 import type { PinType } from "../types"
+import {
+  DEFAULT_PIN_TYPE,
+  getPinTypeColorEntry,
+  PIN_TYPE_COLORS,
+  type PinTypeColorEntry
+} from "./pinTypeColors"
 
 /**
  * Pin type icon path data: one_time from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
@@ -20,66 +26,27 @@ function safeIconPath(path: string): string {
   return ALLOWED_ICON_PATHS.has(path) ? path : ICON_PATHS.one_time
 }
 
-export type PinTypeConfig = {
-  label: string
-  description: string
-  color: string
-  backgroundColor: string
-  borderColor: string
-  textColor: string
+export type PinTypeConfig = PinTypeColorEntry & {
   iconPath: string
 }
 
-const pinTypeConfigs: Record<PinType, PinTypeConfig> = {
-  one_time: {
-    label: "One-Time Offering",
-    description: "A single food offering at a specific time",
-    color: "#f97316",
-    backgroundColor: "#fed7aa",
-    borderColor: "#f97316",
-    textColor: "#7c2d12",
-    iconPath: ICON_PATHS.one_time
-  },
-  scheduled: {
-    label: "Scheduled Offering",
-    description: "Recurring food offerings on a regular schedule",
-    color: "#3b82f6",
-    backgroundColor: "#dbeafe",
-    borderColor: "#3b82f6",
-    textColor: "#1e3a8a",
-    iconPath: ICON_PATHS.scheduled
-  },
-  food_bank: {
-    label: "Food Bank / Pantry",
-    description: "A food bank or pantry with regular open hours",
-    color: "#22c55e",
-    backgroundColor: "#dcfce7",
-    borderColor: "#22c55e",
-    textColor: "#166534",
-    iconPath: ICON_PATHS.food_bank
-  },
-  other: {
-    label: "Other",
-    description: "Landmark, point of interest, or place without a food schedule",
-    color: "#a855f7",
-    backgroundColor: "#f3e8ff",
-    borderColor: "#a855f7",
-    textColor: "#581c87",
-    iconPath: ICON_PATHS.other
-  }
-}
+const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
+  (Object.keys(PIN_TYPE_COLORS) as PinType[]).map((pinType) => [
+    pinType,
+    { ...PIN_TYPE_COLORS[pinType], iconPath: ICON_PATHS[pinType] }
+  ])
+) as Record<PinType, PinTypeConfig>
 
 export const PIN_TYPES: PinType[] = ["one_time", "scheduled", "food_bank", "other"]
-
-const defaultPinType: PinType = "one_time"
 
 /**
  * Get configuration for a pin type including colors and icon.
  * Falls back to one_time config when pinType is missing or unknown.
  */
 export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : defaultPinType
-  return pinTypeConfigs[key]
+  const colors = getPinTypeColorEntry(pinType)
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
+  return { ...colors, iconPath: pinTypeConfigs[key].iconPath }
 }
 
 /** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
@@ -90,7 +57,7 @@ const TEARDROP_PATH =
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(pinType: PinType | null | undefined): string {
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : defaultPinType
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
   return `pin-icon-${key}`
 }
 

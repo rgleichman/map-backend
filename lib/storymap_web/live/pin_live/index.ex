@@ -2,6 +2,7 @@ defmodule StorymapWeb.PinLive.Index do
   use StorymapWeb, :live_view
 
   alias Storymap.Pins
+  alias Storymap.Pins.PinTypeColors
 
   @impl true
   def mount(_params, _session, socket) do

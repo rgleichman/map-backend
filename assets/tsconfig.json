@@ -33,8 +33,9 @@
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "module": "es2022",
+    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": ["js/**/*", "js/react/**/*"]
+  "include": ["js/**/*", "js/react/**/*", "shared/**/*"]
 }

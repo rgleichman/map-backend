@@ -30,17 +30,17 @@
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
+  --color-base-100: oklch(35.79% 0.045 210.86);
+  --color-base-200: oklch(23.66% 0.026 208.08);
+  --color-base-300: oklch(19.41% 0.019 214.03);
+  --color-base-content: oklch(97% 0.018 155.82);
+  --color-primary: oklch(0.7464 0.1474 139.72);
+  --color-primary-content: oklch(0.9364 0.0496 139.72);
+  --color-secondary: oklch(0.7464 0.1474 139.72);
+  --color-secondary-content: oklch(0.9364 0.0496 139.72);
+  --color-accent: oklch(83.54% 0.116 157.16);
+  --color-accent-content: oklch(97.15% 0.020 159.76);
+  --color-neutral: oklch(96.70% 0.010 212.52);
   --color-neutral-content: oklch(98% 0.003 247.858);
   --color-info: oklch(58% 0.158 241.966);
   --color-info-content: oklch(97% 0.013 236.62);
@@ -65,16 +65,16 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
+  --color-base-100: oklch(93.98% 0.036 158.02);
+  --color-base-200: oklch(87.96% 0.071 156);
+  --color-base-300: oklch(82.35% 0.106 155.02);
+  --color-base-content: oklch(21.93% 0.038 170.92);
+  --color-primary: oklch(73.10% 0.166 30.31);
+  --color-primary-content: oklch(95.06% 0.025 29.93);
   --color-secondary: oklch(55% 0.027 264.364);
   --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
+  --color-accent: oklch(20.28% 0.035 73.82);
+  --color-accent-content: oklch(97.01% 0.018 78.24);
   --color-neutral: oklch(44% 0.017 285.786);
   --color-neutral-content: oklch(98% 0 0);
   --color-info: oklch(62% 0.214 259.815);
@@ -203,25 +203,6 @@ body {
 body {
   display: flex;
   flex-direction: column;
-}
-
-/* Pin type selection modal: badge colors by type (no inline styles) */
-.pin-type-badge[data-pin-type="one_time"] {
-  background-color: #fed7aa;
-  color: #7c2d12;
-  border: 2px solid #f97316;
-}
-
-.pin-type-badge[data-pin-type="scheduled"] {
-  background-color: #dbeafe;
-  color: #1e3a8a;
-  border: 2px solid #3b82f6;
-}
-
-.pin-type-badge[data-pin-type="food_bank"] {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 2px solid #22c55e;
 }
 
 /* This file is for your main application CSS */

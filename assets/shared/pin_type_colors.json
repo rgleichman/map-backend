@@ -1,0 +1,34 @@
+{
+  "one_time": {
+    "label": "One-Time Offering",
+    "description": "A single food offering at a specific time",
+    "color": "#f97316",
+    "backgroundColor": "#fed7aa",
+    "borderColor": "#f97316",
+    "textColor": "#7c2d12"
+  },
+  "scheduled": {
+    "label": "Scheduled Offering",
+    "description": "Recurring food offerings on a regular schedule",
+    "color": "#3b82f6",
+    "backgroundColor": "#dbeafe",
+    "borderColor": "#3b82f6",
+    "textColor": "#1e3a8a"
+  },
+  "food_bank": {
+    "label": "Food Bank / Pantry",
+    "description": "A food bank or pantry with regular open hours",
+    "color": "#22c55e",
+    "backgroundColor": "#dcfce7",
+    "borderColor": "#22c55e",
+    "textColor": "#166534"
+  },
+  "other": {
+    "label": "Other",
+    "description": "Landmark, point of interest, or place without a food schedule",
+    "color": "#a855f7",
+    "backgroundColor": "#f3e8ff",
+    "borderColor": "#a855f7",
+    "textColor": "#581c87"
+  }
+}
