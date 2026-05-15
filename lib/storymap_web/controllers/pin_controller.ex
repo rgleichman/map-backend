@@ -5,6 +5,7 @@ defmodule StorymapWeb.PinController do
   alias Storymap.Pins
   alias Storymap.Pins.Pin
   alias Storymap.Pins.PinDiff
+  alias Storymap.Pins.Policy
 
   action_fallback StorymapWeb.FallbackController
 
@@ -24,36 +25,33 @@ defmodule StorymapWeb.PinController do
   def create(conn, %{"pin" => pin_params}) do
     user = conn.assigns.current_scope.user
 
-    if user.muted_at do
-      conn
-      |> put_status(:forbidden)
-      |> put_view(json: StorymapWeb.ErrorJSON)
-      |> render(:"403")
-    else
-      pin_result = Pins.create_pin(pin_params, user.id)
+    case Policy.authorize_create(user) do
+      {:error, :forbidden} ->
+        forbidden(conn)
 
-      with {:ok, %Pin{} = pin} <- pin_result do
-        pin = Storymap.Repo.preload(pin, :tags)
+      :ok ->
+        with {:ok, %Pin{} = pin} <- Pins.create_pin(pin_params, user.id) do
+          pin = Storymap.Repo.preload(pin, :tags)
 
-        _ =
-          AdminActivity.record_event("pin_created", user.id, %{
-            "pin_id" => pin.id,
-            "title" => pin.title
-          })
+          _ =
+            AdminActivity.record_event("pin_created", user.id, %{
+              "pin_id" => pin.id,
+              "title" => pin.title
+            })
 
-        # Broadcast without user_id to prevent user enumeration
-        # Creator receives full pin data (with user_id) from API response
-        StorymapWeb.Endpoint.broadcast(
-          "map:world",
-          "marker_added",
-          %{pin: StorymapWeb.PinJSON.data(pin)}
-        )
+          # Broadcast without user_id to prevent user enumeration
+          # Creator receives full pin data (with user_id) from API response
+          StorymapWeb.Endpoint.broadcast(
+            "map:world",
+            "marker_added",
+            %{pin: StorymapWeb.PinJSON.data(pin)}
+          )
 
-        conn
-        |> put_status(:created)
-        |> put_resp_header("location", ~p"/api/pins/#{pin}")
-        |> render(:show, pin: pin, current_user: user)
-      end
+          conn
+          |> put_status(:created)
+          |> put_resp_header("location", ~p"/api/pins/#{pin}")
+          |> render(:show, pin: pin, current_user: user)
+        end
     end
   end
 
@@ -67,18 +65,11 @@ defmodule StorymapWeb.PinController do
     pin = Pins.get_pin!(id)
     current_user = conn.assigns.current_scope.user
 
-    if current_user.muted_at do
-      conn
-      |> put_status(:forbidden)
-      |> put_view(json: StorymapWeb.ErrorJSON)
-      |> render(:"403")
-    else
-      if pin.user_id != current_user.id and current_user.admin_level < 1 do
-        conn
-        |> put_status(:forbidden)
-        |> put_view(json: StorymapWeb.ErrorJSON)
-        |> render(:"403")
-      else
+    case Policy.authorize_update(current_user, pin) do
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      :ok ->
         pin = Storymap.Repo.preload(pin, :tags)
         before_pin = pin
 
@@ -102,7 +93,6 @@ defmodule StorymapWeb.PinController do
 
           render(conn, :show, pin: pin, current_user: current_user)
         end
-      end
     end
   end
 
@@ -110,18 +100,11 @@ defmodule StorymapWeb.PinController do
     pin = Pins.get_pin!(id)
     current_user = conn.assigns.current_scope.user
 
-    if current_user.muted_at do
-      conn
-      |> put_status(:forbidden)
-      |> put_view(json: StorymapWeb.ErrorJSON)
-      |> render(:"403")
-    else
-      if pin.user_id != current_user.id and current_user.admin_level < 1 do
-        conn
-        |> put_status(:forbidden)
-        |> put_view(json: StorymapWeb.ErrorJSON)
-        |> render(:"403")
-      else
+    case Policy.authorize_delete(current_user, pin) do
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      :ok ->
         pin_id = pin.id
         pin_title = pin.title
 
@@ -141,7 +124,13 @@ defmodule StorymapWeb.PinController do
 
           send_resp(conn, :no_content, "")
         end
-      end
     end
+  end
+
+  defp forbidden(conn) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"403")
   end
 end

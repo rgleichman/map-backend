@@ -3,6 +3,7 @@ defmodule StorymapWeb.PinJSON do
   JSON rendering for pins. Never includes user_id in any response (privacy / anti-enumeration).
   """
   alias Storymap.Pins.Pin
+  alias Storymap.Pins.Policy
 
   # Pin schema fields (no user_id) plus view-only keys: tags (from association), is_owner (computed).
   @pin_data_keys Pin.public_json_fields() ++ [:tags, :is_owner]
@@ -61,8 +62,8 @@ defmodule StorymapWeb.PinJSON do
   Computes is_owner flag based on whether pin belongs to current user.
   Never includes user_id to prevent user enumeration.
   """
-  def data_with_user(%Pin{} = pin, %{id: current_user_id, admin_level: admin_level}) do
-    is_owner = pin.user_id == current_user_id or admin_level >= 1
+  def data_with_user(%Pin{} = pin, %{} = current_user) do
+    is_owner = Policy.owner_or_admin?(current_user, pin)
 
     data(pin)
     |> Map.put(:is_owner, is_owner)

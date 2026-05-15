@@ -3,11 +3,12 @@ defmodule StorymapWeb.PinLive.Index do
 
   alias Storymap.Pins
   alias Storymap.Pins.PinTypeColors
+  alias Storymap.Pins.Policy
 
   @impl true
   def mount(_params, _session, socket) do
     current_user = get_current_user(socket)
-    is_admin = super_admin?(current_user)
+    is_admin = Policy.catalog_admin?(current_user)
 
     pins = Pins.list_pins()
     pins = if is_admin, do: Storymap.Repo.preload(pins, :user), else: pins
@@ -21,9 +22,6 @@ defmodule StorymapWeb.PinLive.Index do
       _ -> nil
     end
   end
-
-  defp super_admin?(%{admin_level: level}) when is_integer(level) and level >= 10, do: true
-  defp super_admin?(_), do: false
 
   def format_relative_time(%DateTime{} = datetime) do
     now = DateTime.utc_now()
