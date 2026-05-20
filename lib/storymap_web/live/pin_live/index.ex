@@ -1,4 +1,8 @@
 defmodule StorymapWeb.PinLive.Index do
+  @moduledoc """
+  Public pin catalog. Uses LiveView streams so the list scales without holding
+  a full assign on the socket as pin count grows.
+  """
   use StorymapWeb, :live_view
 
   alias Storymap.Pins
@@ -13,7 +17,10 @@ defmodule StorymapWeb.PinLive.Index do
     pins = Pins.list_pins()
     pins = if is_admin, do: Storymap.Repo.preload(pins, :user), else: pins
 
-    {:ok, assign(socket, pins: pins, is_admin: is_admin)}
+    {:ok,
+     socket
+     |> assign(:is_admin, is_admin)
+     |> stream(:pins, pins)}
   end
 
   defp get_current_user(socket) do

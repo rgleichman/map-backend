@@ -23,4 +23,10 @@ defmodule StorymapWeb.AdminActivityChannel do
         {:error, %{reason: "unauthorized"}}
     end
   end
+
+  @impl true
+  def handle_out(event, payload, socket) do
+    push(socket, event, payload)
+    {:noreply, socket}
+  end
 end
