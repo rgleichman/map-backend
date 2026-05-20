@@ -1,25 +1,26 @@
 defmodule Storymap.ContentReports do
   @moduledoc """
   User-submitted content reports (e.g. inaccurate or abusive pins).
+
+  Admin queue updates go through [`Storymap.AdminPubSub`](Storymap.AdminPubSub) only.
+  Unresolved count is **global** (same for all admins). Activity unread is per-admin
+  and excludes `content_reported` audit events.
   """
 
   import Ecto.Query, warn: false
+  import Storymap.Admin, only: [is_admin_level: 1]
 
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.AdminActivity
+  alias Storymap.AdminPubSub
   alias Storymap.ContentReports.ContentReport
-  alias Storymap.Notifications
   alias Storymap.Pins
   alias Storymap.Pins.Pin
   alias Storymap.Repo
 
-  @pubsub_topic "content_reports:events"
-
-  def pubsub_topic, do: @pubsub_topic
-
   @doc """
-  Creates a report for an existing pin. Broadcasts to admins.
+  Creates a report for an existing pin. Notifies admins via AdminPubSub.
   """
   def create_report(attrs, reporter_user_id \\ nil)
       when is_map(attrs) or is_list(attrs) do
@@ -46,14 +47,9 @@ defmodule Storymap.ContentReports do
               "title" => pin.title
             })
 
-          Phoenix.PubSub.broadcast(
-            Storymap.PubSub,
-            @pubsub_topic,
-            {:content_report_created, report}
-          )
-
-          Notifications.admin_reports_counts_changed()
-
+          report = Repo.preload(report, :reporter)
+          AdminPubSub.broadcast_report_created(report)
+          AdminPubSub.broadcast_counts_for_all_admins()
           {:ok, report}
 
         {:error, _} = err ->
@@ -80,7 +76,7 @@ defmodule Storymap.ContentReports do
   def list_reports_for_admin(scope, opts \\ [])
 
   def list_reports_for_admin(%Scope{user: %User{admin_level: admin_level}}, opts)
-      when admin_level >= 10 do
+      when is_admin_level(admin_level) do
     limit = Keyword.get(opts, :limit, 50)
 
     from(r in ContentReport,
@@ -93,20 +89,20 @@ defmodule Storymap.ContentReports do
 
   def list_reports_for_admin(_scope, _opts), do: []
 
-  def get_report!(%Scope{user: %User{admin_level: admin_level}}, id)
-      when admin_level >= 10 and is_integer(id) do
-    Repo.get!(ContentReport, id) |> Repo.preload(:reporter)
-  end
-
-  def unresolved_count(%Scope{user: %User{admin_level: admin_level}}) when admin_level >= 10 do
-    from(r in ContentReport, where: is_nil(r.resolved_at), select: count(r.id))
-    |> Repo.one()
+  def unresolved_count(%Scope{user: %User{admin_level: admin_level}})
+      when is_admin_level(admin_level) do
+    unresolved_count_global()
   end
 
   def unresolved_count(_scope), do: 0
 
-  def resolve_report(%Scope{user: %User{admin_level: admin_level}} = scope, id)
-      when admin_level >= 10 and is_integer(id) do
+  def unresolved_count_global do
+    from(r in ContentReport, where: is_nil(r.resolved_at), select: count(r.id))
+    |> Repo.one()
+  end
+
+  def resolve_report(%Scope{user: %User{admin_level: admin_level}}, id)
+      when is_admin_level(admin_level) and is_integer(id) do
     case Repo.get(ContentReport, id) do
       nil ->
         {:error, :not_found}
@@ -117,7 +113,8 @@ defmodule Storymap.ContentReports do
         |> Repo.update()
         |> case do
           {:ok, %ContentReport{} = updated} ->
-            broadcast_updated(scope, updated)
+            broadcast_report_updated(updated)
+            AdminPubSub.broadcast_counts_for_all_admins()
             {:ok, updated}
 
           err ->
@@ -131,8 +128,8 @@ defmodule Storymap.ContentReports do
 
   def resolve_report(_scope, _id), do: {:error, :unauthorized}
 
-  def unresolve_report(%Scope{user: %User{admin_level: admin_level}} = scope, id)
-      when admin_level >= 10 and is_integer(id) do
+  def unresolve_report(%Scope{user: %User{admin_level: admin_level}}, id)
+      when is_admin_level(admin_level) and is_integer(id) do
     case Repo.get(ContentReport, id) do
       nil ->
         {:error, :not_found}
@@ -146,7 +143,8 @@ defmodule Storymap.ContentReports do
         |> Repo.update()
         |> case do
           {:ok, %ContentReport{} = updated} ->
-            broadcast_updated(scope, updated)
+            broadcast_report_updated(updated)
+            AdminPubSub.broadcast_counts_for_all_admins()
             {:ok, updated}
 
           err ->
@@ -158,27 +156,21 @@ defmodule Storymap.ContentReports do
   def unresolve_report(_scope, _id), do: {:error, :unauthorized}
 
   def mark_all_resolved(%Scope{user: %User{admin_level: admin_level}} = _scope)
-      when admin_level >= 10 do
+      when is_admin_level(admin_level) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     from(r in ContentReport, where: is_nil(r.resolved_at))
     |> Repo.update_all(set: [resolved_at: now, updated_at: now])
 
-    Phoenix.PubSub.broadcast(
-      Storymap.PubSub,
-      @pubsub_topic,
-      {:content_reports_bulk_resolved, %{}}
-    )
-
-    Notifications.admin_reports_counts_changed()
+    AdminPubSub.broadcast_reports_bulk_resolved()
+    AdminPubSub.broadcast_counts_for_all_admins()
     :ok
   end
 
   def mark_all_resolved(_scope), do: {:error, :unauthorized}
 
-  defp broadcast_updated(_scope, %ContentReport{} = report) do
+  defp broadcast_report_updated(%ContentReport{} = report) do
     report = Repo.preload(report, :reporter)
-    Phoenix.PubSub.broadcast(Storymap.PubSub, @pubsub_topic, {:content_report_updated, report})
-    Notifications.admin_reports_counts_changed()
+    AdminPubSub.broadcast_report_updated(report)
   end
 end

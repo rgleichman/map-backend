@@ -64,8 +64,7 @@
                 variant="desktop"
                 current_path={@conn.request_path}
                 current_scope={@current_scope}
-                admin_activity_unread_count={@admin_activity_unread_count}
-                admin_reports_unresolved_count={@admin_reports_unresolved_count}
+                conn={@conn}
               />
             </ul>
             <div class="hidden md:block">
@@ -103,8 +102,7 @@
             variant="mobile"
             current_path={@conn.request_path}
             current_scope={@current_scope}
-            admin_activity_unread_count={@admin_activity_unread_count}
-            admin_reports_unresolved_count={@admin_reports_unresolved_count}
+            conn={@conn}
           />
           <li class="px-4 pb-3">
             <div class="flex items-center justify-between gap-3">

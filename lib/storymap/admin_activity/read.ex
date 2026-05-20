@@ -11,7 +11,7 @@ defmodule Storymap.AdminActivity.Read do
           updated_at: DateTime.t() | nil
         }
 
-  schema "admin_notification_reads" do
+  schema "admin_activity_reads" do
     field :read_at, :utc_datetime
 
     belongs_to :admin_user, Storymap.Accounts.User

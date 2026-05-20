@@ -10,7 +10,23 @@ defmodule StorymapWeb.ReportControllerTest do
     details: "test details"
   }
 
-  describe "create" do
+  describe "create anonymous" do
+    setup %{conn: conn} do
+      pin = pin_fixture(%{"latitude" => 41.88, "longitude" => -87.63})
+      {:ok, conn: put_req_header(conn, "accept", "application/json"), pin: pin}
+    end
+
+    test "creates report without login", %{conn: conn, pin: pin} do
+      attrs = Map.put(@report_attrs, :subject_id, pin.id)
+      conn = post(conn, ~p"/api/reports", report: attrs)
+      assert %{"id" => id} = json_response(conn, 201)["data"]
+
+      report = Storymap.Repo.get!(Storymap.ContentReports.ContentReport, id)
+      assert report.reporter_user_id == nil
+    end
+  end
+
+  describe "create authenticated" do
     setup %{conn: conn} do
       pin = pin_fixture(%{"latitude" => 41.88, "longitude" => -87.63})
       {:ok, conn: put_req_header(conn, "accept", "application/json"), pin: pin}

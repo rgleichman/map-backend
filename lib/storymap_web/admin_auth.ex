@@ -1,11 +1,13 @@
 defmodule StorymapWeb.AdminAuth do
   use StorymapWeb, :verified_routes
 
+  import Storymap.Admin, only: [is_admin_level: 1]
+
   def on_mount({:require_admin_level, min_admin_level}, _params, _session, socket)
       when is_integer(min_admin_level) do
     case socket.assigns do
       %{current_scope: %{user: %{admin_level: admin_level}}}
-      when admin_level >= min_admin_level ->
+      when is_admin_level(admin_level) and admin_level >= min_admin_level ->
         {:cont, socket}
 
       _ ->

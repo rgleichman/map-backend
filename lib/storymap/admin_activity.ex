@@ -1,31 +1,40 @@
 defmodule Storymap.AdminActivity do
   @moduledoc """
   Persistent admin activity feed and per-admin read state.
+
+  Realtime UI updates go through [`Storymap.AdminPubSub`](Storymap.AdminPubSub) only.
+  Activity unread counts include only events with `counts_toward_unread: true`
+  (e.g. `content_reported` is audit-only and does not increment the nav bell).
   """
 
   import Ecto.Query, warn: false
+  import Storymap.Admin, only: [is_admin_level: 1]
 
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.AdminActivity.Event
   alias Storymap.AdminActivity.Read
-  alias Storymap.Notifications
+  alias Storymap.AdminPubSub
   alias Storymap.Repo
 
-  @pubsub_topic "admin_activity:events"
-
-  def pubsub_topic, do: @pubsub_topic
-
-  def record_event(type, actor_user_id, metadata \\ %{})
+  def record_event(type, actor_user_id, metadata \\ %{}, opts \\ [])
       when is_binary(type) and (is_integer(actor_user_id) or is_nil(actor_user_id)) and
              is_map(metadata) do
+    counts_toward_unread =
+      Keyword.get(opts, :counts_toward_unread, type != "content_reported")
+
     %Event{}
-    |> Event.changeset(%{type: type, actor_user_id: actor_user_id, metadata: metadata})
+    |> Event.changeset(%{
+      type: type,
+      actor_user_id: actor_user_id,
+      metadata: metadata,
+      counts_toward_unread: counts_toward_unread
+    })
     |> Repo.insert()
     |> case do
       {:ok, %Event{} = event} ->
-        Phoenix.PubSub.broadcast(Storymap.PubSub, @pubsub_topic, {:admin_activity_event, event})
-        Notifications.admin_activity_new_event(event.id)
+        AdminPubSub.broadcast_activity_event(event)
+        AdminPubSub.broadcast_counts_for_all_admins()
         {:ok, event}
 
       {:error, _} = err ->
@@ -36,7 +45,7 @@ defmodule Storymap.AdminActivity do
   def list_events_for_admin(scope, opts \\ [])
 
   def list_events_for_admin(%Scope{user: %User{admin_level: admin_level}}, opts)
-      when admin_level >= 10 do
+      when is_admin_level(admin_level) do
     limit = Keyword.get(opts, :limit, 50)
 
     after_id = Keyword.get(opts, :after_id)
@@ -67,14 +76,18 @@ defmodule Storymap.AdminActivity do
   def unread_count(%Scope{user: %User{} = user} = scope), do: unread_count(scope, user.id)
 
   def unread_count(%Scope{user: %User{admin_level: admin_level}}, admin_user_id)
-      when admin_level >= 10 and is_integer(admin_user_id) do
+      when is_admin_level(admin_level) and is_integer(admin_user_id) do
     reads_subquery =
       from(r in Read,
         where: r.admin_user_id == ^admin_user_id,
         select: r.admin_activity_event_id
       )
 
-    from(e in Event, where: e.id not in subquery(reads_subquery), select: count(e.id))
+    from(e in Event,
+      where: e.counts_toward_unread == true,
+      where: e.id not in subquery(reads_subquery),
+      select: count(e.id)
+    )
     |> Repo.one()
   end
 
@@ -84,7 +97,7 @@ defmodule Storymap.AdminActivity do
         %Scope{user: %User{admin_level: admin_level, id: admin_user_id}},
         event_ids
       )
-      when admin_level >= 10 and is_integer(admin_user_id) and is_list(event_ids) do
+      when is_admin_level(admin_level) and is_integer(admin_user_id) and is_list(event_ids) do
     event_ids = Enum.filter(event_ids, &is_integer/1)
 
     if event_ids == [] do
@@ -101,12 +114,16 @@ defmodule Storymap.AdminActivity do
   def read_event_ids_for_admin(_scope, _event_ids), do: []
 
   def get_event!(%Scope{user: %User{admin_level: admin_level}}, event_id)
-      when admin_level >= 10 and is_integer(event_id) do
+      when is_admin_level(admin_level) and is_integer(event_id) do
     Repo.get!(Event, event_id)
   end
 
-  def mark_read(%Scope{user: %User{admin_level: admin_level, id: admin_user_id}}, event_id)
-      when admin_level >= 10 and is_integer(admin_user_id) and is_integer(event_id) do
+  def mark_read(
+        %Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope,
+        event_id
+      )
+      when is_admin_level(admin_level) and is_integer(admin_user_id) and
+             is_integer(event_id) do
     now = utc_now_second()
 
     %Read{}
@@ -117,28 +134,43 @@ defmodule Storymap.AdminActivity do
     })
     |> Repo.insert(on_conflict: :nothing)
     |> case do
-      {:ok, %Read{}} = ok -> ok
-      {:error, _} = err -> err
+      {:ok, %Read{}} = ok ->
+        AdminPubSub.broadcast_activity_reads_changed(admin_user_id)
+        AdminPubSub.broadcast_counts_changed(scope)
+        ok
+
+      {:error, _} = err ->
+        err
     end
   end
 
   def mark_read(_scope, _event_id), do: {:error, :unauthorized}
 
-  def mark_unread(%Scope{user: %User{admin_level: admin_level, id: admin_user_id}}, event_id)
-      when admin_level >= 10 and is_integer(admin_user_id) and is_integer(event_id) do
+  def mark_unread(
+        %Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope,
+        event_id
+      )
+      when is_admin_level(admin_level) and is_integer(admin_user_id) and
+             is_integer(event_id) do
     {deleted, _} =
       from(r in Read,
         where: r.admin_user_id == ^admin_user_id and r.admin_activity_event_id == ^event_id
       )
       |> Repo.delete_all()
 
-    if deleted > 0, do: {:ok, :cleared}, else: {:ok, :noop}
+    if deleted > 0 do
+      AdminPubSub.broadcast_activity_reads_changed(admin_user_id)
+      AdminPubSub.broadcast_counts_changed(scope)
+      {:ok, :cleared}
+    else
+      {:ok, :noop}
+    end
   end
 
   def mark_unread(_scope, _event_id), do: {:error, :unauthorized}
 
-  def mark_all_read(%Scope{user: %User{admin_level: admin_level, id: admin_user_id}})
-      when admin_level >= 10 do
+  def mark_all_read(%Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope)
+      when is_admin_level(admin_level) do
     now = utc_now_second()
 
     unread_event_ids = unread_event_ids(admin_user_id)
@@ -161,6 +193,8 @@ defmodule Storymap.AdminActivity do
         Repo.insert_all(Read, rows, on_conflict: :nothing)
       end
 
+    AdminPubSub.broadcast_activity_reads_changed(admin_user_id)
+    AdminPubSub.broadcast_counts_changed(scope)
     :ok
   end
 
@@ -174,6 +208,7 @@ defmodule Storymap.AdminActivity do
       )
 
     from(e in Event,
+      where: e.counts_toward_unread == true,
       where: e.id not in subquery(reads_subquery),
       select: e.id
     )

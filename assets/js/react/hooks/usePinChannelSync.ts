@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import worldChannel from "../../user_socket"
+import worldChannel from "../../map_socket"
 import type { Pin } from "../types"
 
 type PinBroadcastPayload = { pin: Pin }

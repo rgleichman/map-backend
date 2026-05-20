@@ -2,6 +2,7 @@ defmodule StorymapWeb.Router do
   use StorymapWeb, :router
 
   import StorymapWeb.UserAuth
+  alias Storymap.Admin
   alias StorymapWeb.Plugs.RequireAdminLevel
 
   pipeline :browser do
@@ -19,7 +20,7 @@ defmodule StorymapWeb.Router do
   end
 
   pipeline :require_admin_api do
-    plug RequireAdminLevel, min_admin_level: 10
+    plug RequireAdminLevel, min_admin_level: Admin.min_level()
   end
 
   pipeline :rate_limit_login do
@@ -59,19 +60,6 @@ defmodule StorymapWeb.Router do
     ]
 
     post "/reports", ReportController, :create
-  end
-
-  scope "/api/admin", StorymapWeb do
-    pipe_through [
-      :api,
-      :fetch_session,
-      :fetch_current_scope_for_user,
-      :require_authenticated_user,
-      :require_admin_api
-    ]
-
-    get "/activity/unread-count", AdminActivityController, :unread_count
-    get "/reports/unresolved-count", AdminReportsController, :unresolved_count
   end
 
   # API write protection: session cookie (SameSite Lax), CSRF token (x-csrf-token),
@@ -124,7 +112,7 @@ defmodule StorymapWeb.Router do
     live_session :require_admin,
       on_mount: [
         {StorymapWeb.UserAuth, :require_authenticated},
-        {StorymapWeb.AdminAuth, {:require_admin_level, 10}}
+        {StorymapWeb.AdminAuth, {:require_admin_level, Admin.min_level()}}
       ] do
       live "/admin/users", AdminLive.Users, :index
       live "/admin/activity", AdminLive.Activity, :index

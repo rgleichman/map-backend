@@ -54,6 +54,19 @@ defmodule Storymap.AdminActivityTest do
     assert AdminActivity.unread_count(scope) == 0
   end
 
+  test "content_reported does not count toward unread" do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+    scope = Scope.for_user(admin)
+
+    base = AdminActivity.unread_count(scope)
+
+    {:ok, event} = AdminActivity.record_event("content_reported", nil, %{"report_id" => 1})
+
+    assert event.counts_toward_unread == false
+    assert AdminActivity.unread_count(scope) == base
+  end
+
   test "mark_read returns unauthorized for non-admin" do
     user = AccountsFixtures.user_fixture()
     user = Repo.update!(Ecto.Changeset.change(user, admin_level: 0))

@@ -192,6 +192,7 @@ export default function PopupContent({ pin, csrfToken }: Props) {
 
       {reportOpen ? (
         <div
+          id="pin-report-dialog"
           className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4"
           role="dialog"
           aria-modal="true"
@@ -211,7 +212,7 @@ export default function PopupContent({ pin, csrfToken }: Props) {
                 ✕
               </button>
             </div>
-            <div className="px-4 py-3 space-y-3 overflow-y-auto text-sm">
+            <div id="pin-report-form" className="px-4 py-3 space-y-3 overflow-y-auto text-sm">
               <label className="form-control w-full">
                 <span className="label-text font-medium">Reason</span>
                 <select
@@ -243,6 +244,7 @@ export default function PopupContent({ pin, csrfToken }: Props) {
                 Cancel
               </button>
               <button
+                id="pin-report-submit"
                 type="button"
                 className="btn btn-primary btn-sm"
                 disabled={submitting}

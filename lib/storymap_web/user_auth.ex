@@ -4,10 +4,8 @@ defmodule StorymapWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Storymap.AdminActivity
   alias Storymap.Accounts
   alias Storymap.Accounts.Scope
-  alias Storymap.ContentReports
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -71,33 +69,15 @@ defmodule StorymapWeb.UserAuth do
          {user, token_inserted_at} <- Accounts.get_user_by_session_token(token) do
       scope = Scope.for_user(user)
 
-      admin_activity_unread_count =
-        if user.admin_level >= 10 do
-          AdminActivity.unread_count(scope)
-        else
-          0
-        end
-
-      admin_reports_unresolved_count =
-        if user.admin_level >= 10 do
-          ContentReports.unresolved_count(scope)
-        else
-          0
-        end
-
       conn
       |> assign(:current_scope, scope)
       |> assign(:user_token, Phoenix.Token.sign(StorymapWeb.Endpoint, "user socket", user.id))
-      |> assign(:admin_activity_unread_count, admin_activity_unread_count)
-      |> assign(:admin_reports_unresolved_count, admin_reports_unresolved_count)
       |> maybe_reissue_user_session_token(user, token_inserted_at)
     else
       nil ->
         conn
         |> assign(:current_scope, Scope.for_user(nil))
         |> assign(:user_token, nil)
-        |> assign(:admin_activity_unread_count, 0)
-        |> assign(:admin_reports_unresolved_count, 0)
     end
   end
 

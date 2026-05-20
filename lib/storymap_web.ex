@@ -90,6 +90,7 @@ defmodule StorymapWeb do
       # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias StorymapWeb.Layouts
+      alias StorymapWeb.Admin.EventView
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

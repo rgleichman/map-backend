@@ -102,8 +102,7 @@ defmodule StorymapWeb.Layouts do
   attr :variant, :string, required: true, values: ["desktop", "mobile"]
   attr :current_path, :string, required: true
   attr :current_scope, :map, default: nil
-  attr :admin_activity_unread_count, :integer, default: 0
-  attr :admin_reports_unresolved_count, :integer, default: 0
+  attr :conn, :map, default: nil
 
   def nav_menu_items(assigns) do
     path = assigns.current_path
@@ -236,54 +235,13 @@ defmodule StorymapWeb.Layouts do
     <% end %>
     <%= if @current_scope do %>
       <%= if @variant == "desktop" do %>
-        <%= if @current_scope.user.admin_level >= 10 do %>
-          <li>
-            <.link
-              navigate={~p"/admin/activity"}
-              class={[
-                nav_btn_classes(@admin_activity_active?),
-                "relative"
-              ]}
-              aria-current={if(@admin_activity_active?, do: "page")}
-              aria-label="Admin activity"
-            >
-              <.icon name="hero-bell" class="size-5" />
-              <span class="sr-only">Activity</span>
-              <span
-                class={[
-                  "badge badge-primary badge-sm absolute -top-2 -right-2",
-                  @admin_activity_unread_count == 0 && "hidden"
-                ]}
-                id="admin-activity-unread-badge"
-              >
-                {@admin_activity_unread_count}
-              </span>
-            </.link>
-          </li>
-          <li>
-            <.link
-              navigate={~p"/admin/reports"}
-              class={[
-                nav_btn_classes(@admin_reports_active?),
-                "relative"
-              ]}
-              aria-current={if(@admin_reports_active?, do: "page")}
-              aria-label="Admin content reports"
-            >
-              <.icon name="hero-exclamation-triangle" class="size-5" />
-              <span class="sr-only">Reports</span>
-              <span
-                class={[
-                  "badge badge-secondary badge-sm absolute -top-2 -right-2",
-                  @admin_reports_unresolved_count == 0 && "hidden"
-                ]}
-                id="admin-reports-unresolved-badge"
-              >
-                {@admin_reports_unresolved_count}
-              </span>
-            </.link>
-          </li>
-        <% end %>
+        <.admin_nav_live_render
+          :if={@conn && @current_scope && Storymap.Admin.admin?(@current_scope.user)}
+          conn={@conn}
+          current_scope={@current_scope}
+          variant="desktop"
+          current_path={@current_path}
+        />
 
         <li class="dropdown dropdown-end hidden md:block">
           <button
@@ -308,7 +266,7 @@ defmodule StorymapWeb.Layouts do
             >
               User #{@current_scope.user.id}
             </li>
-            <%= if @current_scope.user.admin_level >= 10 do %>
+            <%= if Storymap.Admin.admin?(@current_scope.user) do %>
               <li>
                 <.link
                   href={~p"/admin/users"}
@@ -350,62 +308,15 @@ defmodule StorymapWeb.Layouts do
             User #{@current_scope.user.id}
           </span>
         </li>
-        <%= if @current_scope.user.admin_level >= 10 do %>
-          <li>
-            <.link
-              href={~p"/admin/activity"}
-              class={[
-                "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
-                @admin_activity_active? && "bg-base-300 font-medium"
-              ]}
-              aria-current={if(@admin_activity_active?, do: "page")}
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-bell" class="size-5 opacity-80" />
-                  <span>Activity</span>
-                </div>
-                <span
-                  class={[
-                    "badge badge-primary badge-sm",
-                    @admin_activity_unread_count == 0 && "hidden"
-                  ]}
-                  id="admin-activity-unread-badge-mobile"
-                >
-                  {@admin_activity_unread_count}
-                </span>
-              </div>
-            </.link>
-          </li>
-          <li>
-            <.link
-              href={~p"/admin/reports"}
-              class={[
-                "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
-                @admin_reports_active? && "bg-base-300 font-medium"
-              ]}
-              aria-current={if(@admin_reports_active?, do: "page")}
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-exclamation-triangle" class="size-5 opacity-80" />
-                  <span>Reports</span>
-                </div>
-                <span
-                  class={[
-                    "badge badge-secondary badge-sm",
-                    @admin_reports_unresolved_count == 0 && "hidden"
-                  ]}
-                  id="admin-reports-unresolved-badge-mobile"
-                >
-                  {@admin_reports_unresolved_count}
-                </span>
-              </div>
-            </.link>
-          </li>
-        <% end %>
+        <.admin_nav_live_render
+          :if={@conn && @current_scope && Storymap.Admin.admin?(@current_scope.user)}
+          conn={@conn}
+          current_scope={@current_scope}
+          variant="mobile"
+          current_path={@current_path}
+        />
 
-        <%= if @current_scope.user.admin_level >= 10 do %>
+        <%= if Storymap.Admin.admin?(@current_scope.user) do %>
           <li>
             <.link
               href={~p"/admin/users"}
@@ -640,5 +551,24 @@ defmodule StorymapWeb.Layouts do
 
   defp nav_btn_classes(active?) do
     ["btn", "btn-ghost", if(active?, do: "btn-active")]
+  end
+
+  attr :conn, :map, required: true
+  attr :current_scope, :map, required: true
+  attr :variant, :string, required: true
+  attr :current_path, :string, required: true
+
+  def admin_nav_live_render(assigns) do
+    ~H"""
+    {live_render(@conn, StorymapWeb.AdminNavLive,
+      id: "admin-nav-#{@variant}",
+      container: {:div, class: "contents"},
+      session: %{
+        "user_id" => @current_scope.user.id,
+        "variant" => @variant,
+        "current_path" => @current_path
+      }
+    )}
+    """
   end
 end
