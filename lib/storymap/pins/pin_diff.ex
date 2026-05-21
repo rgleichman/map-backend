@@ -20,7 +20,7 @@ defmodule Storymap.Pins.PinDiff do
     :schedule_timezone
   ]
 
-  @spec diff(Pin.t(), Pin.t()) :: map()
+  @spec diff(%Pin{}, %Pin{}) :: map()
   def diff(%Pin{} = before, %Pin{} = after_pin) do
     field_changes =
       Enum.reduce(@diff_fields, %{}, fn field, acc ->

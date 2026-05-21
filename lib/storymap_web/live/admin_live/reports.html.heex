@@ -12,9 +12,9 @@
       bulk_disabled={@unresolved_count == 0}
     />
 
-    <div id="admin-reports-list" phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
+    <div id="reports" phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
       <div
-        id="admin-reports-list-empty"
+        id="reports-empty"
         class="hidden only:block rounded-xl border border-dashed border-base-300 p-8 text-center text-sm opacity-70"
       >
         No reports yet.

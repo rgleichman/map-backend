@@ -12,14 +12,9 @@
       bulk_disabled={@unread_count == 0}
     />
 
-    <div
-      id="admin-activity-events"
-      phx-update="stream"
-      phx-hook="LocalTime"
-      class="mt-6 space-y-3"
-    >
+    <div id="events" phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
       <div
-        id="admin-activity-events-empty"
+        id="events-empty"
         class="hidden only:block rounded-xl border border-dashed border-base-300 p-8 text-center text-sm opacity-70"
       >
         No activity yet.
