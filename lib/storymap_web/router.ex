@@ -112,7 +112,8 @@ defmodule StorymapWeb.Router do
     live_session :require_admin,
       on_mount: [
         {StorymapWeb.UserAuth, :require_authenticated},
-        {StorymapWeb.AdminAuth, {:require_admin_level, Admin.min_level()}}
+        {StorymapWeb.AdminAuth, {:require_admin_level, Admin.min_level()}},
+        {StorymapWeb.AdminNavSync, :default}
       ] do
       live "/admin/users", AdminLive.Users, :index
       live "/admin/activity", AdminLive.Activity, :index

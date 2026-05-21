@@ -7,20 +7,21 @@ defmodule Storymap.AdminPubSubTest do
   alias Storymap.AdminPubSub
   alias Storymap.Repo
 
-  test "broadcast_counts_changed after mark_read" do
+  test "broadcast_counts_changed after mark_read includes admin_user_id" do
     admin = AccountsFixtures.user_fixture()
     admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
     scope = Scope.for_user(admin)
+    admin_id = admin.id
 
     AdminPubSub.subscribe()
     {:ok, event} = AdminActivity.record_event("ping", admin.id, %{})
 
-    assert_receive {:counts_changed, %{activity_unread: n}} when n >= 1
+    assert_receive {:counts_changed, ^admin_id, %{activity_unread: n}} when n >= 1
     flush_messages()
 
     assert {:ok, _} = AdminActivity.mark_read(scope, event.id)
 
-    assert_receive {:counts_changed, counts}
+    assert_receive {:counts_changed, ^admin_id, counts}
     assert counts.activity_unread == AdminActivity.unread_count(scope)
   end
 

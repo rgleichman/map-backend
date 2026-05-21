@@ -559,6 +559,10 @@ defmodule StorymapWeb.Layouts do
   attr :current_path, :string, required: true
 
   def admin_nav_live_render(assigns) do
+    counts = Storymap.AdminPubSub.counts_for_scope(assigns.current_scope)
+
+    assigns = assign(assigns, :admin_nav_counts, counts)
+
     ~H"""
     {live_render(@conn, StorymapWeb.AdminNavLive,
       id: "admin-nav-#{@variant}",
@@ -566,7 +570,9 @@ defmodule StorymapWeb.Layouts do
       session: %{
         "user_id" => @current_scope.user.id,
         "variant" => @variant,
-        "current_path" => @current_path
+        "current_path" => @current_path,
+        "admin_activity_unread_count" => @admin_nav_counts.activity_unread,
+        "admin_reports_unresolved_count" => @admin_nav_counts.reports_unresolved
       }
     )}
     """

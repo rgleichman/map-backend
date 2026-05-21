@@ -21,6 +21,7 @@ import "phoenix_html"
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
+import { LocalTime } from "./hooks/local_time"
 import topbar from "../vendor/topbar"
 import "./map_socket.js"
 // React map is loaded dynamically below when #react-root is present
@@ -29,7 +30,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: { ...colocatedHooks },
+  hooks: { ...colocatedHooks, LocalTime },
 })
 
 // Show progress bar on live navigation and form submits

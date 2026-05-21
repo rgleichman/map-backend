@@ -11,7 +11,7 @@ defmodule Storymap.AdminPubSub do
   - `{:report_created, report}` — new content report
   - `{:report_updated, report}` — report resolved or unresolved
   - `{:reports_bulk_resolved}` — all reports marked resolved
-  - `{:counts_changed, %{activity_unread: n, reports_unresolved: m}}` — nav badge counts
+  - `{:counts_changed, admin_user_id, %{activity_unread: n, reports_unresolved: m}}` — nav badge counts (`admin_user_id` may be `nil` for reports-only global broadcast)
 
   Contexts must broadcast through this module only (not `Phoenix.PubSub` or channels directly).
   """
@@ -55,18 +55,18 @@ defmodule Storymap.AdminPubSub do
   end
 
   @doc """
-  Re-queries badge counts for an admin scope and broadcasts `{:counts_changed, counts}`.
-  Pass `nil` scope to broadcast global reports count only (no per-admin activity unread).
+  Re-queries badge counts for an admin scope and broadcasts `{:counts_changed, admin_user_id, counts}`.
+  Pass `nil` scope to broadcast global reports count only (`admin_user_id` is `nil`).
   """
-  def broadcast_counts_changed(%Scope{} = scope) do
+  def broadcast_counts_changed(%Scope{user: %{id: admin_user_id}} = scope) do
     counts = counts_for_scope(scope)
-    broadcast({:counts_changed, counts})
+    broadcast({:counts_changed, admin_user_id, counts})
     counts
   end
 
   def broadcast_counts_changed(nil) do
     counts = %{activity_unread: 0, reports_unresolved: ContentReports.unresolved_count_global()}
-    broadcast({:counts_changed, counts})
+    broadcast({:counts_changed, nil, counts})
     counts
   end
 
@@ -93,6 +93,7 @@ defmodule Storymap.AdminPubSub do
 
       broadcast({
         :counts_changed,
+        admin_user_id,
         %{
           activity_unread: AdminActivity.unread_count(scope),
           reports_unresolved: reports_unresolved

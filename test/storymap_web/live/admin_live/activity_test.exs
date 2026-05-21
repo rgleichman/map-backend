@@ -3,9 +3,54 @@ defmodule StorymapWeb.AdminLive.ActivityTest do
 
   import Phoenix.LiveViewTest
 
+  alias Storymap.Accounts.Scope
   alias Storymap.AccountsFixtures
   alias Storymap.AdminActivity
   alias Storymap.Repo
+
+  test "mark read updates page unread count", %{conn: conn} do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+    conn = log_in_user(conn, admin)
+    scope = Scope.for_user(admin)
+
+    {:ok, event} = AdminActivity.record_event("pin_created", admin.id, %{"pin_id" => 1})
+    unread_before = AdminActivity.unread_count(scope)
+
+    {:ok, view, _html} = live(conn, ~p"/admin/activity")
+
+    assert has_element?(view, "#admin-activity-page-unread", "Unread: #{unread_before}")
+
+    view
+    |> element("#events-#{event.id} button", "Mark read")
+    |> render_click()
+
+    assert has_element?(view, "#admin-activity-page-unread", "Unread: #{unread_before - 1}")
+  end
+
+  test "content_reported shows audit styling without mark read", %{conn: conn} do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+    conn = log_in_user(conn, admin)
+    scope = Scope.for_user(admin)
+
+    {:ok, event} =
+      AdminActivity.record_event("content_reported", nil, %{
+        "report_id" => 42,
+        "pin_id" => 7,
+        "category" => "spam"
+      })
+
+    unread = AdminActivity.unread_count(scope)
+    {:ok, view, html} = live(conn, ~p"/admin/activity")
+
+    assert has_element?(view, "#admin-activity-page-unread", "Unread: #{unread}")
+    assert html =~ "Audit"
+    assert html =~ "Content reported"
+    refute has_element?(view, "#events-#{event.id} button", "Mark read")
+    refute html =~ ~s("report_id")
+    assert has_element?(view, "#events-#{event.id}")
+  end
 
   test "mark read/unread toggles immediately and styles card", %{conn: conn} do
     admin = AccountsFixtures.user_fixture()

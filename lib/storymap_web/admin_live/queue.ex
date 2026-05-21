@@ -22,6 +22,14 @@ defmodule StorymapWeb.AdminLive.Queue do
 
         socket
       end
+
+      defp sync_admin_nav(socket) do
+        if connected?(socket) do
+          StorymapWeb.AdminNavSync.sync_admin_nav(socket)
+        else
+          socket
+        end
+      end
     end
   end
 end
