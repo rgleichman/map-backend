@@ -12,19 +12,13 @@
       bulk_disabled={@unread_count == 0}
     />
 
-    <div id="events" phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
-      <div
-        id="events-empty"
-        class="hidden only:block rounded-xl border border-dashed border-base-300 p-8 text-center text-sm opacity-70"
-      >
-        No activity yet.
-      </div>
-      <div :for={{dom_id, event} <- @streams.events} id={dom_id}>
+    <.queue_stream id="events" empty_text="No activity yet." stream={@streams.events}>
+      <:item :let={%{item: event}}>
         <.activity_card
           event={event}
           read?={MapSet.member?(@read_event_ids, event.id)}
         />
-      </div>
-    </div>
+      </:item>
+    </.queue_stream>
   </div>
 </Layouts.app>

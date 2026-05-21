@@ -61,6 +61,32 @@ defmodule StorymapWeb.Admin.EventView do
     """
   end
 
+  @doc """
+  Stream list container. `id` must match the LiveView stream name (e.g. `"events"` for `stream(:events, ...)`).
+  Item DOM ids are `{id}-{record_id}` (e.g. `events-42`).
+  """
+  attr :id, :string, required: true
+  attr :empty_text, :string, required: true
+  attr :stream, :any, required: true
+
+  slot :item, required: true
+
+  def queue_stream(assigns) do
+    ~H"""
+    <div id={@id} phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
+      <div
+        id={"#{@id}-empty"}
+        class="hidden only:block rounded-xl border border-dashed border-base-300 p-8 text-center text-sm opacity-70"
+      >
+        {@empty_text}
+      </div>
+      <div :for={{dom_id, item} <- @stream} id={dom_id}>
+        {render_slot(@item, %{dom_id: dom_id, item: item})}
+      </div>
+    </div>
+    """
+  end
+
   attr :event, :map, required: true
   attr :read?, :boolean, required: true
 

@@ -12,16 +12,10 @@
       bulk_disabled={@unresolved_count == 0}
     />
 
-    <div id="reports" phx-update="stream" phx-hook="LocalTime" class="mt-6 space-y-3">
-      <div
-        id="reports-empty"
-        class="hidden only:block rounded-xl border border-dashed border-base-300 p-8 text-center text-sm opacity-70"
-      >
-        No reports yet.
-      </div>
-      <div :for={{dom_id, report} <- @streams.reports} id={dom_id}>
+    <.queue_stream id="reports" empty_text="No reports yet." stream={@streams.reports}>
+      <:item :let={%{item: report}}>
         <.report_card report={report} />
-      </div>
-    </div>
+      </:item>
+    </.queue_stream>
   </div>
 </Layouts.app>
