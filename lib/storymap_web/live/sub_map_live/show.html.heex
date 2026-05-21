@@ -1,0 +1,36 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <%= if @sub_map do %>
+      <div class="space-y-2 mb-8">
+        <h1 class="text-3xl font-bold text-base-content">{@sub_map.name}</h1>
+        <p class="text-base-content/70">{@sub_map.description}</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <.link
+          navigate={~p"/m/#{@community_url}/map"}
+          class="btn btn-primary"
+          id="sub-map-open-map"
+        >
+          Open map
+        </.link>
+      </div>
+    <% else %>
+      <div id="sub-map-not-found" class="space-y-4">
+        <h1 class="text-3xl font-bold text-base-content">{@community_url}</h1>
+        <p class="text-base-content/70">
+          This community is not available yet. Sub-maps are in development.
+        </p>
+        <.link navigate={~p"/m"} class="btn btn-ghost">
+          Browse communities
+        </.link>
+        <.link
+          navigate={~p"/m/#{@community_url}/map"}
+          class="btn btn-primary"
+          id="sub-map-open-map-preview"
+        >
+          Preview map (empty)
+        </.link>
+      </div>
+    <% end %>
+  </div>
+</Layouts.app>

@@ -1,0 +1,11 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold text-base-content mb-2">Moderation</h1>
+    <p class="text-base-content/70 mb-6">
+      Queue for <span class="font-mono text-sm">{@community_url}</span>
+      — pending pins, reports, and members
+      will appear here when sub-maps launch.
+    </p>
+    <.link navigate={~p"/m/#{@community_url}"} class="btn btn-ghost">Back to community</.link>
+  </div>
+</Layouts.app>

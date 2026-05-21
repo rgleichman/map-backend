@@ -37,6 +37,9 @@ defmodule StorymapWeb.Router do
     # / and /map serve the main map page
     get "/", MapController, :index
     get "/map", MapController, :index
+
+    # Sub-map community map (scoped pins; see docs/SUB_MAPS.md)
+    get "/m/:community_url/map", MapController, :sub_map
   end
 
   scope "/api", StorymapWeb do
@@ -107,6 +110,8 @@ defmodule StorymapWeb.Router do
       on_mount: [{StorymapWeb.UserAuth, :require_authenticated}] do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+      live "/m/new", SubMapLive.New, :new
+      live "/m/:community_url/admin", SubMapLive.Admin, :index
     end
 
     live_session :require_admin,
@@ -140,6 +145,10 @@ defmodule StorymapWeb.Router do
       live "/user/:user_id", UserLive.Show, :show
       # Public pins list page
       live "/pins", PinLive.Index, :index
+      # Sub-map discovery (see docs/SUB_MAPS.md)
+      live "/m", SubMapLive.Index, :index
+      live "/m/design", StaticLive.SubMaps, :show
+      live "/m/:community_url", SubMapLive.Show, :show
       live "/privacy-policy", StaticLive.Privacy, :show
       live "/about", StaticLive.About, :show
       live "/vision", StaticLive.Vision, :show

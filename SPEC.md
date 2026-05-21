@@ -6,6 +6,11 @@ Storymap is a collaborative map application where users can add location
 markers (pins) to a shared world map. Users can view all pins, and
 authenticated users can create, edit, and delete their own pins.
 
+Users can also create **sub-maps**: community-owned collections of pins with
+their own rules, moderators, and optional promotion to the world map. See
+[docs/SUB_MAPS.md](docs/SUB_MAPS.md) for the full sub-map design (MVP scope,
+data model, policies, routes).
+
 ## Core Functionality
 
 ### Map Viewing

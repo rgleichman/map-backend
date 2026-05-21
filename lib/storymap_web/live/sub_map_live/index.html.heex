@@ -1,0 +1,61 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="space-y-2 mb-8">
+      <h1 class="text-3xl font-bold text-base-content">Communities</h1>
+      <p class="text-base-content/70">
+        Sub-maps are curated pin collections with their own rules and moderators.
+      </p>
+    </div>
+
+    <form id="sub-maps-search" phx-change="search" class="mb-8">
+      <label for="sub-maps-search-input" class="sr-only">Search communities</label>
+      <input
+        id="sub-maps-search-input"
+        type="search"
+        name="q"
+        value={@search_query}
+        placeholder="Search by name or community URL…"
+        class="input input-bordered w-full max-w-md"
+        autocomplete="off"
+      />
+    </form>
+
+    <%= if @sub_maps == [] do %>
+      <div
+        id="sub-maps-empty"
+        class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center space-y-4"
+      >
+        <p class="text-base-content/80">
+          No communities yet. Sub-maps are coming soon — see the
+          <.link navigate={~p"/m/design"} class="link">design specification</.link>
+          for planned features.
+        </p>
+        <%= if @current_scope && @current_scope.user do %>
+          <.link navigate={~p"/m/new"} class="btn btn-primary">
+            Create a community
+          </.link>
+        <% else %>
+          <.link navigate={~p"/users/log-in"} class="btn btn-primary">
+            Log in to create a community
+          </.link>
+        <% end %>
+      </div>
+    <% else %>
+      <ul id="sub-maps-list" class="grid gap-4 sm:grid-cols-2">
+        <%= for sub_map <- @sub_maps do %>
+          <li>
+            <.link
+              navigate={~p"/m/#{sub_map.community_url}"}
+              class="card bg-base-200/50 border border-base-300 hover:border-primary/40 transition-colors"
+            >
+              <div class="card-body">
+                <h2 class="card-title text-lg">{sub_map.name}</h2>
+                <p class="text-sm text-base-content/70 line-clamp-2">{sub_map.description}</p>
+              </div>
+            </.link>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</Layouts.app>

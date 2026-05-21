@@ -1,0 +1,24 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10 prose prose-neutral dark:prose-invert">
+    <h1>Sub-maps design</h1>
+    <p>
+      Sub-maps are community-owned pin collections with moderators, contribution policies,
+      and optional promotion to the world map. Full specification:
+      <code class="text-sm">docs/SUB_MAPS.md</code>
+      in the repository.
+    </p>
+    <h2>MVP (in development)</h2>
+    <ul>
+      <li>
+        Create and browse communities at <.link navigate={~p"/m"} class="link">/m</.link>
+      </li>
+      <li>Per-community map at <code>/m/:community_url/map</code></li>
+      <li>Contribution modes: open, members only, approval queue</li>
+      <li>World map promotion: never, ask, or always (per community and per pin)</li>
+      <li>Moderation queue and scoped reports</li>
+    </ul>
+    <p>
+      <.link navigate={~p"/m"} class="btn btn-primary">Browse communities</.link>
+    </p>
+  </div>
+</Layouts.app>
