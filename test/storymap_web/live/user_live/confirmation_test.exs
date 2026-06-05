@@ -40,8 +40,8 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
 
       {:ok, lv, _html} = live(conn, ~p"/users/log-in/#{token}")
 
-      form = form(lv, "#confirmation_form", %{"user" => %{"token" => token}})
-      render_submit(form)
+      form = form(lv, "#confirmation_form")
+      render_click(lv, "submit_stay")
 
       conn = follow_trigger_action(form, conn)
 
@@ -63,6 +63,23 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
       assert html =~ "Magic link is invalid or it has expired"
     end
 
+    test "sets remember-me cookie when staying logged in", %{conn: conn, confirmed_user: user} do
+      token =
+        extract_user_token(fn url ->
+          Accounts.deliver_login_instructions(user, registered_email(user), url)
+        end)
+
+      {:ok, lv, _html} = live(conn, ~p"/users/log-in/#{token}")
+
+      form = form(lv, "#login_form")
+      render_click(lv, "submit_stay")
+
+      conn = follow_trigger_action(form, conn)
+
+      assert get_session(conn, :user_remember_me) == true
+      assert conn.resp_cookies["_storymap_web_user_remember_me"].max_age > 0
+    end
+
     test "logs confirmed user in without changing confirmed_at", %{
       conn: conn,
       confirmed_user: user
@@ -74,8 +91,8 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
 
       {:ok, lv, _html} = live(conn, ~p"/users/log-in/#{token}")
 
-      form = form(lv, "#login_form", %{"user" => %{"token" => token}})
-      render_submit(form)
+      form = form(lv, "#login_form")
+      render_click(lv, "submit_once")
 
       conn = follow_trigger_action(form, conn)
 
