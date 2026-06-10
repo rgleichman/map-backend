@@ -64,34 +64,52 @@ defmodule Mix.Tasks.TzWorld.Install do
   defp install_with_token(token, include_oceans?, force_update?, trace?) do
     start_applications()
 
-    with {:ok, latest_release, asset_url} <- latest_release(token, include_oceans?, trace?) do
-      if force_update? do
-        Logger.info("#{@tag} Force installing release #{latest_release}.")
-        Downloader.get_latest_release(latest_release, asset_url, trace?)
+    try do
+      with {:ok, latest_release, asset_url} <- latest_release(token, include_oceans?, trace?),
+           :ok <- install_release(latest_release, asset_url, force_update?, trace?) do
+        :ok
       else
+        {:error, reason} ->
+          Mix.raise("#{@tag} Failed to install timezone data: #{inspect(reason)}", exit_status: 1)
+      end
+    after
+      stop_backends()
+    end
+  end
+
+  defp install_release(latest_release, asset_url, force_update?, trace?) do
+    cond do
+      force_update? ->
+        Logger.info("#{@tag} Force installing release #{latest_release}.")
+        fetch_release(latest_release, asset_url, trace?)
+
+      true ->
         case Downloader.current_release() do
           {:ok, current_release} when latest_release <= current_release ->
             Logger.info(
               "#{@tag} Currently installed release #{current_release} is the latest release."
             )
 
+            :ok
+
           {:ok, current_release} ->
             Logger.info("#{@tag} Updating from release #{current_release} to #{latest_release}.")
-            Downloader.get_latest_release(latest_release, asset_url, trace?)
+            fetch_release(latest_release, asset_url, trace?)
 
           {:error, :enoent} ->
             Logger.info(
               "#{@tag} No timezone geo data installed. Installing release #{latest_release}."
             )
 
-            Downloader.get_latest_release(latest_release, asset_url, trace?)
+            fetch_release(latest_release, asset_url, trace?)
         end
-      end
+    end
+  end
 
-      stop_backends()
-    else
-      {:error, reason} ->
-        Mix.raise("#{@tag} Failed to install timezone data: #{inspect(reason)}", exit_status: 1)
+  defp fetch_release(latest_release, asset_url, trace?) do
+    case Downloader.get_latest_release(latest_release, asset_url, trace?) do
+      {:ok, _} -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 
