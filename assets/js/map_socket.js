@@ -9,16 +9,24 @@ const userToken =
 const socket = new Socket("/socket", { authToken: userToken })
 socket.connect()
 
-function mapTopicFromRoot() {
-  const root = document.getElementById("react-root")
-  const communityUrl = root?.dataset?.communityUrl
+function topicForCommunityUrl(communityUrl) {
   return communityUrl ? `map:submap:${communityUrl}` : "map:world"
 }
 
 let activeChannel = null
 
-export function getMapChannel() {
-  const topic = mapTopicFromRoot()
+/**
+ * Join (or return) the map channel for the given community.
+ * Pass undefined for the world map. When omitted, reads #react-root dataset.
+ */
+export function getMapChannel(communityUrl) {
+  let resolved = communityUrl
+  if (resolved === undefined) {
+    const root = document.getElementById("react-root")
+    resolved = root?.dataset?.communityUrl || undefined
+  }
+
+  const topic = topicForCommunityUrl(resolved)
 
   if (activeChannel && activeChannel.topic === topic) {
     return activeChannel
@@ -36,5 +44,3 @@ export function getMapChannel() {
 
   return activeChannel
 }
-
-export default getMapChannel()

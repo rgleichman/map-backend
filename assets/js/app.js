@@ -1,4 +1,4 @@
-// Phoenix channels: `map_socket.js` connects the map world channel for pin realtime sync.
+// Phoenix channels: `map_socket.js` provides lazy map channel subscription for pin realtime sync.
 
 // You can include dependencies in two ways.
 //
@@ -24,6 +24,7 @@ import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
 import { LocalTime } from "./hooks/local_time"
 import topbar from "../vendor/topbar"
 import "./map_socket.js"
+import "./map_nav.js"
 // React map is loaded dynamically below when #react-root is present
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -195,6 +196,7 @@ if (document.readyState === "loading") {
 }
 
 window.addEventListener("phx:page-loading-stop", initFooterNavActive)
+window.addEventListener("map:route-change", initFooterNavActive)
 
 // Close drawer when clicking drawer-close elements
 const initDrawerClose = () => {

@@ -11,6 +11,7 @@ import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
+import { loadMapData } from "./loadMapData"
 import { DEFAULT_FILTER, type FilterState } from "./components/map/filters"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
@@ -251,12 +252,13 @@ const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
 export default function App({ userId, csrfToken, styleUrl = "/api/map/style", communityUrl }: Props) {
   const isDesktop = useIsDesktop()
-  const [initialPinId] = useState(parseInitialPinId)
+  const [initialPinId, setInitialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [subMap, setSubMap] = useState<SubMap | null>(null)
   const [promoteToWorld, setPromoteToWorld] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
+  const [mapInitialized, setMapInitialized] = useState(false)
   const [saving, setSaving] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -285,29 +287,43 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   }, [])
 
   useEffect(() => {
-    if (communityUrl) {
-      setLoading(true)
-      setApiError(null)
-      Promise.all([
-        api.getSubMap(communityUrl),
-        api.getSubMapPins(communityUrl),
-      ])
-        .then(([meta, pinList]) => {
-          setSubMap(meta.data)
-          setPins(pinList.data)
-          setPromoteToWorld(meta.data.promote_to_world_default === "always")
-        })
-        .catch((err) => {
-          const message = err instanceof Error ? err.message : "Failed to load this community."
-          setApiError(message)
-          setSubMap(null)
-          setPins([])
-        })
-        .finally(() => setLoading(false))
-    } else {
-      api.getPins().then(({ data }) => {
-        setPins(data)
-      }).finally(() => setLoading(false))
+    dispatch({ type: "close_all" })
+    setFilter(DEFAULT_FILTER)
+    setPins([])
+    setSubMap(null)
+    setPromoteToWorld(false)
+    setLoading(true)
+    setApiError(null)
+    setInitialPinId(parseInitialPinId())
+
+    let cancelled = false
+    loadMapData(communityUrl)
+      .then(({ pins: nextPins, subMap: nextSubMap, promoteToWorld: nextPromote }) => {
+        if (cancelled) return
+        setPins(nextPins)
+        setSubMap(nextSubMap)
+        setPromoteToWorld(nextPromote)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        const message = err instanceof Error
+          ? err.message
+          : communityUrl
+            ? "Failed to load this community."
+            : "Failed to load pins."
+        setApiError(message)
+        setPins([])
+        setSubMap(null)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false)
+          setMapInitialized(true)
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [communityUrl])
 
@@ -576,27 +592,51 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   return (
     <div className="w-full h-full">
       {subMap && (
-        <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none">
-          <div className="mx-auto max-w-lg rounded-lg bg-base-100/95 border border-base-300 shadow px-3 py-2 pointer-events-auto">
-            <p className="text-sm font-medium text-base-content">{subMap.name}</p>
-            <p className="text-xs text-base-content/60 font-mono">/m/{subMap.community_url}</p>
-            {subMap.promote_to_world_default === "ask" && modal?.mode === "add" && (
-              <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm"
-                  checked={promoteToWorld}
-                  onChange={(e) => setPromoteToWorld(e.target.checked)}
-                />
-                Also show on world map
-              </label>
-            )}
-          </div>
+        <nav
+          aria-label="Community map"
+          className="absolute top-[var(--site-header-height)] left-0 right-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 bg-base-100/95 border-b border-base-300 text-sm pointer-events-none"
+        >
+          <span className="pointer-events-auto font-medium truncate text-base-content max-w-[50vw] sm:max-w-none">
+            {subMap.name}
+          </span>
+          <span className="text-base-content/40 hidden sm:inline pointer-events-none" aria-hidden="true">·</span>
+          <a href="/map" className="link link-hover text-xs shrink-0 pointer-events-auto">World map</a>
+          <a href="/m" className="link link-hover text-xs shrink-0 pointer-events-auto">Communities</a>
+          {subMap.can_moderate && (
+            <a
+              href={`/m/${subMap.community_url}/admin`}
+              className="link link-hover text-xs shrink-0 pointer-events-auto"
+            >
+              Moderation
+            </a>
+          )}
+          {subMap.can_edit && (
+            <a
+              href={`/m/${subMap.community_url}/settings`}
+              className="link link-hover text-xs shrink-0 pointer-events-auto"
+            >
+              Settings
+            </a>
+          )}
+        </nav>
+      )}
+      {subMap?.promote_to_world_default === "ask" && modal?.mode === "add" && (
+        <div className="absolute top-[calc(var(--site-header-height)+2.5rem)] left-3 z-20 rounded-lg bg-base-100/95 border border-base-300 shadow px-3 py-2 text-xs pointer-events-auto">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={promoteToWorld}
+              onChange={(e) => setPromoteToWorld(e.target.checked)}
+            />
+            Also show on world map
+          </label>
         </div>
       )}
-      {!loading && (
+      {(mapInitialized || !loading) && (
         <>
           <MapCanvas
+            mapScopeKey={communityUrl ?? "world"}
             styleUrl={styleUrl}
             pins={pins}
             initialPinId={initialPinId}
@@ -618,6 +658,15 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
             selectedPinType={filter.pinType}
             onTogglePinType={toggleMapPinTypeFilter}
           />
+          {loading && mapInitialized && (
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <span className="loading loading-spinner loading-md text-primary" />
+            </div>
+          )}
         </>
       )}
       {modal?.mode === "login-required" && (

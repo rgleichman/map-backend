@@ -18,14 +18,7 @@ export function usePinChannelSync({ onUpsertPin, onDeletePinId, communityUrl }: 
   onDeletePinIdRef.current = onDeletePinId
 
   useEffect(() => {
-    const root = document.getElementById("react-root")
-    if (root && communityUrl) {
-      root.dataset.communityUrl = communityUrl
-    } else if (root) {
-      delete root.dataset.communityUrl
-    }
-
-    const channel = getMapChannel()
+    const channel = getMapChannel(communityUrl)
     const onUpsert = (payload: PinBroadcastPayload) => onUpsertPinRef.current(payload.pin)
     const onDeleted = (payload: PinDeletedPayload) => onDeletePinIdRef.current(payload.pin_id)
     channel.on("marker_added", onUpsert)
