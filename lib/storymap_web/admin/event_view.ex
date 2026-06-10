@@ -43,7 +43,7 @@ defmodule StorymapWeb.Admin.EventView do
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <span
           id={@count_id}
-          class="badge badge-lg badge-neutral whitespace-nowrap w-fit"
+          class="badge badge-lg bg-base-200 text-base-content border border-base-300 whitespace-nowrap w-fit"
         >
           {@count_label}: {@count}
         </span>
