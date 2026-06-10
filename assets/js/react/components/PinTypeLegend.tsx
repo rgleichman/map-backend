@@ -57,7 +57,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
         })}
       </div>
       <p className="text-xs text-base-content/80 mt-3 italic">
-        Different colors show different types of food offerings
+        Different colors show different pin types
       </p>
     </FloatingPanel>
   )

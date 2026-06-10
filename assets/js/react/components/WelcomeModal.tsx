@@ -22,7 +22,7 @@ export default function WelcomeModal({ onClose }: Props) {
     const url = typeof window !== "undefined" ? window.location.origin || window.location.href : ""
     const shareData = {
       title: "Map Garden",
-      text: "Check out Map Garden — a community map for points of interest, food banks, and more.",
+      text: "Check out Map Garden — a community map for points of interest, events, and local resources.",
       url,
     }
 
@@ -76,8 +76,8 @@ export default function WelcomeModal({ onClose }: Props) {
         <div className="px-5 py-4 overflow-y-auto space-y-4 text-sm sm:text-base">
           <p>
             Welcome to Map Garden! Map Garden is a developing web app. Currently, it allows people to
-            create points of interest across the globe, with special features for Food Banks and similar
-            organizations.
+            create points of interest across the globe, with pin types for scheduled events, recurring
+            offerings, and community resources.
           </p>
 
           <div className="space-y-2">
