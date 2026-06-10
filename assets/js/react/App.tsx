@@ -6,7 +6,7 @@ import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
-import type { NewPin, Pin, PinType, UpdatePin } from "./types"
+import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
@@ -42,6 +42,7 @@ type Props = {
   userId?: number
   csrfToken?: string
   styleUrl?: string
+  communityUrl?: string
 }
 
 const parseInitialPinId = () => {
@@ -247,10 +248,12 @@ function reducer(state: State, action: Action): State {
 
 const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
-export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: Props) {
+export default function App({ userId, csrfToken, styleUrl = "/api/map/style", communityUrl }: Props) {
   const isDesktop = useIsDesktop()
   const [initialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
+  const [subMap, setSubMap] = useState<SubMap | null>(null)
+  const [promoteToWorld, setPromoteToWorld] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -281,10 +284,31 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   }, [])
 
   useEffect(() => {
-    api.getPins().then(({ data }) => {
-      setPins(data)
-    }).finally(() => setLoading(false))
-  }, [])
+    if (communityUrl) {
+      setLoading(true)
+      setApiError(null)
+      Promise.all([
+        api.getSubMap(communityUrl),
+        api.getSubMapPins(communityUrl),
+      ])
+        .then(([meta, pinList]) => {
+          setSubMap(meta.data)
+          setPins(pinList.data)
+          setPromoteToWorld(meta.data.promote_to_world_default === "always")
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : "Failed to load this community."
+          setApiError(message)
+          setSubMap(null)
+          setPins([])
+        })
+        .finally(() => setLoading(false))
+    } else {
+      api.getPins().then(({ data }) => {
+        setPins(data)
+      }).finally(() => setLoading(false))
+    }
+  }, [communityUrl])
 
   // Show welcome modal on first visit (per browser). Errors reading localStorage
   // (e.g. private mode, storage disabled) are non-fatal: we just don't show it.
@@ -340,6 +364,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
   usePinChannelSync({
     onUpsertPin: updateOrAddPin,
     onDeletePinId: (pinId) => setPins((prev) => prev.filter((p) => p.id !== pinId)),
+    communityUrl,
   })
 
   const onMapClick = useCallback((lng: number, lat: number) => {
@@ -347,9 +372,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
       dispatch({ type: "login_required" })
       return
     }
+    if (subMap && subMap.can_post === false) {
+      setApiError("You must join this community before adding pins.")
+      return
+    }
     if (modalRef.current?.mode === "add" || modalRef.current?.mode === "edit") return
     dispatch({ type: "begin_add_at", lat, lng })
-  }, [userId])
+  }, [userId, subMap])
 
   const onEdit = useCallback((pinId: number) => {
     const pin = pins.find(p => p.id === pinId)
@@ -450,10 +479,15 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         longitude: loc.lng,
         tags,
         ...buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule),
+        ...(subMap?.promote_to_world_default === "ask"
+          ? { visible_on_world_map: promoteToWorld }
+          : {}),
       }
       setSaving(true)
       try {
-        const { data: pinData } = await api.createPin(csrfToken, payload)
+        const { data: pinData } = communityUrl
+          ? await api.createSubMapPin(csrfToken, communityUrl, payload)
+          : await api.createPin(csrfToken, payload)
         updateOrAddPin(pinData)
         dispatch({ type: "after_add_saved" })
       } catch (err) {
@@ -485,7 +519,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
         setSaving(false)
       }
     }
-  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken, updateOrAddPin])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken, updateOrAddPin, communityUrl, subMap, promoteToWorld])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -540,6 +574,25 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style" }: 
 
   return (
     <div className="w-full h-full">
+      {subMap && (
+        <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none">
+          <div className="mx-auto max-w-lg rounded-lg bg-base-100/95 border border-base-300 shadow px-3 py-2 pointer-events-auto">
+            <p className="text-sm font-medium text-base-content">{subMap.name}</p>
+            <p className="text-xs text-base-content/60 font-mono">/m/{subMap.community_url}</p>
+            {subMap.promote_to_world_default === "ask" && modal?.mode === "add" && (
+              <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-sm"
+                  checked={promoteToWorld}
+                  onChange={(e) => setPromoteToWorld(e.target.checked)}
+                />
+                Also show on world map
+              </label>
+            )}
+          </div>
+        </div>
+      )}
       {!loading && (
         <>
           <MapCanvas

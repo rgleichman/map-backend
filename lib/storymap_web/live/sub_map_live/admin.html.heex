@@ -2,10 +2,47 @@
   <div class="max-w-3xl mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold text-base-content mb-2">Moderation</h1>
     <p class="text-base-content/70 mb-6">
-      Queue for <span class="font-mono text-sm">{@community_url}</span>
-      — pending pins, reports, and members
-      will appear here when sub-maps launch.
+      Pending pins for <span class="font-mono">{@sub_map.community_url}</span>
     </p>
-    <.link navigate={~p"/m/#{@community_url}"} class="btn btn-ghost">Back to community</.link>
+
+    <div id="pending-pins" phx-update="stream" class="space-y-4">
+      <div class="hidden only:block rounded-xl border border-base-300 p-6 text-center text-base-content/70">
+        No pins awaiting approval.
+      </div>
+      <div
+        :for={{id, pin} <- @streams.pending_pins}
+        id={id}
+        class="card bg-base-200/50 border border-base-300"
+      >
+        <div class="card-body flex-row flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="font-semibold">{pin.title}</h2>
+            <p class="text-sm text-base-content/60">{pin.pin_type}</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              phx-click="approve"
+              phx-value-id={pin.id}
+              class="btn btn-primary btn-sm"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              phx-click="reject"
+              phx-value-id={pin.id}
+              class="btn btn-ghost btn-sm"
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <.link navigate={~p"/m/#{@sub_map.community_url}"} class="btn btn-ghost mt-8">
+      Back to community
+    </.link>
   </div>
 </Layouts.app>

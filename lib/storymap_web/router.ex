@@ -48,6 +48,9 @@ defmodule StorymapWeb.Router do
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
+    get "/sub_maps", SubMapController, :index
+    get "/sub_maps/:community_url", SubMapController, :show
+    get "/sub_maps/:community_url/pins", SubMapController, :pins
     get "/map/style", MapController, :style
     get "/map/tiles.json", MapController, :tiles_json
     get "/tiles/:layer/:z/:x/:y", MapController, :tile
@@ -82,6 +85,13 @@ defmodule StorymapWeb.Router do
     put "/pins/:id", PinController, :update
     patch "/pins/:id", PinController, :update
     delete "/pins/:id", PinController, :delete
+    post "/sub_maps", SubMapController, :create
+    patch "/sub_maps/:community_url", SubMapController, :update
+    post "/sub_maps/:community_url/pins", SubMapController, :create_pin
+    post "/sub_maps/:community_url/memberships", SubMapController, :join
+    delete "/sub_maps/:community_url/memberships/me", SubMapController, :leave
+    post "/sub_maps/:community_url/pins/:id/approve", SubMapController, :approve_pin
+    post "/sub_maps/:community_url/pins/:id/reject", SubMapController, :reject_pin
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

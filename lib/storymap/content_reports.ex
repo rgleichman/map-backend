@@ -34,6 +34,7 @@ defmodule Storymap.ContentReports do
         |> Map.put("subject_label", pin.title)
         |> Map.put("subject_type", subject_type)
         |> Map.put("subject_id", subject_id)
+        |> Map.put("sub_map_id", pin.sub_map_id)
 
       ContentReport.create_changeset(attrs, reporter_user_id: reporter_user_id)
       |> Repo.insert()

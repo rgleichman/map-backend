@@ -1,0 +1,213 @@
+defmodule StorymapWeb.SubMapController do
+  use StorymapWeb, :controller
+
+  alias Storymap.Accounts.Scope
+  alias Storymap.SubMaps
+  alias StorymapWeb.{PinBroadcast, PinJSON, Plugs.LoadSubMap}
+
+  action_fallback StorymapWeb.FallbackController
+
+  plug LoadSubMap
+       when action in [
+              :show,
+              :pins,
+              :create_pin,
+              :join,
+              :leave,
+              :approve_pin,
+              :reject_pin,
+              :update
+            ]
+
+  def index(conn, params) do
+    sub_maps = SubMaps.list_public(q: params["q"], sort: params["sort"])
+    render(conn, :index, sub_maps: sub_maps, current_user: current_user(conn))
+  end
+
+  def create(conn, %{"sub_map" => params}) do
+    scope = conn.assigns.current_scope
+
+    case SubMaps.create_sub_map(scope, params) do
+      {:ok, sub_map} ->
+        conn
+        |> put_status(:created)
+        |> render(:show,
+          sub_map: sub_map,
+          current_user: scope.user,
+          membership: SubMaps.get_membership(sub_map.id, scope.user.id),
+          can_moderate: true,
+          counts: SubMaps.counts(sub_map)
+        )
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  def show(conn, _params) do
+    render_show(conn)
+  end
+
+  def update(conn, %{"sub_map" => params}) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.update_sub_map(scope, sub_map, params) do
+      {:ok, sub_map} -> render_show(conn, sub_map)
+      {:error, :forbidden} -> forbidden(conn)
+      {:error, %Ecto.Changeset{} = cs} -> {:error, cs}
+    end
+  end
+
+  def pins(conn, _params) do
+    sub_map = conn.assigns.sub_map
+    user = current_user(conn)
+    membership = conn.assigns.sub_map_membership
+    pins = SubMaps.list_pins(sub_map, user, membership)
+
+    render(conn, :pins,
+      pins: pins,
+      current_user: user,
+      sub_map: sub_map,
+      membership: membership
+    )
+  end
+
+  def create_pin(conn, %{"pin" => pin_params}) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.create_pin_in_sub_map(scope, sub_map, pin_params) do
+      {:ok, pin} ->
+        pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+
+        _ =
+          Storymap.AdminActivity.record_event(
+            "pin_created",
+            scope.user.id,
+            %{"pin_id" => pin.id, "title" => pin.title, "sub_map_id" => sub_map.id},
+            sub_map_id: sub_map.id
+          )
+
+        PinBroadcast.broadcast_pin_event(pin, :created)
+
+        conn
+        |> put_status(:created)
+        |> put_resp_header("location", ~p"/api/pins/#{pin}")
+        |> put_view(json: PinJSON)
+        |> render(:show,
+          pin: pin,
+          current_user: scope.user,
+          sub_map: sub_map,
+          membership: conn.assigns.sub_map_membership
+        )
+
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  def join(conn, _params) do
+    scope = conn.assigns.current_scope
+
+    case SubMaps.join(scope, conn.assigns.sub_map) do
+      {:ok, membership} ->
+        json(conn, %{data: %{role: membership.role, status: membership.status}})
+
+      {:error, _} ->
+        forbidden(conn)
+    end
+  end
+
+  def leave(conn, _params) do
+    scope = conn.assigns.current_scope
+
+    case SubMaps.leave(scope, conn.assigns.sub_map) do
+      {:ok, _} -> send_resp(conn, :no_content, "")
+      {:error, :owner_cannot_leave} -> forbidden(conn)
+      {:error, _} -> forbidden(conn)
+    end
+  end
+
+  def approve_pin(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.approve_pin(scope, sub_map, id) do
+      {:ok, pin} ->
+        PinBroadcast.broadcast_pin_event(pin, :updated)
+
+        conn
+        |> put_view(json: PinJSON)
+        |> render(:show, pin: pin, current_user: scope.user, sub_map: sub_map)
+
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      {:error, :not_found} ->
+        not_found(conn)
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  def reject_pin(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.reject_pin(scope, sub_map, id) do
+      {:ok, pin} ->
+        PinBroadcast.broadcast_pin_event(pin, :updated)
+
+        conn
+        |> put_view(json: PinJSON)
+        |> render(:show, pin: pin, current_user: scope.user, sub_map: sub_map)
+
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      {:error, :not_found} ->
+        not_found(conn)
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp render_show(conn, sub_map \\ nil) do
+    sub_map = sub_map || conn.assigns.sub_map
+
+    render(conn, :show,
+      sub_map: sub_map,
+      current_user: current_user(conn),
+      membership: conn.assigns.sub_map_membership,
+      can_moderate: conn.assigns.can_moderate_sub_map,
+      counts: SubMaps.counts(sub_map)
+    )
+  end
+
+  defp current_user(conn) do
+    case conn.assigns[:current_scope] do
+      %Scope{user: user} -> user
+      _ -> nil
+    end
+  end
+
+  defp forbidden(conn) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"403")
+  end
+
+  defp not_found(conn) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"404")
+  end
+end

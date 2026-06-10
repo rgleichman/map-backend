@@ -1,11 +1,46 @@
 defmodule StorymapWeb.SubMapLive.New do
-  @moduledoc """
-  Create sub-map wizard. Form wiring follows `docs/SUB_MAPS.md` when `Storymap.SubMaps` ships.
-  """
+  @moduledoc "Create a new community."
   use StorymapWeb, :live_view
+
+  alias Storymap.SubMaps
+  alias Storymap.SubMaps.SubMap
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :page_title, "Create community")}
+    changeset =
+      %SubMap{}
+      |> SubMap.changeset(%{
+        "contribution_mode" => "open",
+        "promote_to_world_default" => "ask",
+        "visibility" => "public"
+      })
+
+    {:ok,
+     socket
+     |> assign(:page_title, "Create community")
+     |> assign(:form, to_form(changeset, as: :sub_map))}
+  end
+
+  @impl true
+  def handle_event("validate", %{"sub_map" => params}, socket) do
+    changeset =
+      %SubMap{}
+      |> SubMap.changeset(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}
+  end
+
+  def handle_event("save", %{"sub_map" => params}, socket) do
+    case SubMaps.create_sub_map(socket.assigns.current_scope, params) do
+      {:ok, sub_map} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Community created")
+         |> push_navigate(to: ~p"/m/#{sub_map.community_url}")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}
+    end
   end
 end

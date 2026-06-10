@@ -1,13 +1,53 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="max-w-2xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold text-base-content mb-4">Create a community</h1>
-    <p class="text-base-content/70 mb-8">
-      Community creation is not enabled yet. The create wizard will collect name, community URL,
-      contribution mode, world-map promotion default, and optional rules.
-    </p>
-    <p class="text-sm text-base-content/60">
-      See <.link navigate={~p"/m/design"} class="link">Sub-maps design</.link> for details.
-    </p>
-    <.link navigate={~p"/m"} class="btn btn-ghost mt-6">Back to communities</.link>
+    <h1 class="text-3xl font-bold text-base-content mb-6">Create a community</h1>
+
+    <.form
+      for={@form}
+      id="sub-map-create-form"
+      phx-change="validate"
+      phx-submit="save"
+      class="space-y-4"
+    >
+      <.input field={@form[:name]} type="text" label="Name" required />
+      <.input
+        field={@form[:community_url]}
+        type="text"
+        label="Community URL"
+        placeholder="bbq-austin"
+        required
+      />
+      <p class="text-sm text-base-content/60 -mt-2">
+        Your map will live at <span class="font-mono">/m/your-url</span>
+      </p>
+      <.input field={@form[:description]} type="textarea" label="Description" />
+      <.input field={@form[:rules]} type="textarea" label="Rules (optional)" />
+      <.input
+        field={@form[:contribution_mode]}
+        type="select"
+        label="Who can add pins?"
+        options={[
+          {"Anyone logged in", "open"},
+          {"Members only", "members_only"},
+          {"Requires moderator approval", "approval_required"}
+        ]}
+      />
+      <.input
+        field={@form[:promote_to_world_default]}
+        type="select"
+        label="Show pins on world map"
+        options={[
+          {"Never", "never"},
+          {"Ask each time", "ask"},
+          {"Always", "always"}
+        ]}
+      />
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn btn-primary" id="sub-map-create-submit">
+          Create community
+        </button>
+        <.link navigate={~p"/m"} class="btn btn-ghost">Cancel</.link>
+      </div>
+    </.form>
   </div>
 </Layouts.app>

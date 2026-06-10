@@ -1,4 +1,4 @@
-import type { ContentReportPayload, NewPin, Pin, UpdatePin } from "../types"
+import type { ContentReportPayload, NewPin, Pin, SubMap, UpdatePin } from "../types"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -20,6 +20,30 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 
 export function getPins(): Promise<{ data: Pin[] }> {
   return jsonFetch("/api/pins")
+}
+
+export function getSubMap(communityUrl: string): Promise<{ data: SubMap }> {
+  return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}`)
+}
+
+export function getSubMapPins(communityUrl: string): Promise<{ data: Pin[] }> {
+  return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/pins`)
+}
+
+export function createSubMapPin(
+  csrf: string | undefined,
+  communityUrl: string,
+  pin: NewPin
+): Promise<{ data: Pin }> {
+  return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/pins`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    body: JSON.stringify({ pin }),
+    credentials: "same-origin",
+  })
 }
 
 export function createPin(csrf: string | undefined, pin: NewPin): Promise<{ data: Pin }> {

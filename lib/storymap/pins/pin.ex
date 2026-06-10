@@ -21,6 +21,8 @@ defmodule Storymap.Pins.Pin do
     :end_time,
     :schedule_rrule,
     :schedule_timezone,
+    :status,
+    :visible_on_world_map,
     :inserted_at,
     :updated_at
   ]
@@ -29,6 +31,9 @@ defmodule Storymap.Pins.Pin do
 
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
+    belongs_to :sub_map, Storymap.SubMaps.SubMap
+    field :status, :string, default: "approved"
+    field :visible_on_world_map, :boolean, default: true
     field :title, :string
     field :latitude, :float
     field :longitude, :float
@@ -62,8 +67,12 @@ defmodule Storymap.Pins.Pin do
         :start_time,
         :end_time,
         :pin_type,
-        :schedule_rrule
+        :schedule_rrule,
+        :sub_map_id,
+        :status,
+        :visible_on_world_map
       ])
+      |> validate_inclusion(:status, ["pending", "approved", "rejected", "archived"])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank", "other"])
 

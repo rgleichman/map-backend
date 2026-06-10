@@ -1,4 +1,4 @@
-// Map world channel: pin realtime sync for React map and other clients.
+// Map channel: pin realtime sync for React map and other clients.
 
 import { Socket } from "phoenix"
 
@@ -9,15 +9,32 @@ const userToken =
 const socket = new Socket("/socket", { authToken: userToken })
 socket.connect()
 
-const worldChannel = socket.channel("map:world", {})
+function mapTopicFromRoot() {
+  const root = document.getElementById("react-root")
+  const communityUrl = root?.dataset?.communityUrl
+  return communityUrl ? `map:submap:${communityUrl}` : "map:world"
+}
 
-worldChannel
-  .join()
-  .receive("ok", (resp) => {
-    console.log("World joined successfully", resp)
-  })
-  .receive("error", (resp) => {
-    console.log("Unable to join world channel", resp)
-  })
+let activeChannel = null
 
-export default worldChannel
+export function getMapChannel() {
+  const topic = mapTopicFromRoot()
+
+  if (activeChannel && activeChannel.topic === topic) {
+    return activeChannel
+  }
+
+  if (activeChannel) {
+    activeChannel.leave()
+  }
+
+  activeChannel = socket.channel(topic, {})
+  activeChannel
+    .join()
+    .receive("ok", () => { })
+    .receive("error", () => { })
+
+  return activeChannel
+}
+
+export default getMapChannel()

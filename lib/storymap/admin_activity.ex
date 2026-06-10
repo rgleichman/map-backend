@@ -23,13 +23,16 @@ defmodule Storymap.AdminActivity do
     counts_toward_unread =
       Keyword.get(opts, :counts_toward_unread, type != "content_reported")
 
-    %Event{}
-    |> Event.changeset(%{
+    attrs = %{
       type: type,
       actor_user_id: actor_user_id,
       metadata: metadata,
-      counts_toward_unread: counts_toward_unread
-    })
+      counts_toward_unread: counts_toward_unread,
+      sub_map_id: Keyword.get(opts, :sub_map_id)
+    }
+
+    %Event{}
+    |> Event.changeset(attrs)
     |> Repo.insert()
     |> case do
       {:ok, %Event{} = event} ->

@@ -18,13 +18,14 @@ defmodule Storymap.AdminActivity.Event do
     field :counts_toward_unread, :boolean, default: true
 
     belongs_to :actor_user, Storymap.Accounts.User
+    belongs_to :sub_map, Storymap.SubMaps.SubMap
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(event, attrs) do
     event
-    |> cast(attrs, [:type, :metadata, :actor_user_id, :counts_toward_unread])
+    |> cast(attrs, [:type, :metadata, :actor_user_id, :counts_toward_unread, :sub_map_id])
     |> validate_required([:type, :metadata, :counts_toward_unread])
   end
 end

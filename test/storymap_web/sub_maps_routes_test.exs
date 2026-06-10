@@ -1,6 +1,8 @@
 defmodule StorymapWeb.SubMapsRoutesTest do
   use StorymapWeb.ConnCase, async: true
 
+  import Storymap.SubMapsFixtures
+
   describe "sub-map discovery routes" do
     test "GET /m renders communities browse", %{conn: conn} do
       conn = get(conn, ~p"/m")
@@ -9,8 +11,9 @@ defmodule StorymapWeb.SubMapsRoutesTest do
     end
 
     test "GET /m/:community_url renders community home", %{conn: conn} do
-      conn = get(conn, ~p"/m/bbq-austin")
-      assert html_response(conn, 200) =~ "bbq-austin"
+      sub_map = sub_map_fixture(%{"community_url" => "bbq-austin", "name" => "BBQ Austin"})
+      conn = get(conn, ~p"/m/#{sub_map.community_url}")
+      assert html_response(conn, 200) =~ "BBQ Austin"
     end
 
     test "GET /m/:community_url/map renders react root with community url", %{conn: conn} do
@@ -34,8 +37,9 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       assert html_response(conn, 200) =~ "Create a community"
     end
 
-    test "GET /m/:community_url/admin renders moderation placeholder", %{conn: conn} do
-      conn = get(conn, ~p"/m/bbq-austin/admin")
+    test "GET /m/:community_url/admin renders moderation placeholder", %{conn: conn, user: user} do
+      sub_map = sub_map_fixture(%{"community_url" => "bbq-mod"}, user)
+      conn = get(conn, ~p"/m/#{sub_map.community_url}/admin")
       assert html_response(conn, 200) =~ "Moderation"
     end
   end

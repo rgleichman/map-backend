@@ -3,7 +3,7 @@ defmodule StorymapWeb.PinJSON do
   JSON rendering for pins. Never includes user_id in any response (privacy / anti-enumeration).
   """
   alias Storymap.Pins.Pin
-  alias Storymap.Pins.Policy
+  alias Storymap.Pins.Authorizer
 
   # Pin schema fields (no user_id) plus view-only keys: tags (from association), is_owner (computed).
   @pin_data_keys Pin.public_json_fields() ++ [:tags, :is_owner]
@@ -15,24 +15,16 @@ defmodule StorymapWeb.PinJSON do
     "#{dt.year}-#{pad.(dt.month)}-#{pad.(dt.day)}T#{pad.(dt.hour)}:#{pad.(dt.minute)}:#{pad.(dt.second)}"
   end
 
-  @doc """
-  Renders a list of pins.
-  Includes is_owner flag only if current_user is provided (authenticated user).
-  """
-  def index(%{pins: pins, current_user: %{} = current_user}) do
-    %{data: for(pin <- pins, do: data_with_user(pin, current_user))}
+  def index(%{pins: pins, current_user: %{} = current_user} = assigns) do
+    %{data: for(pin <- pins, do: data_with_user(pin, current_user, assigns))}
   end
 
   def index(%{pins: pins}) do
     %{data: for(pin <- pins, do: data(pin))}
   end
 
-  @doc """
-  Renders a single pin.
-  Includes is_owner flag only if current_user is provided (authenticated user).
-  """
-  def show(%{pin: pin, current_user: %{} = current_user}) do
-    %{data: data_with_user(pin, current_user)}
+  def show(%{pin: pin, current_user: %{} = current_user} = assigns) do
+    %{data: data_with_user(pin, current_user, assigns)}
   end
 
   def show(%{pin: pin}) do
@@ -57,16 +49,20 @@ defmodule StorymapWeb.PinJSON do
     Map.take(base, @pin_data_keys -- [:is_owner])
   end
 
-  @doc """
-  Renders pin data for authenticated responses.
-  Computes is_owner flag based on whether pin belongs to current user.
-  Never includes user_id to prevent user enumeration.
-  """
-  def data_with_user(%Pin{} = pin, %{} = current_user) do
-    is_owner = Policy.owner_or_admin?(current_user, pin)
+  def data_with_user(%Pin{} = pin, %{} = current_user, assigns \\ %{}) do
+    opts = authorizer_opts(assigns)
+
+    is_owner = Authorizer.can_edit_in_json?(current_user, pin, opts)
 
     data(pin)
     |> Map.put(:is_owner, is_owner)
     |> Map.take(@pin_data_keys)
+  end
+
+  defp authorizer_opts(assigns) do
+    [
+      sub_map: Map.get(assigns, :sub_map),
+      membership: Map.get(assigns, :membership)
+    ]
   end
 end

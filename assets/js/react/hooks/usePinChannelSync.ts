@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import worldChannel from "../../map_socket"
+import { getMapChannel } from "../../map_socket"
 import type { Pin } from "../types"
 
 type PinBroadcastPayload = { pin: Pin }
@@ -8,25 +8,33 @@ type PinDeletedPayload = { pin_id: number }
 type Params = {
   onUpsertPin: (pin: Pin) => void
   onDeletePinId: (pinId: number) => void
+  communityUrl?: string
 }
 
-export function usePinChannelSync({ onUpsertPin, onDeletePinId }: Params): void {
+export function usePinChannelSync({ onUpsertPin, onDeletePinId, communityUrl }: Params): void {
   const onUpsertPinRef = useRef(onUpsertPin)
   const onDeletePinIdRef = useRef(onDeletePinId)
   onUpsertPinRef.current = onUpsertPin
   onDeletePinIdRef.current = onDeletePinId
 
   useEffect(() => {
+    const root = document.getElementById("react-root")
+    if (root && communityUrl) {
+      root.dataset.communityUrl = communityUrl
+    } else if (root) {
+      delete root.dataset.communityUrl
+    }
+
+    const channel = getMapChannel()
     const onUpsert = (payload: PinBroadcastPayload) => onUpsertPinRef.current(payload.pin)
     const onDeleted = (payload: PinDeletedPayload) => onDeletePinIdRef.current(payload.pin_id)
-    worldChannel.on("marker_added", onUpsert)
-    worldChannel.on("marker_updated", onUpsert)
-    worldChannel.on("marker_deleted", onDeleted)
+    channel.on("marker_added", onUpsert)
+    channel.on("marker_updated", onUpsert)
+    channel.on("marker_deleted", onDeleted)
     return () => {
-      worldChannel.off("marker_added", onUpsert)
-      worldChannel.off("marker_updated", onUpsert)
-      worldChannel.off("marker_deleted", onDeleted)
+      channel.off("marker_added", onUpsert)
+      channel.off("marker_updated", onUpsert)
+      channel.off("marker_deleted", onDeleted)
     }
-  }, [])
+  }, [communityUrl])
 }
-

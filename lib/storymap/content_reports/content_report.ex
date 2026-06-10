@@ -14,6 +14,7 @@ defmodule Storymap.ContentReports.ContentReport do
     field :resolved_at, :utc_datetime
 
     belongs_to :reporter, Storymap.Accounts.User, foreign_key: :reporter_user_id
+    belongs_to :sub_map, Storymap.SubMaps.SubMap
 
     timestamps(type: :utc_datetime)
   end
@@ -24,7 +25,7 @@ defmodule Storymap.ContentReports.ContentReport do
     reporter_user_id = Keyword.get(opts, :reporter_user_id)
 
     %__MODULE__{}
-    |> cast(attrs, [:subject_type, :subject_id, :subject_label, :category, :details])
+    |> cast(attrs, [:subject_type, :subject_id, :subject_label, :category, :details, :sub_map_id])
     |> validate_required([:subject_type, :subject_id, :category])
     |> validate_inclusion(:subject_type, ["pin"])
     |> validate_inclusion(:category, @categories)

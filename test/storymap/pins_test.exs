@@ -5,6 +5,10 @@ defmodule Storymap.PinsTest do
 
   import Storymap.PinsFixtures
   import Storymap.AccountsFixtures
+  import Storymap.SubMapsFixtures
+
+  alias Storymap.Accounts.Scope
+  alias Storymap.SubMaps
 
   describe "pins" do
     alias Storymap.Pins.Pin
@@ -19,12 +23,13 @@ defmodule Storymap.PinsTest do
 
     test "list_pins/0 returns all pins" do
       pin = pin_fixture()
-      assert Pins.list_pins() == [pin]
+      assert [fetched] = Pins.list_pins()
+      assert fetched.id == pin.id
     end
 
     test "get_pin!/1 returns the pin with given id" do
       pin = pin_fixture()
-      assert Pins.get_pin!(pin.id) == pin
+      assert Pins.get_pin!(pin.id).id == pin.id
     end
 
     test "create_pin/2 with valid data creates a pin" do
@@ -74,7 +79,38 @@ defmodule Storymap.PinsTest do
       pin = pin_fixture()
       bad_attrs = %{"title" => nil, "latitude" => nil, "longitude" => nil}
       assert {:error, %Ecto.Changeset{}} = Pins.update_pin(pin, bad_attrs)
-      assert pin == Pins.get_pin!(pin.id)
+      assert Pins.get_pin!(pin.id).id == pin.id
+    end
+
+    test "update_pin/3 validates sub-map required_tags with atom-key attrs" do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "community_url" => "tag-validation",
+            "settings" => %{"required_tags" => ["bbq"]}
+          },
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other",
+            "tags" => ["bbq"]
+          }
+        )
+
+      assert {:error, %Ecto.Changeset{errors: errors}} =
+               Pins.update_pin(pin, %{title: "Renamed", tags: []}, sub_map: sub_map)
+
+      assert {"must include: bbq", _} = Keyword.fetch!(errors, :tags)
     end
 
     test "delete_pin/1 deletes the pin" do

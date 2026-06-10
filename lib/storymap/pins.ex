@@ -4,82 +4,42 @@ defmodule Storymap.Pins do
   """
 
   import Ecto.Query, warn: false
+  import Ecto.Changeset, only: [validate_inclusion: 3, add_error: 3]
   alias Storymap.Repo
+  alias Storymap.Pins.{Pin, Query}
+  alias Storymap.SubMaps
+  alias Storymap.SubMaps.SubMap
 
-  alias Storymap.Pins.Pin
-
-  @doc """
-  Returns every pin for the public map catalog, ordered by most recently updated first.
-
-  This does not filter by viewer. Callers that need per-user semantics (for example
-  `is_owner` in JSON or templates) must derive that from `current_scope` / `user_id`
-  when building the response. To list only one author's pins, use `list_pins_by_user/1`.
-
-  ## Examples
-
-      iex> list_pins()
-      [%Pin{}, ...]
-
-  """
   def list_pins do
-    Repo.all(from p in Pin, preload: [:tags], order_by: [desc: p.updated_at])
-  end
-
-  def list_pins_by_user(user_id) when is_integer(user_id) do
-    from(p in Pin,
-      where: p.user_id == ^user_id,
-      order_by: [desc: p.inserted_at],
-      preload: [:tags]
-    )
+    Query.world_pins()
     |> Repo.all()
   end
 
-  @doc """
-  Gets a single pin.
+  def list_pins_by_user(user_id) when is_integer(user_id) do
+    Query.by_user(user_id)
+    |> Repo.all()
+  end
 
-  Raises `Ecto.NoResultsError` if the Pin does not exist.
-
-  ## Examples
-
-      iex> get_pin!(123)
-      %Pin{}
-
-      iex> get_pin!(456)
-      ** (Ecto.NoResultsError)
-
-  """
   def get_pin!(id), do: Repo.get!(Pin, id) |> Repo.preload(:tags)
 
-  @doc """
-  Gets a single pin or `nil` if it does not exist.
-  """
   def get_pin(id) when is_integer(id) do
     case Repo.get(Pin, id) do
       nil -> nil
-      %Pin{} = pin -> Repo.preload(pin, :tags)
+      %Pin{} = pin -> Repo.preload(pin, [:tags, :sub_map])
     end
   end
 
-  @doc """
-  Creates a pin.
+  def create_pin(attrs, user_id, opts \\ []) do
+    attrs_with_user = Map.put(stringify_keys(attrs), "user_id", user_id)
+    sub_map = Keyword.get(opts, :sub_map)
 
-  ## Examples
-
-      iex> create_pin(%{field: value}, user_id)
-      {:ok, %Pin{}}
-
-      iex> create_pin(%{field: bad_value}, user_id)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def create_pin(attrs, user_id) do
-    attrs_with_user = Map.put(attrs, "user_id", user_id)
-    tags = Map.get(attrs, "tags", [])
+    tags = Map.get(attrs_with_user, "tags", [])
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
         %Pin{}
         |> Pin.changeset(attrs_with_user)
+        |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
         |> Ecto.Changeset.put_assoc(:tags, tag_structs)
         |> Repo.insert()
 
@@ -88,25 +48,16 @@ defmodule Storymap.Pins do
     end
   end
 
-  @doc """
-  Updates a pin.
-
-  ## Examples
-
-      iex> update_pin(pin, %{field: new_value})
-      {:ok, %Pin{}}
-
-      iex> update_pin(pin, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_pin(%Pin{} = pin, attrs) do
+  def update_pin(%Pin{} = pin, attrs, opts \\ []) do
+    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
+    attrs = stringify_keys(attrs)
     tags = Map.get(attrs, "tags", [])
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
         pin
         |> Pin.changeset(attrs)
+        |> maybe_validate_sub_map_rules(sub_map, attrs)
         |> Ecto.Changeset.put_assoc(:tags, tag_structs)
         |> Repo.update()
 
@@ -115,32 +66,78 @@ defmodule Storymap.Pins do
     end
   end
 
-  @doc """
-  Deletes a pin.
-
-  ## Examples
-
-      iex> delete_pin(pin)
-      {:ok, %Pin{}}
-
-      iex> delete_pin(pin)
-      {:error, %Ecto.Changeset{}}
-
-  """
   def delete_pin(%Pin{} = pin) do
     Repo.delete(pin)
   end
 
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking pin changes.
-
-  ## Examples
-
-      iex> change_pin(pin)
-      %Ecto.Changeset{data: %Pin{}}
-
-  """
   def change_pin(%Pin{} = pin, attrs \\ %{}) do
     Pin.changeset(pin, attrs)
+  end
+
+  defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs) do
+    settings = sub_map.settings || %{}
+    tag_names = Map.get(attrs, "tags", [])
+
+    changeset
+    |> validate_pin_type_allowed(settings)
+    |> validate_required_tags(settings, tag_names)
+    |> validate_description_required(settings)
+  end
+
+  defp maybe_validate_sub_map_rules(changeset, _, _), do: changeset
+
+  defp validate_pin_type_allowed(changeset, %{"allowed_pin_types" => types})
+       when is_list(types) and types != [] do
+    validate_inclusion(changeset, :pin_type, types)
+  end
+
+  defp validate_pin_type_allowed(changeset, %{allowed_pin_types: types})
+       when is_list(types) and types != [] do
+    validate_inclusion(changeset, :pin_type, types)
+  end
+
+  defp validate_pin_type_allowed(changeset, _), do: changeset
+
+  defp validate_required_tags(changeset, %{"required_tags" => required}, tag_names)
+       when is_list(required) and required != [] do
+    tag_names = List.wrap(tag_names)
+
+    missing =
+      Enum.filter(required, fn req ->
+        not Enum.any?(tag_names, &(String.downcase(to_string(&1)) == String.downcase(req)))
+      end)
+
+    if missing == [] do
+      changeset
+    else
+      add_error(changeset, :tags, "must include: #{Enum.join(missing, ", ")}")
+    end
+  end
+
+  defp validate_required_tags(changeset, %{required_tags: required}, tag_names),
+    do: validate_required_tags(changeset, %{"required_tags" => required}, tag_names)
+
+  defp validate_required_tags(changeset, _, _), do: changeset
+
+  defp validate_description_required(changeset, %{"require_description" => true}) do
+    desc = Ecto.Changeset.get_field(changeset, :description)
+
+    if is_binary(desc) and String.trim(desc) != "" do
+      changeset
+    else
+      add_error(changeset, :description, "is required in this community")
+    end
+  end
+
+  defp validate_description_required(changeset, %{require_description: true}),
+    do: validate_description_required(changeset, %{"require_description" => true})
+
+  defp validate_description_required(changeset, _), do: changeset
+
+  defp stringify_keys(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_atom(k) -> {to_string(k), v}
+      {k, v} -> {k, v}
+    end)
   end
 end

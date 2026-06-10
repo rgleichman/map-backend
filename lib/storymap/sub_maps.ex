@@ -1,0 +1,257 @@
+defmodule Storymap.SubMaps do
+  @moduledoc """
+  Sub-maps (communities): CRUD, memberships, and moderation.
+  """
+  import Ecto.Query, warn: false
+  alias Storymap.Accounts.Scope
+  alias Storymap.Accounts.User
+  alias Storymap.Pins
+  alias Storymap.Pins.{Authorizer, Pin, Query}
+  alias Storymap.Repo
+  alias Storymap.SubMaps.{Membership, Policy, SubMap}
+
+  def get_by_community_url(url) when is_binary(url) do
+    Repo.get_by(SubMap, community_url: url)
+  end
+
+  def get_by_community_url!(url), do: Repo.get_by!(SubMap, community_url: url)
+
+  def get!(id) when is_integer(id), do: Repo.get!(SubMap, id)
+
+  @doc """
+  Resolves sub-map for a pin from explicit opts, preloaded association, or DB lookup.
+
+  Never reads `pin.sub_map` unless `Ecto.assoc_loaded?/1` is true.
+  """
+  def resolve_for_pin(nil, %Pin{sub_map_id: nil}), do: nil
+  def resolve_for_pin(%SubMap{} = sub_map, _pin), do: sub_map
+
+  def resolve_for_pin(_, %Pin{sub_map_id: nil}), do: nil
+
+  def resolve_for_pin(_, %Pin{} = pin) do
+    cond do
+      Ecto.assoc_loaded?(pin.sub_map) -> pin.sub_map
+      pin.sub_map_id -> Repo.get(SubMap, pin.sub_map_id)
+      true -> nil
+    end
+  end
+
+  def get_membership(sub_map_id, user_id) do
+    Repo.get_by(Membership, sub_map_id: sub_map_id, user_id: user_id)
+  end
+
+  def list_public(opts \\ []) do
+    q = Keyword.get(opts, :q, "") |> to_string() |> String.trim()
+    sort = Keyword.get(opts, :sort, "newest")
+
+    query =
+      from(s in SubMap,
+        where: s.visibility == "public",
+        preload: [:owner]
+      )
+
+    query =
+      if q != "" do
+        pattern = "%#{q}%"
+
+        from(s in query,
+          where: ilike(s.name, ^pattern) or ilike(s.community_url, ^pattern)
+        )
+      else
+        query
+      end
+
+    query = from(s in query, order_by: [desc: s.inserted_at])
+
+    sub_maps = Repo.all(query) |> Enum.map(&attach_counts/1)
+
+    case sort do
+      "most_pins" -> Enum.sort_by(sub_maps, & &1.pin_count, :desc)
+      _ -> sub_maps
+    end
+  end
+
+  def counts(%SubMap{id: id}) do
+    pin_count =
+      Repo.aggregate(
+        from(p in Pin, where: p.sub_map_id == ^id and p.status == "approved"),
+        :count
+      )
+
+    member_count =
+      Repo.aggregate(
+        from(m in Membership, where: m.sub_map_id == ^id and m.status == "active"),
+        :count
+      )
+
+    pending_count =
+      Repo.aggregate(
+        from(p in Pin, where: p.sub_map_id == ^id and p.status == "pending"),
+        :count
+      )
+
+    %{pin_count: pin_count, member_count: member_count, pending_count: pending_count}
+  end
+
+  defp attach_counts(%SubMap{} = sub_map) do
+    c = counts(sub_map)
+    struct(sub_map, pin_count: c.pin_count, member_count: c.member_count)
+  end
+
+  def create_sub_map(%Scope{user: %User{} = user}, attrs) do
+    attrs = stringify_keys(attrs)
+
+    Repo.transaction(fn ->
+      with {:ok, sub_map} <-
+             %SubMap{}
+             |> SubMap.changeset(attrs)
+             |> Ecto.Changeset.put_change(:owner_user_id, user.id)
+             |> Repo.insert(),
+           {:ok, _membership} <-
+             insert_membership(sub_map.id, user.id, "owner", "active") do
+        sub_map
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  def update_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
+    if Policy.can_edit_sub_map?(user, sub_map) do
+      sub_map
+      |> SubMap.changeset(stringify_keys(attrs))
+      |> Repo.update()
+    else
+      {:error, :forbidden}
+    end
+  end
+
+  def join(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
+    case get_membership(sub_map.id, user.id) do
+      %Membership{status: "active"} = m ->
+        {:ok, m}
+
+      %Membership{} = m ->
+        m
+        |> Membership.changeset(%{"status" => "active"})
+        |> Repo.update()
+
+      nil ->
+        insert_membership(sub_map.id, user.id, "member", "active")
+    end
+  end
+
+  def leave(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
+    case get_membership(sub_map.id, user.id) do
+      %Membership{role: "owner"} ->
+        {:error, :owner_cannot_leave}
+
+      %Membership{} = m ->
+        Repo.delete(m)
+
+      nil ->
+        {:error, :not_member}
+    end
+  end
+
+  def list_pins(%SubMap{} = sub_map, viewer, membership) do
+    query =
+      if Policy.can_moderate?(viewer, sub_map, membership) do
+        Query.sub_map_pins_for_mod(sub_map.id)
+      else
+        Query.sub_map_pins(sub_map.id)
+      end
+
+    Repo.all(query)
+  end
+
+  def pending_pins(%SubMap{} = sub_map) do
+    Repo.all(Query.pending_pins(sub_map.id))
+  end
+
+  def approve_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
+    with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
+         membership <- get_membership(sub_map.id, user.id),
+         true <- Policy.can_moderate?(user, sub_map, membership),
+         {:ok, pin} <-
+           pin
+           |> Ecto.Changeset.change(%{status: "approved"})
+           |> Repo.update() do
+      {:ok, Repo.preload(pin, [:tags, :sub_map])}
+    else
+      nil -> {:error, :not_found}
+      false -> {:error, :forbidden}
+      {:error, _} = err -> err
+    end
+  end
+
+  def reject_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
+    with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
+         membership <- get_membership(sub_map.id, user.id),
+         true <- Policy.can_moderate?(user, sub_map, membership),
+         {:ok, pin} <-
+           pin
+           |> Ecto.Changeset.change(%{status: "rejected"})
+           |> Repo.update() do
+      {:ok, Repo.preload(pin, [:tags, :sub_map])}
+    else
+      nil -> {:error, :not_found}
+      false -> {:error, :forbidden}
+      {:error, _} = err -> err
+    end
+  end
+
+  def create_pin_in_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
+    membership = get_membership(sub_map.id, user.id)
+
+    with :ok <- Authorizer.authorize_create_in_sub_map(user, sub_map, membership),
+         attrs <- prepare_pin_attrs(sub_map, attrs, membership, user) do
+      Pins.create_pin(attrs, user.id, sub_map: sub_map)
+    end
+  end
+
+  defp prepare_pin_attrs(%SubMap{} = sub_map, attrs, membership, user) do
+    attrs = stringify_keys(attrs)
+
+    status =
+      if sub_map.contribution_mode == "approval_required", do: "pending", else: "approved"
+
+    visible =
+      case attrs["visible_on_world_map"] do
+        v when is_boolean(v) ->
+          if Policy.can_set_visible_on_world?(sub_map, user, membership),
+            do: v,
+            else: Policy.promotion_default_visible?(sub_map)
+
+        _ ->
+          Policy.promotion_default_visible?(sub_map)
+      end
+
+    attrs
+    |> Map.put("sub_map_id", sub_map.id)
+    |> Map.put("status", status)
+    |> Map.put("visible_on_world_map", visible)
+  end
+
+  defp get_sub_map_pin(%SubMap{id: id}, pin_id) do
+    Repo.one(from(p in Pin, where: p.id == ^pin_id and p.sub_map_id == ^id))
+  end
+
+  defp insert_membership(sub_map_id, user_id, role, status) do
+    %Membership{}
+    |> Membership.changeset(%{
+      "sub_map_id" => sub_map_id,
+      "user_id" => user_id,
+      "role" => role,
+      "status" => status
+    })
+    |> Repo.insert()
+  end
+
+  defp stringify_keys(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_atom(k) -> {to_string(k), v}
+      {k, v} -> {k, v}
+    end)
+  end
+end

@@ -4,10 +4,11 @@ import App from "./App"
 
 const container = document.getElementById("react-root") as HTMLDivElement | null
 if (container) {
-  const { userId, csrf, styleUrl } = container.dataset as {
+  const { userId, csrf, styleUrl, communityUrl } = container.dataset as {
     userId?: string
     csrf?: string
     styleUrl?: string
+    communityUrl?: string
   }
 
   const root = createRoot(container)
@@ -17,9 +18,8 @@ if (container) {
         userId={userId ? parseInt(userId, 10) : undefined}
         csrfToken={csrf}
         styleUrl={styleUrl}
+        communityUrl={communityUrl}
       />
     </React.StrictMode>
   )
 }
-
-
