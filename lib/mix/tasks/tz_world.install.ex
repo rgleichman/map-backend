@@ -158,8 +158,25 @@ defmodule Mix.Tasks.TzWorld.Install do
   end
 
   defp stop_backends do
-    :ok = TzWorld.Backend.Memory.stop()
-    :ok = TzWorld.Backend.Dets.stop()
+    for module <- [TzWorld.Backend.Memory, TzWorld.Backend.Dets] do
+      try do
+        case module.stop() do
+          :ok ->
+            :ok
+
+          other ->
+            Logger.warning(
+              "#{@tag} Unexpected stop result from #{inspect(module)}: #{inspect(other)}"
+            )
+        end
+      catch
+        kind, reason ->
+          Logger.warning(
+            "#{@tag} Failed to stop #{inspect(module)} (#{kind}): #{Exception.format(kind, reason, [])}"
+          )
+      end
+    end
+
     :erlang.garbage_collect()
   end
 end
