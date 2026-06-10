@@ -193,6 +193,11 @@
     1px 1px 3px #000;
 }
 
+/* Shared with Phoenix root nav (layouts/root.html.heex) and React map overlays. */
+:root {
+  --site-header-height: 3.5rem;
+}
+
 /* Global height constraints to prevent scrollbar overflow */
 html,
 body {

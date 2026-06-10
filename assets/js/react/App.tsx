@@ -6,6 +6,7 @@ import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
+import { SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
 import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
@@ -639,7 +640,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
       {/* Desktop: side panel for type selection and add/edit form (hidden while picking location) */}
       {isDesktop && !placement && modal && (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit") && (
-        <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-base-100 border-l border-base-300 shadow-xl z-40 flex flex-col overflow-hidden">
+        <div className={`fixed right-0 w-full max-w-md bg-base-100 border-l border-base-300 shadow-xl z-40 flex flex-col overflow-hidden ${SITE_HEADER_FIXED_PANEL_CLASSES}`}>
           <div className="p-4 overflow-y-auto flex-1">
             {modal.mode === "select-type" && (
               <PinTypeModal

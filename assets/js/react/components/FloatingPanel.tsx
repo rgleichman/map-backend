@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useId, useState } from "react"
+import { siteHeaderTop } from "../utils/siteLayout"
 
 const safeBottom = "max(1rem, env(safe-area-inset-bottom))"
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
 const safeRight = "max(1rem, env(safe-area-inset-right))"
-/** Below map search / location button. */
-const topLeftTop = "3.5rem"
 
 type Props = {
   triggerLabel?: string
@@ -95,7 +94,7 @@ export default function FloatingPanel({
   const triggerHiddenWhenExpanded = alwaysVisibleOnDesktop
   const isTopLeft = position === "top-left"
   const isTopRight = position === "top-right"
-  const top = topOffset ?? topLeftTop
+  const top = topOffset ?? siteHeaderTop()
   const triggerStyle = isTopLeft
     ? { top: top, left: safeLeft }
     : isTopRight
