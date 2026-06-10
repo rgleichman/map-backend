@@ -46,9 +46,14 @@
 To start your Phoenix server:
 
 * Run `mix setup` to install and setup dependencies
+* Run `mix tz_world.install --include-oceans` once to install timezone boundary data (required for pin schedule timezone lookup). Without `GITHUB_TOKEN`, this falls back to the unauthenticated upstream task.
 * Run `./scripts/install-git-hooks` once so `mix precommit` runs automatically before each commit
 * Copy `.env.example` to `.env` and add your MapTiler API key (see Prerequisites). The app loads `.env` automatically in dev; the file is gitignored.
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+
+### Production (Render)
+
+`build.sh` runs `mix tz_world.install --include-oceans` during deploy. Set a **`GITHUB_TOKEN`** environment variable (read access to public repos is enough) so the build can query GitHub’s releases API without hitting unauthenticated rate limits on shared build hosts.
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
