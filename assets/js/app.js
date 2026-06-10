@@ -24,7 +24,6 @@ import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
 import { LocalTime } from "./hooks/local_time"
 import topbar from "../vendor/topbar"
 import "./map_socket.js"
-import "./map_nav.js"
 // React map is loaded dynamically below when #react-root is present
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
