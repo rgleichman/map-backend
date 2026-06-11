@@ -1,0 +1,102 @@
+import React from "react"
+import PinModal from "./PinModal"
+import type { PinType } from "../types"
+
+export type PinDraftAction =
+  | { type: "set_title"; title: string }
+  | { type: "set_description"; description: string }
+  | { type: "set_tags"; tags: string[] }
+  | { type: "set_start_time"; startTime: string }
+  | { type: "set_end_time"; endTime: string }
+  | { type: "set_schedule_rrule"; scheduleRrule: string }
+  | { type: "set_schedule_timezone"; scheduleTimezone: string }
+  | { type: "set_open_24_7"; open24_7: boolean }
+  | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
+
+type Props = {
+  layout: "modal" | "panel"
+  locationAlreadySetFromPlacement?: boolean
+  mode: "add" | "edit"
+  pinType: PinType
+  title: string
+  description: string
+  tags: string[]
+  startTime: string
+  endTime: string
+  scheduleRrule: string
+  scheduleTimezone: string
+  open24_7: boolean
+  visibleOnWorldMap: boolean
+  showPromoteToWorld: boolean
+  latitude: number
+  longitude: number
+  dispatch: React.Dispatch<PinDraftAction>
+  onStartPickOnMap: () => void
+  onCancel: () => void
+  onSave: () => void
+  onDelete?: () => void
+  canDelete?: boolean
+  saving?: boolean
+}
+
+export default function PinComposer({
+  layout,
+  locationAlreadySetFromPlacement,
+  mode,
+  pinType,
+  title,
+  description,
+  tags,
+  startTime,
+  endTime,
+  scheduleRrule,
+  scheduleTimezone,
+  open24_7,
+  visibleOnWorldMap,
+  showPromoteToWorld,
+  latitude,
+  longitude,
+  dispatch,
+  onStartPickOnMap,
+  onCancel,
+  onSave,
+  onDelete,
+  canDelete,
+  saving,
+}: Props) {
+  return (
+    <PinModal
+      layout={layout}
+      locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
+      pinType={pinType}
+      title={title}
+      setTitle={(t) => dispatch({ type: "set_title", title: t })}
+      description={description}
+      setDescription={(d) => dispatch({ type: "set_description", description: d })}
+      tags={tags}
+      setTags={(ts) => dispatch({ type: "set_tags", tags: ts })}
+      startTime={startTime}
+      setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
+      endTime={endTime}
+      setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
+      scheduleRrule={scheduleRrule}
+      setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
+      scheduleTimezone={scheduleTimezone}
+      setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
+      open24_7={open24_7}
+      setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
+      showPromoteToWorld={showPromoteToWorld}
+      promoteToWorld={visibleOnWorldMap}
+      setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
+      latitude={latitude}
+      longitude={longitude}
+      onStartPickOnMap={onStartPickOnMap}
+      mode={mode}
+      onCancel={onCancel}
+      onSave={onSave}
+      onDelete={onDelete}
+      canDelete={canDelete}
+      saving={saving}
+    />
+  )
+}

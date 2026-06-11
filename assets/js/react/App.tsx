@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import MapCanvas from "./components/MapCanvas"
 import CommunityMapToolbar from "./components/CommunityMapToolbar"
 import MapShell from "./components/MapShell"
-import PinModal from "./components/PinModal"
+import PinComposer from "./components/PinComposer"
 import PinTypeModal from "./components/PinTypeModal"
 import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
+import { canChooseWorldVisibility } from "./utils/subMapForm"
 import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
@@ -459,12 +460,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
   }, [modal])
 
-  const showPromoteToWorld = useMemo(
-    () =>
-      subMap?.promote_to_world_default === "ask" &&
-      (subMap.can_post || subMap.can_moderate),
-    [subMap]
-  )
+  const showPromoteToWorld = useMemo(() => canChooseWorldVisibility(subMap), [subMap])
 
   const onSave = useCallback(async () => {
     if (!modal || (modal.mode !== "add" && modal.mode !== "edit")) return
@@ -707,30 +703,22 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
               />
             )}
             {(modal.mode === "add" || modal.mode === "edit") && (
-              <PinModal
+              <PinComposer
                 layout="panel"
                 pinType={modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type}
                 title={title}
-                setTitle={(t) => dispatch({ type: "set_title", title: t })}
                 description={description}
-                setDescription={(d) => dispatch({ type: "set_description", description: d })}
                 tags={tags}
-                setTags={(ts) => dispatch({ type: "set_tags", tags: ts })}
                 startTime={startTime}
-                setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
                 endTime={endTime}
-                setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
                 scheduleRrule={scheduleRrule}
-                setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
                 scheduleTimezone={scheduleTimezone}
-                setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
                 open24_7={open24_7}
-                setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
+                visibleOnWorldMap={visibleOnWorldMap}
                 showPromoteToWorld={showPromoteToWorld}
-                promoteToWorld={visibleOnWorldMap}
-                setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
                 latitude={pinModalLat}
                 longitude={pinModalLng}
+                dispatch={dispatch}
                 onStartPickOnMap={onStartPickOnMap}
                 mode={modal.mode}
                 onCancel={() => dispatch({ type: "close_all" })}
@@ -809,31 +797,23 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
         />
       )}
       {!isDesktop && ((showAddForm && modal?.mode === "add") || (showEditForm && modal?.mode === "edit")) && (
-        <PinModal
+        <PinComposer
           layout="modal"
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
           pinType={modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type}
           title={title}
-          setTitle={(t) => dispatch({ type: "set_title", title: t })}
           description={description}
-          setDescription={(d) => dispatch({ type: "set_description", description: d })}
           tags={tags}
-          setTags={(ts) => dispatch({ type: "set_tags", tags: ts })}
           startTime={startTime}
-          setStartTime={(t) => dispatch({ type: "set_start_time", startTime: t })}
           endTime={endTime}
-          setEndTime={(t) => dispatch({ type: "set_end_time", endTime: t })}
           scheduleRrule={scheduleRrule}
-          setScheduleRrule={(s) => dispatch({ type: "set_schedule_rrule", scheduleRrule: s })}
           scheduleTimezone={scheduleTimezone}
-          setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
           open24_7={open24_7}
-          setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
+          visibleOnWorldMap={visibleOnWorldMap}
           showPromoteToWorld={showPromoteToWorld}
-          promoteToWorld={visibleOnWorldMap}
-          setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
           latitude={pinModalLat}
           longitude={pinModalLng}
+          dispatch={dispatch}
           onStartPickOnMap={onStartPickOnMap}
           mode={modal.mode}
           onCancel={() => dispatch({ type: "close_all" })}
