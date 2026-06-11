@@ -68,7 +68,7 @@ defmodule StorymapWeb.PinController do
     current_user = conn.assigns.current_scope.user
     sub_map = pin.sub_map
     membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
-    opts = [sub_map: sub_map, membership: membership]
+    opts = [sub_map: sub_map, membership: membership, user: current_user]
 
     case Authorizer.authorize_update(current_user, pin, opts) do
       {:error, :forbidden} ->
@@ -78,7 +78,7 @@ defmodule StorymapWeb.PinController do
         pin = Storymap.Repo.preload(pin, :tags)
         before_pin = pin
 
-        with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, sub_map: sub_map) do
+        with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
           pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
           _ =

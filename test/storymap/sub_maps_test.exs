@@ -102,6 +102,68 @@ defmodule Storymap.SubMapsTest do
     assert approved.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
   end
 
+  test "update_pin/3 keeps visible_on_world_map when policy forbids override" do
+    owner = user_fixture()
+    sub_map = sub_map_fixture(%{"promote_to_world_default" => "never"}, owner)
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: owner},
+        sub_map,
+        %{
+          "title" => "Local only",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    refute pin.visible_on_world_map
+    membership = SubMaps.get_membership(sub_map.id, owner.id)
+
+    {:ok, updated} =
+      Pins.update_pin(
+        pin,
+        %{"visible_on_world_map" => true},
+        sub_map: sub_map,
+        user: owner,
+        membership: membership
+      )
+
+    refute updated.visible_on_world_map
+  end
+
+  test "update_pin/3 applies visible_on_world_map when ask policy allows" do
+    owner = user_fixture()
+    sub_map = sub_map_fixture(%{"promote_to_world_default" => "ask"}, owner)
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: owner},
+        sub_map,
+        %{
+          "title" => "Maybe global",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    refute pin.visible_on_world_map
+    membership = SubMaps.get_membership(sub_map.id, owner.id)
+
+    {:ok, updated} =
+      Pins.update_pin(
+        pin,
+        %{"visible_on_world_map" => true},
+        sub_map: sub_map,
+        user: owner,
+        membership: membership
+      )
+
+    assert updated.visible_on_world_map
+  end
+
   test "world list excludes sub-map-only pins" do
     owner = user_fixture()
     sub_map = sub_map_fixture(%{"promote_to_world_default" => "never"}, owner)

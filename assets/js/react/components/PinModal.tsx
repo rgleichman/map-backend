@@ -24,6 +24,10 @@ type Props = {
   /** Only for food_bank: when true, open 24/7 (time/schedule fields hidden). */
   open24_7?: boolean
   setOpen24_7?: (v: boolean) => void
+  /** Community maps with promote_to_world_default "ask": optional world-map visibility. */
+  showPromoteToWorld?: boolean
+  promoteToWorld?: boolean
+  setPromoteToWorld?: (v: boolean) => void
   latitude: number
   longitude: number
   onStartPickOnMap: () => void
@@ -49,6 +53,9 @@ export default function PinModal({
   scheduleTimezone, setScheduleTimezone,
   open24_7 = true,
   setOpen24_7,
+  showPromoteToWorld = false,
+  promoteToWorld = false,
+  setPromoteToWorld,
   latitude, longitude,
   onStartPickOnMap,
   mode, onCancel, onSave, onDelete, canDelete, saving = false
@@ -57,6 +64,7 @@ export default function PinModal({
   const headingId = `${uid}-pin-modal-title`
   const locationLabelId = `${uid}-pin-location-label`
   const open247Id = `${uid}-pin-open-24-7`
+  const promoteWorldId = `${uid}-pin-promote-world`
   const [tagInput, setTagInput] = useState("")
   const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
   const isFoodBank = pinType === "food_bank"
@@ -196,6 +204,25 @@ export default function PinModal({
           ))}
         </div>
       </div>
+      {showPromoteToWorld && setPromoteToWorld && (
+        <div className="mb-4">
+          <label htmlFor={promoteWorldId} className="flex cursor-pointer items-start gap-2">
+            <input
+              id={promoteWorldId}
+              type="checkbox"
+              checked={promoteToWorld}
+              onChange={(e) => setPromoteToWorld(e.target.checked)}
+              className="checkbox checkbox-sm mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Also show on world map</span>
+              <span className="mt-0.5 block text-sm text-base-content/70">
+                Visible on the main world map as well as this community.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={onCancel} className="btn" disabled={saving}>Cancel</button>
         {mode === "edit" && canDelete && (

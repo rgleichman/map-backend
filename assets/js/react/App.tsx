@@ -8,7 +8,7 @@ import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
-import { mapShellOverlayTop, SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
+import { SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
 import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
@@ -72,6 +72,7 @@ type DraftState = {
   scheduleRrule: string
   scheduleTimezone: string
   open24_7: boolean
+  visibleOnWorldMap: boolean
   addLocation: { lat: number; lng: number } | null
   editLocation: { lat: number; lng: number } | null
 }
@@ -104,6 +105,7 @@ type Action =
   | { type: "set_schedule_rrule"; scheduleRrule: string }
   | { type: "set_schedule_timezone"; scheduleTimezone: string }
   | { type: "set_open_24_7"; open24_7: boolean }
+  | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
   | { type: "set_time_error"; timeError: string }
   | { type: "clear_time_error" }
   | { type: "clear_draft_locations" }
@@ -121,6 +123,7 @@ const makeDefaultDraft = (): DraftState => {
     scheduleRrule: "",
     scheduleTimezone: "",
     open24_7: true,
+    visibleOnWorldMap: false,
     addLocation: null,
     editLocation: null,
   }
@@ -212,6 +215,7 @@ function reducer(state: State, action: Action): State {
           open24_7: action.pin.pin_type === "food_bank"
             ? !(action.pin.start_time || action.pin.end_time || action.pin.schedule_rrule)
             : state.draft.open24_7,
+          visibleOnWorldMap: action.pin.visible_on_world_map ?? false,
           editLocation: null,
         },
       }
@@ -239,6 +243,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, draft: { ...state.draft, scheduleTimezone: action.scheduleTimezone } }
     case "set_open_24_7":
       return { ...state, draft: { ...state.draft, open24_7: action.open24_7 } }
+    case "set_visible_on_world_map":
+      return { ...state, draft: { ...state.draft, visibleOnWorldMap: action.visibleOnWorldMap } }
     case "set_time_error":
       return { ...state, timeError: action.timeError }
     case "clear_time_error":
@@ -257,7 +263,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   const [initialPinId, setInitialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [subMap, setSubMap] = useState<SubMap | null>(null)
-  const [promoteToWorld, setPromoteToWorld] = useState(false)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
   const [mapInitialized, setMapInitialized] = useState(false)
@@ -266,7 +271,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   const [showWelcome, setShowWelcome] = useState(false)
   const [state, dispatch] = useReducer(reducer, initialState)
   const { modal, placement, draft, timeError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7 } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap } = draft
   const modalRef = useRef(modal)
   modalRef.current = modal
   const escapePanelRef = useRef({ modal, isDesktop, dispatch })
@@ -293,18 +298,16 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     setFilter(DEFAULT_FILTER)
     setPins([])
     setSubMap(null)
-    setPromoteToWorld(false)
     setLoading(true)
     setApiError(null)
     setInitialPinId(parseInitialPinId())
 
     let cancelled = false
     loadMapData(communityUrl)
-      .then(({ pins: nextPins, subMap: nextSubMap, promoteToWorld: nextPromote }) => {
+      .then(({ pins: nextPins, subMap: nextSubMap }) => {
         if (cancelled) return
         setPins(nextPins)
         setSubMap(nextSubMap)
-        setPromoteToWorld(nextPromote)
       })
       .catch((err) => {
         if (cancelled) return
@@ -456,6 +459,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
   }, [modal])
 
+  const showPromoteToWorld = useMemo(
+    () =>
+      subMap?.promote_to_world_default === "ask" &&
+      (subMap.can_post || subMap.can_moderate),
+    [subMap]
+  )
+
   const onSave = useCallback(async () => {
     if (!modal || (modal.mode !== "add" && modal.mode !== "edit")) return
     dispatch({ type: "clear_time_error" })
@@ -498,9 +508,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
         longitude: loc.lng,
         tags,
         ...buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule),
-        ...(subMap?.promote_to_world_default === "ask"
-          ? { visible_on_world_map: promoteToWorld }
-          : {}),
+        ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
       }
       setSaving(true)
       try {
@@ -525,6 +533,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
         ...buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule),
         latitude: lat,
         longitude: lng,
+        ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
       }
       setSaving(true)
       try {
@@ -538,7 +547,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
         setSaving(false)
       }
     }
-  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, csrfToken, updateOrAddPin, communityUrl, subMap, promoteToWorld])
+  }, [modal, addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, showPromoteToWorld, csrfToken, updateOrAddPin, communityUrl])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -631,22 +640,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
           ) : undefined
         }
       >
-        {subMap?.promote_to_world_default === "ask" && modal?.mode === "add" && (
-          <div
-            className="absolute left-3 z-20 rounded-lg border border-base-300 bg-base-100/95 px-3 py-2 text-xs shadow pointer-events-auto"
-            style={{ top: mapShellOverlayTop() }}
-          >
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-sm"
-                checked={promoteToWorld}
-                onChange={(e) => setPromoteToWorld(e.target.checked)}
-              />
-              Also show on world map
-            </label>
-          </div>
-        )}
         {(mapInitialized || !loading) && (
           <>
             <MapCanvas
@@ -733,6 +726,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
                 setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
                 open24_7={open24_7}
                 setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
+                showPromoteToWorld={showPromoteToWorld}
+                promoteToWorld={visibleOnWorldMap}
+                setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
                 latitude={pinModalLat}
                 longitude={pinModalLng}
                 onStartPickOnMap={onStartPickOnMap}
@@ -833,6 +829,9 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
           setScheduleTimezone={(s) => dispatch({ type: "set_schedule_timezone", scheduleTimezone: s })}
           open24_7={open24_7}
           setOpen24_7={(v) => dispatch({ type: "set_open_24_7", open24_7: v })}
+          showPromoteToWorld={showPromoteToWorld}
+          promoteToWorld={visibleOnWorldMap}
+          setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
           latitude={pinModalLat}
           longitude={pinModalLng}
           onStartPickOnMap={onStartPickOnMap}

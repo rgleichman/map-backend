@@ -8,7 +8,7 @@ defmodule Storymap.Pins do
   alias Storymap.Repo
   alias Storymap.Pins.{Pin, Query}
   alias Storymap.SubMaps
-  alias Storymap.SubMaps.SubMap
+  alias Storymap.SubMaps.{Policy, SubMap}
 
   def list_pins do
     Query.world_pins()
@@ -50,7 +50,14 @@ defmodule Storymap.Pins do
 
   def update_pin(%Pin{} = pin, attrs, opts \\ []) do
     sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
-    attrs = stringify_keys(attrs)
+    user = Keyword.get(opts, :user)
+    membership = Keyword.get(opts, :membership)
+
+    attrs =
+      attrs
+      |> stringify_keys()
+      |> then(&maybe_sanitize_visible_on_world(&1, sub_map, pin, user, membership))
+
     tags = Map.get(attrs, "tags", [])
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
@@ -140,4 +147,21 @@ defmodule Storymap.Pins do
       {k, v} -> {k, v}
     end)
   end
+
+  defp maybe_sanitize_visible_on_world(attrs, %SubMap{} = sub_map, %Pin{} = pin, user, membership) do
+    case Map.get(attrs, "visible_on_world_map") do
+      v when is_boolean(v) ->
+        visible =
+          if Policy.can_set_visible_on_world?(sub_map, user, membership),
+            do: v,
+            else: pin.visible_on_world_map
+
+        Map.put(attrs, "visible_on_world_map", visible)
+
+      _ ->
+        attrs
+    end
+  end
+
+  defp maybe_sanitize_visible_on_world(attrs, _, _, _, _), do: attrs
 end
