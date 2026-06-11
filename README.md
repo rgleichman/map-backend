@@ -57,6 +57,11 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+### Development tools
+
+* **[LiveDashboard](http://localhost:4000/dev/dashboard)** (`/dev/dashboard`, dev only) — request and database telemetry while you exercise the app.
+* See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) for performance tests, hot-path notes, and profiling tips.
+
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
 ## Learn more
