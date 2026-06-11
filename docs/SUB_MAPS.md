@@ -135,6 +135,19 @@ Legacy pins: `sub_map_id` NULL, `status` effectively `approved`, `visible_on_wor
 
 Sub-map **required/suggested tags** are enforced via `settings`; tag rows remain global but names may use a prefix convention (`bbq:smokehouse`) documented in rules. Dedicated `sub_map_tags` table deferred.
 
+#### Community tags (`community:<url>`) — incremental crossposting path
+
+Pins created in a community automatically receive a reserved tag `community:<community_url>` (see `Storymap.SubMaps.CommunityTag`). This reuses the existing world-map **tag filter** so users can narrow the world map to one community’s pins without a separate UI.
+
+| Phase | Status | Work |
+|-------|--------|------|
+| 1 | **Done** | Auto-tag pins on create in sub-map; tag appears in filter UI on world map when pin is promoted |
+| 2 | Planned | Allow owners/mods to add extra `community:*` tags on edit (cross-list on world map while `sub_map_id` stays canonical) |
+| 3 | Planned | Sub-map map query: `sub_map_id = ? OR tags` includes `community:<url>` (surface cross-listed pins) |
+| 4 | Deferred | `pin_sub_maps` join table if tag-only model is insufficient |
+
+**Example:** A pin in `bbq-austin` gets `community:bbq-austin`. If promoted to the world map, filtering by that tag shows it. A future crosspost to `date-night` would add `community:date-night` without moving `sub_map_id`.
+
 ---
 
 ## 3. Policy matrix

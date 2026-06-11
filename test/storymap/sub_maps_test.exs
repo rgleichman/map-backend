@@ -23,6 +23,31 @@ defmodule Storymap.SubMapsTest do
     assert [_] = SubMaps.list_public(q: "bbq")
   end
 
+  test "create_pin_in_sub_map/3 adds community tag" do
+    owner = user_fixture()
+
+    sub_map =
+      sub_map_fixture(%{"community_url" => "tagged-community"}, owner)
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: owner},
+        sub_map,
+        %{
+          "title" => "Tagged Spot",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other",
+          "tags" => ["local"]
+        }
+      )
+
+    pin = Storymap.Repo.preload(pin, :tags)
+    tag_names = Enum.map(pin.tags, & &1.name)
+    assert "community:tagged-community" in tag_names
+    assert "local" in tag_names
+  end
+
   test "approval_required sets pin pending" do
     owner = user_fixture()
     contributor = user_fixture()

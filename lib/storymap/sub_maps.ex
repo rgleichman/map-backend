@@ -8,7 +8,7 @@ defmodule Storymap.SubMaps do
   alias Storymap.Pins
   alias Storymap.Pins.{Authorizer, Pin, Query}
   alias Storymap.Repo
-  alias Storymap.SubMaps.{Membership, Policy, SubMap}
+  alias Storymap.SubMaps.{CommunityTag, Membership, Policy, SubMap}
 
   def get_by_community_url(url) when is_binary(url) do
     Repo.get_by(SubMap, community_url: url)
@@ -227,7 +227,14 @@ defmodule Storymap.SubMaps do
           Policy.promotion_default_visible?(sub_map)
       end
 
+    tags =
+      attrs
+      |> Map.get("tags", [])
+      |> List.wrap()
+      |> CommunityTag.merge(sub_map)
+
     attrs
+    |> Map.put("tags", tags)
     |> Map.put("sub_map_id", sub_map.id)
     |> Map.put("status", status)
     |> Map.put("visible_on_world_map", visible)

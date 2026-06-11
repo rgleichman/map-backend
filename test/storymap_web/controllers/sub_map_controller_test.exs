@@ -49,7 +49,9 @@ defmodule StorymapWeb.SubMapControllerTest do
           }
         })
 
-      assert %{"title" => "Joe's BBQ"} = json_response(conn, 201)["data"]
+      body = json_response(conn, 201)["data"]
+      assert %{"title" => "Joe's BBQ"} = body
+      assert "community:pin-api-test" in body["tags"]
     end
   end
 end
