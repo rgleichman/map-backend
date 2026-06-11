@@ -1,10 +1,27 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="max-w-4xl mx-auto px-4 py-10">
     <div class="space-y-2 mb-8">
-      <h1 class="text-3xl font-bold text-base-content">Communities</h1>
-      <p class="text-base-content/70">
-        Sub-maps are curated pin collections with their own rules and moderators.
-      </p>
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="space-y-2">
+          <h1 class="text-3xl font-bold text-base-content">Communities</h1>
+          <p class="text-base-content/70">
+            Curated pin collections with their own rules and moderators.
+          </p>
+        </div>
+        <%= if @current_scope && @current_scope.user do %>
+          <.link navigate={~p"/m/new"} class="btn btn-primary shrink-0" id="sub-maps-create">
+            Create a community
+          </.link>
+        <% else %>
+          <.link
+            navigate={~p"/users/log-in"}
+            class="btn btn-primary shrink-0"
+            id="sub-maps-create"
+          >
+            Log in to create
+          </.link>
+        <% end %>
+      </div>
     </div>
 
     <form id="sub-maps-search" phx-change="search" class="mb-8">
@@ -26,9 +43,7 @@
         class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center space-y-4"
       >
         <p class="text-base-content/80">
-          No communities yet. Sub-maps are coming soon — see the
-          <.link navigate={~p"/m/design"} class="link">design specification</.link>
-          for planned features.
+          No communities yet. Be the first to create one and start mapping together.
         </p>
         <%= if @current_scope && @current_scope.user do %>
           <.link navigate={~p"/m/new"} class="btn btn-primary">
@@ -45,7 +60,7 @@
         <%= for sub_map <- @sub_maps do %>
           <li>
             <.link
-              navigate={~p"/m/#{sub_map.community_url}"}
+              navigate={~p"/m/#{sub_map.community_url}/map"}
               class="card bg-base-200/50 border border-base-300 hover:border-primary/40 transition-colors"
             >
               <div class="card-body">

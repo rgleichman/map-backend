@@ -37,7 +37,7 @@ defmodule StorymapWeb.SubMapLive.New do
         {:noreply,
          socket
          |> put_flash(:info, "Community created")
-         |> push_navigate(to: ~p"/m/#{sub_map.community_url}")}
+         |> push_navigate(to: ~p"/m/#{sub_map.community_url}/map")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}

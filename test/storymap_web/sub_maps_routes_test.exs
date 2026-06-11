@@ -10,10 +10,10 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       assert html_response(conn, 200) =~ ~s(id="sub-maps-empty")
     end
 
-    test "GET /m/:community_url renders community home", %{conn: conn} do
+    test "GET /m/:community_url redirects to community map", %{conn: conn} do
       sub_map = sub_map_fixture(%{"community_url" => "bbq-austin", "name" => "BBQ Austin"})
       conn = get(conn, ~p"/m/#{sub_map.community_url}")
-      assert html_response(conn, 200) =~ "BBQ Austin"
+      assert redirected_to(conn) == ~p"/m/#{sub_map.community_url}/map"
     end
 
     test "GET /m/:community_url/map renders react root with community url", %{conn: conn} do
@@ -23,9 +23,9 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       assert html =~ ~s(data-community-url="bbq-austin")
     end
 
-    test "GET /m/design renders design summary", %{conn: conn} do
-      conn = get(conn, ~p"/m/design")
-      assert html_response(conn, 200) =~ "Sub-maps design"
+    test "GET /m includes create community action", %{conn: conn} do
+      conn = get(conn, ~p"/m")
+      assert html_response(conn, 200) =~ ~s(id="sub-maps-create")
     end
   end
 

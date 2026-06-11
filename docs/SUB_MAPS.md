@@ -225,9 +225,9 @@ New pin in `open` or `members_only` without approval mode: `approved` immediatel
 |-------|---------|------|
 | `GET /m` | Browse/search public sub-maps | Optional |
 | `GET /m/new` | Create sub-map wizard | Required |
-| `GET /m/design` | Sub-maps design summary (public) | Optional |
-| `GET /m/:community_url` | Community home (rules, stats, CTAs) | Optional |
+| `GET /m/:community_url` | Redirects to community map | Optional |
 | `GET /m/:community_url/map` | Map UI (React, scoped pins) | Optional |
+| `GET /m/:community_url/settings` | Edit community settings | Required + owner |
 | `GET /m/:community_url/admin` | Mod queue, reports, members | Required + mod role |
 | `GET /map` | World map (unchanged) | Optional |
 

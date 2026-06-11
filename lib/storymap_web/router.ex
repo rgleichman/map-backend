@@ -158,7 +158,6 @@ defmodule StorymapWeb.Router do
       live "/pins", PinLive.Index, :index
       # Sub-map discovery (see docs/SUB_MAPS.md)
       live "/m", SubMapLive.Index, :index
-      live "/m/design", StaticLive.SubMaps, :show
       live "/m/:community_url", SubMapLive.Show, :show
       live "/privacy-policy", StaticLive.Privacy, :show
       live "/about", StaticLive.About, :show
