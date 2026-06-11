@@ -23,6 +23,13 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       assert html =~ ~s(data-community-url="bbq-austin")
     end
 
+    test "GET /m/:community_url/map includes site footer links", %{conn: conn} do
+      conn = get(conn, ~p"/m/bbq-austin/map")
+      html = html_response(conn, 200)
+      assert html =~ ~s(data-footer-path="/help")
+      assert html =~ "Help"
+    end
+
     test "GET /m includes create community action", %{conn: conn} do
       conn = get(conn, ~p"/m")
       assert html_response(conn, 200) =~ ~s(id="sub-maps-create")

@@ -59,7 +59,7 @@
             <span class="font-normal">{" "}{gettext("(beta)")}</span>
           </.link>
           <div class="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-            <ul class="menu menu-horizontal hidden min-w-0 flex-1 items-center justify-end gap-1 md:flex lg:gap-2">
+            <ul class="menu menu-horizontal hidden min-w-0 items-center justify-end gap-1 md:flex lg:gap-2">
               <.nav_menu_items
                 variant="desktop"
                 current_path={@conn.request_path}
@@ -83,7 +83,7 @@
 <!-- Page content -->
         <div class={[
           "flex-1 min-h-0 overflow-y-auto",
-          unless(full_viewport_map_path?(@conn.request_path), do: "md:pb-24")
+          unless(map_full_bleed_path?(@conn.request_path), do: "md:pb-24")
         ]}>
           {@inner_content}
         </div>

@@ -121,9 +121,32 @@ defmodule StorymapWeb.Layouts do
       |> assign(:about_active?, path == "/about")
       |> assign(:vision_active?, path == "/vision")
       |> assign(:help_active?, path == "/help")
+      |> assign(:communities_active?, path == "/m" || String.starts_with?(path, "/m/"))
 
     ~H"""
-    <%= if @current_path != "/" && @current_path != "/map" do %>
+    <li>
+      <%= if @variant == "desktop" do %>
+        <.link
+          navigate={~p"/m"}
+          class={nav_btn_classes(@communities_active?)}
+          aria-current={if(@communities_active?, do: "page")}
+        >
+          Communities
+        </.link>
+      <% else %>
+        <.link
+          navigate={~p"/m"}
+          class={[
+            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+            @communities_active? && "bg-base-300 font-medium"
+          ]}
+          aria-current={if(@communities_active?, do: "page")}
+        >
+          Communities
+        </.link>
+      <% end %>
+    </li>
+    <%= if @current_path != "/" && @current_path != "/map" && !map_full_bleed_path?(@current_path) do %>
       <li>
         <%= if @variant == "desktop" do %>
           <.link navigate={~p"/"} class={nav_btn_classes(false)}>Map</.link>
@@ -531,14 +554,18 @@ defmodule StorymapWeb.Layouts do
     """
   end
 
-  @doc "True for `/` and `/map` after normalizing trailing slashes (e.g. `/map/`)."
-  def full_viewport_map_path?(request_path) when is_binary(request_path) do
+  @doc "True for map pages that should not have content bottom padding (`md:pb-24`)."
+  def map_full_bleed_path?(request_path) when is_binary(request_path) do
     case normalize_request_path_for_layout(request_path) do
       "/" -> true
       "/map" -> true
+      "/m/" <> rest -> String.ends_with?(rest, "/map")
       _ -> false
     end
   end
+
+  @doc "Alias for `map_full_bleed_path?/1`."
+  def full_viewport_map_path?(request_path), do: map_full_bleed_path?(request_path)
 
   defp normalize_request_path_for_layout(path) do
     path
