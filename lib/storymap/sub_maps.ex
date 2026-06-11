@@ -63,7 +63,14 @@ defmodule Storymap.SubMaps do
 
     query = from(s in query, order_by: [desc: s.inserted_at])
 
-    sub_maps = Repo.all(query) |> Enum.map(&attach_counts/1)
+    sub_maps = Repo.all(query)
+    counts_by_id = batch_counts(Enum.map(sub_maps, & &1.id))
+
+    sub_maps =
+      Enum.map(sub_maps, fn sub_map ->
+        c = Map.get(counts_by_id, sub_map.id, %{pin_count: 0, member_count: 0})
+        struct(sub_map, pin_count: c.pin_count, member_count: c.member_count)
+      end)
 
     case sort do
       "most_pins" -> Enum.sort_by(sub_maps, & &1.pin_count, :desc)
@@ -93,9 +100,34 @@ defmodule Storymap.SubMaps do
     %{pin_count: pin_count, member_count: member_count, pending_count: pending_count}
   end
 
-  defp attach_counts(%SubMap{} = sub_map) do
-    c = counts(sub_map)
-    struct(sub_map, pin_count: c.pin_count, member_count: c.member_count)
+  defp batch_counts([]), do: %{}
+
+  defp batch_counts(sub_map_ids) do
+    pin_counts =
+      from(p in Pin,
+        where: p.sub_map_id in ^sub_map_ids and p.status == "approved",
+        group_by: p.sub_map_id,
+        select: {p.sub_map_id, count(p.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    member_counts =
+      from(m in Membership,
+        where: m.sub_map_id in ^sub_map_ids and m.status == "active",
+        group_by: m.sub_map_id,
+        select: {m.sub_map_id, count(m.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    Map.new(sub_map_ids, fn id ->
+      {id,
+       %{
+         pin_count: Map.get(pin_counts, id, 0),
+         member_count: Map.get(member_counts, id, 0)
+       }}
+    end)
   end
 
   def create_sub_map(%Scope{user: %User{} = user}, attrs) do

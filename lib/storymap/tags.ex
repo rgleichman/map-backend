@@ -29,15 +29,38 @@ defmodule Storymap.Tags do
   Returns `{:ok, [%Tag{}]}` or `{:error, changeset}` if any tag creation fails.
   """
   def get_or_create_tags_by_names(names) do
-    names
-    |> Enum.map(&get_or_create_tag_by_name/1)
-    |> Enum.reduce_while([], fn
-      {:ok, tag}, acc -> {:cont, [tag | acc]}
-      {:error, changeset}, _acc -> {:halt, {:error, changeset}}
-    end)
-    |> case do
-      {:error, changeset} -> {:error, changeset}
-      tags -> {:ok, Enum.reverse(tags)}
+    lowercase_names =
+      names
+      |> Enum.map(&String.downcase/1)
+      |> Enum.uniq()
+
+    existing =
+      from(t in Tag, where: t.name in ^lowercase_names)
+      |> Repo.all()
+      |> Map.new(&{&1.name, &1})
+
+    missing = lowercase_names -- Map.keys(existing)
+
+    inserted =
+      Enum.reduce_while(missing, [], fn name, acc ->
+        case %Tag{} |> Tag.changeset(%{name: name}) |> Repo.insert() do
+          {:ok, tag} -> {:cont, [tag | acc]}
+          {:error, changeset} -> {:halt, {:error, changeset}}
+        end
+      end)
+
+    case inserted do
+      {:error, changeset} ->
+        {:error, changeset}
+
+      new_tags ->
+        tags =
+          lowercase_names
+          |> Enum.map(fn name ->
+            Map.get(existing, name) || Enum.find(new_tags, &(&1.name == name))
+          end)
+
+        {:ok, tags}
     end
   end
 end
