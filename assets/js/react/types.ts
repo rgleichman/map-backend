@@ -61,6 +61,8 @@ export type SubMap = {
   pending_count?: number
   can_moderate?: boolean
   can_post?: boolean
+  can_edit?: boolean
+  membership?: { role: string; status: string } | null
 }
 
 export type ReportCategory = "inaccurate" | "abusive_or_hateful" | "spam" | "other"

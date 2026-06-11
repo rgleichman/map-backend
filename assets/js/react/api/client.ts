@@ -30,6 +30,26 @@ export function getSubMapPins(communityUrl: string): Promise<{ data: Pin[] }> {
   return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/pins`)
 }
 
+export function joinSubMap(csrf: string | undefined, communityUrl: string): Promise<{ data: { role: string; status: string } }> {
+  return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/memberships`, {
+    method: "POST",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
+export async function leaveSubMap(csrf: string | undefined, communityUrl: string): Promise<void> {
+  await fetchRequest(`/api/sub_maps/${encodeURIComponent(communityUrl)}/memberships/me`, {
+    method: "DELETE",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
 export function createSubMapPin(
   csrf: string | undefined,
   communityUrl: string,

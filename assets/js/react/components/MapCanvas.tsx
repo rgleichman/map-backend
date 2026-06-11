@@ -13,6 +13,7 @@ import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filters"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
+import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -83,6 +84,8 @@ function buildPinFeatures(pinList: Pin[], filterState: FilterState) {
 }
 
 type Props = {
+  /** Changes when switching world ↔ community map; resets deep-link pin handling. */
+  mapScopeKey?: string
   styleUrl: string
   pins: Pin[]
   initialPinId?: number | null
@@ -105,6 +108,7 @@ type Props = {
 }
 
 export default function MapCanvas({
+  mapScopeKey = "world",
   styleUrl,
   pins,
   initialPinId = null,
@@ -156,6 +160,10 @@ export default function MapCanvas({
     editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
   const pinsForMapRef = useRef<Pin[]>(pinsForMap)
   pinsForMapRef.current = pinsForMap
+
+  useEffect(() => {
+    initialPinIdAppliedRef.current = false
+  }, [mapScopeKey])
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
   useEffect(() => {
@@ -616,7 +624,7 @@ export default function MapCanvas({
             setFilter={setFilter}
             openRef={filterPanelOpenRef}
             position="top-right"
-            panelTopOffset="3.25rem"
+            panelTopOffset={mapShellTopRightOverlayTop()}
           />
         </div>
       )}

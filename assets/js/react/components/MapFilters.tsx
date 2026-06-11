@@ -9,6 +9,7 @@ import {
   type FilterState
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
+import { mapShellOverlayTop } from "../utils/siteLayout"
 
 function deriveTags(pins: Pin[]): string[] {
   return [...new Set(pins.flatMap((p) => p.tags ?? []))].sort()
@@ -110,7 +111,7 @@ export default function MapFilters({
   filter,
   setFilter,
   openRef,
-  panelTopOffset = "3.25rem",
+  panelTopOffset = mapShellOverlayTop(),
   position = "top-left"
 }: Props) {
   const tags = deriveTags(pins)

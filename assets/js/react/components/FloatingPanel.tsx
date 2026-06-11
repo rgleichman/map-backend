@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useState } from "react"
-import { siteHeaderTop } from "../utils/siteLayout"
+import { MAP_SHELL_OVERLAY_BOTTOM, mapShellOverlayTop } from "../utils/siteLayout"
 
-const safeBottom = "max(1rem, env(safe-area-inset-bottom))"
+const safeBottom = MAP_SHELL_OVERLAY_BOTTOM
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
 const safeRight = "max(1rem, env(safe-area-inset-right))"
 
@@ -94,7 +94,7 @@ export default function FloatingPanel({
   const triggerHiddenWhenExpanded = alwaysVisibleOnDesktop
   const isTopLeft = position === "top-left"
   const isTopRight = position === "top-right"
-  const top = topOffset ?? siteHeaderTop()
+  const top = topOffset ?? mapShellOverlayTop()
   const triggerStyle = isTopLeft
     ? { top: top, left: safeLeft }
     : isTopRight

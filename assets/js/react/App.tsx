@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import MapCanvas from "./components/MapCanvas"
+import CommunityMapToolbar from "./components/CommunityMapToolbar"
+import MapShell from "./components/MapShell"
 import PinModal from "./components/PinModal"
 import PinTypeModal from "./components/PinTypeModal"
 import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { useIsDesktop } from "./utils/useMediaQuery"
-import { SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
+import { mapShellOverlayTop, SITE_HEADER_FIXED_PANEL_CLASSES } from "./utils/siteLayout"
 import type { NewPin, Pin, PinType, SubMap, UpdatePin } from "./types"
 import * as api from "./api/client"
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly, localInputValueToISOString, timeOnlyToISOString } from "./utils/datetime"
@@ -585,90 +587,103 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
   }, [])
 
+  const refreshSubMap = useCallback(async () => {
+    if (!communityUrl) return
+    const { data } = await api.getSubMap(communityUrl)
+    setSubMap(data)
+  }, [communityUrl])
+
+  const onJoinCommunity = useCallback(async () => {
+    if (!communityUrl) return
+    try {
+      await api.joinSubMap(csrfToken, communityUrl)
+      await refreshSubMap()
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Failed to join community.")
+    }
+  }, [communityUrl, csrfToken, refreshSubMap])
+
+  const onLeaveCommunity = useCallback(async () => {
+    if (!communityUrl) return
+    try {
+      await api.leaveSubMap(csrfToken, communityUrl)
+      await refreshSubMap()
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Failed to leave community.")
+    }
+  }, [communityUrl, csrfToken, refreshSubMap])
+
   const pinModalLat = modal?.mode === "add" ? (addLocation?.lat ?? modal.lat) : modal?.mode === "edit" ? (editLocation?.lat ?? modal.pin.latitude) : 0
   const pinModalLng = modal?.mode === "add" ? (addLocation?.lng ?? modal.lng) : modal?.mode === "edit" ? (editLocation?.lng ?? modal.pin.longitude) : 0
   const locationAlreadySetFromPlacement = !isDesktop && modal?.mode === "add" && addLocation !== null
 
   return (
     <div className="w-full h-full">
-      {subMap && (
-        <nav
-          aria-label="Community map"
-          className="absolute top-[var(--site-header-height)] left-0 right-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 bg-base-100/95 border-b border-base-300 text-sm pointer-events-none"
-        >
-          <span className="pointer-events-auto font-medium truncate text-base-content max-w-[50vw] sm:max-w-none">
-            {subMap.name}
-          </span>
-          <span className="text-base-content/40 hidden sm:inline pointer-events-none" aria-hidden="true">·</span>
-          <a href="/map" className="link link-hover text-xs shrink-0 pointer-events-auto">World map</a>
-          <a href="/m" className="link link-hover text-xs shrink-0 pointer-events-auto">Communities</a>
-          {subMap.can_moderate && (
-            <a
-              href={`/m/${subMap.community_url}/admin`}
-              className="link link-hover text-xs shrink-0 pointer-events-auto"
-            >
-              Moderation
-            </a>
-          )}
-          {subMap.can_edit && (
-            <a
-              href={`/m/${subMap.community_url}/settings`}
-              className="link link-hover text-xs shrink-0 pointer-events-auto"
-            >
-              Settings
-            </a>
-          )}
-        </nav>
-      )}
-      {subMap?.promote_to_world_default === "ask" && modal?.mode === "add" && (
-        <div className="absolute top-[calc(var(--site-header-height)+2.5rem)] left-3 z-20 rounded-lg bg-base-100/95 border border-base-300 shadow px-3 py-2 text-xs pointer-events-auto">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm"
-              checked={promoteToWorld}
-              onChange={(e) => setPromoteToWorld(e.target.checked)}
+      <MapShell
+        chrome={
+          subMap ? (
+            <CommunityMapToolbar
+              subMap={subMap}
+              userId={userId}
+              onJoin={onJoinCommunity}
+              onLeave={onLeaveCommunity}
             />
-            Also show on world map
-          </label>
-        </div>
-      )}
-      {(mapInitialized || !loading) && (
-        <>
-          <MapCanvas
-            mapScopeKey={communityUrl ?? "world"}
-            styleUrl={styleUrl}
-            pins={pins}
-            initialPinId={initialPinId}
-            onMapClick={onMapClick}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            pendingLocation={pendingLocation}
-            pendingPinType={pendingPinType}
-            editingPinId={editingPinId}
-            onPlacementMapClick={placement ? onPlacementMapClick : undefined}
-            onPopupOpen={onPopupOpen}
-            onPopupClose={onPopupClose}
-            filter={filter}
-            setFilter={setFilter}
-            csrfToken={csrfToken}
-          />
-          <PinTypeLegend
-            closeRef={legendCloseRef}
-            selectedPinType={filter.pinType}
-            onTogglePinType={toggleMapPinTypeFilter}
-          />
-          {loading && mapInitialized && (
-            <div
-              className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
-              aria-live="polite"
-              aria-busy="true"
-            >
-              <span className="loading loading-spinner loading-md text-primary" />
-            </div>
-          )}
-        </>
-      )}
+          ) : undefined
+        }
+      >
+        {subMap?.promote_to_world_default === "ask" && modal?.mode === "add" && (
+          <div
+            className="absolute left-3 z-20 rounded-lg border border-base-300 bg-base-100/95 px-3 py-2 text-xs shadow pointer-events-auto"
+            style={{ top: mapShellOverlayTop() }}
+          >
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm"
+                checked={promoteToWorld}
+                onChange={(e) => setPromoteToWorld(e.target.checked)}
+              />
+              Also show on world map
+            </label>
+          </div>
+        )}
+        {(mapInitialized || !loading) && (
+          <>
+            <MapCanvas
+              mapScopeKey={communityUrl ?? "world"}
+              styleUrl={styleUrl}
+              pins={pins}
+              initialPinId={initialPinId}
+              onMapClick={onMapClick}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              pendingLocation={pendingLocation}
+              pendingPinType={pendingPinType}
+              editingPinId={editingPinId}
+              onPlacementMapClick={placement ? onPlacementMapClick : undefined}
+              onPopupOpen={onPopupOpen}
+              onPopupClose={onPopupClose}
+              filter={filter}
+              setFilter={setFilter}
+              csrfToken={csrfToken}
+            />
+            <PinTypeLegend
+              closeRef={legendCloseRef}
+              selectedPinType={filter.pinType}
+              onTogglePinType={toggleMapPinTypeFilter}
+            />
+            {loading && mapInitialized && (
+              <div
+                className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
+                aria-live="polite"
+                aria-busy="true"
+              >
+                <span className="loading loading-spinner loading-md text-primary" />
+              </div>
+            )}
+          </>
+        )}
+      </MapShell>
       {modal?.mode === "login-required" && (
         <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
       )}

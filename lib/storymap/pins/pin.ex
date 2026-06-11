@@ -100,7 +100,7 @@ defmodule Storymap.Pins.Pin do
               |> put_change(:schedule_timezone, nil)
               |> add_error(
                 :schedule_timezone,
-                "Run `mix tz_world.update --include-oceans` on the server to install time zone data."
+                "Run `mix tz_world.install --include-oceans` on the server to install time zone data."
               )
 
             {:ok, _} ->
