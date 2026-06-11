@@ -42,5 +42,21 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       conn = get(conn, ~p"/m/#{sub_map.community_url}/admin")
       assert html_response(conn, 200) =~ "Moderation"
     end
+
+    test "GET /m/:community_url/settings renders edit form for owner", %{conn: conn, user: user} do
+      sub_map =
+        sub_map_fixture(%{"community_url" => "settings-test", "name" => "Settings Map"}, user)
+
+      conn = get(conn, ~p"/m/#{sub_map.community_url}/settings")
+      html = html_response(conn, 200)
+      assert html =~ "Community settings"
+      assert html =~ ~s(id="sub-map-settings-form")
+    end
+
+    test "GET /m/:community_url/settings redirects non-owner", %{conn: conn} do
+      sub_map = sub_map_fixture(%{"community_url" => "settings-deny"})
+      conn = get(conn, ~p"/m/#{sub_map.community_url}/settings")
+      assert redirected_to(conn) == ~p"/m/#{sub_map.community_url}/map"
+    end
   end
 end

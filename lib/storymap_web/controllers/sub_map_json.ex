@@ -47,7 +47,8 @@ defmodule StorymapWeb.SubMapJSON do
     }
   end
 
-  defp viewer_fields(nil, _, _), do: %{membership: nil, can_moderate: false, can_post: false}
+  defp viewer_fields(nil, _, _),
+    do: %{membership: nil, can_moderate: false, can_post: false, can_edit: false}
 
   defp viewer_fields(user, membership, assigns) do
     sub_map = assigns.sub_map
@@ -55,7 +56,8 @@ defmodule StorymapWeb.SubMapJSON do
     %{
       membership: membership_data(membership),
       can_moderate: Map.get(assigns, :can_moderate, false),
-      can_post: Storymap.SubMaps.Policy.can_post?(user, sub_map, membership)
+      can_post: Storymap.SubMaps.Policy.can_post?(user, sub_map, membership),
+      can_edit: Storymap.SubMaps.Policy.can_edit_sub_map?(user, sub_map)
     }
   end
 

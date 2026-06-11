@@ -1,0 +1,62 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-2xl mx-auto px-4 py-10">
+    <p class="text-sm text-base-content/60 mb-2">
+      <.link navigate={~p"/m"} class="link">Communities</.link>
+      <span class="mx-1">/</span>
+      <.link navigate={~p"/m/#{@sub_map.community_url}/map"} class="link">{@sub_map.name}</.link>
+    </p>
+    <h1 class="text-3xl font-bold text-base-content mb-6">Community settings</h1>
+
+    <.form
+      for={@form}
+      id="sub-map-settings-form"
+      phx-change="validate"
+      phx-submit="save"
+      class="space-y-4"
+    >
+      <.input field={@form[:name]} type="text" label="Name" required />
+      <.input field={@form[:description]} type="textarea" label="Description" />
+      <.input field={@form[:rules]} type="textarea" label="Rules (optional)" />
+      <.input
+        field={@form[:contribution_mode]}
+        type="select"
+        label="Who can add pins?"
+        options={[
+          {"Anyone logged in", "open"},
+          {"Members only", "members_only"},
+          {"Requires moderator approval", "approval_required"}
+        ]}
+      />
+      <.input
+        field={@form[:promote_to_world_default]}
+        type="select"
+        label="Show pins on world map"
+        options={[
+          {"Never", "never"},
+          {"Ask each time", "ask"},
+          {"Always", "always"}
+        ]}
+      />
+      <.input
+        field={@form[:visibility]}
+        type="select"
+        label="Visibility"
+        options={[
+          {"Public (listed in browse)", "public"},
+          {"Unlisted (direct link only)", "unlisted"}
+        ]}
+      />
+      <p class="text-sm text-base-content/60">
+        Community URL: <span class="font-mono">/m/{@sub_map.community_url}</span>
+      </p>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn btn-primary" id="sub-map-settings-save">
+          Save changes
+        </button>
+        <.link navigate={~p"/m/#{@sub_map.community_url}/map"} class="btn btn-ghost">
+          Back to map
+        </.link>
+      </div>
+    </.form>
+  </div>
+</Layouts.app>

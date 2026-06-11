@@ -121,6 +121,7 @@ defmodule StorymapWeb.Router do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/m/new", SubMapLive.New, :new
+      live "/m/:community_url/settings", SubMapLive.Settings, :edit
       live "/m/:community_url/admin", SubMapLive.Admin, :index
     end
 

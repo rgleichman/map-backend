@@ -120,4 +120,37 @@ defmodule Storymap.SubMapsTest do
 
     refute Enum.any?(Pins.list_pins(), &(&1.title == "Local only"))
   end
+
+  test "update_sub_map/3 updates settings for owner" do
+    user = user_fixture()
+
+    {:ok, sub_map} =
+      SubMaps.create_sub_map(%Scope{user: user}, %{
+        "name" => "Orig",
+        "community_url" => "upd-test"
+      })
+
+    {:ok, updated} =
+      SubMaps.update_sub_map(%Scope{user: user}, sub_map, %{
+        "name" => "Renamed",
+        "description" => "New desc"
+      })
+
+    assert updated.name == "Renamed"
+    assert updated.description == "New desc"
+  end
+
+  test "update_sub_map/3 forbidden for non-owner" do
+    owner = user_fixture()
+    other = user_fixture()
+
+    {:ok, sub_map} =
+      SubMaps.create_sub_map(%Scope{user: owner}, %{
+        "name" => "Orig",
+        "community_url" => "upd-deny"
+      })
+
+    assert {:error, :forbidden} =
+             SubMaps.update_sub_map(%Scope{user: other}, sub_map, %{"name" => "Hacked"})
+  end
 end

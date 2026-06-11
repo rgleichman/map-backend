@@ -23,7 +23,8 @@ defmodule StorymapWeb.SubMapLive.OnMount do
          |> assign(:sub_map, sub_map)
          |> assign(:sub_map_membership, membership)
          |> assign(:counts, counts)
-         |> assign(:can_moderate_sub_map, can_moderate?(socket, sub_map, membership))}
+         |> assign(:can_moderate_sub_map, can_moderate?(socket, sub_map, membership))
+         |> assign(:can_edit_sub_map, can_edit?(socket, sub_map))}
     end
   end
 
@@ -34,7 +35,26 @@ defmodule StorymapWeb.SubMapLive.OnMount do
       {:halt,
        socket
        |> Phoenix.LiveView.put_flash(:error, "Moderator access required")
-       |> Phoenix.LiveView.redirect(to: ~p"/m/#{socket.assigns.sub_map.community_url}")}
+       |> Phoenix.LiveView.redirect(to: ~p"/m/#{socket.assigns.sub_map.community_url}/map")}
+    end
+  end
+
+  def on_mount(:require_owner, _params, _session, socket) do
+    sub_map = socket.assigns.sub_map
+
+    can_edit? =
+      case socket.assigns[:current_scope] do
+        %Scope{user: user} -> Policy.can_edit_sub_map?(user, sub_map)
+        _ -> false
+      end
+
+    if can_edit? do
+      {:cont, socket}
+    else
+      {:halt,
+       socket
+       |> Phoenix.LiveView.put_flash(:error, "Community owner access required")
+       |> Phoenix.LiveView.redirect(to: ~p"/m/#{sub_map.community_url}/map")}
     end
   end
 
@@ -48,6 +68,13 @@ defmodule StorymapWeb.SubMapLive.OnMount do
   defp can_moderate?(socket, sub_map, membership) do
     case socket.assigns[:current_scope] do
       %Scope{user: user} -> Policy.can_moderate?(user, sub_map, membership)
+      _ -> false
+    end
+  end
+
+  defp can_edit?(socket, sub_map) do
+    case socket.assigns[:current_scope] do
+      %Scope{user: user} -> Policy.can_edit_sub_map?(user, sub_map)
       _ -> false
     end
   end
