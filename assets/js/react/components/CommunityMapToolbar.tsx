@@ -6,9 +6,10 @@ type Props = {
   userId?: number
   onJoin: () => void
   onLeave: () => void
+  onSelectWorld: () => void
 }
 
-export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }: Props) {
+export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave, onSelectWorld }: Props) {
   return (
     <nav
       aria-label="Community map"
@@ -20,9 +21,9 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
       <span className="hidden text-base-content/40 sm:inline" aria-hidden="true">
         ·
       </span>
-      <a href="/map" className="link link-hover shrink-0 text-xs">
+      <button type="button" onClick={onSelectWorld} className="link link-hover shrink-0 text-xs">
         World map
-      </a>
+      </button>
       <a href="/m" className="link link-hover shrink-0 text-xs">
         Communities
       </a>

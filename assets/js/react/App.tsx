@@ -14,6 +14,7 @@ import * as api from "./api/client"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import { loadMapData } from "./loadMapData"
 import { DEFAULT_FILTER, type FilterState } from "./components/map/filters"
+import { communityUrlFromPathname, mapPathWithPinQuery } from "./mapRoute"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Props = {
@@ -31,8 +32,11 @@ const parseInitialPinId = () => {
 
 const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
-export default function App({ userId, csrfToken, styleUrl = "/api/map/style", communityUrl }: Props) {
+export default function App({ userId, csrfToken, styleUrl = "/api/map/style", communityUrl: datasetCommunityUrl }: Props) {
   const isDesktop = useIsDesktop()
+  const [communityUrl, setCommunityUrl] = useState<string | undefined>(
+    () => datasetCommunityUrl ?? communityUrlFromPathname(window.location.pathname)
+  )
   const [initialPinId, setInitialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [subMap, setSubMap] = useState<SubMap | null>(null)
@@ -69,6 +73,33 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   })
 
   const { modal, placement, timeError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
+
+  const setCommunityScope = useCallback((url: string | null, options?: { replace?: boolean }) => {
+    const path = mapPathWithPinQuery(url)
+    if (options?.replace) {
+      window.history.replaceState(null, "", path)
+    } else {
+      window.history.pushState(null, "", path)
+    }
+    setCommunityUrl(url ?? undefined)
+  }, [])
+
+  const onSelectWorld = useCallback(() => {
+    setCommunityScope(null)
+  }, [setCommunityScope])
+
+  const onSelectCommunity = useCallback((url: string) => {
+    setCommunityScope(url)
+  }, [setCommunityScope])
+
+  useEffect(() => {
+    const onPopState = () => {
+      setCommunityUrl(communityUrlFromPathname(window.location.pathname))
+      setInitialPinId(parseInitialPinId())
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [])
 
   useEffect(() => {
     dispatch({ type: "close_all" })
@@ -138,8 +169,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     void api.getPin(initialPinId).then(({ data }) => {
       if (cancelled) return
       if (data.community?.community_url) {
-        const url = `/m/${encodeURIComponent(data.community.community_url)}/map?pin=${initialPinId}`
-        window.location.replace(url)
+        setCommunityScope(data.community.community_url, { replace: true })
       } else {
         const path = window.location.pathname || "/map"
         window.history.replaceState(null, "", path)
@@ -154,7 +184,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     return () => {
       cancelled = true
     }
-  }, [loading, communityUrl, initialPinId, pins])
+  }, [loading, communityUrl, initialPinId, pins, setCommunityScope])
 
   useEffect(() => {
     if (modal === null) setApiError(null)
@@ -227,6 +257,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
                 userId={userId}
                 onJoin={onJoinCommunity}
                 onLeave={onLeaveCommunity}
+                onSelectWorld={onSelectWorld}
               />
             ) : undefined
           }
@@ -251,6 +282,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
                 setFilter={setFilter}
                 csrfToken={csrfToken}
                 communityUrl={communityUrl}
+                onSelectCommunity={onSelectCommunity}
               />
               <PinTypeLegend
                 closeRef={legendCloseRef}

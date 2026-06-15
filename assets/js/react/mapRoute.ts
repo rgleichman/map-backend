@@ -17,3 +17,26 @@ export function communityUrlFromPathname(pathname: string): string | undefined {
   const match = path.match(/^\/m\/([^/]+)\/map$/)
   return match ? decodeURIComponent(match[1]) : undefined
 }
+
+/** Path for world or community map scope. */
+export function mapPathForScope(communityUrl?: string | null): string {
+  if (communityUrl) {
+    return `/m/${encodeURIComponent(communityUrl)}/map`
+  }
+  return "/map"
+}
+
+/** Build map path with optional ?pin= query preserved from current location. */
+export function mapPathWithPinQuery(communityUrl: string | null | undefined, pinId?: number | null): string {
+  const path = mapPathForScope(communityUrl)
+  if (pinId != null) {
+    return `${path}?pin=${pinId}`
+  }
+  const pin = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("pin")
+    : null
+  if (pin) {
+    return `${path}?pin=${encodeURIComponent(pin)}`
+  }
+  return path
+}

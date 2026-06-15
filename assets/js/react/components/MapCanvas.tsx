@@ -118,6 +118,7 @@ type Props = {
   setFilter: Dispatch<SetStateAction<FilterState>>
   csrfToken?: string
   communityUrl?: string
+  onSelectCommunity?: (communityUrl: string) => void
 }
 
 export default function MapCanvas({
@@ -138,6 +139,7 @@ export default function MapCanvas({
   setFilter,
   csrfToken,
   communityUrl,
+  onSelectCommunity,
 }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -155,6 +157,10 @@ export default function MapCanvas({
   onPopupOpenRef.current = onPopupOpen
   const onPopupCloseRef = useRef(onPopupClose)
   onPopupCloseRef.current = onPopupClose
+  const onMapClickRef = useRef(onMapClick)
+  onMapClickRef.current = onMapClick
+  const onSelectCommunityRef = useRef(onSelectCommunity)
+  onSelectCommunityRef.current = onSelectCommunity
   const openPopupRef = useRef<Popup | null>(null)
   const openPopupPinIdRef = useRef<number | null>(null)
   const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
@@ -275,7 +281,7 @@ export default function MapCanvas({
         })
         if (hit.length > 0) return
 
-        onMapClick(e.lngLat.lng, e.lngLat.lat)
+        onMapClickRef.current(e.lngLat.lng, e.lngLat.lat)
       })
       map.on("load", async () => {
         const map = mapRef.current
@@ -456,7 +462,7 @@ export default function MapCanvas({
       setMapReady(false)
       setMapInitError(null)
     }
-  }, [styleUrl, onMapClick])
+  }, [styleUrl])
 
   // Center on user location once on first load (skip when opening a shared pin link)
   useEffect(() => {
@@ -532,7 +538,7 @@ export default function MapCanvas({
         if (tag) {
           const communityFromTag = communityUrlFromTag(tag)
           if (communityFromTag) {
-            window.location.assign(`/m/${encodeURIComponent(communityFromTag)}/map`)
+            onSelectCommunityRef.current?.(communityFromTag)
             return
           }
           setFilter((f) => ({ ...f, tag }))
@@ -556,7 +562,14 @@ export default function MapCanvas({
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
-    root.render(<PopupContent pin={pin} csrfToken={csrfToken} communityUrl={communityUrl} />)
+    root.render(
+      <PopupContent
+        pin={pin}
+        csrfToken={csrfToken}
+        communityUrl={communityUrl}
+        onSelectCommunity={onSelectCommunity}
+      />
+    )
     const popup = new Popup({
       closeButton: false,
       locationOccludedOpacity: 0.7,

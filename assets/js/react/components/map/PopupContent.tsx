@@ -52,9 +52,10 @@ type Props = {
   csrfToken?: string
   /** Current community map slug, if any (undefined = world map). */
   communityUrl?: string
+  onSelectCommunity?: (communityUrl: string) => void
 }
 
-export default function PopupContent({ pin, csrfToken, communityUrl }: Props) {
+export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCommunity }: Props) {
   const [reportOpen, setReportOpen] = useState(false)
   const [category, setCategory] = useState<ReportCategory>("inaccurate")
   const [details, setDetails] = useState("")
@@ -142,12 +143,13 @@ export default function PopupContent({ pin, csrfToken, communityUrl }: Props) {
       )}
       {showCommunityLink && pin.community ? (
         <div className="my-2">
-          <a
-            href={`/m/${encodeURIComponent(pin.community.community_url)}/map`}
-            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.95em] font-medium no-underline bg-primary/15 text-primary hover:bg-primary/25"
+          <button
+            type="button"
+            onClick={() => onSelectCommunity?.(pin.community!.community_url)}
+            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.95em] font-medium no-underline bg-primary/15 text-primary hover:bg-primary/25 border-none cursor-pointer"
           >
             {pin.community.name}
-          </a>
+          </button>
         </div>
       ) : null}
       {displayTags.length > 0 && (
