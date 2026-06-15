@@ -14,7 +14,7 @@ import * as api from "./api/client"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import { loadMapData } from "./loadMapData"
 import { DEFAULT_FILTER, type FilterState } from "./components/map/filters"
-import { communityUrlFromPathname, mapPathWithPinQuery } from "./mapRoute"
+import { communityUrlFromPathname, mapPathForScope, mapPathWithPinQuery } from "./mapRoute"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Props = {
@@ -74,8 +74,11 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
   const { modal, placement, timeError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
 
-  const setCommunityScope = useCallback((url: string | null, options?: { replace?: boolean }) => {
-    const path = mapPathWithPinQuery(url)
+  const setCommunityScope = useCallback((url: string | null, options?: { replace?: boolean; pinId?: number | null }) => {
+    const path =
+      options?.pinId != null
+        ? mapPathWithPinQuery(url, options.pinId)
+        : mapPathForScope(url)
     if (options?.replace) {
       window.history.replaceState(null, "", path)
     } else {
@@ -169,7 +172,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     void api.getPin(initialPinId).then(({ data }) => {
       if (cancelled) return
       if (data.community?.community_url) {
-        setCommunityScope(data.community.community_url, { replace: true })
+        setCommunityScope(data.community.community_url, { replace: true, pinId: initialPinId })
       } else {
         const path = window.location.pathname || "/map"
         window.history.replaceState(null, "", path)

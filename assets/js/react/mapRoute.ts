@@ -26,17 +26,11 @@ export function mapPathForScope(communityUrl?: string | null): string {
   return "/map"
 }
 
-/** Build map path with optional ?pin= query preserved from current location. */
+/** Build map path with an explicit ?pin= query, if any. */
 export function mapPathWithPinQuery(communityUrl: string | null | undefined, pinId?: number | null): string {
   const path = mapPathForScope(communityUrl)
   if (pinId != null) {
     return `${path}?pin=${pinId}`
-  }
-  const pin = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("pin")
-    : null
-  if (pin) {
-    return `${path}?pin=${encodeURIComponent(pin)}`
   }
   return path
 }

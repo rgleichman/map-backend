@@ -183,6 +183,7 @@ export default function MapCanvas({
 
   useEffect(() => {
     initialPinIdAppliedRef.current = false
+    openPopupRef.current?.remove()
   }, [mapScopeKey])
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
@@ -612,8 +613,15 @@ export default function MapCanvas({
       const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
       if (pin) {
         popupRootRef.current.render(
-          <PopupContent pin={pin} csrfToken={csrfToken} communityUrl={communityUrl} />
+          <PopupContent
+            pin={pin}
+            csrfToken={csrfToken}
+            communityUrl={communityUrl}
+            onSelectCommunity={onSelectCommunity}
+          />
         )
+      } else {
+        openPopupRef.current.remove()
       }
     }
 
@@ -627,7 +635,7 @@ export default function MapCanvas({
         openPinPopup(map, pin)
       }
     }
-  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken])
+  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken, communityUrl, onSelectCommunity])
 
   return (
     <div className="relative w-full h-full">
