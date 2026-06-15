@@ -54,9 +54,10 @@ type Props = {
   /** Current community map slug, if any (undefined = world map). */
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
+  onNavigateToPin?: (pinId: number) => void
 }
 
-export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCommunity }: Props) {
+export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
   const [reportOpen, setReportOpen] = useState(false)
   const [category, setCategory] = useState<ReportCategory>("inaccurate")
   const [details, setDetails] = useState("")
@@ -118,7 +119,9 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
   return (
     <div>
       <h2 className="text-xl font-bold">{pin.title}</h2>
-      {pin.description ? <LinkifiedText className="mt-1" text={pin.description} /> : null}
+      {pin.description ? (
+        <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
+      ) : null}
       {(pin.start_time || pin.end_time) && (
         <div className={`${popupContentClasses} my-2`}>
           <span>

@@ -46,6 +46,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   const [apiError, setApiError] = useState<string | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
+  const resolvingPinIdRef = useRef<number | null>(null)
 
   const updateOrAddPin = useCallback((pin: Pin) => {
     setPins(prevPins => {
@@ -163,31 +164,53 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
   const openWelcome = useCallback(() => setShowWelcome(true), [])
 
-  useEffect(() => {
-    if (loading || communityUrl || initialPinId === null) return
-    if (pins.some((p) => p.id === initialPinId)) return
-
-    let cancelled = false
-
-    void api.getPin(initialPinId).then(({ data }) => {
-      if (cancelled) return
-      if (data.community?.community_url) {
-        setCommunityScope(data.community.community_url, { replace: true, pinId: initialPinId })
-      } else {
-        const path = window.location.pathname || "/map"
-        window.history.replaceState(null, "", path)
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        const path = window.location.pathname || "/map"
-        window.history.replaceState(null, "", path)
-      }
-    })
-
-    return () => {
-      cancelled = true
+  const navigateToPin = useCallback(async (pinId: number) => {
+    if (pins.some((p) => p.id === pinId)) {
+      resolvingPinIdRef.current = null
+      setInitialPinId(pinId)
+      window.history.replaceState(null, "", mapPathWithPinQuery(communityUrl, pinId))
+      return
     }
-  }, [loading, communityUrl, initialPinId, pins, setCommunityScope])
+
+    if (resolvingPinIdRef.current === pinId) return
+    resolvingPinIdRef.current = pinId
+
+    try {
+      const { data } = await api.getPin(pinId)
+      if (data.community?.community_url) {
+        setCommunityScope(data.community.community_url, { replace: true, pinId })
+      } else {
+        setCommunityScope(null, { replace: true, pinId })
+      }
+      setInitialPinId(pinId)
+    } catch {
+      resolvingPinIdRef.current = null
+      window.history.replaceState(null, "", mapPathForScope(communityUrl))
+      setInitialPinId(null)
+    }
+  }, [pins, communityUrl, setCommunityScope])
+
+  const navigateToPinRef = useRef(navigateToPin)
+  navigateToPinRef.current = navigateToPin
+  const wasLoadingRef = useRef(loading)
+
+  useEffect(() => {
+    if (loading || initialPinId === null) return
+    if (pins.some((p) => p.id === initialPinId)) {
+      resolvingPinIdRef.current = null
+      return
+    }
+
+    void navigateToPinRef.current(initialPinId)
+  }, [loading, initialPinId, pins])
+
+  useEffect(() => {
+    const finishedLoad = wasLoadingRef.current && !loading
+    wasLoadingRef.current = loading
+    if (finishedLoad && resolvingPinIdRef.current !== null) {
+      resolvingPinIdRef.current = null
+    }
+  }, [loading])
 
   useEffect(() => {
     if (modal === null) setApiError(null)
@@ -286,6 +309,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
                 csrfToken={csrfToken}
                 communityUrl={communityUrl}
                 onSelectCommunity={onSelectCommunity}
+                onNavigateToPin={navigateToPin}
               />
               <PinTypeLegend
                 closeRef={legendCloseRef}

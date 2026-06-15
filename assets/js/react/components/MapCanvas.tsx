@@ -119,6 +119,7 @@ type Props = {
   csrfToken?: string
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
+  onNavigateToPin?: (pinId: number) => void
 }
 
 export default function MapCanvas({
@@ -140,11 +141,12 @@ export default function MapCanvas({
   csrfToken,
   communityUrl,
   onSelectCommunity,
+  onNavigateToPin,
 }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
-  const initialPinIdAppliedRef = useRef(false)
+  const focusedPinIdRef = useRef<number | null>(null)
   const pinLayersAddedRef = useRef(false)
   const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
@@ -182,7 +184,7 @@ export default function MapCanvas({
   pinsForMapRef.current = pinsForMap
 
   useEffect(() => {
-    initialPinIdAppliedRef.current = false
+    focusedPinIdRef.current = null
     openPopupRef.current?.remove()
   }, [mapScopeKey])
 
@@ -560,6 +562,9 @@ export default function MapCanvas({
   }, [mapReady])
 
   function openPinPopup(map: MLMap, pin: Pin): void {
+    if (openPopupRef.current) {
+      openPopupRef.current.remove()
+    }
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
@@ -569,6 +574,7 @@ export default function MapCanvas({
         csrfToken={csrfToken}
         communityUrl={communityUrl}
         onSelectCommunity={onSelectCommunity}
+        onNavigateToPin={onNavigateToPin}
       />
     )
     const popup = new Popup({
@@ -618,6 +624,7 @@ export default function MapCanvas({
             csrfToken={csrfToken}
             communityUrl={communityUrl}
             onSelectCommunity={onSelectCommunity}
+            onNavigateToPin={onNavigateToPin}
           />
         )
       } else {
@@ -625,17 +632,17 @@ export default function MapCanvas({
       }
     }
 
-    if (initialPinId != null && !initialPinIdAppliedRef.current) {
+    if (initialPinId != null && initialPinId !== focusedPinIdRef.current) {
       const pin = pins.find((p) => p.id === initialPinId)
       if (pin) {
         // clear all filters in case the pin is not shown in the initial filters
         setFilter(CLEARED_FILTER)
-        initialPinIdAppliedRef.current = true
+        focusedPinIdRef.current = initialPinId
         map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
         openPinPopup(map, pin)
       }
     }
-  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken, communityUrl, onSelectCommunity])
+  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
 
   return (
     <div className="relative w-full h-full">

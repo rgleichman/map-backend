@@ -16,6 +16,8 @@ catalog, the app turns recognized links into clickable anchors.
 | Bare mailto | `mailto:team@example.com` | mail client |
 | Markdown email | `[Email us](team@example.com)` | `mailto:team@example.com` |
 | Markdown mailto | `[Email us](mailto:team@example.com)` | mail client |
+| Map pin link | `https://mapgarden.net/map?pin=89` | opens pin in-app (no reload) |
+| Community pin link | `https://mapgarden.net/m/my-community/map?pin=12` | opens pin in-app (no reload) |
 
 `http://` and `https://` are optional for web links. Scheme-less domains are
 always opened with `https://`. Email links open in the user's mail client (not
@@ -29,7 +31,12 @@ Food pantry hours: example.org/hours
 Questions? team@example.org
 
 More info: [city website](www.city.gov/parks)
+
+See also: https://mapgarden.net/map?pin=89
 ```
+
+Same-origin map pin URLs (world or community map) open the target pin on the
+map without a full page reload. Cmd/Ctrl+click still opens the link in a new tab.
 
 ## Not supported
 

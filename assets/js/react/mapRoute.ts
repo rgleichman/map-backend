@@ -34,3 +34,32 @@ export function mapPathWithPinQuery(communityUrl: string | null | undefined, pin
   }
   return path
 }
+
+export type MapPinLink = {
+  pinId: number
+  communityUrl?: string
+}
+
+/** Parse a same-origin map URL with a ?pin= query, or null if not a map pin link. */
+export function parseMapPinLink(href: string, origin = typeof window !== "undefined" ? window.location.origin : ""): MapPinLink | null {
+  if (!origin) return null
+
+  let url: URL
+  try {
+    url = new URL(href, origin)
+  } catch {
+    return null
+  }
+
+  if (url.origin !== origin) return null
+  if (!isMapPathname(url.pathname)) return null
+
+  const pinParam = url.searchParams.get("pin")
+  const pinId = pinParam ? parseInt(pinParam, 10) : NaN
+  if (!Number.isInteger(pinId)) return null
+
+  return {
+    pinId,
+    communityUrl: communityUrlFromPathname(url.pathname),
+  }
+}
