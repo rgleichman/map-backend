@@ -47,6 +47,10 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
   const resolvingPinIdRef = useRef<number | null>(null)
+  const communityUrlRef = useRef(communityUrl)
+  communityUrlRef.current = communityUrl
+  const pinFocusSeqRef = useRef(0)
+  const [pinFocusSeq, setPinFocusSeq] = useState(0)
 
   const updateOrAddPin = useCallback((pin: Pin) => {
     setPins(prevPins => {
@@ -164,11 +168,21 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
   const openWelcome = useCallback(() => setShowWelcome(true), [])
 
+  const bumpPinFocus = useCallback(() => {
+    pinFocusSeqRef.current += 1
+    setPinFocusSeq(pinFocusSeqRef.current)
+  }, [])
+
   const navigateToPin = useCallback(async (pinId: number) => {
+    const focusPin = () => {
+      bumpPinFocus()
+      setInitialPinId(pinId)
+      window.history.replaceState(null, "", mapPathWithPinQuery(communityUrlRef.current, pinId))
+    }
+
     if (pins.some((p) => p.id === pinId)) {
       resolvingPinIdRef.current = null
-      setInitialPinId(pinId)
-      window.history.replaceState(null, "", mapPathWithPinQuery(communityUrl, pinId))
+      focusPin()
       return
     }
 
@@ -182,17 +196,17 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
       } else {
         setCommunityScope(null, { replace: true, pinId })
       }
-      setInitialPinId(pinId)
+      focusPin()
     } catch {
-      resolvingPinIdRef.current = null
-      window.history.replaceState(null, "", mapPathForScope(communityUrl))
+      window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
       setInitialPinId(null)
+    } finally {
+      resolvingPinIdRef.current = null
     }
-  }, [pins, communityUrl, setCommunityScope])
+  }, [pins, setCommunityScope, bumpPinFocus])
 
   const navigateToPinRef = useRef(navigateToPin)
   navigateToPinRef.current = navigateToPin
-  const wasLoadingRef = useRef(loading)
 
   useEffect(() => {
     if (loading || initialPinId === null) return
@@ -203,14 +217,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
     void navigateToPinRef.current(initialPinId)
   }, [loading, initialPinId, pins])
-
-  useEffect(() => {
-    const finishedLoad = wasLoadingRef.current && !loading
-    wasLoadingRef.current = loading
-    if (finishedLoad && resolvingPinIdRef.current !== null) {
-      resolvingPinIdRef.current = null
-    }
-  }, [loading])
 
   useEffect(() => {
     if (modal === null) setApiError(null)
@@ -295,6 +301,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
                 styleUrl={styleUrl}
                 pins={pins}
                 initialPinId={initialPinId}
+                pinFocusSeq={pinFocusSeq}
                 onMapClick={onMapClick}
                 onEdit={onEdit}
                 onDelete={onDelete}

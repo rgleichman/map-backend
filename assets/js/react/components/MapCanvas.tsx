@@ -101,6 +101,8 @@ type Props = {
   styleUrl: string
   pins: Pin[]
   initialPinId?: number | null
+  /** Bumped on each in-app pin link navigation so repeat clicks to the same pin still focus it. */
+  pinFocusSeq?: number
   onMapClick: (lng: number, lat: number) => void
   onEdit: (pinId: number) => void
   onDelete: (pinId: number) => void
@@ -127,6 +129,7 @@ export default function MapCanvas({
   styleUrl,
   pins,
   initialPinId = null,
+  pinFocusSeq = 0,
   onMapClick,
   onEdit,
   onDelete,
@@ -147,6 +150,7 @@ export default function MapCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
   const focusedPinIdRef = useRef<number | null>(null)
+  const lastPinFocusSeqRef = useRef(0)
   const pinLayersAddedRef = useRef(false)
   const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
@@ -185,6 +189,7 @@ export default function MapCanvas({
 
   useEffect(() => {
     focusedPinIdRef.current = null
+    lastPinFocusSeqRef.current = 0
     openPopupRef.current?.remove()
   }, [mapScopeKey])
 
@@ -565,6 +570,7 @@ export default function MapCanvas({
     if (openPopupRef.current) {
       openPopupRef.current.remove()
     }
+    focusedPinIdRef.current = pin.id
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
@@ -632,17 +638,22 @@ export default function MapCanvas({
       }
     }
 
-    if (initialPinId != null && initialPinId !== focusedPinIdRef.current) {
-      const pin = pins.find((p) => p.id === initialPinId)
-      if (pin) {
-        // clear all filters in case the pin is not shown in the initial filters
-        setFilter(CLEARED_FILTER)
-        focusedPinIdRef.current = initialPinId
-        map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
-        openPinPopup(map, pin)
+    if (initialPinId != null) {
+      const focusRequested = pinFocusSeq !== lastPinFocusSeqRef.current
+      const pinChanged = initialPinId !== focusedPinIdRef.current
+      if (focusRequested || pinChanged) {
+        if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
+        const pin = pins.find((p) => p.id === initialPinId)
+        if (pin) {
+          // clear all filters in case the pin is not shown in the initial filters
+          setFilter(CLEARED_FILTER)
+          focusedPinIdRef.current = initialPinId
+          map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
+          openPinPopup(map, pin)
+        }
       }
     }
-  }, [pinsForMap, filter, mapReady, initialPinId, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
+  }, [pinsForMap, filter, mapReady, initialPinId, pinFocusSeq, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
 
   return (
     <div className="relative w-full h-full">
