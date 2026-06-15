@@ -355,13 +355,33 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
   const openWelcome = useCallback(() => setShowWelcome(true), [])
 
-  // Clear stale ?pin= from URL if pin not in list
+  // Redirect community-only pins to their map, or clear stale ?pin= on world map
   useEffect(() => {
-    if (!loading && initialPinId !== null && !pins.some((p) => p.id === initialPinId)) {
-      const path = window.location.pathname || "/map"
-      window.history.replaceState(null, "", path)
+    if (loading || communityUrl || initialPinId === null) return
+    if (pins.some((p) => p.id === initialPinId)) return
+
+    let cancelled = false
+
+    void api.getPin(initialPinId).then(({ data }) => {
+      if (cancelled) return
+      if (data.community?.community_url) {
+        const url = `/m/${encodeURIComponent(data.community.community_url)}/map?pin=${initialPinId}`
+        window.location.replace(url)
+      } else {
+        const path = window.location.pathname || "/map"
+        window.history.replaceState(null, "", path)
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        const path = window.location.pathname || "/map"
+        window.history.replaceState(null, "", path)
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
-  }, [loading, initialPinId, pins])
+  }, [loading, communityUrl, initialPinId, pins])
 
   // Clear API error when modal closes (e.g. user clicks Cancel) so it doesn't show for the next operation
   useEffect(() => {
@@ -655,6 +675,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
               filter={filter}
               setFilter={setFilter}
               csrfToken={csrfToken}
+              communityUrl={communityUrl}
             />
             <PinTypeLegend
               closeRef={legendCloseRef}

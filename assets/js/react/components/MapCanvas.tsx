@@ -14,6 +14,7 @@ import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filter
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -105,6 +106,7 @@ type Props = {
   filter: FilterState
   setFilter: Dispatch<SetStateAction<FilterState>>
   csrfToken?: string
+  communityUrl?: string
 }
 
 export default function MapCanvas({
@@ -124,6 +126,7 @@ export default function MapCanvas({
   filter,
   setFilter,
   csrfToken,
+  communityUrl,
 }: Props) {
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -506,8 +509,8 @@ export default function MapCanvas({
         } else if (action === 'delete') {
           onDeleteRef.current(pinId)
         } else if (action === 'copy-link') {
-          const path = window.location.pathname || '/map'
-          const url = `${window.location.origin}${path}?pin=${pinId}`
+          const pin = pinsByIdRef.current.get(pinId)
+          const url = pin ? pinMapUrl(pin) : `${window.location.origin}/map?pin=${pinId}`
           navigator.clipboard.writeText(url).then(() => {
             const btn = target
             const originalText = btn.textContent
@@ -519,6 +522,11 @@ export default function MapCanvas({
         e.stopPropagation()
         const tag = target.dataset.tag
         if (tag) {
+          const communityFromTag = communityUrlFromTag(tag)
+          if (communityFromTag) {
+            window.location.assign(`/m/${encodeURIComponent(communityFromTag)}/map`)
+            return
+          }
           setFilter((f) => ({ ...f, tag }))
           filterPanelOpenRef.current?.open()
           document.querySelectorAll('.maplibregl-popup').forEach((el) => {
@@ -540,7 +548,7 @@ export default function MapCanvas({
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
-    root.render(<PopupContent pin={pin} csrfToken={csrfToken} />)
+    root.render(<PopupContent pin={pin} csrfToken={csrfToken} communityUrl={communityUrl} />)
     const popup = new Popup({
       closeButton: false,
       locationOccludedOpacity: 0.7,
@@ -578,7 +586,9 @@ export default function MapCanvas({
     if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
       const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
       if (pin) {
-        popupRootRef.current.render(<PopupContent pin={pin} csrfToken={csrfToken} />)
+        popupRootRef.current.render(
+          <PopupContent pin={pin} csrfToken={csrfToken} communityUrl={communityUrl} />
+        )
       }
     }
 

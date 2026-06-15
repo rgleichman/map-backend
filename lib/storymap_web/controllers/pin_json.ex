@@ -4,9 +4,10 @@ defmodule StorymapWeb.PinJSON do
   """
   alias Storymap.Pins.Pin
   alias Storymap.Pins.Authorizer
+  alias Storymap.SubMaps.SubMap
 
-  # Pin schema fields (no user_id) plus view-only keys: tags (from association), is_owner (computed).
-  @pin_data_keys Pin.public_json_fields() ++ [:tags, :is_owner]
+  # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner (computed).
+  @pin_data_keys Pin.public_json_fields() ++ [:tags, :community, :is_owner]
 
   # Serialize UTC datetime as "YYYY-MM-DDTHH:mm:ss" (no Z) so the wire format signals "local".
   defp datetime_to_iso_local(%DateTime{} = dt) do
@@ -45,9 +46,16 @@ defmodule StorymapWeb.PinJSON do
       end)
       |> Map.new()
       |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
+      |> put_community(pin)
 
     Map.take(base, @pin_data_keys -- [:is_owner])
   end
+
+  defp put_community(map, %Pin{sub_map: %SubMap{community_url: url, name: name}}) do
+    Map.put(map, :community, %{community_url: url, name: name})
+  end
+
+  defp put_community(map, _pin), do: map
 
   def data_with_user(%Pin{} = pin, %{} = current_user, assigns \\ %{}) do
     opts = authorizer_opts(assigns)

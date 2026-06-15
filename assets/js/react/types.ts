@@ -2,6 +2,11 @@ export type PinType = "one_time" | "scheduled" | "food_bank" | "other"
 
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 
+export type PinCommunity = {
+  community_url: string
+  name: string
+}
+
 export type Pin = {
   id: number
   title: string
@@ -13,6 +18,7 @@ export type Pin = {
   is_owner?: boolean
   status?: PinStatus
   visible_on_world_map?: boolean
+  community?: PinCommunity | null
   tags: string[]
   start_time?: string // ISO string
   end_time?: string // ISO string

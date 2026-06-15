@@ -138,5 +138,26 @@ defmodule Storymap.PinsTest do
       assert Map.has_key?(json, "end_time")
       refute Map.has_key?(json, "user_id")
     end
+
+    test "map_path_for_pin/1 uses community map when pin belongs to a sub-map" do
+      owner = user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "path-test"}, owner)
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          Map.merge(@valid_attrs, %{"pin_type" => "other"})
+        )
+
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      assert Pins.map_path_for_pin(pin) == "/m/path-test/map?pin=#{pin.id}"
+      assert Pins.map_path_for_pin(pin.id) == "/m/path-test/map?pin=#{pin.id}"
+    end
+
+    test "map_path_for_pin/1 uses world map for legacy pins" do
+      pin = pin_fixture()
+      assert Pins.map_path_for_pin(pin) == "/map?pin=#{pin.id}"
+    end
   end
 end

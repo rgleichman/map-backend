@@ -26,6 +26,41 @@ defmodule StorymapWeb.PinControllerTest do
       conn = get(conn, ~p"/api/pins")
       assert json_response(conn, 200)["data"] == []
     end
+
+    test "includes community metadata for promoted community pins", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"community_url" => "json-community", "name" => "JSON Community"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Community Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other",
+            "visible_on_world_map" => true
+          }
+        )
+
+      conn = get(conn, ~p"/api/pins")
+      [listed] = json_response(conn, 200)["data"]
+
+      assert listed["id"] == pin.id
+
+      assert listed["community"] == %{
+               "community_url" => "json-community",
+               "name" => "JSON Community"
+             }
+    end
   end
 
   describe "create pin" do
@@ -61,13 +96,17 @@ defmodule StorymapWeb.PinControllerTest do
 
       conn = get(conn, ~p"/api/pins/#{id}")
 
+      data = json_response(conn, 200)["data"]
+
       assert %{
                "id" => ^id,
                "latitude" => 120.5,
                "longitude" => 120.5,
                "title" => "some title",
                "pin_type" => "one_time"
-             } = json_response(conn, 200)["data"]
+             } = data
+
+      refute Map.has_key?(data, "community")
     end
 
     test "renders errors when data is invalid", %{conn: conn} do

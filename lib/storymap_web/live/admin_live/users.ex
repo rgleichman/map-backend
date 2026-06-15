@@ -259,11 +259,11 @@ defmodule StorymapWeb.AdminLive.Users do
                                 </td>
                                 <td class="align-top">
                                   <.link
-                                    href={"/?pin=#{pin.id}"}
+                                    href={Pins.map_path_for_pin(pin)}
                                     target="_blank"
                                     class="link link-primary"
                                   >
-                                    /?pin={pin.id}
+                                    {Pins.map_path_for_pin(pin)}
                                   </.link>
                                 </td>
                               </tr>

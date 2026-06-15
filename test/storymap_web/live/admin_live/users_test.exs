@@ -93,7 +93,7 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     assert has_element?(view, "#users-#{target.id}-pins", "second line")
     assert has_element?(view, "#users-#{target.id}-pins", "more details for moderation")
 
-    assert has_element?(view, "#users-#{target.id}-pins a[href='/?pin=#{pin1.id}']")
-    assert has_element?(view, "#users-#{target.id}-pins a[href='/?pin=#{pin2.id}']")
+    assert has_element?(view, "#users-#{target.id}-pins a[href='/map?pin=#{pin1.id}']")
+    assert has_element?(view, "#users-#{target.id}-pins a[href='/map?pin=#{pin2.id}']")
   end
 end

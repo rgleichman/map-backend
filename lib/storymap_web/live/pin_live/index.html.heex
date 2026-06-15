@@ -70,7 +70,13 @@
 
             <div class="flex-shrink-0 text-right">
               <.link
-                navigate={~p"/map?pin=#{pin.id}"}
+                navigate={
+                  if pin.sub_map do
+                    ~p"/m/#{pin.sub_map.community_url}/map?pin=#{pin.id}"
+                  else
+                    ~p"/map?pin=#{pin.id}"
+                  end
+                }
                 class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-primary-content hover:bg-primary/90 font-medium transition-colors duration-200"
               >
                 View on Map

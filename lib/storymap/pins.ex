@@ -29,6 +29,24 @@ defmodule Storymap.Pins do
     end
   end
 
+  @doc """
+  Returns the in-app map URL for a pin, using the community map when the pin belongs to one.
+  """
+  def map_path_for_pin(%Pin{id: id, sub_map: %SubMap{community_url: url}}) do
+    "/m/#{url}/map?pin=#{id}"
+  end
+
+  def map_path_for_pin(%Pin{id: id}) do
+    "/map?pin=#{id}"
+  end
+
+  def map_path_for_pin(pin_id) when is_integer(pin_id) do
+    case get_pin(pin_id) do
+      nil -> "/map?pin=#{pin_id}"
+      pin -> map_path_for_pin(pin)
+    end
+  end
+
   def create_pin(attrs, user_id, opts \\ []) do
     attrs_with_user = Map.put(stringify_keys(attrs), "user_id", user_id)
     sub_map = Keyword.get(opts, :sub_map)

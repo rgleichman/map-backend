@@ -22,6 +22,10 @@ export function getPins(): Promise<{ data: Pin[] }> {
   return jsonFetch("/api/pins")
 }
 
+export function getPin(id: number): Promise<{ data: Pin }> {
+  return jsonFetch(`/api/pins/${id}`)
+}
+
 export function getSubMap(communityUrl: string): Promise<{ data: SubMap }> {
   return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}`)
 }

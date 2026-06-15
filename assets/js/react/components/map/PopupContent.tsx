@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import { RRule } from "rrule"
 import * as api from "../../api/client"
 import type { Pin, ReportCategory } from "../../types"
+import { communityUrlFromTag } from "../../utils/pinMapUrl"
 
 const SENTINEL_DATE_PREFIX = "2000-01-01T"
 
@@ -49,15 +50,29 @@ const popupContentClasses = "text-sm text-base-content"
 type Props = {
   pin: Pin
   csrfToken?: string
+  /** Current community map slug, if any (undefined = world map). */
+  communityUrl?: string
 }
 
-export default function PopupContent({ pin, csrfToken }: Props) {
+export default function PopupContent({ pin, csrfToken, communityUrl }: Props) {
   const [reportOpen, setReportOpen] = useState(false)
   const [category, setCategory] = useState<ReportCategory>("inaccurate")
   const [details, setDetails] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [doneMessage, setDoneMessage] = useState<string | null>(null)
+
+  const displayTags = useMemo(
+    () =>
+      pin.tags.filter((tag) => {
+        if (!pin.community) return true
+        return communityUrlFromTag(tag) !== pin.community.community_url
+      }),
+    [pin.community, pin.tags]
+  )
+
+  const showCommunityLink =
+    pin.community != null && pin.community.community_url !== communityUrl
 
   const openInMapsUrl = buildOpenInMapsUrl(
     typeof navigator !== "undefined" ? navigator.userAgent : "",
@@ -125,10 +140,20 @@ export default function PopupContent({ pin, csrfToken }: Props) {
           <span>Timezone: {pin.schedule_timezone}</span>
         </div>
       )}
-      {pin.tags && pin.tags.length > 0 && (
+      {showCommunityLink && pin.community ? (
+        <div className="my-2">
+          <a
+            href={`/m/${encodeURIComponent(pin.community.community_url)}/map`}
+            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.95em] font-medium no-underline bg-primary/15 text-primary hover:bg-primary/25"
+          >
+            {pin.community.name}
+          </a>
+        </div>
+      ) : null}
+      {displayTags.length > 0 && (
         <div className="flex flex-wrap gap-x-1 gap-y-1 items-center my-2">
           <span className={popupContentClasses}>Tags:</span>
-          {pin.tags.map((tag) => (
+          {displayTags.map((tag) => (
             <button
               key={tag}
               type="button"

@@ -52,6 +52,7 @@ defmodule StorymapWeb.SubMapControllerTest do
       body = json_response(conn, 201)["data"]
       assert %{"title" => "Joe's BBQ"} = body
       assert "community:pin-api-test" in body["tags"]
+      assert body["community"] == %{"community_url" => "pin-api-test", "name" => sub_map.name}
     end
 
     test "PATCH updates community settings for owner", %{conn: conn, user: user} do

@@ -2,6 +2,8 @@ defmodule StorymapWeb.Admin.EventView do
   @moduledoc false
   use StorymapWeb, :html
 
+  alias Storymap.Pins
+
   def pin_event?(type) when is_binary(type), do: String.starts_with?(type, "pin_")
   def pin_event?(_), do: false
 
@@ -168,7 +170,7 @@ defmodule StorymapWeb.Admin.EventView do
         <%= if pin_id = @event.metadata["pin_id"] do %>
           <div class="mt-3">
             <.link
-              navigate={~p"/map?pin=#{pin_id}"}
+              href={Pins.map_path_for_pin(pin_id)}
               class="link link-primary text-sm inline-flex items-center gap-1"
             >
               <.icon name="hero-map-pin" class="size-4" /> View pin #{pin_id}
@@ -221,7 +223,7 @@ defmodule StorymapWeb.Admin.EventView do
       <%= if pin_id = @metadata["pin_id"] do %>
         <div>
           <.link
-            navigate={~p"/map?pin=#{pin_id}"}
+            href={Pins.map_path_for_pin(pin_id)}
             class="link link-primary inline-flex items-center gap-1"
           >
             <.icon name="hero-map-pin" class="size-4" /> View pin #{pin_id}
@@ -298,7 +300,7 @@ defmodule StorymapWeb.Admin.EventView do
         <div class="flex flex-wrap gap-2 shrink-0">
           <%= if @pin_id do %>
             <.link
-              navigate={~p"/map?pin=#{@pin_id}"}
+              href={Pins.map_path_for_pin(@pin_id)}
               class="btn btn-xs btn-ghost"
             >
               <.icon name="hero-map-pin" class="size-4" /> View pin
