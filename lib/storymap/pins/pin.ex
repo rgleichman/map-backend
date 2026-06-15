@@ -37,7 +37,7 @@ defmodule Storymap.Pins.Pin do
     field :title, :string
     field :latitude, :float
     field :longitude, :float
-    # description of the pin in markdown format
+    # Plain text with optional links; see docs/PIN_DESCRIPTIONS.md
     field :description, :string
     # icon image url for the pin
     field :icon_url, :string
@@ -75,6 +75,7 @@ defmodule Storymap.Pins.Pin do
       |> validate_inclusion(:status, ["pending", "approved", "rejected", "archived"])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank", "other"])
+      |> validate_length(:description, max: 5000)
 
     # Set user_id programmatically only for new pins (creation)
     # This prevents users from changing ownership via user input during updates

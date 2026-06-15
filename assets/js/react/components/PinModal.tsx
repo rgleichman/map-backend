@@ -111,7 +111,7 @@ export default function PinModal({
       <textarea
         id="pin-description"
         name="description"
-        placeholder="Description…"
+        placeholder="Description… (example.com or [label](url))"
         autoComplete="off"
         value={description}
         onChange={(e) => setDescription(e.target.value)}

@@ -65,6 +65,14 @@ defmodule Storymap.PinsTest do
       assert {:error, %Ecto.Changeset{}} = Pins.create_pin(@invalid_attrs, user.id)
     end
 
+    test "create_pin/2 rejects descriptions longer than 5000 characters" do
+      user = user_fixture()
+      attrs = Map.put(@valid_attrs, "description", String.duplicate("a", 5001))
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Pins.create_pin(attrs, user.id)
+      assert "should be at most 5000 character(s)" in errors_on(changeset).description
+    end
+
     test "update_pin/2 with valid data updates the pin" do
       pin = pin_fixture()
       update_attrs = %{"title" => "some updated title", "latitude" => 456.7, "longitude" => 456.7}

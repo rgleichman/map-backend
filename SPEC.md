@@ -28,7 +28,7 @@ data model, policies, routes).
 - **Pin type** (required): `one_time`, `scheduled`, `food_bank`, or `other`
   (`other`: landmarks / POIs — no start/end time or schedule)
 - **Location** (required): latitude and longitude
-- **Description** (optional, markdown)
+- **Description** (optional): plain text with optional links (see [Pin description links](docs/PIN_DESCRIPTIONS.md))
 - **Tags** (optional, multiple per pin)
 - **Icon URL** (optional): image URL for the pin
 - **Start time / End time** (optional): for scheduled or time-bounded pins

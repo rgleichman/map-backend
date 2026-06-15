@@ -35,9 +35,9 @@
               </div>
 
               <%= if pin.description do %>
-                <p class="text-base-content/80 mb-3 line-clamp-2">
-                  {pin.description}
-                </p>
+                <div class="text-base-content/80 mb-3 line-clamp-2">
+                  {Storymap.Linkify.render(pin.description)}
+                </div>
               <% end %>
 
               <div class="flex flex-wrap gap-3 text-sm text-base-content/70">

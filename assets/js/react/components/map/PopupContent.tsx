@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react"
 import { RRule } from "rrule"
 import * as api from "../../api/client"
 import type { Pin, ReportCategory } from "../../types"
+import LinkifiedText from "../LinkifiedText"
 import { communityUrlFromTag } from "../../utils/pinMapUrl"
 
 const SENTINEL_DATE_PREFIX = "2000-01-01T"
@@ -117,7 +118,7 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
   return (
     <div>
       <h2 className="text-xl font-bold">{pin.title}</h2>
-      {pin.description ? <p className="mt-1">{pin.description}</p> : null}
+      {pin.description ? <LinkifiedText className="mt-1" text={pin.description} /> : null}
       {(pin.start_time || pin.end_time) && (
         <div className={`${popupContentClasses} my-2`}>
           <span>
