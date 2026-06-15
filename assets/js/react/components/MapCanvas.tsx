@@ -11,6 +11,12 @@ import {
 } from "../utils/pinTypeIcons"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filters"
+import {
+  expandClusterAtPoint,
+  MATCHING_SOURCE_ID,
+  pinIdFromTopFeatureAt,
+  PIN_INTERACTIVE_LAYER_IDS,
+} from "./map/clusterInteraction"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
@@ -51,7 +57,6 @@ function desaturateHex(hex: string, whiteRatio = 0.85): string {
 /** Opacity for pins that do not match the active filters (still visible and clickable). */
 const FILTER_DIMMED_OPACITY = 0.25
 
-const MATCHING_SOURCE_ID = "pin-features-matching"
 const DIMMED_SOURCE_ID = "pin-features-dimmed"
 
 const pinLabelsVisibleFilter: maplibregl.FilterSpecification = ["!", ["has", "point_count"]]
@@ -88,22 +93,6 @@ function buildPinFeatureSets(pinList: Pin[], filterState: FilterState) {
     else dimmed.push(feature)
   }
   return { matching, dimmed }
-}
-
-const CLUSTER_LAYER_IDS = ["pin-cluster-count-layer", "pin-clusters-layer"] as const
-const PIN_INTERACTIVE_LAYER_IDS = [
-  ...CLUSTER_LAYER_IDS,
-  "pin-icons-layer",
-  "pin-icons-dimmed-layer",
-] as const
-
-function isClusterLayerId(layerId: string): boolean {
-  return layerId === "pin-clusters-layer" || layerId === "pin-cluster-count-layer"
-}
-
-/** Topmost pin/cluster feature at a screen point (layer handlers can all fire when features overlap). */
-function topInteractiveFeatureAt(map: maplibregl.Map, point: maplibregl.PointLike) {
-  return map.queryRenderedFeatures(point, { layers: [...PIN_INTERACTIVE_LAYER_IDS] })[0]
 }
 
 type Props = {
@@ -404,9 +393,7 @@ export default function MapCanvas({
             })
 
           const handlePinIconClick = (e: maplibregl.MapLayerMouseEvent) => {
-            const top = topInteractiveFeatureAt(map, e.point)
-            if (!top || isClusterLayerId(top.layer.id)) return
-            const pinId = top.properties?.pin_id as number | undefined
+            const pinId = pinIdFromTopFeatureAt(map, e.point)
             if (pinId == null) return
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
@@ -414,23 +401,8 @@ export default function MapCanvas({
           }
 
           const handleClusterClick = (e: maplibregl.MapLayerMouseEvent) => {
-            const top = topInteractiveFeatureAt(map, e.point)
-            if (!top || !isClusterLayerId(top.layer.id)) return
-            const clusterId = top.properties?.cluster_id as number | undefined
-            if (clusterId == null) return
-
             const source = map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource
-            source.getClusterExpansionZoom(clusterId).then((zoom) => {
-              const coords = top.geometry.type === "Point" ? top.geometry.coordinates : null
-              if (!coords) return
-              map.easeTo({
-                center: coords as [number, number],
-                zoom,
-                duration: 350,
-              })
-            }).catch((err) => {
-              console.warn("Cluster expansion zoom failed", err)
-            })
+            void expandClusterAtPoint(map, e.point, source)
           }
 
           map.on("click", "pin-icons-layer", handlePinIconClick)
