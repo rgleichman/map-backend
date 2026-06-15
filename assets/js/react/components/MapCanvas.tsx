@@ -51,37 +51,59 @@ function desaturateHex(hex: string, whiteRatio = 0.85): string {
 /** Opacity for pins that do not match the active filters (still visible and clickable). */
 const FILTER_DIMMED_OPACITY = 0.25
 
-const filterMatchOpacityExpr: maplibregl.ExpressionSpecification = [
-  "case",
-  ["==", ["get", "filter_match"], 1],
-  1,
-  FILTER_DIMMED_OPACITY,
-]
+const MATCHING_SOURCE_ID = "pin-features-matching"
+const DIMMED_SOURCE_ID = "pin-features-dimmed"
 
-/** Only draw labels for pins that match the filter so dimmed pins do not affect label collision. */
-const pinLabelsMatchFilter: maplibregl.FilterSpecification = ["==", ["get", "filter_match"], 1]
-const pinLabelsVisibleFilter: maplibregl.FilterSpecification = [
-  "all",
-  ["!", ["has", "point_count"]],
-  ["==", ["get", "filter_match"], 1],
-]
+const pinLabelsVisibleFilter: maplibregl.FilterSpecification = ["!", ["has", "point_count"]]
 
-function buildPinFeatures(pinList: Pin[], filterState: FilterState) {
-  return pinList.map((pin) => {
-    const pinColor = getPinTypeConfig(pin.pin_type).color
-    return {
-      type: "Feature" as const,
-      geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] },
-      properties: {
-        pin_id: pin.id,
-        title: truncateTitle(pin.title),
-        pin_type: pin.pin_type,
-        pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
-        haloColor: desaturateHex(pinColor),
-        filter_match: pinMatchesFilter(pin, filterState) ? 1 : 0,
-      },
-    }
-  })
+const pinIconLayout: maplibregl.SymbolLayerSpecification["layout"] = {
+  "icon-image": ["get", "pin_type_icon"],
+  "icon-size": 1,
+  "icon-anchor": "bottom",
+  "icon-allow-overlap": true,
+  "icon-ignore-placement": true,
+}
+
+function toPinFeature(pin: Pin) {
+  const pinColor = getPinTypeConfig(pin.pin_type).color
+  return {
+    type: "Feature" as const,
+    geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] as [number, number] },
+    properties: {
+      pin_id: pin.id,
+      title: truncateTitle(pin.title),
+      pin_type: pin.pin_type,
+      pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
+      haloColor: desaturateHex(pinColor),
+    },
+  }
+}
+
+function buildPinFeatureSets(pinList: Pin[], filterState: FilterState) {
+  const matching: ReturnType<typeof toPinFeature>[] = []
+  const dimmed: ReturnType<typeof toPinFeature>[] = []
+  for (const pin of pinList) {
+    const feature = toPinFeature(pin)
+    if (pinMatchesFilter(pin, filterState)) matching.push(feature)
+    else dimmed.push(feature)
+  }
+  return { matching, dimmed }
+}
+
+const CLUSTER_LAYER_IDS = ["pin-cluster-count-layer", "pin-clusters-layer"] as const
+const PIN_INTERACTIVE_LAYER_IDS = [
+  ...CLUSTER_LAYER_IDS,
+  "pin-icons-layer",
+  "pin-icons-dimmed-layer",
+] as const
+
+function isClusterLayerId(layerId: string): boolean {
+  return layerId === "pin-clusters-layer" || layerId === "pin-cluster-count-layer"
+}
+
+/** Topmost pin/cluster feature at a screen point (layer handlers can all fire when features overlap). */
+function topInteractiveFeatureAt(map: maplibregl.Map, point: maplibregl.PointLike) {
+  return map.queryRenderedFeatures(point, { layers: [...PIN_INTERACTIVE_LAYER_IDS] })[0]
 }
 
 type Props = {
@@ -260,7 +282,7 @@ export default function MapCanvas({
 
         // Ignore clicks on pins / clusters (handled by layer click handlers)
         const hit = map.queryRenderedFeatures(e.point, {
-          layers: ["pin-icons-layer", "pin-clusters-layer", "pin-cluster-count-layer"],
+          layers: [...PIN_INTERACTIVE_LAYER_IDS],
         })
         if (hit.length > 0) return
 
@@ -275,17 +297,37 @@ export default function MapCanvas({
             const img = await loadImage(dataUrl)
             map.addImage(getPinTypeMarkerImageId(pinType), img)
           }
-          map.addSource("pin-features", {
+          map.addSource(MATCHING_SOURCE_ID, {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
             cluster: true,
             clusterRadius: CLUSTER_RADIUS_PX,
             clusterMaxZoom: CLUSTER_MAX_ZOOM,
           })
+          map.addSource(DIMMED_SOURCE_ID, {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          })
+          map.addLayer({
+            id: "pin-icons-dimmed-layer",
+            type: "symbol",
+            source: DIMMED_SOURCE_ID,
+            layout: pinIconLayout,
+            paint: {
+              "icon-opacity": FILTER_DIMMED_OPACITY,
+            },
+          })
+          map.addLayer({
+            id: "pin-icons-layer",
+            type: "symbol",
+            source: MATCHING_SOURCE_ID,
+            filter: ["!", ["has", "point_count"]],
+            layout: pinIconLayout,
+          })
           map.addLayer({
             id: "pin-clusters-layer",
             type: "circle",
-            source: "pin-features",
+            source: MATCHING_SOURCE_ID,
             filter: ["has", "point_count"],
             paint: {
               "circle-color": [
@@ -314,7 +356,7 @@ export default function MapCanvas({
           map.addLayer({
             id: "pin-cluster-count-layer",
             type: "symbol",
-            source: "pin-features",
+            source: MATCHING_SOURCE_ID,
             filter: ["has", "point_count"],
             layout: {
               "text-field": ["get", "point_count_abbreviated"],
@@ -328,26 +370,9 @@ export default function MapCanvas({
             },
           })
           map.addLayer({
-            id: "pin-icons-layer",
-            type: "symbol",
-            source: "pin-features",
-            filter: ["!", ["has", "point_count"]],
-            layout: {
-              "icon-image": ["get", "pin_type_icon"],
-              "icon-size": 1,
-              "icon-anchor": "bottom",
-              "icon-allow-overlap": true,
-              "icon-ignore-placement": true,
-              "symbol-sort-key": ["get", "filter_match"],
-            },
-            paint: {
-              "icon-opacity": filterMatchOpacityExpr,
-            },
-          })
-          map.addLayer({
             id: "pin-labels-layer",
             type: "symbol",
-            source: "pin-features",
+            source: MATCHING_SOURCE_ID,
             filter: pinLabelsVisibleFilter,
             layout: {
               "text-field": ["get", "title"],
@@ -357,7 +382,6 @@ export default function MapCanvas({
               "text-offset": [0, 0],
               "text-allow-overlap": false,
               "text-ignore-placement": false,
-              "symbol-sort-key": ["get", "filter_match"],
             },
             paint: {
               "text-color": "#1f2937",
@@ -369,30 +393,35 @@ export default function MapCanvas({
 
           const initialPins = pinsForMapRef.current
           pinsByIdRef.current = new Map(initialPins.map((p) => [p.id, p]))
-          const initialFeatures = buildPinFeatures(initialPins, filterRef.current)
-            ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+          const initialFeatureSets = buildPinFeatureSets(initialPins, filterRef.current)
+            ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
               type: "FeatureCollection",
-              features: initialFeatures
+              features: initialFeatureSets.matching,
+            })
+            ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+              type: "FeatureCollection",
+              features: initialFeatureSets.dimmed,
             })
 
-          map.on("click", "pin-icons-layer", (e) => {
-            const feature = e.features?.[0]
-            if (!feature) return
-            const pinId = feature.properties?.pin_id as number | undefined
+          const handlePinIconClick = (e: maplibregl.MapLayerMouseEvent) => {
+            const top = topInteractiveFeatureAt(map, e.point)
+            if (!top || isClusterLayerId(top.layer.id)) return
+            const pinId = top.properties?.pin_id as number | undefined
             if (pinId == null) return
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
             openPinPopup(map, pin)
-          })
-          map.on("click", "pin-clusters-layer", (e) => {
-            const feature = e.features?.[0]
-            if (!feature) return
-            const clusterId = feature.properties?.cluster_id as number | undefined
+          }
+
+          const handleClusterClick = (e: maplibregl.MapLayerMouseEvent) => {
+            const top = topInteractiveFeatureAt(map, e.point)
+            if (!top || !isClusterLayerId(top.layer.id)) return
+            const clusterId = top.properties?.cluster_id as number | undefined
             if (clusterId == null) return
 
-            const source = map.getSource("pin-features") as maplibregl.GeoJSONSource
+            const source = map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource
             source.getClusterExpansionZoom(clusterId).then((zoom) => {
-              const coords = feature.geometry.type === "Point" ? feature.geometry.coordinates : null
+              const coords = top.geometry.type === "Point" ? top.geometry.coordinates : null
               if (!coords) return
               map.easeTo({
                 center: coords as [number, number],
@@ -402,19 +431,26 @@ export default function MapCanvas({
             }).catch((err) => {
               console.warn("Cluster expansion zoom failed", err)
             })
-          })
-          map.on("mouseenter", "pin-icons-layer", () => {
+          }
+
+          map.on("click", "pin-icons-layer", handlePinIconClick)
+          map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
+          map.on("click", "pin-clusters-layer", handleClusterClick)
+          map.on("click", "pin-cluster-count-layer", handleClusterClick)
+          const setPointerCursor = () => {
             map.getCanvas().style.cursor = "pointer"
-          })
-          map.on("mouseleave", "pin-icons-layer", () => {
+          }
+          const clearPointerCursor = () => {
             map.getCanvas().style.cursor = ""
-          })
-          map.on("mouseenter", "pin-clusters-layer", () => {
-            map.getCanvas().style.cursor = "pointer"
-          })
-          map.on("mouseleave", "pin-clusters-layer", () => {
-            map.getCanvas().style.cursor = ""
-          })
+          }
+          map.on("mouseenter", "pin-icons-layer", setPointerCursor)
+          map.on("mouseleave", "pin-icons-layer", clearPointerCursor)
+          map.on("mouseenter", "pin-icons-dimmed-layer", setPointerCursor)
+          map.on("mouseleave", "pin-icons-dimmed-layer", clearPointerCursor)
+          map.on("mouseenter", "pin-clusters-layer", setPointerCursor)
+          map.on("mouseleave", "pin-clusters-layer", clearPointerCursor)
+          map.on("mouseenter", "pin-cluster-count-layer", setPointerCursor)
+          map.on("mouseleave", "pin-cluster-count-layer", clearPointerCursor)
 
           setMapReady(true)
         } catch (err) {
@@ -577,10 +613,14 @@ export default function MapCanvas({
 
     pinsByIdRef.current = new Map(pinsForMap.map((p) => [p.id, p]))
 
-    const features = buildPinFeatures(pinsForMap, filter)
-      ; (map.getSource("pin-features") as maplibregl.GeoJSONSource).setData({
+    const featureSets = buildPinFeatureSets(pinsForMap, filter)
+      ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
-        features
+        features: featureSets.matching,
+      })
+      ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: featureSets.dimmed,
       })
 
     if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
