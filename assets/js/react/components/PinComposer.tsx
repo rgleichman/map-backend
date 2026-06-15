@@ -1,17 +1,9 @@
 import React from "react"
 import PinModal from "./PinModal"
 import type { PinType } from "../types"
+import type { PinDraftAction, PinWorkflowAction } from "../pinWorkflow/types"
 
-export type PinDraftAction =
-  | { type: "set_title"; title: string }
-  | { type: "set_description"; description: string }
-  | { type: "set_tags"; tags: string[] }
-  | { type: "set_start_time"; startTime: string }
-  | { type: "set_end_time"; endTime: string }
-  | { type: "set_schedule_rrule"; scheduleRrule: string }
-  | { type: "set_schedule_timezone"; scheduleTimezone: string }
-  | { type: "set_open_24_7"; open24_7: boolean }
-  | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
+export type { PinDraftAction }
 
 type Props = {
   layout: "modal" | "panel"
@@ -30,7 +22,7 @@ type Props = {
   showPromoteToWorld: boolean
   latitude: number
   longitude: number
-  dispatch: React.Dispatch<PinDraftAction>
+  dispatch: React.Dispatch<PinWorkflowAction>
   onStartPickOnMap: () => void
   onCancel: () => void
   onSave: () => void

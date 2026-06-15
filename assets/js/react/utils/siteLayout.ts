@@ -48,7 +48,7 @@ export function mapShellTopRightOverlayTop(): string {
 /**
  * Form vs overlay: inputs that affect pin save (title, tags, community options, etc.)
  * belong in PinModal / PinComposer — not in floating MapShell overlays. Overlays are for
- * map chrome only (legend, filters, toolbar). See PinComposer in App.tsx.
+ * map chrome only (legend, filters, toolbar). See PinComposer / PinFlowUI.
  *
  * Z-index ladder (Tailwind classes):
  * - 10–20: map overlays (legend, filters)
