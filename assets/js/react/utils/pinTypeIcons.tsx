@@ -16,29 +16,62 @@ import {
  * Pin type icon path data: one_time from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
  * https://github.com/tailwindlabs/heroicons
  */
-/** one_time: Lucide carrot (stroke). scheduled/food_bank: Heroicons 24 solid. */
-const ICON_PATHS: Record<PinType, string> = {
-  one_time: `<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z"/>`,
-  scheduled: `<path fill-rule="evenodd" d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z" clip-rule="evenodd"/>`,
-  food_bank: `<path d="M5.223 2.25c-.497 0-.974.198-1.325.55l-1.3 1.298A3.75 3.75 0 0 0 7.5 9.75c.627.47 1.406.75 2.25.75.844 0 1.624-.28 2.25-.75.626.47 1.406.75 2.25.75.844 0 1.623-.28 2.25-.75a3.75 3.75 0 0 0 4.902-5.652l-1.3-1.299a1.875 1.875 0 0 0-1.325-.549H5.223Z"/><path fill-rule="evenodd" d="M3 20.25v-8.755c1.42.674 3.08.673 4.5 0A5.234 5.234 0 0 0 9.75 12c.804 0 1.568-.182 2.25-.506a5.234 5.234 0 0 0 2.25.506c.804 0 1.567-.182 2.25-.506 1.42.674 3.08.675 4.5.001v8.755h.75a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1 0-1.5H3Zm3-6a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3Zm8.25-.75a.75.75 0 0 0-.75.75v5.25c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75v-5.25a.75.75 0 0 0-.75-.75h-3Z" clip-rule="evenodd"/>`,
-  other: `<path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.267 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.267-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd"/>`
+type SvgPathDef = {
+  d: string
+  fillRule?: "evenodd" | "nonzero"
+  clipRule?: "evenodd" | "nonzero"
 }
 
-/** Allowlist for icon path strings used with innerHTML/dangerouslySetInnerHTML (XSS guard). */
-const ALLOWED_ICON_PATHS = new Set<string>(Object.values(ICON_PATHS))
+/** one_time: Lucide carrot (stroke). scheduled/food_bank/other: Heroicons 24 solid (fill). */
+const ICON_PATH_DEFS: Record<PinType, SvgPathDef[]> = {
+  one_time: [
+    {
+      d: "M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"
+    },
+    { d: "M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" },
+    { d: "M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" },
+  ],
+  scheduled: [
+    {
+      d: "M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z",
+      fillRule: "evenodd",
+      clipRule: "evenodd"
+    }
+  ],
+  food_bank: [
+    {
+      d: "M5.223 2.25c-.497 0-.974.198-1.325.55l-1.3 1.298A3.75 3.75 0 0 0 7.5 9.75c.627.47 1.406.75 2.25.75.844 0 1.624-.28 2.25-.75.626.47 1.406.75 2.25.75.844 0 1.623-.28 2.25-.75a3.75 3.75 0 0 0 4.902-5.652l-1.3-1.299a1.875 1.875 0 0 0-1.325-.549H5.223Z"
+    },
+    {
+      d: "M3 20.25v-8.755c1.42.674 3.08.673 4.5 0A5.234 5.234 0 0 0 9.75 12c.804 0 1.568-.182 2.25-.506a5.234 5.234 0 0 0 2.25.506c.804 0 1.567-.182 2.25-.506 1.42.674 3.08.675 4.5.001v8.755h.75a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1 0-1.5H3Zm3-6a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3Zm8.25-.75a.75.75 0 0 0-.75.75v5.25c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75v-5.25a.75.75 0 0 0-.75-.75h-3Z",
+      fillRule: "evenodd",
+      clipRule: "evenodd"
+    }
+  ],
+  other: [
+    {
+      d: "M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.267 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.267-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z",
+      fillRule: "evenodd",
+      clipRule: "evenodd"
+    }
+  ]
+}
 
-function safeIconPath(path: string): string {
-  return ALLOWED_ICON_PATHS.has(path) ? path : ICON_PATHS.one_time
+function iconKeyForPinType(pinType: PinType | string | null | undefined): PinType {
+  if (pinType && isBuiltinPinType(pinType)) return pinType
+  if (typeof pinType === "string" && pinType.startsWith("custom:")) return "other"
+  return DEFAULT_PIN_TYPE
 }
 
 export type PinTypeConfig = PinTypeColorEntry & {
-  iconPath: string
+  /** Which builtin icon to render for this pin type. */
+  iconKey: PinType
 }
 
 const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
   (Object.keys(PIN_TYPE_COLORS) as PinType[]).map((pinType) => [
     pinType,
-    { ...PIN_TYPE_COLORS[pinType], iconPath: ICON_PATHS[pinType] }
+    { ...PIN_TYPE_COLORS[pinType], iconKey: pinType }
   ])
 ) as Record<PinType, PinTypeConfig>
 
@@ -76,7 +109,7 @@ export function resolvePinTypeConfig(
 export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
   const colors = getPinTypeColorEntry(pinType)
   const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
-  return { ...colors, iconPath: pinTypeConfigs[key].iconPath }
+  return { ...colors, iconKey: pinTypeConfigs[key].iconKey }
 }
 
 /** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
@@ -101,7 +134,8 @@ function buildPinMarkerSVGString(
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
-  const isStrokeIcon = pinType === "one_time"
+  const iconKey = iconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === "one_time"
   const iconGroupAttrs = isStrokeIcon
     ? `fill="none" stroke="${iconFill}" color="${iconFill}"`
     : `fill="${iconFill}"`
@@ -112,6 +146,16 @@ function buildPinMarkerSVGString(
   const mainPathFillOpacity = pending ? "0.72" : "1"
   const circleFillOpacity = pending ? "0.85" : "1"
   const shadowFilter = pending ? "" : ' filter="url(#shadow)"'
+  const iconPaths = ICON_PATH_DEFS[iconKey]
+
+  const iconMarkup = iconPaths
+    .map((p) => {
+      const attrs: string[] = [`d="${p.d}"`]
+      if (p.fillRule) attrs.push(`fill-rule="${p.fillRule}"`)
+      if (p.clipRule) attrs.push(`clip-rule="${p.clipRule}"`)
+      return `<path ${attrs.join(" ")} />`
+    })
+    .join("")
 
   return `
     <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="http://www.w3.org/2000/svg">
@@ -127,7 +171,7 @@ function buildPinMarkerSVGString(
               fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>
         <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
         <g transform="${MARKER_ICON_TRANSFORM}" ${iconGroupAttrs}>
-          ${safeIconPath(config.iconPath)}
+          ${iconMarkup}
         </g>
       </g>
     </svg>
@@ -199,7 +243,10 @@ export function PinTypeIcon({
   catalog = [],
 }: PinTypeIconProps & { catalog?: CustomPinType[] }): React.ReactElement {
   const config = resolvePinTypeConfig(pinType, catalog)
-  const isStrokeIcon = pinType === "one_time"
+  const iconKey = iconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === "one_time"
+  const paths = ICON_PATH_DEFS[iconKey]
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -212,7 +259,26 @@ export function PinTypeIcon({
       height={size}
       className={className}
     >
-      <g dangerouslySetInnerHTML={{ __html: safeIconPath(config.iconPath) }} />
+      {isStrokeIcon ? (
+        <g
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          color={config.textColor}
+        >
+          {paths.map((p) => (
+            <path key={p.d} d={p.d} />
+          ))}
+        </g>
+      ) : (
+        <g fill="currentColor">
+          {paths.map((p) => (
+            <path key={p.d} d={p.d} fillRule={p.fillRule} clipRule={p.clipRule} />
+          ))}
+        </g>
+      )}
     </svg>
   )
 }
