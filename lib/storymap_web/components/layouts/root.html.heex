@@ -79,8 +79,8 @@
             </label>
           </div>
         </div>
-        
-<!-- Page content -->
+
+        <!-- Page content -->
         <div class={[
           "flex-1 min-h-0 overflow-y-auto",
           unless(map_full_bleed_path?(@conn.request_path), do: "md:pb-24")
@@ -88,15 +88,14 @@
           {@inner_content}
         </div>
       </div>
-      
-<!-- Drawer side menu (mobile) -->
+
+      <!-- Drawer side menu (mobile) -->
       <div class="drawer-side top-[var(--site-header-height)] h-[calc(100%-var(--site-header-height))] z-50">
         <button
           type="button"
           class="drawer-overlay drawer-close m-0 cursor-pointer border-0 p-0 font-inherit top-[var(--site-header-height)] h-[calc(100%-var(--site-header-height))]"
           aria-label="Close menu"
-        >
-        </button>
+        ></button>
         <ul class="flex flex-col py-4 w-auto min-w-fit max-w-xs min-h-full bg-base-200 text-base-content">
           <.nav_menu_items
             variant="mobile"
