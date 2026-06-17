@@ -127,7 +127,9 @@ export function getPinTypeMarkerImageId(pinType: PinType | string | null | undef
   return `pin-icon-${key}`
 }
 
-function buildPinMarkerSVGString(
+const SVG_NS = "http://www.w3.org/2000/svg"
+
+function buildPinMarkerSVGStringFallback(
   pinType: PinType | string | null | undefined,
   pending: boolean,
   catalog: CustomPinType[] = []
@@ -137,7 +139,7 @@ function buildPinMarkerSVGString(
   const iconKey = iconKeyForPinType(pinType)
   const isStrokeIcon = iconKey === "one_time"
   const iconGroupAttrs = isStrokeIcon
-    ? `fill="none" stroke="${iconFill}" color="${iconFill}"`
+    ? `fill="none" stroke="${iconFill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="${iconFill}"`
     : `fill="${iconFill}"`
 
   const outlinePath = pending
@@ -158,7 +160,7 @@ function buildPinMarkerSVGString(
     .join("")
 
   return `
-    <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="http://www.w3.org/2000/svg">
+    <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="${SVG_NS}">
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
@@ -178,6 +180,99 @@ function buildPinMarkerSVGString(
   `
 }
 
+function buildPinMarkerSVGElement(
+  pinType: PinType | string | null | undefined,
+  pending: boolean,
+  catalog: CustomPinType[] = []
+): SVGSVGElement {
+  const config = resolvePinTypeConfig(pinType, catalog)
+  const iconFill = config.textColor
+  const iconKey = iconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === "one_time"
+  const mainPathFillOpacity = pending ? "0.72" : "1"
+  const circleFillOpacity = pending ? "0.85" : "1"
+  const iconPaths = ICON_PATH_DEFS[iconKey]
+
+  const svg = document.createElementNS(SVG_NS, "svg")
+  svg.setAttribute("width", "40")
+  svg.setAttribute("height", "50")
+  svg.setAttribute("viewBox", "-3 -3 46 56")
+  svg.setAttribute("xmlns", SVG_NS)
+
+  const defs = document.createElementNS(SVG_NS, "defs")
+  if (!pending) {
+    const filter = document.createElementNS(SVG_NS, "filter")
+    filter.setAttribute("id", "shadow")
+    filter.setAttribute("x", "-50%")
+    filter.setAttribute("y", "-50%")
+    filter.setAttribute("width", "200%")
+    filter.setAttribute("height", "200%")
+
+    const dropShadow = document.createElementNS(SVG_NS, "feDropShadow")
+    dropShadow.setAttribute("dx", "0")
+    dropShadow.setAttribute("dy", "2")
+    dropShadow.setAttribute("stdDeviation", "3")
+    dropShadow.setAttribute("flood-opacity", "0.3")
+
+    filter.appendChild(dropShadow)
+    defs.appendChild(filter)
+  }
+  svg.appendChild(defs)
+
+  const rootGroup = document.createElementNS(SVG_NS, "g")
+  rootGroup.setAttribute("transform", "translate(3, 3)")
+  svg.appendChild(rootGroup)
+
+  if (pending) {
+    const outline = document.createElementNS(SVG_NS, "path")
+    outline.setAttribute("d", TEARDROP_PATH)
+    outline.setAttribute("fill", "none")
+    outline.setAttribute("stroke", "currentColor")
+    outline.setAttribute("stroke-width", "10")
+    outline.setAttribute("stroke-linejoin", "round")
+    rootGroup.appendChild(outline)
+  }
+
+  const teardrop = document.createElementNS(SVG_NS, "path")
+  teardrop.setAttribute("d", TEARDROP_PATH)
+  teardrop.setAttribute("fill", config.color)
+  teardrop.setAttribute("fill-opacity", mainPathFillOpacity)
+  if (!pending) teardrop.setAttribute("filter", "url(#shadow)")
+  rootGroup.appendChild(teardrop)
+
+  const circle = document.createElementNS(SVG_NS, "circle")
+  circle.setAttribute("cx", "20")
+  circle.setAttribute("cy", "15")
+  circle.setAttribute("r", "12")
+  circle.setAttribute("fill", config.backgroundColor)
+  circle.setAttribute("fill-opacity", circleFillOpacity)
+  rootGroup.appendChild(circle)
+
+  const iconGroup = document.createElementNS(SVG_NS, "g")
+  iconGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)
+  if (isStrokeIcon) {
+    iconGroup.setAttribute("fill", "none")
+    iconGroup.setAttribute("stroke", iconFill)
+    iconGroup.setAttribute("stroke-width", "2")
+    iconGroup.setAttribute("stroke-linecap", "round")
+    iconGroup.setAttribute("stroke-linejoin", "round")
+    iconGroup.setAttribute("color", iconFill)
+  } else {
+    iconGroup.setAttribute("fill", iconFill)
+  }
+
+  for (const p of iconPaths) {
+    const path = document.createElementNS(SVG_NS, "path")
+    path.setAttribute("d", p.d)
+    if (p.fillRule) path.setAttribute("fill-rule", p.fillRule)
+    if (p.clipRule) path.setAttribute("clip-rule", p.clipRule)
+    iconGroup.appendChild(path)
+  }
+
+  rootGroup.appendChild(iconGroup)
+  return svg
+}
+
 /**
  * Create an SVG marker for a specific pin type (data URL). Uses same SVG as createPinTypeMarkerElement with pending false.
  */
@@ -185,7 +280,13 @@ export function createPinTypeMarkerSVG(
   pinType: PinType | string | null | undefined,
   catalog: CustomPinType[] = []
 ): string {
-  const svg = buildPinMarkerSVGString(pinType, false, catalog)
+  if (typeof document === "undefined" || typeof XMLSerializer === "undefined") {
+    const svg = buildPinMarkerSVGStringFallback(pinType, false, catalog)
+    return `data:image/svg+xml;base64,${btoa(svg)}`
+  }
+
+  const svgEl = buildPinMarkerSVGElement(pinType, false, catalog)
+  const svg = new XMLSerializer().serializeToString(svgEl)
   return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
@@ -202,10 +303,10 @@ export function createPinTypeMarkerElement(
   options?: CreatePinMarkerOptions,
   catalog: CustomPinType[] = []
 ): HTMLElement {
-  const svg = buildPinMarkerSVGString(pinType, options?.pending ?? false, catalog)
+  const svg = buildPinMarkerSVGElement(pinType, options?.pending ?? false, catalog)
   const wrap = document.createElement("div")
   wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
-  wrap.innerHTML = svg
+  wrap.appendChild(svg)
   return wrap
 }
 
