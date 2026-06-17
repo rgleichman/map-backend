@@ -1,5 +1,5 @@
 import { RRule } from "rrule"
-import type { Pin, PinType } from "../../types"
+import type { CustomPinType, Pin, PinType } from "../../types"
 import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import {
   addHoursToParts,
@@ -49,7 +49,7 @@ export type ActiveFilterChip = {
 }
 
 /** One chip per active constraint (time, tag, pin type), in stable order. */
-export function listActiveFilterChips(filter: FilterState): ActiveFilterChip[] {
+export function listActiveFilterChips(filter: FilterState, catalog: CustomPinType[] = []): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = []
   if (filter.time === "now") {
     chips.push({ dimension: "time", label: TIME_FILTER_LABEL })
@@ -60,7 +60,7 @@ export function listActiveFilterChips(filter: FilterState): ActiveFilterChip[] {
   if (filter.pinType !== null) {
     chips.push({
       dimension: "pinType",
-      label: getPinTypeLabel(filter.pinType),
+      label: getPinTypeLabel(filter.pinType, catalog),
       pinType: filter.pinType
     })
   }

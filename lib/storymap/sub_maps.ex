@@ -8,7 +8,7 @@ defmodule Storymap.SubMaps do
   alias Storymap.Pins
   alias Storymap.Pins.{Authorizer, Pin, Query}
   alias Storymap.Repo
-  alias Storymap.SubMaps.{CommunityTag, Membership, Policy, SubMap}
+  alias Storymap.SubMaps.{CommunityTag, Membership, PinTypeSettings, Policy, SubMap}
 
   def get_by_community_url(url) when is_binary(url) do
     Repo.get_by(SubMap, community_url: url)
@@ -152,6 +152,22 @@ defmodule Storymap.SubMaps do
     if Policy.can_edit_sub_map?(user, sub_map) do
       sub_map
       |> SubMap.changeset(stringify_keys(attrs))
+      |> Repo.update()
+    else
+      {:error, :forbidden}
+    end
+  end
+
+  def update_pin_type_settings(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
+    membership = get_membership(sub_map.id, user.id)
+
+    if Policy.can_moderate?(user, sub_map, membership) do
+      settings =
+        sub_map.settings
+        |> PinTypeSettings.merge_pin_type_settings(attrs)
+
+      sub_map
+      |> Ecto.Changeset.change(%{settings: settings})
       |> Repo.update()
     else
       {:error, :forbidden}

@@ -49,6 +49,13 @@
       <p class="text-sm text-base-content/60">
         Community URL: <span class="font-mono">/m/{@sub_map.community_url}</span>
       </p>
+
+      <.pin_type_fields
+        settings={@pin_type_settings}
+        builtin_types={@builtin_pin_types}
+        custom_types={@custom_pin_types}
+      />
+
       <div class="flex gap-3 pt-2">
         <button type="submit" class="btn btn-primary" id="sub-map-settings-save">
           Save changes

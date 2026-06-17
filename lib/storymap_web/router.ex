@@ -48,6 +48,8 @@ defmodule StorymapWeb.Router do
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
+    get "/pin_types", PinTypeController, :index
+    get "/pin_types/:slug", PinTypeController, :show
     get "/sub_maps", SubMapController, :index
     get "/sub_maps/:community_url", SubMapController, :show
     get "/sub_maps/:community_url/pins", SubMapController, :pins
@@ -85,8 +87,16 @@ defmodule StorymapWeb.Router do
     put "/pins/:id", PinController, :update
     patch "/pins/:id", PinController, :update
     delete "/pins/:id", PinController, :delete
+    post "/pin_types", PinTypeController, :create
+    patch "/pin_types/:id", PinTypeController, :update
+    delete "/pin_types/:id", PinTypeController, :delete
     post "/sub_maps", SubMapController, :create
     patch "/sub_maps/:community_url", SubMapController, :update
+
+    patch "/sub_maps/:community_url/pin_type_settings",
+          SubMapController,
+          :update_pin_type_settings
+
     post "/sub_maps/:community_url/pins", SubMapController, :create_pin
     post "/sub_maps/:community_url/memberships", SubMapController, :join
     delete "/sub_maps/:community_url/memberships/me", SubMapController, :leave
@@ -123,6 +133,8 @@ defmodule StorymapWeb.Router do
       live "/m/new", SubMapLive.New, :new
       live "/m/:community_url/settings", SubMapLive.Settings, :edit
       live "/m/:community_url/admin", SubMapLive.Admin, :index
+      live "/pin-types/new", PinTypeLive.New, :new
+      live "/pin-types/:id/edit", PinTypeLive.Edit, :edit
     end
 
     live_session :require_admin,
@@ -156,6 +168,7 @@ defmodule StorymapWeb.Router do
       live "/user/:user_id", UserLive.Show, :show
       # Public pins list page
       live "/pins", PinLive.Index, :index
+      live "/pin-types", PinTypeLive.Index, :index
       # Sub-map discovery (see docs/SUB_MAPS.md)
       live "/m", SubMapLive.Index, :index
       live "/m/:community_url", SubMapLive.Show, :show

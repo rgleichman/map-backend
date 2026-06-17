@@ -4,11 +4,13 @@ defmodule Storymap.Pins do
   """
 
   import Ecto.Query, warn: false
-  import Ecto.Changeset, only: [validate_inclusion: 3, add_error: 3]
+  import Ecto.Changeset, only: [add_error: 3, get_field: 2]
   alias Storymap.Repo
   alias Storymap.Pins.{Pin, Query}
+  alias Storymap.PinTypes
+  alias Storymap.PinTypes.{CustomPinType, Validator}
   alias Storymap.SubMaps
-  alias Storymap.SubMaps.{Policy, SubMap}
+  alias Storymap.SubMaps.{PinTypeSettings, Policy, SubMap}
 
   def list_pins do
     Query.world_pins()
@@ -57,6 +59,7 @@ defmodule Storymap.Pins do
       {:ok, tag_structs} ->
         %Pin{}
         |> Pin.changeset(attrs_with_user)
+        |> maybe_validate_custom_pin_data()
         |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
         |> Ecto.Changeset.put_assoc(:tags, tag_structs)
         |> Repo.insert()
@@ -82,6 +85,7 @@ defmodule Storymap.Pins do
       {:ok, tag_structs} ->
         pin
         |> Pin.changeset(attrs)
+        |> maybe_validate_custom_pin_data()
         |> maybe_validate_sub_map_rules(sub_map, attrs)
         |> Ecto.Changeset.put_assoc(:tags, tag_structs)
         |> Repo.update()
@@ -100,7 +104,7 @@ defmodule Storymap.Pins do
   end
 
   defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs) do
-    settings = sub_map.settings || %{}
+    settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})
     tag_names = Map.get(attrs, "tags", [])
 
     changeset
@@ -109,19 +113,58 @@ defmodule Storymap.Pins do
     |> validate_description_required(settings)
   end
 
+  defp maybe_validate_sub_map_rules(changeset, nil, attrs) do
+    validate_world_pin_type_allowed(changeset, attrs)
+  end
+
   defp maybe_validate_sub_map_rules(changeset, _, _), do: changeset
 
-  defp validate_pin_type_allowed(changeset, %{"allowed_pin_types" => types})
-       when is_list(types) and types != [] do
-    validate_inclusion(changeset, :pin_type, types)
+  defp maybe_validate_custom_pin_data(changeset) do
+    case get_field(changeset, :pin_type) do
+      "custom:" <> _slug ->
+        case PinTypes.get_by_pin_type(get_field(changeset, :pin_type)) do
+          %CustomPinType{enabled: true} = custom_type ->
+            Validator.validate_custom_data(changeset, custom_type)
+
+          %CustomPinType{enabled: false} ->
+            add_error(changeset, :pin_type, "uses a disabled custom pin type")
+
+          nil ->
+            add_error(changeset, :pin_type, "references an unknown custom pin type")
+        end
+
+      _ ->
+        changeset
+    end
   end
 
-  defp validate_pin_type_allowed(changeset, %{allowed_pin_types: types})
-       when is_list(types) and types != [] do
-    validate_inclusion(changeset, :pin_type, types)
+  defp validate_world_pin_type_allowed(changeset, _attrs) do
+    pin_type = get_field(changeset, :pin_type)
+
+    cond do
+      pin_type in Pin.builtin_pin_types() ->
+        changeset
+
+      match?("custom:" <> _, pin_type) ->
+        case PinTypes.get_by_pin_type(pin_type) do
+          %CustomPinType{enabled: true} -> changeset
+          _ -> add_error(changeset, :pin_type, "is not allowed")
+        end
+
+      true ->
+        add_error(changeset, :pin_type, "is not allowed")
+    end
   end
 
-  defp validate_pin_type_allowed(changeset, _), do: changeset
+  defp validate_pin_type_allowed(changeset, settings) do
+    pin_type = get_field(changeset, :pin_type)
+
+    if PinTypeSettings.pin_type_allowed?(settings, pin_type) do
+      changeset
+    else
+      add_error(changeset, :pin_type, "is not allowed in this community")
+    end
+  end
 
   defp validate_required_tags(changeset, %{"required_tags" => required}, tag_names)
        when is_list(required) and required != [] do

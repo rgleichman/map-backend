@@ -38,6 +38,7 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     scheduleTimezone,
     open24_7,
     visibleOnWorldMap,
+    customData,
   } = workflow
 
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
@@ -51,6 +52,7 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     scheduleTimezone,
     open24_7,
     visibleOnWorldMap,
+    customData,
     showPromoteToWorld,
     latitude: pinModalLat,
     longitude: pinModalLng,

@@ -19,6 +19,7 @@ type Props = {
   scheduleTimezone: string
   open24_7: boolean
   visibleOnWorldMap: boolean
+  customData: Record<string, unknown>
   showPromoteToWorld: boolean
   latitude: number
   longitude: number
@@ -45,6 +46,7 @@ export default function PinComposer({
   scheduleTimezone,
   open24_7,
   visibleOnWorldMap,
+  customData,
   showPromoteToWorld,
   latitude,
   longitude,
@@ -80,6 +82,8 @@ export default function PinComposer({
       showPromoteToWorld={showPromoteToWorld}
       promoteToWorld={visibleOnWorldMap}
       setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
+      customData={customData}
+      setCustomData={(customData) => dispatch({ type: "set_custom_data", customData })}
       latitude={latitude}
       longitude={longitude}
       onStartPickOnMap={onStartPickOnMap}

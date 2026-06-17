@@ -1,4 +1,4 @@
-import type { ContentReportPayload, NewPin, Pin, SubMap, UpdatePin } from "../types"
+import type { ContentReportPayload, CustomPinType, NewPin, Pin, SubMap, UpdatePin } from "../types"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -16,6 +16,10 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
     throw new Error(`HTTP ${res.status}: ${text}`)
   }
   return res
+}
+
+export function getPinTypes(): Promise<{ data: CustomPinType[] }> {
+  return jsonFetch("/api/pin_types")
 }
 
 export function getPins(): Promise<{ data: Pin[] }> {

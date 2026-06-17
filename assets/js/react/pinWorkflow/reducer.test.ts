@@ -67,10 +67,12 @@ describe("pinWorkflowReducer", () => {
   it("close_all clears modal, placement, and timeError", () => {
     let state = pinWorkflowReducer(initialPinWorkflowState, { type: "begin_add_at", lat: 1, lng: 2 })
     state = pinWorkflowReducer(state, { type: "set_time_error", timeError: "oops" })
+    state = pinWorkflowReducer(state, { type: "set_form_error", formError: "nope" })
     const next = pinWorkflowReducer(state, { type: "close_all" })
     expect(next.modal).toBeNull()
     expect(next.placement).toBeNull()
     expect(next.timeError).toBe("")
+    expect(next.formError).toBe("")
   })
 
   it("after_add_saved clears addLocation and pinType", () => {

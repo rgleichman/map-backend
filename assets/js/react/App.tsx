@@ -7,9 +7,11 @@ import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import { SubMapProvider } from "./context/SubMapContext"
+import { PinTypesProvider } from "./context/PinTypesContext"
 import { usePinWorkflow } from "./hooks/usePinWorkflow"
 import { useIsDesktop } from "./utils/useMediaQuery"
-import type { Pin, PinType, SubMap } from "./types"
+import type { BuiltinPinType, CustomPinType, Pin, PinType, SubMap } from "./types"
+import { BUILTIN_PIN_TYPES } from "./utils/customPinTypes"
 import * as api from "./api/client"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import { loadMapData } from "./loadMapData"
@@ -40,13 +42,15 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   const [initialPinId, setInitialPinId] = useState(parseInitialPinId)
   const [pins, setPins] = useState<Pin[]>([])
   const [subMap, setSubMap] = useState<SubMap | null>(null)
+  const [customPinTypes, setCustomPinTypes] = useState<CustomPinType[]>([])
+  const [enabledBuiltinTypes, setEnabledBuiltinTypes] = useState<BuiltinPinType[]>(BUILTIN_PIN_TYPES)
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
   const [mapInitialized, setMapInitialized] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
-  const resolvingPinIdRef = useRef<number | null>(null)
+  const resolvingPinIdsRef = useRef<Set<number>>(new Set())
   const communityUrlRef = useRef(communityUrl)
   communityUrlRef.current = communityUrl
   const pinFocusSeqRef = useRef(0)
@@ -77,7 +81,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     setApiError,
   })
 
-  const { modal, placement, timeError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
+  const { modal, placement, timeError, formError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
 
   const setCommunityScope = useCallback((url: string | null, options?: { replace?: boolean; pinId?: number | null }) => {
     const path =
@@ -114,16 +118,20 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     setFilter(DEFAULT_FILTER)
     setPins([])
     setSubMap(null)
+    setCustomPinTypes([])
+    setEnabledBuiltinTypes(BUILTIN_PIN_TYPES)
     setLoading(true)
     setApiError(null)
     setInitialPinId(parseInitialPinId())
 
     let cancelled = false
     loadMapData(communityUrl)
-      .then(({ pins: nextPins, subMap: nextSubMap }) => {
+      .then(({ pins: nextPins, subMap: nextSubMap, customPinTypes: nextTypes, enabledBuiltinTypes: nextBuiltins }) => {
         if (cancelled) return
         setPins(nextPins)
         setSubMap(nextSubMap)
+        setCustomPinTypes(nextTypes)
+        setEnabledBuiltinTypes(nextBuiltins)
       })
       .catch((err) => {
         if (cancelled) return
@@ -181,13 +189,13 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
     }
 
     if (pins.some((p) => p.id === pinId)) {
-      resolvingPinIdRef.current = null
+      resolvingPinIdsRef.current.delete(pinId)
       focusPin()
       return
     }
 
-    if (resolvingPinIdRef.current === pinId) return
-    resolvingPinIdRef.current = pinId
+    if (resolvingPinIdsRef.current.has(pinId)) return
+    resolvingPinIdsRef.current.add(pinId)
 
     try {
       const { data } = await api.getPin(pinId)
@@ -201,7 +209,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
       window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
       setInitialPinId(null)
     } finally {
-      resolvingPinIdRef.current = null
+      resolvingPinIdsRef.current.delete(pinId)
     }
   }, [pins, setCommunityScope, bumpPinFocus])
 
@@ -211,7 +219,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   useEffect(() => {
     if (loading || initialPinId === null) return
     if (pins.some((p) => p.id === initialPinId)) {
-      resolvingPinIdRef.current = null
+      resolvingPinIdsRef.current.delete(initialPinId)
       return
     }
 
@@ -274,96 +282,110 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
   }, [communityUrl, csrfToken, refreshSubMap])
 
   return (
-    <SubMapProvider
-      subMap={subMap}
-      refreshSubMap={refreshSubMap}
-      onJoin={onJoinCommunity}
-      onLeave={onLeaveCommunity}
-    >
-      <div className="w-full h-full">
-        <MapShell
-          chrome={
-            subMap ? (
-              <CommunityMapToolbar
-                subMap={subMap}
-                userId={userId}
-                onJoin={onJoinCommunity}
-                onLeave={onLeaveCommunity}
-                onSelectWorld={onSelectWorld}
-              />
-            ) : undefined
-          }
-        >
-          {(mapInitialized || !loading) && (
-            <>
-              <MapCanvas
-                mapScopeKey={communityUrl ?? "world"}
-                styleUrl={styleUrl}
-                pins={pins}
-                initialPinId={initialPinId}
-                pinFocusSeq={pinFocusSeq}
-                onMapClick={onMapClick}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                pendingLocation={pendingLocation}
-                pendingPinType={pendingPinType}
-                editingPinId={editingPinId}
-                onPlacementMapClick={placement ? onPlacementMapClick : undefined}
-                onPopupOpen={onPopupOpen}
-                onPopupClose={onPopupClose}
-                filter={filter}
-                setFilter={setFilter}
-                csrfToken={csrfToken}
-                communityUrl={communityUrl}
-                onSelectCommunity={onSelectCommunity}
-                onNavigateToPin={navigateToPin}
-              />
-              <PinTypeLegend
-                closeRef={legendCloseRef}
-                selectedPinType={filter.pinType}
-                onTogglePinType={toggleMapPinTypeFilter}
-              />
-              {loading && mapInitialized && (
-                <div
-                  className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
-                  aria-live="polite"
-                  aria-busy="true"
-                >
-                  <span className="loading loading-spinner loading-md text-primary" />
-                </div>
-              )}
-            </>
+    <PinTypesProvider catalog={customPinTypes} enabledBuiltins={enabledBuiltinTypes}>
+      <SubMapProvider
+        subMap={subMap}
+        refreshSubMap={refreshSubMap}
+        onJoin={onJoinCommunity}
+        onLeave={onLeaveCommunity}
+      >
+        <div className="w-full h-full">
+          <MapShell
+            chrome={
+              subMap ? (
+                <CommunityMapToolbar
+                  subMap={subMap}
+                  userId={userId}
+                  onJoin={onJoinCommunity}
+                  onLeave={onLeaveCommunity}
+                  onSelectWorld={onSelectWorld}
+                />
+              ) : undefined
+            }
+          >
+            {(mapInitialized || !loading) && (
+              <>
+                <MapCanvas
+                  mapScopeKey={communityUrl ?? "world"}
+                  styleUrl={styleUrl}
+                  pins={pins}
+                  initialPinId={initialPinId}
+                  pinFocusSeq={pinFocusSeq}
+                  onMapClick={onMapClick}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  pendingLocation={pendingLocation}
+                  pendingPinType={pendingPinType}
+                  editingPinId={editingPinId}
+                  onPlacementMapClick={placement ? onPlacementMapClick : undefined}
+                  onPopupOpen={onPopupOpen}
+                  onPopupClose={onPopupClose}
+                  filter={filter}
+                  setFilter={setFilter}
+                  csrfToken={csrfToken}
+                  communityUrl={communityUrl}
+                  onSelectCommunity={onSelectCommunity}
+                  onNavigateToPin={navigateToPin}
+                />
+                <PinTypeLegend
+                  closeRef={legendCloseRef}
+                  selectedPinType={filter.pinType}
+                  onTogglePinType={toggleMapPinTypeFilter}
+                />
+                {loading && mapInitialized && (
+                  <div
+                    className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
+                    aria-live="polite"
+                    aria-busy="true"
+                  >
+                    <span className="loading loading-spinner loading-md text-primary" />
+                  </div>
+                )}
+              </>
+            )}
+          </MapShell>
+          {modal?.mode === "login-required" && (
+            <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
           )}
-        </MapShell>
-        {modal?.mode === "login-required" && (
-          <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
-        )}
 
-        {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+          {showWelcome && <WelcomeModal onClose={closeWelcome} />}
 
-        <button
-          type="button"
-          onClick={openWelcome}
-          aria-label="Open help"
-          title="Help"
-          className="fixed right-3 bottom-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
-        >
-          ?
-        </button>
+          <a
+            href="/pin-types"
+            className="fixed left-3 bottom-3 z-30 btn btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+          >
+            Pin types
+          </a>
 
-        <PinFlowUI isDesktop={isDesktop} workflow={workflow} />
+          <button
+            type="button"
+            onClick={openWelcome}
+            aria-label="Open help"
+            title="Help"
+            className="fixed right-3 bottom-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+          >
+            ?
+          </button>
 
-        {timeError && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-            <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">⏰ {timeError}</div>
-          </div>
-        )}
-        {apiError && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-            <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{apiError}</div>
-          </div>
-        )}
-      </div>
-    </SubMapProvider>
+          <PinFlowUI isDesktop={isDesktop} workflow={workflow} />
+
+          {timeError && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
+              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">⏰ {timeError}</div>
+            </div>
+          )}
+          {formError && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
+              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{formError}</div>
+            </div>
+          )}
+          {apiError && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
+              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{apiError}</div>
+            </div>
+          )}
+        </div>
+      </SubMapProvider>
+    </PinTypesProvider>
   )
 }

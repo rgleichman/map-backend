@@ -86,6 +86,7 @@ defmodule StorymapWeb do
       import Phoenix.HTML
       # Core UI components
       import StorymapWeb.CoreComponents
+      import StorymapWeb.SubMapComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -5,10 +5,12 @@ import type { Pin, PinType } from "../types"
 import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
-  getPinTypeConfig,
   getPinTypeMarkerImageId,
-  PIN_TYPES
+  PIN_TYPES,
+  resolvePinTypeConfig,
 } from "../utils/pinTypeIcons"
+import type { CustomPinType } from "../types"
+import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filters"
 import {
@@ -69,8 +71,8 @@ const pinIconLayout: maplibregl.SymbolLayerSpecification["layout"] = {
   "icon-ignore-placement": true,
 }
 
-function toPinFeature(pin: Pin) {
-  const pinColor = getPinTypeConfig(pin.pin_type).color
+function toPinFeature(pin: Pin, catalog: CustomPinType[]) {
+  const pinColor = resolvePinTypeConfig(pin.pin_type, catalog).color
   return {
     type: "Feature" as const,
     geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] as [number, number] },
@@ -84,11 +86,11 @@ function toPinFeature(pin: Pin) {
   }
 }
 
-function buildPinFeatureSets(pinList: Pin[], filterState: FilterState) {
+function buildPinFeatureSets(pinList: Pin[], filterState: FilterState, catalog: CustomPinType[]) {
   const matching: ReturnType<typeof toPinFeature>[] = []
   const dimmed: ReturnType<typeof toPinFeature>[] = []
   for (const pin of pinList) {
-    const feature = toPinFeature(pin)
+    const feature = toPinFeature(pin, catalog)
     if (pinMatchesFilter(pin, filterState)) matching.push(feature)
     else dimmed.push(feature)
   }
@@ -146,6 +148,11 @@ export default function MapCanvas({
   onSelectCommunity,
   onNavigateToPin,
 }: Props) {
+  const { catalog, enabledBuiltins } = usePinTypes()
+  const catalogRef = useRef(catalog)
+  catalogRef.current = catalog
+  const enabledBuiltinsRef = useRef(enabledBuiltins)
+  enabledBuiltinsRef.current = enabledBuiltins
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
@@ -396,7 +403,7 @@ export default function MapCanvas({
 
           const initialPins = pinsForMapRef.current
           pinsByIdRef.current = new Map(initialPins.map((p) => [p.id, p]))
-          const initialFeatureSets = buildPinFeatureSets(initialPins, filterRef.current)
+          const initialFeatureSets = buildPinFeatureSets(initialPins, filterRef.current, catalogRef.current)
             ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
               type: "FeatureCollection",
               features: initialFeatureSets.matching,
@@ -495,7 +502,7 @@ export default function MapCanvas({
         pendingMarkerRef.current?.remove()
         pendingMarkerRef.current = null
         pendingPinTypeRef.current = pinType
-        const el = createPinTypeMarkerElement(pinType, { pending: true })
+        const el = createPinTypeMarkerElement(pinType, { pending: true }, catalogRef.current)
         el.classList.add("pin-marker--pending")
         pendingMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
           .setLngLat([pendingLocation.lng, pendingLocation.lat])
@@ -566,6 +573,20 @@ export default function MapCanvas({
     }
   }, [mapReady])
 
+  function renderPopupContent(pin: Pin) {
+    return (
+      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
+        <PopupContent
+          pin={pin}
+          csrfToken={csrfToken}
+          communityUrl={communityUrl}
+          onSelectCommunity={onSelectCommunity}
+          onNavigateToPin={onNavigateToPin}
+        />
+      </PinTypesProvider>
+    )
+  }
+
   function openPinPopup(map: MLMap, pin: Pin): void {
     if (openPopupRef.current) {
       openPopupRef.current.remove()
@@ -574,15 +595,7 @@ export default function MapCanvas({
     onPopupOpenRef.current?.(pin.id)
     const container = document.createElement("div")
     const root = createRoot(container)
-    root.render(
-      <PopupContent
-        pin={pin}
-        csrfToken={csrfToken}
-        communityUrl={communityUrl}
-        onSelectCommunity={onSelectCommunity}
-        onNavigateToPin={onNavigateToPin}
-      />
-    )
+    root.render(renderPopupContent(pin))
     const popup = new Popup({
       closeButton: false,
       locationOccludedOpacity: 0.7,
@@ -611,7 +624,7 @@ export default function MapCanvas({
 
     pinsByIdRef.current = new Map(pinsForMap.map((p) => [p.id, p]))
 
-    const featureSets = buildPinFeatureSets(pinsForMap, filter)
+    const featureSets = buildPinFeatureSets(pinsForMap, filter, catalog)
       ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
         features: featureSets.matching,
@@ -624,15 +637,7 @@ export default function MapCanvas({
     if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
       const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
       if (pin) {
-        popupRootRef.current.render(
-          <PopupContent
-            pin={pin}
-            csrfToken={csrfToken}
-            communityUrl={communityUrl}
-            onSelectCommunity={onSelectCommunity}
-            onNavigateToPin={onNavigateToPin}
-          />
-        )
+        popupRootRef.current.render(renderPopupContent(pin))
       } else {
         openPopupRef.current.remove()
       }
@@ -653,7 +658,28 @@ export default function MapCanvas({
         }
       }
     }
-  }, [pinsForMap, filter, mapReady, initialPinId, pinFocusSeq, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
+  }, [pinsForMap, filter, catalog, mapReady, initialPinId, pinFocusSeq, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const registerCustomImages = async () => {
+      for (const pinType of catalog) {
+        const imageId = getPinTypeMarkerImageId(pinType.pin_type)
+        if (map.hasImage(imageId)) continue
+        try {
+          const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalog)
+          const img = await loadImage(dataUrl)
+          map.addImage(imageId, img)
+        } catch {
+          // ignore failed custom marker images
+        }
+      }
+    }
+
+    void registerCustomImages()
+  }, [catalog, mapReady])
 
   return (
     <div className="relative w-full h-full">

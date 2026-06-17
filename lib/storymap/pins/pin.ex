@@ -21,11 +21,14 @@ defmodule Storymap.Pins.Pin do
     :end_time,
     :schedule_rrule,
     :schedule_timezone,
+    :custom_data,
     :status,
     :visible_on_world_map,
     :inserted_at,
     :updated_at
   ]
+
+  @builtin_pin_types ~w(one_time scheduled food_bank other)
 
   @derive {Jason.Encoder, only: @public_json_fields}
 
@@ -49,6 +52,7 @@ defmodule Storymap.Pins.Pin do
 
     # IANA timezone for schedule (e.g. America/Los_Angeles). Interpret BYHOUR/BYMINUTE in this zone.
     field :schedule_timezone, :string
+    field :custom_data, :map, default: %{}
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     timestamps(type: :utc_datetime)
@@ -68,14 +72,16 @@ defmodule Storymap.Pins.Pin do
         :end_time,
         :pin_type,
         :schedule_rrule,
+        :custom_data,
         :sub_map_id,
         :status,
         :visible_on_world_map
       ])
       |> validate_inclusion(:status, ["pending", "approved", "rejected", "archived"])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
-      |> validate_inclusion(:pin_type, ["one_time", "scheduled", "food_bank", "other"])
+      |> validate_pin_type()
       |> validate_length(:description, max: 5000)
+      |> put_default_custom_data()
 
     # Set user_id programmatically only for new pins (creation)
     # This prevents users from changing ownership via user input during updates
@@ -118,11 +124,10 @@ defmodule Storymap.Pins.Pin do
     changeset =
       case get_field(changeset, :pin_type) do
         "other" ->
-          changeset
-          |> put_change(:start_time, nil)
-          |> put_change(:end_time, nil)
-          |> put_change(:schedule_rrule, nil)
-          |> put_change(:schedule_timezone, nil)
+          clear_schedule_fields(changeset)
+
+        "custom:" <> _ ->
+          clear_schedule_fields(changeset)
 
         _ ->
           changeset
@@ -138,4 +143,33 @@ defmodule Storymap.Pins.Pin do
   Used by PinJSON so the API and Jason.Encoder stay in sync.
   """
   def public_json_fields, do: @public_json_fields
+  def builtin_pin_types, do: @builtin_pin_types
+
+  def custom_pin_type?(pin_type) when is_binary(pin_type),
+    do: String.starts_with?(pin_type, "custom:")
+
+  def custom_pin_type?(_), do: false
+
+  defp clear_schedule_fields(changeset) do
+    changeset
+    |> put_change(:start_time, nil)
+    |> put_change(:end_time, nil)
+    |> put_change(:schedule_rrule, nil)
+    |> put_change(:schedule_timezone, nil)
+  end
+
+  defp validate_pin_type(changeset) do
+    case get_field(changeset, :pin_type) do
+      type when type in @builtin_pin_types -> changeset
+      "custom:" <> slug when byte_size(slug) > 0 -> changeset
+      _ -> add_error(changeset, :pin_type, "is invalid")
+    end
+  end
+
+  defp put_default_custom_data(changeset) do
+    case get_field(changeset, :custom_data) do
+      nil -> put_change(changeset, :custom_data, %{})
+      _ -> changeset
+    end
+  end
 end

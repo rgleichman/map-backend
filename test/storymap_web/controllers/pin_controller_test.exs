@@ -123,6 +123,27 @@ defmodule StorymapWeb.PinControllerTest do
       conn = post(conn, ~p"/api/pins", pin: @create_attrs)
       assert json_response(conn, 403)["errors"] != %{}
     end
+
+    test "creates world pin with custom type", %{conn: conn} do
+      import Storymap.PinTypesFixtures
+
+      pin_type = custom_pin_type_fixture()
+
+      conn =
+        post(conn, ~p"/api/pins", %{
+          pin: %{
+            title: "Arcade pin",
+            latitude: 30.0,
+            longitude: -97.0,
+            pin_type: "custom:#{pin_type.slug}",
+            custom_data: %{"status" => "working"}
+          }
+        })
+
+      data = json_response(conn, 201)["data"]
+      assert data["pin_type"] == "custom:#{pin_type.slug}"
+      assert data["custom_data"]["status"] == "working"
+    end
   end
 
   describe "update pin" do

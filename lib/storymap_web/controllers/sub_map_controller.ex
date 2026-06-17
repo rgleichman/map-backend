@@ -16,7 +16,8 @@ defmodule StorymapWeb.SubMapController do
               :leave,
               :approve_pin,
               :reject_pin,
-              :update
+              :update,
+              :update_pin_type_settings
             ]
 
   def index(conn, params) do
@@ -53,6 +54,17 @@ defmodule StorymapWeb.SubMapController do
     sub_map = conn.assigns.sub_map
 
     case SubMaps.update_sub_map(scope, sub_map, params) do
+      {:ok, sub_map} -> render_show(conn, sub_map)
+      {:error, :forbidden} -> forbidden(conn)
+      {:error, %Ecto.Changeset{} = cs} -> {:error, cs}
+    end
+  end
+
+  def update_pin_type_settings(conn, %{"pin_type_settings" => params}) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.update_pin_type_settings(scope, sub_map, params) do
       {:ok, sub_map} -> render_show(conn, sub_map)
       {:error, :forbidden} -> forbidden(conn)
       {:error, %Ecto.Changeset{} = cs} -> {:error, cs}

@@ -1,6 +1,9 @@
 import React, { useEffect, useId, useState } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
+import CustomPinFields from "./CustomPinFields"
 import type { PinType } from "../types"
+import { usePinTypes } from "../context/PinTypesContext"
+import { findCustomPinType, isCustomPinType } from "../utils/customPinTypes"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -38,6 +41,8 @@ type Props = {
   canDelete?: boolean
   /** When true, Save/Add is disabled and shows loading state. */
   saving?: boolean
+  customData?: Record<string, unknown>
+  setCustomData?: (data: Record<string, unknown>) => void
 }
 
 export default function PinModal({
@@ -58,8 +63,11 @@ export default function PinModal({
   setPromoteToWorld,
   latitude, longitude,
   onStartPickOnMap,
-  mode, onCancel, onSave, onDelete, canDelete, saving = false
+  mode, onCancel, onSave, onDelete, canDelete, saving = false,
+  customData = {},
+  setCustomData,
 }: Props) {
+  const { catalog } = usePinTypes()
   const uid = useId()
   const headingId = `${uid}-pin-modal-title`
   const locationLabelId = `${uid}-pin-location-label`
@@ -69,7 +77,9 @@ export default function PinModal({
   const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
   const isFoodBank = pinType === "food_bank"
   const isOther = pinType === "other"
-  const showTimeFields = !isOther && !(isFoodBank && open24_7)
+  const isCustom = isCustomPinType(pinType)
+  const customType = isCustom ? findCustomPinType(pinType, catalog) : undefined
+  const showTimeFields = !isOther && !isCustom && !(isFoodBank && open24_7)
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()
@@ -93,8 +103,13 @@ export default function PinModal({
     return () => window.cancelAnimationFrame(id)
   }, [layout])
 
+  const contentClassName =
+    layout === "panel"
+      ? "pin-modal-content w-full"
+      : "pin-modal-content max-h-modal-mobile-90 w-full max-w-lg min-w-[300px] rounded-lg overflow-y-auto overscroll-contain shadow-xl p-6 bg-base-100 border border-base-300"
+
   const formContent = (
-    <div className="pin-modal-content max-h-modal-mobile rounded-lg min-w-[300px] overflow-y-auto overscroll-contain shadow-xl p-6">
+    <div className={contentClassName}>
       <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
       <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
       <input
@@ -117,6 +132,16 @@ export default function PinModal({
         onChange={(e) => setDescription(e.target.value)}
         className="w-full mb-4 px-3 py-2 rounded border"
       />
+
+      {isCustom && customType && setCustomData ? (
+        <div className="mb-4">
+          <CustomPinFields
+            fields={customType.schema?.fields ?? []}
+            values={customData}
+            onChange={setCustomData}
+          />
+        </div>
+      ) : null}
 
       <div className="mb-4">
         <p id={locationLabelId} className="block font-medium mb-1">

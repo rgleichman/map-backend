@@ -1,0 +1,130 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <p class="text-sm text-base-content/60 mb-2">
+      <.link navigate={~p"/pin-types"} class="link">Pin types</.link>
+    </p>
+    <h1 class="text-3xl font-bold text-base-content mb-6">{@page_title}</h1>
+
+    <.form
+      for={@form}
+      id="pin-type-form"
+      phx-change="validate"
+      phx-submit="save"
+      class="space-y-6"
+    >
+      <.input field={@form[:label]} type="text" label="Label" required />
+      <.input field={@form[:slug]} type="text" label="Slug" />
+      <.input field={@form[:description]} type="textarea" label="Description" />
+      <.input
+        field={@form[:marker_color]}
+        type="text"
+        label="Marker color (hex)"
+        placeholder="#6366f1"
+      />
+      <.input
+        field={@form[:enabled]}
+        type="checkbox"
+        label="Enabled (available for new pins)"
+      />
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-base-content">Fields</h2>
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost"
+            phx-click="add_field"
+            id="pin-type-add-field"
+          >
+            Add field
+          </button>
+        </div>
+
+        <%= for {field, index} <- Enum.with_index(@fields) do %>
+          <div
+            id={"pin-type-field-#{index}"}
+            class="rounded-lg border border-base-300 p-4 space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-base-content/70">Field {index + 1}</span>
+              <button
+                type="button"
+                class="btn btn-xs btn-ghost text-error"
+                phx-click="remove_field"
+                phx-value-index={index}
+              >
+                Remove
+              </button>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="label"><span class="label-text">Key</span></label>
+                <input
+                  type="text"
+                  name={"pin_type[fields][#{index}][key]"}
+                  value={field["key"]}
+                  class="input input-bordered w-full"
+                />
+              </div>
+              <div>
+                <label class="label"><span class="label-text">Label</span></label>
+                <input
+                  type="text"
+                  name={"pin_type[fields][#{index}][label]"}
+                  value={field["label"]}
+                  class="input input-bordered w-full"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Type</span></label>
+              <select
+                name={"pin_type[fields][#{index}][type]"}
+                class="select select-bordered w-full"
+              >
+                <%= for type <- StorymapWeb.PinTypeLive.Form.field_types() do %>
+                  <option value={type} selected={field["type"] == type}>{type}</option>
+                <% end %>
+              </select>
+            </div>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                name={"pin_type[fields][#{index}][required]"}
+                value="true"
+                checked={field["required"] in [true, "true"]}
+                class="checkbox checkbox-sm"
+              />
+              <span class="label-text">Required</span>
+            </label>
+            <%= if field["type"] == "select" do %>
+              <div>
+                <label class="label">
+                  <span class="label-text">Options (one per line)</span>
+                </label>
+                <textarea
+                  name={"pin_type[fields][#{index}][options]"}
+                  class="textarea textarea-bordered w-full"
+                  rows="3"
+                >{field["options"]}</textarea>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="flex flex-wrap gap-3 pt-2">
+        <button type="submit" class="btn btn-primary" id="pin-type-save">Save</button>
+        <button
+          type="button"
+          class="btn btn-error btn-outline"
+          phx-click="delete"
+          data-confirm="Delete this pin type?"
+        >
+          Delete
+        </button>
+        <.link navigate={~p"/pin-types"} class="btn btn-ghost">Cancel</.link>
+      </div>
+    </.form>
+  </div>
+</Layouts.app>

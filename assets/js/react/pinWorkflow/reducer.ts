@@ -1,4 +1,5 @@
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly } from "../utils/datetime"
+import { isCustomPinType } from "../utils/customPinTypes"
 import type { DraftState, PinWorkflowAction, PinWorkflowState } from "./types"
 
 export const makeDefaultDraft = (): DraftState => {
@@ -9,6 +10,7 @@ export const makeDefaultDraft = (): DraftState => {
     title: "",
     description: "",
     tags: [],
+    customData: {},
     startTime: dateToLocalInputValue(now),
     endTime: dateToLocalInputValue(inOneHour),
     scheduleRrule: "",
@@ -25,6 +27,7 @@ export const initialPinWorkflowState: PinWorkflowState = {
   placement: null,
   draft: makeDefaultDraft(),
   timeError: "",
+  formError: "",
 }
 
 export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowAction): PinWorkflowState {
@@ -32,7 +35,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
     case "login_required":
       return { ...state, modal: { mode: "login-required" } }
     case "close_all":
-      return { ...state, modal: null, placement: null, timeError: "" }
+      return { ...state, modal: null, placement: null, timeError: "", formError: "" }
     case "begin_add_at": {
       const fresh = makeDefaultDraft()
       return {
@@ -40,6 +43,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: null,
         placement: { intent: "add", lat: action.lat, lng: action.lng },
         timeError: "",
+        formError: "",
         draft: { ...fresh, addLocation: { lat: action.lat, lng: action.lng } },
       }
     }
@@ -49,6 +53,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: null,
         placement: null,
         timeError: "",
+        formError: "",
         draft: { ...state.draft, addLocation: null, pinType: null },
       }
     case "after_edit_saved":
@@ -57,6 +62,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: null,
         placement: null,
         timeError: "",
+        formError: "",
         draft: { ...state.draft, editLocation: null },
       }
     case "open_select_type": {
@@ -65,6 +71,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: { mode: "select-type", lat: action.lat, lng: action.lng },
         placement: null,
         timeError: "",
+        formError: "",
         draft: action.resetDraft ? makeDefaultDraft() : state.draft,
       }
     }
@@ -74,6 +81,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: { mode: "add", lat: action.lat, lng: action.lng, pinType: action.pinType },
         placement: null,
         timeError: "",
+        formError: "",
         draft: {
           ...state.draft,
           pinType: action.pinType,
@@ -90,23 +98,29 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         modal: { mode: "edit", pin: action.pin },
         placement: null,
         timeError: "",
+        formError: "",
         draft: {
           ...state.draft,
           title: action.pin.title,
           description: action.pin.description || "",
           tags: action.pin.tags || [],
-          startTime: (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
-            ? isoToTimeOnly(action.pin.start_time)
-            : isoToLocalInputValue(action.pin.start_time),
-          endTime: (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
-            ? isoToTimeOnly(action.pin.end_time)
-            : isoToLocalInputValue(action.pin.end_time),
+          startTime: isCustomPinType(action.pin.pin_type)
+            ? ""
+            : (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+              ? isoToTimeOnly(action.pin.start_time)
+              : isoToLocalInputValue(action.pin.start_time),
+          endTime: isCustomPinType(action.pin.pin_type)
+            ? ""
+            : (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+              ? isoToTimeOnly(action.pin.end_time)
+              : isoToLocalInputValue(action.pin.end_time),
           scheduleRrule: action.pin.schedule_rrule ?? "",
           scheduleTimezone: action.pin.schedule_timezone ?? "",
           open24_7: action.pin.pin_type === "food_bank"
             ? !(action.pin.start_time || action.pin.end_time || action.pin.schedule_rrule)
             : state.draft.open24_7,
           visibleOnWorldMap: action.pin.visible_on_world_map ?? false,
+          customData: action.pin.custom_data ?? {},
           editLocation: null,
         },
       }
@@ -136,10 +150,16 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
       return { ...state, draft: { ...state.draft, open24_7: action.open24_7 } }
     case "set_visible_on_world_map":
       return { ...state, draft: { ...state.draft, visibleOnWorldMap: action.visibleOnWorldMap } }
+    case "set_custom_data":
+      return { ...state, draft: { ...state.draft, customData: action.customData } }
     case "set_time_error":
       return { ...state, timeError: action.timeError }
     case "clear_time_error":
       return { ...state, timeError: "" }
+    case "set_form_error":
+      return { ...state, formError: action.formError }
+    case "clear_form_error":
+      return { ...state, formError: "" }
     case "clear_draft_locations":
       return { ...state, draft: { ...state.draft, addLocation: null, editLocation: null } }
     default:

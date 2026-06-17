@@ -3,6 +3,9 @@ import { RRule } from "rrule"
 import * as api from "../../api/client"
 import type { Pin, ReportCategory } from "../../types"
 import LinkifiedText from "../LinkifiedText"
+import { CustomFieldDisplay, isCustomFieldEmpty } from "../CustomPinFields"
+import { usePinTypes } from "../../context/PinTypesContext"
+import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
 import { communityUrlFromTag } from "../../utils/pinMapUrl"
 
 const SENTINEL_DATE_PREFIX = "2000-01-01T"
@@ -58,6 +61,14 @@ type Props = {
 }
 
 export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
+  const { catalog } = usePinTypes()
+  const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
+  const customFields = schemaFields(customType)
+  const customFieldsWithValues = useMemo(
+    () =>
+      customFields.filter((field) => !isCustomFieldEmpty(pin.custom_data?.[field.key])),
+    [customFields, pin.custom_data]
+  )
   const [reportOpen, setReportOpen] = useState(false)
   const [category, setCategory] = useState<ReportCategory>("inaccurate")
   const [details, setDetails] = useState("")
@@ -121,6 +132,18 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
       <h2 className="text-xl font-bold">{pin.title}</h2>
       {pin.description ? (
         <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
+      ) : null}
+      {customFieldsWithValues.length > 0 ? (
+        <dl className={`${popupContentClasses} my-2 space-y-2`}>
+          {customFieldsWithValues.map((field) => (
+            <div key={field.key}>
+              <dt className="font-semibold">{field.label}</dt>
+              <dd className="mt-0.5 text-base-content/90">
+                <CustomFieldDisplay field={field} value={pin.custom_data?.[field.key]} />
+              </dd>
+            </div>
+          ))}
+        </dl>
       ) : null}
       {(pin.start_time || pin.end_time) && (
         <div className={`${popupContentClasses} my-2`}>

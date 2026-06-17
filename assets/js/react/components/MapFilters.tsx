@@ -1,6 +1,8 @@
 import React from "react"
 import type { Pin, PinType } from "../types"
-import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
+import { getPinTypeLabel, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { usePinTypes } from "../context/PinTypesContext"
+import { listFilterPinTypes } from "../utils/customPinTypes"
 import {
   CLEARED_FILTER,
   clearFilterDimension,
@@ -38,15 +40,17 @@ function ActiveFilterChips({
   filter,
   setFilter,
   className,
-  emptyLabel
+  emptyLabel,
+  catalog = [],
 }: {
   filter: FilterState
   setFilter: React.Dispatch<React.SetStateAction<FilterState>>
   className?: string
   /** Shown when there are no chips (single line, no ×). */
   emptyLabel?: string
+  catalog?: import("../types").CustomPinType[]
 }) {
-  const chips = listActiveFilterChips(filter)
+  const chips = listActiveFilterChips(filter, catalog)
   if (chips.length === 0) {
     if (!emptyLabel) return null
     return (
@@ -59,7 +63,8 @@ function ActiveFilterChips({
   return (
     <div className={["flex flex-wrap gap-1.5 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
       {chips.map(({ dimension, label, pinType: chipPinType }) => {
-        const pinCfg = chipPinType != null ? getPinTypeConfig(chipPinType) : null
+        const pinCfg = chipPinType != null ? resolvePinTypeConfig(chipPinType, catalog) : null
+        const iconType = chipPinType?.startsWith("custom:") ? "other" : chipPinType
         return (
           <span
             key={dimension}
@@ -75,7 +80,7 @@ function ActiveFilterChips({
                   color: pinCfg.textColor
                 }}
               >
-                <PinTypeIcon pinType={chipPinType} size={14} />
+                <PinTypeIcon pinType={iconType as PinType} size={14} catalog={catalog} />
               </span>
             )}
             <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
@@ -114,9 +119,11 @@ export default function MapFilters({
   panelTopOffset = mapShellOverlayTop(),
   position = "top-left"
 }: Props) {
+  const { catalog } = usePinTypes()
   const tags = deriveTags(pins)
+  const filterPinTypes = listFilterPinTypes(pins)
   const hasActiveFilter = filter.tag !== null || filter.time !== null || filter.pinType !== null
-  const filterChips = listActiveFilterChips(filter)
+  const filterChips = listActiveFilterChips(filter, catalog)
   const filtersSummary =
     filterChips.length > 0 ? filterChips.map((c) => c.label).join("; ") : "Map filters"
 
@@ -163,6 +170,7 @@ export default function MapFilters({
               filter={filter}
               setFilter={setFilter}
               className="w-full justify-end"
+              catalog={catalog}
             />
           )}
         </div>
@@ -177,6 +185,7 @@ export default function MapFilters({
               filter={filter}
               setFilter={setFilter}
               emptyLabel="None — choose options below"
+              catalog={catalog}
             />
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -250,8 +259,9 @@ export default function MapFilters({
         <section>
           <p className={sectionTitle}>Pin type</p>
           <div className="flex flex-col gap-1.5">
-            {PIN_TYPES.map((pinType) => {
-              const config = getPinTypeConfig(pinType)
+            {filterPinTypes.map((pinType) => {
+              const config = resolvePinTypeConfig(pinType, catalog)
+              const iconType = pinType.startsWith("custom:") ? "other" : pinType
               const selected = filter.pinType === pinType
               return (
                 <button
@@ -275,7 +285,7 @@ export default function MapFilters({
                       color: config.textColor
                     }}
                   >
-                    <PinTypeIcon pinType={pinType} size={20} />
+                    <PinTypeIcon pinType={iconType as PinType} size={20} catalog={catalog} />
                   </span>
                   <span className="font-medium">{config.label}</span>
                 </button>

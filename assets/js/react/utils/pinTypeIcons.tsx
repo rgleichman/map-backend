@@ -1,11 +1,16 @@
 import React from "react"
-import type { PinType } from "../types"
+import type { CustomPinType, PinType } from "../types"
 import {
   DEFAULT_PIN_TYPE,
   getPinTypeColorEntry,
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
+import {
+  customTypeMarkerColor,
+  findCustomPinType,
+  isBuiltinPinType,
+} from "./customPinTypes"
 
 /**
  * Pin type icon path data: one_time from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
@@ -39,6 +44,31 @@ const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
 
 export const PIN_TYPES: PinType[] = ["one_time", "scheduled", "food_bank", "other"]
 
+export function resolvePinTypeConfig(
+  pinType: PinType | string | null | undefined,
+  catalog: CustomPinType[] = []
+): PinTypeConfig {
+  if (pinType && isBuiltinPinType(pinType)) {
+    return getPinTypeConfig(pinType)
+  }
+
+  if (typeof pinType === "string" && pinType.startsWith("custom:")) {
+    const custom = findCustomPinType(pinType, catalog)
+    const color = customTypeMarkerColor(custom)
+    const base = getPinTypeConfig("other")
+    return {
+      ...base,
+      label: custom?.label ?? pinType,
+      description: custom?.description ?? "Custom pin type",
+      color,
+      backgroundColor: color,
+      borderColor: color,
+    }
+  }
+
+  return getPinTypeConfig(pinType as PinType)
+}
+
 /**
  * Get configuration for a pin type including colors and icon.
  * Falls back to one_time config when pinType is missing or unknown.
@@ -56,19 +86,20 @@ const TEARDROP_PATH =
   "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
-export function getPinTypeMarkerImageId(pinType: PinType | null | undefined): string {
+export function getPinTypeMarkerImageId(pinType: PinType | string | null | undefined): string {
+  if (typeof pinType === "string" && pinType.startsWith("custom:")) {
+    return `pin-icon-${pinType.replace(":", "-")}`
+  }
   const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
   return `pin-icon-${key}`
 }
 
-/**
- * Build the pin marker SVG string (teardrop + icon). Single source of truth for DOM marker and map images.
- */
 function buildPinMarkerSVGString(
-  pinType: PinType | null | undefined,
-  pending: boolean
+  pinType: PinType | string | null | undefined,
+  pending: boolean,
+  catalog: CustomPinType[] = []
 ): string {
-  const config = getPinTypeConfig(pinType)
+  const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
   const isStrokeIcon = pinType === "one_time"
   const iconGroupAttrs = isStrokeIcon
@@ -106,8 +137,11 @@ function buildPinMarkerSVGString(
 /**
  * Create an SVG marker for a specific pin type (data URL). Uses same SVG as createPinTypeMarkerElement with pending false.
  */
-export function createPinTypeMarkerSVG(pinType: PinType | null | undefined): string {
-  const svg = buildPinMarkerSVGString(pinType, false)
+export function createPinTypeMarkerSVG(
+  pinType: PinType | string | null | undefined,
+  catalog: CustomPinType[] = []
+): string {
+  const svg = buildPinMarkerSVGString(pinType, false, catalog)
   return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
@@ -120,10 +154,11 @@ export type CreatePinMarkerOptions = {
  * Create a DOM element marker: single SVG (teardrop + icon), no rotation.
  */
 export function createPinTypeMarkerElement(
-  pinType: PinType,
-  options?: CreatePinMarkerOptions
+  pinType: PinType | string,
+  options?: CreatePinMarkerOptions,
+  catalog: CustomPinType[] = []
 ): HTMLElement {
-  const svg = buildPinMarkerSVGString(pinType, options?.pending ?? false)
+  const svg = buildPinMarkerSVGString(pinType, options?.pending ?? false, catalog)
   const wrap = document.createElement("div")
   wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
   wrap.innerHTML = svg
@@ -133,8 +168,11 @@ export function createPinTypeMarkerElement(
 /**
  * Get label for a pin type
  */
-export function getPinTypeLabel(pinType: PinType | null | undefined): string {
-  return getPinTypeConfig(pinType).label
+export function getPinTypeLabel(
+  pinType: PinType | string | null | undefined,
+  catalog: CustomPinType[] = []
+): string {
+  return resolvePinTypeConfig(pinType, catalog).label
 }
 
 /**
@@ -154,8 +192,13 @@ type PinTypeIconProps = {
  * Renders the SVG icon for a pin type. Use in legend and modal.
  * Size defaults to 24; use className for Tailwind (e.g. w-5 h-5).
  */
-export function PinTypeIcon({ pinType, className, size = 24 }: PinTypeIconProps): React.ReactElement {
-  const config = getPinTypeConfig(pinType)
+export function PinTypeIcon({
+  pinType,
+  className,
+  size = 24,
+  catalog = [],
+}: PinTypeIconProps & { catalog?: CustomPinType[] }): React.ReactElement {
+  const config = resolvePinTypeConfig(pinType, catalog)
   const isStrokeIcon = pinType === "one_time"
   return (
     <svg

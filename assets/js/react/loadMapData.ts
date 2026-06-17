@@ -1,9 +1,12 @@
 import * as api from "./api/client"
-import type { Pin, SubMap } from "./types"
+import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "./types"
+import { BUILTIN_PIN_TYPES } from "./utils/customPinTypes"
 
 export type MapData = {
   pins: Pin[]
   subMap: SubMap | null
+  customPinTypes: CustomPinType[]
+  enabledBuiltinTypes: BuiltinPinType[]
 }
 
 /** Load pins and optional sub-map metadata for world or community map. */
@@ -13,12 +16,20 @@ export async function loadMapData(communityUrl?: string): Promise<MapData> {
       api.getSubMap(communityUrl),
       api.getSubMapPins(communityUrl),
     ])
+    const subMap = meta.data
     return {
       pins: pinList.data,
-      subMap: meta.data,
+      subMap,
+      customPinTypes: subMap.available_custom_pin_types ?? [],
+      enabledBuiltinTypes: subMap.enabled_builtin_pin_types ?? BUILTIN_PIN_TYPES,
     }
   }
 
-  const { data } = await api.getPins()
-  return { pins: data, subMap: null }
+  const [pinsRes, typesRes] = await Promise.all([api.getPins(), api.getPinTypes()])
+  return {
+    pins: pinsRes.data,
+    subMap: null,
+    customPinTypes: typesRes.data,
+    enabledBuiltinTypes: BUILTIN_PIN_TYPES,
+  }
 }

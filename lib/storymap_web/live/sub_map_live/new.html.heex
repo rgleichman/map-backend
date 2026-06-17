@@ -42,6 +42,13 @@
           {"Always", "always"}
         ]}
       />
+
+      <.pin_type_fields
+        settings={@pin_type_settings}
+        builtin_types={@builtin_pin_types}
+        custom_types={@custom_pin_types}
+      />
+
       <div class="flex gap-3 pt-2">
         <button type="submit" class="btn btn-primary" id="sub-map-create-submit">
           Create community

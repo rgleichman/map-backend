@@ -1,0 +1,77 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div>
+        <p class="text-sm text-base-content/60 mb-1">
+          <.link navigate={~p"/map"} class="link">Map</.link>
+        </p>
+        <h1 class="text-3xl font-bold text-base-content">Custom pin types</h1>
+        <p class="text-base-content/70 mt-2">
+          Global templates anyone can use when adding pins on the world map or in communities that enable them.
+        </p>
+      </div>
+      <%= if @logged_in? do %>
+        <.link navigate={~p"/pin-types/new"} class="btn btn-primary" id="pin-types-create-link">
+          Create pin type
+        </.link>
+      <% else %>
+        <.link navigate={~p"/users/log-in"} class="btn btn-primary">
+          Log in to create
+        </.link>
+      <% end %>
+    </div>
+
+    <div id="pin-types-list" class="space-y-3">
+      <%= if @pin_types == [] do %>
+        <p class="text-base-content/60">No custom pin types yet.</p>
+      <% end %>
+      <%= for pin_type <- @pin_types do %>
+        <%= if can_edit?(@current_scope, pin_type) do %>
+          <.link
+            id={"pin-type-#{pin_type.id}"}
+            navigate={~p"/pin-types/#{pin_type.id}/edit"}
+            class="card bg-base-100 border border-base-300 shadow-sm hover:border-primary hover:bg-base-200/50 transition-colors block no-underline text-inherit"
+          >
+            <div class="card-body py-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <h2 class="card-title text-lg text-base-content">{pin_type.label}</h2>
+                  <p class="font-mono text-xs text-base-content/60">{pin_type.slug}</p>
+                  <%= if pin_type.description do %>
+                    <p class="text-sm text-base-content/80 mt-2">{pin_type.description}</p>
+                  <% end %>
+                  <p class="text-xs text-base-content/50 mt-2">
+                    {length(Storymap.PinTypes.Schema.fields(pin_type.schema))} fields
+                    <%= if not pin_type.enabled do %>
+                      · <span class="text-warning">disabled</span>
+                    <% end %>
+                  </p>
+                </div>
+                <span class="text-sm text-primary shrink-0">Edit →</span>
+              </div>
+            </div>
+          </.link>
+        <% else %>
+          <div
+            id={"pin-type-#{pin_type.id}"}
+            class="card bg-base-100 border border-base-300 shadow-sm"
+          >
+            <div class="card-body py-4">
+              <h2 class="card-title text-lg">{pin_type.label}</h2>
+              <p class="font-mono text-xs text-base-content/60">{pin_type.slug}</p>
+              <%= if pin_type.description do %>
+                <p class="text-sm text-base-content/80 mt-2">{pin_type.description}</p>
+              <% end %>
+              <p class="text-xs text-base-content/50 mt-2">
+                {length(Storymap.PinTypes.Schema.fields(pin_type.schema))} fields
+                <%= if not pin_type.enabled do %>
+                  · <span class="text-warning">disabled</span>
+                <% end %>
+              </p>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</Layouts.app>

@@ -1,7 +1,8 @@
 import React from "react"
 import type { PinType } from "../types"
 import { useIsDesktop } from "../utils/useMediaQuery"
-import { getPinTypeConfig, PinTypeIcon, PIN_TYPES } from "../utils/pinTypeIcons"
+import { usePinTypes } from "../context/PinTypesContext"
+import { getPinTypeLabel, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import FloatingPanel from "./FloatingPanel"
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
 
 export default function PinTypeLegend({ selectedPinType = null, onTogglePinType, closeRef }: Props) {
   const isDesktop = useIsDesktop()
+  const { catalog, selectableTypes } = usePinTypes()
+
   return (
     <FloatingPanel
       triggerLabel="Pin types"
@@ -25,8 +28,9 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
       defaultExpanded={isDesktop}
     >
       <div className="space-y-1">
-        {PIN_TYPES.map((pinType) => {
-          const config = getPinTypeConfig(pinType)
+        {selectableTypes.map((pinType) => {
+          const config = resolvePinTypeConfig(pinType, catalog)
+          const iconType = pinType.startsWith("custom:") ? "other" : pinType
           return (
             <button
               key={pinType}
@@ -49,7 +53,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
                   color: config.textColor
                 }}
               >
-                <PinTypeIcon pinType={pinType} size={20} />
+                <PinTypeIcon pinType={iconType as PinType} size={20} catalog={catalog} />
               </div>
               <span className="font-medium">{config.label}</span>
             </button>
@@ -57,7 +61,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
         })}
       </div>
       <p className="text-xs text-base-content/80 mt-3 italic">
-        Different colors show different pin types
+        Different colors show different pin types. <a href="/pin-types" className="link">Manage types</a>
       </p>
     </FloatingPanel>
   )

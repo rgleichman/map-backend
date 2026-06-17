@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import * as api from "../api/client"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
+import { usePinTypes } from "../context/PinTypesContext"
 import type { Pin, PinType, SubMap } from "../types"
 import { canChooseWorldVisibility } from "../utils/subMapForm"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
@@ -30,9 +31,10 @@ export function usePinWorkflow({
   setApiError,
 }: Params) {
   const [state, dispatch] = useReducer(pinWorkflowReducer, initialPinWorkflowState)
-  const { modal, placement, draft, timeError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap } = draft
+  const { modal, placement, draft, timeError, formError } = state
+  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap } = draft
   const [saving, setSaving] = useState(false)
+  const { catalog } = usePinTypes()
 
   const modalRef = useRef(modal)
   modalRef.current = modal
@@ -128,11 +130,13 @@ export function usePinWorkflow({
   const onSave = useCallback(async () => {
     if (!modal || (modal.mode !== "add" && modal.mode !== "edit")) return
     dispatch({ type: "clear_time_error" })
+    dispatch({ type: "clear_form_error" })
     setApiError(null)
 
-    const result = validateAndBuildSavePayload(modal, draft, showPromoteToWorld)
-    if ("timeError" in result) {
-      dispatch({ type: "set_time_error", timeError: result.timeError })
+    const result = validateAndBuildSavePayload(modal, draft, showPromoteToWorld, catalog)
+    if ("kind" in result) {
+      if (result.kind === "time") dispatch({ type: "set_time_error", timeError: result.message })
+      else dispatch({ type: "set_form_error", formError: result.message })
       return
     }
 
@@ -155,7 +159,7 @@ export function usePinWorkflow({
     } finally {
       setSaving(false)
     }
-  }, [modal, draft, showPromoteToWorld, csrfToken, updateOrAddPin, communityUrl, setApiError])
+  }, [modal, draft, showPromoteToWorld, catalog, csrfToken, updateOrAddPin, communityUrl, setApiError])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -195,6 +199,7 @@ export function usePinWorkflow({
     placement,
     draft,
     timeError,
+    formError,
     dispatch: dispatch as React.Dispatch<PinWorkflowAction>,
     saving,
     showPromoteToWorld,
@@ -225,6 +230,7 @@ export function usePinWorkflow({
     scheduleTimezone,
     open24_7,
     visibleOnWorldMap,
+    customData,
   }
 }
 

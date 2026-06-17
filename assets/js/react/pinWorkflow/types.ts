@@ -1,5 +1,10 @@
 import type { Pin, PinType } from "../types"
 
+/**
+ * When the user is picking a new location on the map, we enter a temporary
+ * "placement" mode. This is separate from the modal state so we can show a
+ * lightweight confirmation bar over the map.
+ */
 export type Placement =
   | { intent: "add"; lat: number; lng: number }
   | { intent: "edit"; pin: Pin; lat: number; lng: number }
@@ -16,6 +21,7 @@ export type DraftState = {
   title: string
   description: string
   tags: string[]
+  customData: Record<string, unknown>
   startTime: string
   endTime: string
   scheduleRrule: string
@@ -26,11 +32,18 @@ export type DraftState = {
   editLocation: { lat: number; lng: number } | null
 }
 
+/**
+ * Full workflow state owned by the reducer.
+ *
+ * - `timeError`: errors specifically about time fields
+ * - `formError`: non-time validation errors (e.g. required custom fields)
+ */
 export type PinWorkflowState = {
   modal: ModalState
   placement: Placement | null
   draft: DraftState
   timeError: string
+  formError: string
 }
 
 export type PinWorkflowAction =
@@ -55,8 +68,11 @@ export type PinWorkflowAction =
   | { type: "set_schedule_timezone"; scheduleTimezone: string }
   | { type: "set_open_24_7"; open24_7: boolean }
   | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
+  | { type: "set_custom_data"; customData: Record<string, unknown> }
   | { type: "set_time_error"; timeError: string }
   | { type: "clear_time_error" }
+  | { type: "set_form_error"; formError: string }
+  | { type: "clear_form_error" }
   | { type: "clear_draft_locations" }
 
 export type PinDraftAction = Extract<
@@ -70,4 +86,5 @@ export type PinDraftAction = Extract<
   | { type: "set_schedule_timezone" }
   | { type: "set_open_24_7" }
   | { type: "set_visible_on_world_map" }
+  | { type: "set_custom_data" }
 >

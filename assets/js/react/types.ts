@@ -1,6 +1,30 @@
-export type PinType = "one_time" | "scheduled" | "food_bank" | "other"
+export type BuiltinPinType = "one_time" | "scheduled" | "food_bank" | "other"
+
+/** Built-in enum or `custom:<slug>` from the global catalog. */
+export type PinType = BuiltinPinType | `custom:${string}`
 
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
+
+export type CustomFieldSchema = {
+  key: string
+  label: string
+  type: "text" | "textarea" | "number" | "boolean" | "select" | "url" | "list"
+  required?: boolean
+  options?: { value: string; label: string }[]
+  item_type?: "text"
+}
+
+export type CustomPinType = {
+  id: number
+  slug: string
+  label: string
+  description?: string | null
+  marker_color?: string | null
+  icon?: string | null
+  schema: { fields: CustomFieldSchema[] }
+  pin_type: string
+  enabled: boolean
+}
 
 export type PinCommunity = {
   community_url: string
@@ -15,6 +39,7 @@ export type Pin = {
   pin_type: PinType
   description?: string
   icon_url?: string
+  custom_data?: Record<string, unknown>
   is_owner?: boolean
   status?: PinStatus
   visible_on_world_map?: boolean
@@ -33,10 +58,16 @@ export type NewPin = {
   latitude: number
   longitude: number
   tags: string[]
-  start_time?: string // ISO string
-  end_time?: string // ISO string
-  schedule_rrule?: string // iCal RRULE for recurring schedule
-  schedule_timezone?: string // IANA timezone for schedule
+  /** Arbitrary key/value data for custom pin types (`custom:<slug>`). */
+  custom_data?: Record<string, unknown>
+  /** ISO datetime-local string (no timezone suffix). */
+  start_time?: string
+  /** ISO datetime-local string (no timezone suffix). */
+  end_time?: string
+  /** iCal RRULE for recurring schedule. */
+  schedule_rrule?: string
+  /** IANA timezone for schedule. */
+  schedule_timezone?: string
   visible_on_world_map?: boolean
 }
 
@@ -44,10 +75,11 @@ export type UpdatePin = {
   title: string
   description?: string
   tags: string[]
-  start_time?: string | null // ISO string
-  end_time?: string | null // ISO string
-  schedule_rrule?: string | null // iCal RRULE for recurring schedule
-  schedule_timezone?: string | null // IANA timezone for schedule
+  custom_data?: Record<string, unknown>
+  start_time?: string | null
+  end_time?: string | null
+  schedule_rrule?: string | null
+  schedule_timezone?: string | null
   latitude?: number
   longitude?: number
   visible_on_world_map?: boolean
@@ -62,6 +94,9 @@ export type SubMap = {
   promote_to_world_default: string
   visibility: string
   settings: Record<string, unknown>
+  enabled_builtin_pin_types?: BuiltinPinType[]
+  enabled_custom_pin_types?: string[]
+  available_custom_pin_types?: CustomPinType[]
   pin_count?: number
   member_count?: number
   pending_count?: number

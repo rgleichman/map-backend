@@ -6,15 +6,11 @@ defmodule Storymap.Linkify do
   """
 
   import Phoenix.HTML
+  alias Storymap.URL
 
   @domain_host ~r/[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}/
   @domain ~r/(?:www\.)?#{Regex.source(@domain_host)}/
   @email ~r/[a-zA-Z0-9._%+-]+@#{Regex.source(@domain_host)}/
-  @email_anchored Regex.compile!("^#{Regex.source(@email)}$")
-  @mailto_href_re Regex.compile!(
-                    "^mailto:#{Regex.source(@email)}(?:\\?[a-zA-Z0-9_\\-.*=&%+]*)?$",
-                    [:caseless]
-                  )
   @markdown_link_re Regex.compile!(
                       "\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|mailto:[^\\s)]+|#{Regex.source(@email)}|#{Regex.source(@domain)}(?:\\/[^\\s)]*)?)\\)",
                       [:caseless]
@@ -24,11 +20,7 @@ defmodule Storymap.Linkify do
                  [:caseless]
                )
   @trailing_punctuation_re ~r/[.,;:!?'")\]]+$/
-  @hostname_re ~r/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/
-  @explicit_scheme_re ~r/^([a-zA-Z][a-zA-Z0-9+.-]*):/
-  @ascii_scheme_re ~r/^[a-zA-Z][a-zA-Z0-9+.-]*:$/
   @disallowed_scheme_before_re ~r/(?:ftp|file|javascript|data|vbscript):[^\s]*$/i
-  @max_mailto_len 2048
 
   @doc """
   Returns safe HTML for a description string, or an empty string for nil/blank input.
@@ -77,8 +69,8 @@ defmodule Storymap.Linkify do
           end
 
         segment =
-          if safe_url?(url) do
-            {:link, label, normalize_url(url)}
+          if URL.safe_url?(url) do
+            {:link, label, URL.normalize_url(url)}
           else
             {:text, String.slice(text, match_start, match_len)}
           end
@@ -119,8 +111,8 @@ defmodule Storymap.Linkify do
           end
 
         link_segments =
-          if safe_url?(candidate) and not disallowed_scheme_prefix?(text, start) do
-            normalized = normalize_url(candidate)
+          if URL.safe_url?(candidate) and not disallowed_scheme_prefix?(text, start) do
+            normalized = URL.normalize_url(candidate)
             base = [{:link, candidate, normalized}]
             if trailing != "", do: base ++ [{:text, trailing}], else: base
           else
@@ -151,91 +143,6 @@ defmodule Storymap.Linkify do
     prefix = String.slice(text, 0, start)
     Regex.match?(@disallowed_scheme_before_re, prefix)
   end
-
-  defp sanitize_link_input(url) do
-    url |> String.trim() |> String.normalize(:nfkc)
-  end
-
-  defp explicit_scheme(url) do
-    case Regex.run(@explicit_scheme_re, url) do
-      [prefix, scheme] ->
-        if Regex.match?(@ascii_scheme_re, prefix) do
-          String.downcase(scheme)
-        else
-          :invalid
-        end
-
-      _ ->
-        nil
-    end
-  end
-
-  defp normalize_url(url) do
-    url = sanitize_link_input(url)
-    lower = String.downcase(url)
-
-    cond do
-      String.starts_with?(lower, "mailto:") -> url
-      Regex.match?(~r/^https?:\/\//i, url) -> url
-      Regex.match?(@email_anchored, url) -> "mailto:" <> url
-      true -> "https://" <> url
-    end
-  end
-
-  defp safe_url?(url) do
-    url = sanitize_link_input(url)
-    if url == "", do: false, else: safe_url_normalized?(url)
-  end
-
-  defp safe_url_normalized?(url) do
-    case explicit_scheme(url) do
-      :invalid ->
-        false
-
-      "mailto" ->
-        valid_mailto?(url)
-
-      scheme when scheme in ["http", "https"] ->
-        valid_web_url?(url)
-
-      nil ->
-        cond do
-          Regex.match?(@email_anchored, url) -> true
-          valid_web_url?(url) -> true
-          true -> false
-        end
-
-      _ ->
-        false
-    end
-  end
-
-  defp valid_mailto?(url) do
-    byte_size(url) <= @max_mailto_len and Regex.match?(@mailto_href_re, url)
-  end
-
-  defp valid_web_url?(url) do
-    parsed =
-      if Regex.match?(~r/^https?:\/\//i, url) do
-        URI.parse(url)
-      else
-        URI.parse("https://" <> url)
-      end
-
-    case parsed do
-      %URI{scheme: scheme, host: host} when scheme in ["http", "https"] ->
-        valid_web_hostname?(host)
-
-      _ ->
-        false
-    end
-  end
-
-  defp valid_web_hostname?(host) when is_binary(host) do
-    String.contains?(host, ".") and Regex.match?(@hostname_re, host)
-  end
-
-  defp valid_web_hostname?(_), do: false
 
   defp segment_to_html({:text, value}), do: html_escape(value)
 

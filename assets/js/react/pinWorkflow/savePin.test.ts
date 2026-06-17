@@ -9,6 +9,7 @@ function minimalDraft(overrides: Partial<DraftState> = {}): DraftState {
     title: "Title",
     description: "Desc",
     tags: ["tag"],
+    customData: {},
     startTime: "2026-12-01T10:00",
     endTime: "2026-12-01T12:00",
     scheduleRrule: "",
@@ -49,7 +50,7 @@ describe("validateAndBuildSavePayload", () => {
       minimalDraft({ pinType: null }),
       false
     )
-    expect(result).toEqual({ timeError: "Please select a pin type" })
+    expect(result).toEqual({ kind: "form", message: "Please select a pin type" })
   })
 
   it("returns error when scheduled end is before start (time-only)", () => {
@@ -62,7 +63,7 @@ describe("validateAndBuildSavePayload", () => {
       }),
       false
     )
-    expect(result).toEqual({ timeError: "End time must be after start time." })
+    expect(result).toEqual({ kind: "time", message: "End time must be after start time." })
   })
 
   it("returns error when one_time end is in the past", () => {
@@ -74,7 +75,7 @@ describe("validateAndBuildSavePayload", () => {
       }),
       false
     )
-    expect(result).toEqual({ timeError: "End time cannot be in the past." })
+    expect(result).toEqual({ kind: "time", message: "End time cannot be in the past." })
   })
 
   it("builds add payload with location from modal when addLocation unset", () => {
