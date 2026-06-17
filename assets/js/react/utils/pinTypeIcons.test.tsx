@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import React from "react"
-import { createPinTypeMarkerSVG, PinTypeIcon } from "./pinTypeIcons"
+import { createPinTypeMarkerElement, createPinTypeMarkerSVG, PinTypeIcon } from "./pinTypeIcons"
 
 function hasDangerouslySetInnerHTML(node: unknown): boolean {
   if (node == null) return false
@@ -65,6 +65,22 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).toContain('fill="#112233"')
     expect(svg).not.toContain("<script")
     expect(svg).not.toContain("onload=")
+  })
+})
+
+describe("createPinTypeMarkerElement", () => {
+  it.runIf(typeof document !== "undefined")("returns a DOM element containing an svg", () => {
+    const el = createPinTypeMarkerElement("scheduled", { pending: false }, [])
+    expect(el.querySelector("svg")).not.toBeNull()
+    expect(el.childElementCount).toBe(1)
+  })
+
+  it.runIf(typeof document !== "undefined")("renders pending marker with outline path", () => {
+    const el = createPinTypeMarkerElement("scheduled", { pending: true }, [])
+    const svg = el.querySelector("svg")
+    expect(svg).not.toBeNull()
+    // Outline path uses stroke-width=10 (teardrop outline for pending state)
+    expect(svg!.querySelector('path[stroke-width="10"]')).not.toBeNull()
   })
 })
 
