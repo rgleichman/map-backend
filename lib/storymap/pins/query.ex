@@ -2,7 +2,7 @@ defmodule Storymap.Pins.Query do
   @moduledoc """
   Composable queries for pins (world map vs sub-map scopes).
   """
-  import Ecto.Query, warn: false
+  import Ecto.Query
   alias Storymap.Pins.Pin
 
   @approved "approved"

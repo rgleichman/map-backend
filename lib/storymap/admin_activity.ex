@@ -7,7 +7,7 @@ defmodule Storymap.AdminActivity do
   (e.g. `content_reported` is audit-only and does not increment the nav bell).
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
   import Storymap.Admin, only: [is_admin_level: 1]
 
   alias Storymap.Accounts.Scope

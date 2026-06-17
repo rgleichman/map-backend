@@ -7,7 +7,7 @@ defmodule Storymap.ContentReports do
   and excludes `content_reported` audit events.
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
   import Storymap.Admin, only: [is_admin_level: 1]
 
   alias Storymap.Accounts.Scope

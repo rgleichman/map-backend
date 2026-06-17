@@ -16,7 +16,7 @@ defmodule Storymap.AdminPubSub do
   Contexts must broadcast through this module only (not `Phoenix.PubSub` or channels directly).
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
 
   alias Storymap.Accounts.Scope
   alias Storymap.AdminActivity

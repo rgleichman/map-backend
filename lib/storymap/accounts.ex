@@ -3,7 +3,7 @@ defmodule Storymap.Accounts do
   The Accounts context.
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
   alias Storymap.Repo
 
   alias Storymap.AdminActivity

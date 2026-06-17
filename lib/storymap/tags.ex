@@ -3,7 +3,7 @@ defmodule Storymap.Tags do
   The Tags context.
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
   alias Storymap.Repo
   alias Storymap.Tags.Tag
 

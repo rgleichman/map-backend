@@ -2,7 +2,7 @@ defmodule Storymap.SubMaps do
   @moduledoc """
   Sub-maps (communities): CRUD, memberships, and moderation.
   """
-  import Ecto.Query, warn: false
+  import Ecto.Query
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.Pins

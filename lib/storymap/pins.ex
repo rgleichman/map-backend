@@ -3,7 +3,6 @@ defmodule Storymap.Pins do
   The Pins context.
   """
 
-  import Ecto.Query, warn: false
   import Ecto.Changeset, only: [add_error: 3, get_field: 2]
   alias Storymap.Repo
   alias Storymap.Pins.{Pin, Query}
