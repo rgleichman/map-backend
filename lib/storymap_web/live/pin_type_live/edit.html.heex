@@ -83,7 +83,9 @@
                 class="select select-bordered w-full"
               >
                 <%= for type <- StorymapWeb.PinTypeLive.Form.field_types() do %>
-                  <option value={type} selected={field["type"] == type}>{type}</option>
+                  <option value={type} selected={field["type"] == type}>
+                    {StorymapWeb.PinTypeLive.Form.field_type_label(type)}
+                  </option>
                 <% end %>
               </select>
             </div>

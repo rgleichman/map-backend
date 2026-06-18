@@ -13,6 +13,7 @@ type Props = {
 export default function PinFlowUI({ isDesktop, workflow }: Props) {
   const { showPromoteToWorld } = useSubMap()
   const {
+    csrfToken,
     modal,
     placement,
     dispatch,
@@ -42,6 +43,8 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
   } = workflow
 
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
+    csrfToken,
+    pinId: modal.mode === "edit" ? modal.pin.id : null,
     pinType: modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type,
     title,
     description,

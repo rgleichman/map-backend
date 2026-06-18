@@ -131,4 +131,71 @@ export function submitReport(
   })
 }
 
+export type MusicFieldRef = { ref: string | number }
+
+type MusicFieldUpsertResponse =
+  | { data: { value: unknown } }
+  | { data: { custom_data_value: unknown } }
+  | { data: { custom_data: Record<string, unknown> } }
+
+function pickMusicCustomDataValue(fieldKey: string, res: MusicFieldUpsertResponse): unknown {
+  const data = (res as { data: unknown }).data as any
+  if (data && typeof data === "object") {
+    if ("value" in data) return (data as any).value
+    if ("custom_data_value" in data) return (data as any).custom_data_value
+    if ("custom_data" in data && data.custom_data && typeof data.custom_data === "object") {
+      return (data.custom_data as Record<string, unknown>)[fieldKey]
+    }
+  }
+  return undefined
+}
+
+export function upsertMusicField(
+  csrf: string | undefined,
+  pinId: number,
+  fieldKey: string,
+  payload: string
+): Promise<MusicFieldUpsertResponse> {
+  return jsonFetch(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    body: JSON.stringify({ payload }),
+    credentials: "same-origin",
+  })
+}
+
+export async function deleteMusicField(
+  csrf: string | undefined,
+  pinId: number,
+  fieldKey: string
+): Promise<void> {
+  await fetchRequest(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`, {
+    method: "DELETE",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
+export function getMusicField(
+  pinId: number,
+  fieldKey: string
+): Promise<{ data: { payload: string } }> {
+  return jsonFetch(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`)
+}
+
+export async function upsertMusicFieldAndGetRef(
+  csrf: string | undefined,
+  pinId: number,
+  fieldKey: string,
+  payload: string
+): Promise<unknown> {
+  const res = await upsertMusicField(csrf, pinId, fieldKey, payload)
+  return pickMusicCustomDataValue(fieldKey, res)
+}
+
 

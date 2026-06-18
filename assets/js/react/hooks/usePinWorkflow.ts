@@ -195,6 +195,7 @@ export function usePinWorkflow({
   const locationAlreadySetFromPlacement = !isDesktop && modal?.mode === "add" && addLocation !== null
 
   return {
+    csrfToken,
     modal,
     placement,
     draft,

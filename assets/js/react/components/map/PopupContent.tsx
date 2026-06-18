@@ -3,7 +3,7 @@ import { RRule } from "rrule"
 import * as api from "../../api/client"
 import type { Pin, ReportCategory } from "../../types"
 import LinkifiedText from "../LinkifiedText"
-import { CustomFieldDisplay, isCustomFieldEmpty } from "../CustomPinFields"
+import { CustomFieldDisplay, isCustomFieldEmpty, MusicPinIdProvider } from "../CustomPinFields"
 import { usePinTypes } from "../../context/PinTypesContext"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
 import { communityUrlFromTag } from "../../utils/pinMapUrl"
@@ -134,16 +134,18 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
         <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
       ) : null}
       {customFieldsWithValues.length > 0 ? (
-        <dl className={`${popupContentClasses} my-2 space-y-2`}>
-          {customFieldsWithValues.map((field) => (
-            <div key={field.key}>
-              <dt className="font-semibold">{field.label}</dt>
-              <dd className="mt-0.5 text-base-content/90">
-                <CustomFieldDisplay field={field} value={pin.custom_data?.[field.key]} />
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <MusicPinIdProvider pinId={pin.id}>
+          <dl className={`${popupContentClasses} my-2 space-y-2`}>
+            {customFieldsWithValues.map((field) => (
+              <div key={field.key}>
+                <dt className="font-semibold">{field.label}</dt>
+                <dd className="mt-0.5 text-base-content/90">
+                  <CustomFieldDisplay field={field} value={pin.custom_data?.[field.key]} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </MusicPinIdProvider>
       ) : null}
       {(pin.start_time || pin.end_time) && (
         <div className={`${popupContentClasses} my-2`}>

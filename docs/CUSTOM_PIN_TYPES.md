@@ -30,7 +30,7 @@ Legacy `allowed_pin_types` in sub-map settings is migrated to `enabled_builtin_p
 
 ## Field schema (v1)
 
-Supported field types: `text`, `textarea`, `number`, `boolean`, `select`, `url`, `list` (of text).
+Supported field types: `text`, `textarea`, `number`, `boolean`, `select`, `url`, `list` (of text), `music`. See [MUSIC_FIELDS.md](MUSIC_FIELDS.md) for storage, payload format, and API.
 
 ```json
 {

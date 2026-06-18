@@ -9,6 +9,8 @@ type Props = {
   layout: "modal" | "panel"
   locationAlreadySetFromPlacement?: boolean
   mode: "add" | "edit"
+  csrfToken?: string
+  pinId?: number | null
   pinType: PinType
   title: string
   description: string
@@ -36,6 +38,8 @@ export default function PinComposer({
   layout,
   locationAlreadySetFromPlacement,
   mode,
+  csrfToken,
+  pinId,
   pinType,
   title,
   description,
@@ -63,6 +67,8 @@ export default function PinComposer({
       layout={layout}
       locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
       pinType={pinType}
+      csrfToken={csrfToken}
+      pinId={pinId}
       title={title}
       setTitle={(t) => dispatch({ type: "set_title", title: t })}
       description={description}

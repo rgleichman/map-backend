@@ -8,7 +8,7 @@ export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 export type CustomFieldSchema = {
   key: string
   label: string
-  type: "text" | "textarea" | "number" | "boolean" | "select" | "url" | "list"
+  type: "text" | "textarea" | "number" | "boolean" | "select" | "url" | "list" | "music"
   required?: boolean
   options?: { value: string; label: string }[]
   item_type?: "text"

@@ -10,6 +10,8 @@ type Props = {
   /** When true (mobile add from placement), location was just set; can hide or reword "Set location on map". */
   locationAlreadySetFromPlacement?: boolean
   pinType: PinType
+  csrfToken?: string
+  pinId?: number | null
   title: string
   setTitle: (t: string) => void
   description: string
@@ -49,6 +51,8 @@ export default function PinModal({
   layout = "modal",
   locationAlreadySetFromPlacement = false,
   pinType,
+  csrfToken,
+  pinId = null,
   title, setTitle,
   description, setDescription,
   tags, setTags,
@@ -139,6 +143,8 @@ export default function PinModal({
             fields={customType.schema?.fields ?? []}
             values={customData}
             onChange={setCustomData}
+            csrfToken={csrfToken}
+            pinId={pinId}
           />
         </div>
       ) : null}

@@ -1,9 +1,12 @@
 defmodule StorymapWeb.PinTypeLive.Form do
   @moduledoc false
 
-  @field_types ~w(text textarea number boolean select url list)
+  @field_types ~w(text textarea number boolean select url list music)
 
   def field_types, do: @field_types
+
+  def field_type_label("music"), do: "Music"
+  def field_type_label(type), do: type
 
   def build_schema_from_params(%{"fields" => fields}) when is_map(fields) do
     fields

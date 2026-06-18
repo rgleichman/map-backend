@@ -4,12 +4,16 @@ defmodule Storymap.Pins do
   """
 
   import Ecto.Changeset, only: [add_error: 3, get_field: 2]
+  import Ecto.Query, only: [from: 2]
   alias Storymap.Repo
-  alias Storymap.Pins.{Pin, Query}
+  alias Storymap.Pins.{Pin, PinFieldBlob, Query}
   alias Storymap.PinTypes
   alias Storymap.PinTypes.{CustomPinType, Validator}
+  alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, Policy, SubMap}
+
+  @music_blob_type "music"
 
   def list_pins do
     Query.world_pins()
@@ -101,6 +105,158 @@ defmodule Storymap.Pins do
   def change_pin(%Pin{} = pin, attrs \\ %{}) do
     Pin.changeset(pin, attrs)
   end
+
+  @doc """
+  Returns the music payload blob for the given pin + field key, or nil.
+  """
+  def get_music_blob(pin_id, field_key)
+      when is_integer(pin_id) and is_binary(field_key) do
+    Repo.one(
+      from b in PinFieldBlob,
+        where: b.pin_id == ^pin_id and b.field_key == ^field_key and b.type == ^@music_blob_type
+    )
+  end
+
+  @doc """
+  Creates or updates a music payload blob and stores only a reference in `pins.custom_data`.
+
+  Returns `{:ok, %{pin: pin, blob: blob}}` on success.
+  """
+  def upsert_music_blob(%Pin{} = pin, field_key, attrs)
+      when is_binary(field_key) and is_map(attrs) do
+    with :ok <- validate_music_field_key(pin, field_key) do
+      format = Map.get(attrs, "format") || Map.get(attrs, :format) || "music/v1"
+      version = Map.get(attrs, "version") || Map.get(attrs, :version) || 1
+      payload = Map.get(attrs, "payload") || Map.get(attrs, :payload)
+
+      changeset =
+        %PinFieldBlob{}
+        |> PinFieldBlob.changeset(%{
+          pin_id: pin.id,
+          field_key: field_key,
+          type: @music_blob_type,
+          format: format,
+          version: version,
+          payload: payload
+        })
+
+      Repo.transaction(fn ->
+        {:ok, blob} =
+          Repo.insert(
+            changeset,
+            on_conflict: [
+              set: [
+                format: format,
+                version: version,
+                payload: payload,
+                updated_at: DateTime.utc_now(:second)
+              ]
+            ],
+            conflict_target: [:pin_id, :field_key, :type],
+            returning: true
+          )
+
+        new_custom_data =
+          (pin.custom_data || %{})
+          |> Map.put(field_key, %{"ref" => blob.id})
+
+        {:ok, pin} = update_pin_custom_data(pin, new_custom_data)
+
+        %{pin: pin, blob: blob}
+      end)
+      |> case do
+        {:ok, result} -> {:ok, result}
+        {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+      end
+    end
+  end
+
+  @doc """
+  Deletes a music payload blob and removes its reference from `pins.custom_data`.
+
+  Returns `{:ok, pin}` on success, or `{:error, changeset}`.
+  """
+  def delete_music_blob(%Pin{} = pin, field_key) when is_binary(field_key) do
+    with :ok <- validate_music_field_key(pin, field_key),
+         :ok <- validate_music_field_not_required(pin, field_key) do
+      Repo.transaction(fn ->
+        _ =
+          from(b in PinFieldBlob,
+            where:
+              b.pin_id == ^pin.id and b.field_key == ^field_key and b.type == ^@music_blob_type
+          )
+          |> Repo.delete_all()
+
+        new_custom_data =
+          (pin.custom_data || %{})
+          |> Map.delete(field_key)
+
+        {:ok, pin} = update_pin_custom_data(pin, new_custom_data)
+        pin
+      end)
+      |> case do
+        {:ok, pin} -> {:ok, pin}
+        {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+      end
+    end
+  end
+
+  defp update_pin_custom_data(%Pin{} = pin, custom_data) when is_map(custom_data) do
+    pin
+    |> Pin.changeset(%{"custom_data" => custom_data})
+    |> maybe_validate_custom_pin_data()
+    |> Repo.update()
+  end
+
+  defp validate_music_field_key(%Pin{pin_type: "custom:" <> _} = pin, field_key) do
+    case PinTypes.get_by_pin_type(pin.pin_type) do
+      %CustomPinType{} = custom_type ->
+        fields = PinTypeSchema.fields(custom_type.schema)
+
+        if Enum.any?(fields, fn f -> field_key(f) == field_key and field_type(f) == "music" end) do
+          :ok
+        else
+          {:error, :invalid_music_field}
+        end
+
+      _ ->
+        {:error, :invalid_music_field}
+    end
+  end
+
+  defp validate_music_field_key(_pin, _field_key), do: {:error, :invalid_music_field}
+
+  defp validate_music_field_not_required(%Pin{pin_type: "custom:" <> _} = pin, field_key) do
+    case PinTypes.get_by_pin_type(pin.pin_type) do
+      %CustomPinType{} = custom_type ->
+        fields = PinTypeSchema.fields(custom_type.schema)
+
+        if Enum.any?(fields, fn f ->
+             field_key(f) == field_key and field_type(f) == "music" and required_field?(f)
+           end) do
+          {:error, :required_music_field}
+        else
+          :ok
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp validate_music_field_not_required(_pin, _field_key), do: :ok
+
+  defp field_key(%{"key" => key}) when is_binary(key), do: key
+  defp field_key(%{key: key}) when is_binary(key), do: key
+  defp field_key(_), do: nil
+
+  defp field_type(%{"type" => type}) when is_binary(type), do: type
+  defp field_type(%{type: type}) when is_binary(type), do: type
+  defp field_type(_), do: nil
+
+  defp required_field?(%{"required" => true}), do: true
+  defp required_field?(%{required: true}), do: true
+  defp required_field?(_), do: false
 
   defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs) do
     settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})

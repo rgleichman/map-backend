@@ -1,13 +1,18 @@
-import React from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { CustomFieldSchema } from "../types"
+import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
+import { getAudioContext, playPayload } from "../utils/musicAudio"
+import { fetchMusicPayload } from "../utils/musicPayloadCache"
 
 type Props = {
   fields: CustomFieldSchema[]
   values: Record<string, unknown>
   onChange: (values: Record<string, unknown>) => void
+  csrfToken?: string
+  pinId?: number | null
 }
 
-export default function CustomPinFields({ fields, values, onChange }: Props) {
+export default function CustomPinFields({ fields, values, onChange, csrfToken, pinId }: Props) {
   const setField = (key: string, value: unknown) => {
     onChange({ ...values, [key]: value })
   }
@@ -20,7 +25,11 @@ export default function CustomPinFields({ fields, values, onChange }: Props) {
             {field.label}
             {field.required ? <span className="text-error"> *</span> : null}
           </label>
-          {renderField(field, values[field.key], (v) => setField(field.key, v))}
+          {renderField(field, values[field.key], (v) => setField(field.key, v), {
+            csrfToken,
+            pinId,
+            fieldKey: field.key,
+          })}
         </div>
       ))}
     </div>
@@ -30,7 +39,8 @@ export default function CustomPinFields({ fields, values, onChange }: Props) {
 function renderField(
   field: CustomFieldSchema,
   value: unknown,
-  onValue: (v: unknown) => void
+  onValue: (v: unknown) => void,
+  ctx: { csrfToken?: string; pinId?: number | null; fieldKey: string }
 ) {
   switch (field.type) {
     case "textarea":
@@ -123,6 +133,16 @@ function renderField(
         </div>
       )
     }
+    case "music":
+      return (
+        <MusicFieldEditor
+          csrfToken={ctx.csrfToken}
+          pinId={ctx.pinId ?? null}
+          fieldKey={ctx.fieldKey}
+          value={value}
+          onValue={onValue}
+        />
+      )
     default:
       return (
         <input
@@ -152,6 +172,7 @@ export function validateCustomFields(
 export function isCustomFieldEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true
   if (Array.isArray(value) && value.length === 0) return true
+  if (isMusicFieldRef(value) === false && typeof value === "object" && value != null && "ref" in (value as any)) return true
   return false
 }
 
@@ -177,6 +198,10 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
     return <span className={`text-base-content/50 ${className ?? ""}`.trim()}>—</span>
   }
 
+  if (field.type === "music") {
+    return <MusicFieldDisplay fieldKey={field.key} value={value} className={className} />
+  }
+
   if (field.type === "url" && typeof value === "string") {
     return (
       <a
@@ -196,4 +221,89 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
   }
 
   return <span className={className}>{text}</span>
+}
+
+type MusicFieldDisplayProps = {
+  fieldKey: string
+  value: unknown
+  className?: string
+  pinId?: number
+}
+
+function MusicFieldDisplay({ fieldKey, value, className }: MusicFieldDisplayProps) {
+  const pinId = useMusicPinId()
+  const refOk = isMusicFieldRef(value)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const playerRef = useRef<ReturnType<typeof playPayload> | null>(null)
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      playerRef.current?.stop()
+      playerRef.current = null
+    }
+  }, [])
+
+  const toggle = useCallback(async () => {
+    if (!pinId || !refOk) return
+    if (playing) {
+      playerRef.current?.stop()
+      playerRef.current = null
+      setPlaying(false)
+      return
+    }
+    setError(null)
+    setLoading(true)
+    try {
+      const ctx = getAudioContext()
+      if (ctx.state === "suspended") {
+        await ctx.resume()
+      }
+      const payload = await fetchMusicPayload(pinId, fieldKey)
+      const player = playPayload(ctx, payload)
+      playerRef.current = player
+      setPlaying(true)
+      void player.done.then(() => {
+        if (!mountedRef.current) return
+        playerRef.current = null
+        setPlaying(false)
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to play.")
+    } finally {
+      if (mountedRef.current) setLoading(false)
+    }
+  }, [fieldKey, pinId, playing, refOk])
+
+  if (!pinId) return <span className={className}>Music</span>
+  if (!refOk) return <span className={className}>Music</span>
+
+  return (
+    <div className={`inline-flex flex-wrap items-center gap-2 ${className ?? ""}`.trim()}>
+      <button
+        type="button"
+        className={`btn btn-xs ${playing ? "btn-secondary" : "btn-primary"}`}
+        onClick={() => void toggle()}
+        disabled={loading}
+      >
+        {loading ? "Loading…" : playing ? "Pause" : "Play"}
+      </button>
+      {error ? <span className="text-xs text-error">{error}</span> : null}
+    </div>
+  )
+}
+
+/**
+ * Popup content renders within a maplibre popup; we don't have direct access to the pin id in
+ * `CustomFieldDisplay`'s props today. `PopupContent` injects it via a lightweight context.
+ */
+const MusicPinIdContext = React.createContext<number | null>(null)
+export function MusicPinIdProvider({ pinId, children }: { pinId: number; children: React.ReactNode }) {
+  return <MusicPinIdContext.Provider value={pinId}>{children}</MusicPinIdContext.Provider>
+}
+function useMusicPinId(): number | null {
+  return React.useContext(MusicPinIdContext)
 }

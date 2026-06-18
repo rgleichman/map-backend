@@ -87,6 +87,12 @@ defmodule StorymapWeb.Router do
     put "/pins/:id", PinController, :update
     patch "/pins/:id", PinController, :update
     delete "/pins/:id", PinController, :delete
+
+    get "/pins/:id/music_fields/:field_key", PinMusicFieldController, :show
+    post "/pins/:id/music_fields/:field_key", PinMusicFieldController, :create
+    put "/pins/:id/music_fields/:field_key", PinMusicFieldController, :update
+    delete "/pins/:id/music_fields/:field_key", PinMusicFieldController, :delete
+
     post "/pin_types", PinTypeController, :create
     patch "/pin_types/:id", PinTypeController, :update
     delete "/pin_types/:id", PinTypeController, :delete

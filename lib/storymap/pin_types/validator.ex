@@ -98,6 +98,9 @@ defmodule Storymap.PinTypes.Validator do
   defp validate_value(value, %{"type" => "list"}), do: validate_list(value)
   defp validate_value(value, %{type: "list"}), do: validate_list(value)
 
+  defp validate_value(value, %{"type" => "music"}), do: validate_music_ref(value)
+  defp validate_value(value, %{type: "music"}), do: validate_music_ref(value)
+
   defp validate_value(_, _), do: {:error, "has invalid type"}
 
   defp validate_string(value) when is_binary(value) do
@@ -151,6 +154,14 @@ defmodule Storymap.PinTypes.Validator do
   end
 
   defp validate_list(_), do: {:error, "must be a list"}
+
+  defp validate_music_ref(value) when is_integer(value) and value > 0, do: :ok
+
+  defp validate_music_ref(%{"ref" => ref}) when is_integer(ref) and ref > 0, do: :ok
+  defp validate_music_ref(%{ref: ref}) when is_integer(ref) and ref > 0, do: :ok
+
+  defp validate_music_ref(_),
+    do: {:error, "must be a reference (integer id or %{ref: id})"}
 
   defp required?(%{"required" => true}), do: true
   defp required?(%{required: true}), do: true
