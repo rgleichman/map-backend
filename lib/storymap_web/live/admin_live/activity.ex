@@ -66,19 +66,16 @@ defmodule StorymapWeb.AdminLive.Activity do
     scope = socket.assigns.current_scope
     :ok = AdminActivity.mark_all_read(scope)
 
-    with {:ok, socket} <- refresh_streamed_events(socket, scope) do
-      event_ids = MapSet.to_list(socket.assigns.activity_streamed_event_ids)
+    {:ok, socket} = refresh_streamed_events(socket, scope)
+    event_ids = MapSet.to_list(socket.assigns.activity_streamed_event_ids)
 
-      read_event_ids =
-        AdminActivity.read_event_ids_for_admin(scope, event_ids) |> MapSet.new()
+    read_event_ids =
+      AdminActivity.read_event_ids_for_admin(scope, event_ids) |> MapSet.new()
 
-      {:noreply,
-       socket
-       |> assign(:read_event_ids, read_event_ids)
-       |> assign(:unread_count, AdminActivity.unread_count(scope))}
-    else
-      _ -> {:noreply, socket}
-    end
+    {:noreply,
+     socket
+     |> assign(:read_event_ids, read_event_ids)
+     |> assign(:unread_count, AdminActivity.unread_count(scope))}
   end
 
   @impl true
@@ -92,15 +89,12 @@ defmodule StorymapWeb.AdminLive.Activity do
   def handle_info({:activity_reads_changed, admin_user_id}, socket) do
     if admin_user_id == socket.assigns.current_scope.user.id do
       scope = socket.assigns.current_scope
+      {:ok, socket} = refresh_streamed_events(socket, scope)
 
-      with {:ok, socket} <- refresh_streamed_events(socket, scope) do
-        {:noreply,
-         socket
-         |> QueueHelpers.refresh_read_event_ids(scope, :activity_streamed_event_ids)
-         |> assign(:unread_count, AdminActivity.unread_count(scope))}
-      else
-        _ -> {:noreply, socket}
-      end
+      {:noreply,
+       socket
+       |> QueueHelpers.refresh_read_event_ids(scope, :activity_streamed_event_ids)
+       |> assign(:unread_count, AdminActivity.unread_count(scope))}
     else
       {:noreply, socket}
     end
