@@ -107,9 +107,10 @@ defmodule Mix.Tasks.TzWorld.Install do
   end
 
   defp fetch_release(latest_release, asset_url, trace?) do
+    # Downloader.get_latest_release/3 returns nil on success (last expr is maybe_log/2).
     case Downloader.get_latest_release(latest_release, asset_url, trace?) do
-      {:ok, _} -> :ok
       {:error, reason} -> {:error, reason}
+      _ -> :ok
     end
   end
 
