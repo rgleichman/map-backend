@@ -75,9 +75,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     onChange(prev)
   }, [onChange])
 
-  const previewNote = useCallback(async (note: string) => {
+  const previewNote = useCallback((note: string) => {
     const ctx = getAudioContext()
-    if (ctx.state === "suspended") await ctx.resume()
+    void ctx.resume()
     playNotePreview(ctx, note)
   }, [])
 
@@ -154,9 +154,8 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
             {Array.from({ length: score.steps }, (_, step) => (
               <div
                 key={`head-${step}`}
-                className={`flex h-7 w-9 shrink-0 items-center justify-center text-[10px] font-medium tabular-nums ${
-                  activeStep === step ? "text-primary" : "text-base-content/50"
-                }`}
+                className={`flex h-7 w-9 shrink-0 items-center justify-center text-[10px] font-medium tabular-nums ${activeStep === step ? "text-primary" : "text-base-content/50"
+                  }`}
               >
                 {step + 1}
               </div>
@@ -169,7 +168,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
                 type="button"
                 className="btn btn-ghost btn-xs h-9 min-h-9 w-[3.25rem] shrink-0 font-mono text-xs justify-start px-1"
                 disabled={disabled}
-                onClick={() => void previewNote(row.note)}
+                onClick={() => previewNote(row.note)}
                 title={`Preview ${row.note}`}
               >
                 {row.note}
@@ -178,16 +177,24 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
                 <button
                   key={`${row.note}-${stepIdx}`}
                   type="button"
+                  data-sequencer-pad
                   aria-label={`${row.note} step ${stepIdx + 1}${on ? " on" : " off"}`}
                   aria-pressed={on}
                   disabled={disabled}
-                  onClick={() => toggleCell(rowIdx, stepIdx)}
+                  onClick={() => {
+                    previewNote(row.note)
+                    toggleCell(rowIdx, stepIdx)
+                  }}
                   className={[
-                    "btn btn-xs h-9 min-h-9 w-9 shrink-0 rounded-md border transition-colors",
+                    "h-9 min-h-9 w-9 shrink-0 rounded-md border transition-all duration-150",
                     on
-                      ? "btn-primary border-primary"
-                      : "btn-ghost border-base-300 bg-base-200/60 hover:bg-base-300/80 dark:bg-base-300/20",
-                    activeStep === stepIdx && on ? "ring-2 ring-secondary ring-offset-1 ring-offset-base-100" : "",
+                      ? [
+                        "bg-primary text-primary-content border-primary shadow-md shadow-primary/35",
+                        activeStep === stepIdx
+                          ? "ring-2 ring-secondary ring-offset-1 ring-offset-base-100 brightness-110"
+                          : "hover:brightness-110",
+                      ].join(" ")
+                      : "border-base-300 bg-base-200/60 hover:bg-base-300/80 dark:bg-base-300/20",
                   ].join(" ")}
                 />
               ))}
