@@ -61,8 +61,11 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
         })}
       </div>
       <p className="text-xs text-base-content/80 mt-3 italic">
-        Different colors show different pin types. <a href="/pin-types" className="link">Manage types</a>
+        Different colors show different pin types.
       </p>
+      <a href="/pin-types" className="btn btn-sm btn-outline w-full mt-2">
+        Add or Edit pin types
+      </a>
     </FloatingPanel>
   )
 }

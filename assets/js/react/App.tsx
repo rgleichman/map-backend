@@ -350,13 +350,6 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
           {showWelcome && <WelcomeModal onClose={closeWelcome} />}
 
-          <a
-            href="/pin-types"
-            className="fixed left-3 bottom-3 z-30 btn btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
-          >
-            Pin types
-          </a>
-
           <button
             type="button"
             onClick={openWelcome}
