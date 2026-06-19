@@ -37,6 +37,12 @@ const PIN_LABEL_MAX_LEN = 22
 
 const CLUSTER_RADIUS_PX = 16
 const CLUSTER_MAX_ZOOM = 15
+const GEOLOCATE_MAX_ZOOM = 12
+const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: false,
+  timeout: 6000,
+  maximumAge: 0,
+}
 
 function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
   const t = title.trim()
@@ -262,8 +268,11 @@ export default function MapCanvas({
       // coerce it to the expected IControl to satisfy TypeScript.
       map.addControl(control as unknown as maplibregl.IControl, "top-left")
       const geolocateControl = new maplibregl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: false },
-        trackUserLocation: false
+        positionOptions: GEOLOCATE_POSITION_OPTIONS,
+        trackUserLocation: false,
+        fitBoundsOptions: {
+          maxZoom: GEOLOCATE_MAX_ZOOM,
+        },
       })
       map.addControl(geolocateControl, "top-right")
       geolocateControlRef.current = geolocateControl
@@ -479,13 +488,26 @@ export default function MapCanvas({
     }
   }, [styleUrl])
 
-  // Center on user location once on first load (skip when opening a shared pin link)
+  // Center on user location once on first load (skip when opening a shared pin link).
+  // Use flyTo instead of GeolocateControl.trigger() — fitBounds from the initial globe
+  // view (zoom 2) can overshoot maxZoom; the button path starts from a regional zoom.
   useEffect(() => {
     if (!mapReady || initialPinId != null || initialGeolocateTriggeredRef.current) return
-    const control = geolocateControlRef.current
-    if (!control) return
+    const map = mapRef.current
+    if (!map || !navigator.geolocation) return
     initialGeolocateTriggeredRef.current = true
-    control.trigger()
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (!mapRef.current) return
+        mapRef.current.flyTo({
+          center: [position.coords.longitude, position.coords.latitude],
+          zoom: GEOLOCATE_MAX_ZOOM,
+        })
+      },
+      () => { },
+      GEOLOCATE_POSITION_OPTIONS,
+    )
   }, [mapReady, initialPinId])
 
   // Pending location: actual pin (highlighted) + flyTo
