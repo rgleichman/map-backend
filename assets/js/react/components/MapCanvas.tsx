@@ -495,11 +495,13 @@ export default function MapCanvas({
     if (!mapReady || initialPinId != null || initialGeolocateTriggeredRef.current) return
     const map = mapRef.current
     if (!map || !navigator.geolocation) return
+
+    let cancelled = false
     initialGeolocateTriggeredRef.current = true
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        if (!mapRef.current) return
+        if (cancelled || !mapRef.current) return
         mapRef.current.flyTo({
           center: [position.coords.longitude, position.coords.latitude],
           zoom: GEOLOCATE_MAX_ZOOM,
@@ -508,6 +510,10 @@ export default function MapCanvas({
       () => { },
       GEOLOCATE_POSITION_OPTIONS,
     )
+
+    return () => {
+      cancelled = true
+    }
   }, [mapReady, initialPinId])
 
   // Pending location: actual pin (highlighted) + flyTo
