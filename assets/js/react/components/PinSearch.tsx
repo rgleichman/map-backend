@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { Pin } from "../types"
+import { useIsDesktop } from "../utils/useMediaQuery"
 import { pinMatchesQuery, type FilterState } from "./map/filters"
 
 const DEBOUNCE_MS = 150
@@ -29,6 +30,19 @@ function searchSuggestions(pins: Pin[], query: string): Pin[] {
     .slice(0, MAX_SUGGESTIONS)
 }
 
+/** Mobile width: compact when idle; grows with input; full width while focused (filter hidden). */
+function mobileSearchWidth(focused: boolean, inputValue: string): string {
+  const hasText = inputValue.trim().length > 0
+  if (focused) {
+    return "min(calc(100vw - 2rem), 18rem)"
+  }
+  if (!hasText) {
+    return "7rem"
+  }
+  const ch = Math.min(inputValue.length + 6, 28)
+  return `min(calc(100vw - 5.5rem), max(7rem, ${ch}ch), 18rem)`
+}
+
 type Props = {
   pins: Pin[]
   filter: FilterState
@@ -46,6 +60,7 @@ export default function PinSearch({
   topOffset,
   onFocusChange,
 }: Props) {
+  const isDesktop = useIsDesktop()
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState(filter.query)
@@ -69,6 +84,7 @@ export default function PinSearch({
   )
 
   const showList = focused && inputValue.trim() !== "" && suggestions.length > 0
+  const isCompact = !focused && inputValue.trim() === ""
 
   const selectPin = useCallback(
     (pin: Pin) => {
@@ -122,13 +138,14 @@ export default function PinSearch({
 
   return (
     <div
-      className="absolute z-20 w-[min(100vw-2rem,18rem)] pointer-events-none"
+      className="absolute z-20 pointer-events-none transition-[width] duration-200 ease-out sm:w-[min(100vw-2rem,18rem)]"
       style={{
         top: topOffset,
         left: "max(1rem, env(safe-area-inset-left))",
+        ...(isDesktop ? {} : { width: mobileSearchWidth(focused, inputValue) }),
       }}
     >
-      <div className="relative pointer-events-auto">
+      <div className="relative pointer-events-auto w-full">
         <label htmlFor={`${listboxId}-input`} className="sr-only">
           Search pins
         </label>
@@ -145,7 +162,7 @@ export default function PinSearch({
               ? `${listboxId}-option-${highlightIndex}`
               : undefined
           }
-          placeholder="Search pins"
+          placeholder="Search Pins"
           autoComplete="off"
           value={inputValue}
           onChange={(e) => {
@@ -164,7 +181,11 @@ export default function PinSearch({
             }, 150)
           }}
           onKeyDown={handleKeyDown}
-          className="w-full min-h-10 px-3 py-2 rounded-xl text-sm text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className={[
+            "w-full min-h-10 rounded-xl text-sm text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary/40",
+            isCompact ? "px-2.5" : "px-3",
+            "py-2",
+          ].join(" ")}
         />
         {showList && (
           <ul
