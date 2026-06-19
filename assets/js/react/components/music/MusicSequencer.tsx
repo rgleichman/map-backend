@@ -75,9 +75,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     onChange(prev)
   }, [onChange])
 
-  const previewNote = useCallback((note: string) => {
+  const previewNote = useCallback(async (note: string) => {
     const ctx = getAudioContext()
-    void ctx.resume()
+    if (ctx.state === "suspended") await ctx.resume()
     playNotePreview(ctx, note)
   }, [])
 
@@ -168,7 +168,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
                 type="button"
                 className="btn btn-ghost btn-xs h-9 min-h-9 w-[3.25rem] shrink-0 font-mono text-xs justify-start px-1"
                 disabled={disabled}
-                onClick={() => previewNote(row.note)}
+                onClick={() => void previewNote(row.note)}
                 title={`Preview ${row.note}`}
               >
                 {row.note}
@@ -182,7 +182,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
                   aria-pressed={on}
                   disabled={disabled}
                   onClick={() => {
-                    previewNote(row.note)
+                    void previewNote(row.note)
                     toggleCell(rowIdx, stepIdx)
                   }}
                   className={[

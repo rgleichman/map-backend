@@ -53,7 +53,19 @@ export function playNotePreview(ctx: AudioContext, note: string, durationMs = 18
   gain.gain.value = 0
   gain.connect(ctx.destination)
   const start = ctx.currentTime + 0.02
-  playToneAt(ctx, hz, start, durationMs / 1000, gain)
+  const osc = playToneAt(ctx, hz, start, durationMs / 1000, gain)
+  window.setTimeout(() => {
+    try {
+      osc.disconnect()
+    } catch {
+      // ignore
+    }
+    try {
+      gain.disconnect()
+    } catch {
+      // ignore
+    }
+  }, durationMs + 30)
 }
 
 function scheduleSequential(
