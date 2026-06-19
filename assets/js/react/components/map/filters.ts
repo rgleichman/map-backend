@@ -18,17 +18,19 @@ export type FilterState = {
   time: TimeFilter
   /** When set, only pins of this type are shown. */
   pinType: PinType | null
+  /** Case-insensitive substring match on title, description, and tags. */
+  query: string
 }
 
 /** Map opens with this (open now selected). */
-export const DEFAULT_FILTER: FilterState = { tag: null, time: "now", pinType: null }
+export const DEFAULT_FILTER: FilterState = { tag: null, time: "now", pinType: null, query: "" }
 /** Clear all = show all pins (no tag, no time filter, all pin types). */
-export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null }
+export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null, query: "" }
 
 /** Label shown on filter chips and in the time section. */
 export const TIME_FILTER_LABEL = "Open now or within 2 hours"
 
-export type FilterDimension = "time" | "tag" | "pinType"
+export type FilterDimension = "time" | "tag" | "pinType" | "query"
 
 export function clearFilterDimension(filter: FilterState, dim: FilterDimension): FilterState {
   switch (dim) {
@@ -38,6 +40,8 @@ export function clearFilterDimension(filter: FilterState, dim: FilterDimension):
       return { ...filter, tag: null }
     case "pinType":
       return { ...filter, pinType: null }
+    case "query":
+      return { ...filter, query: "" }
   }
 }
 
@@ -63,6 +67,10 @@ export function listActiveFilterChips(filter: FilterState, catalog: CustomPinTyp
       label: getPinTypeLabel(filter.pinType, catalog),
       pinType: filter.pinType
     })
+  }
+  const q = filter.query.trim()
+  if (q !== "") {
+    chips.push({ dimension: "query", label: `"${q}"` })
   }
   return chips
 }
@@ -142,7 +150,17 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
   return isRecurrenceDayForParts(nowParts, rruleStr, ianaTimezone)
 }
 
-/** True if the pin passes the current tag, time, and pin-type filter rules. */
+/** True if the pin matches a case-insensitive substring query on title, description, or tags. */
+export function pinMatchesQuery(p: Pin, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (q === "") return true
+  if (p.title.toLowerCase().includes(q)) return true
+  if (p.description?.toLowerCase().includes(q)) return true
+  if (p.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
+  return false
+}
+
+/** True if the pin passes the current tag, time, pin-type, and query filter rules. */
 export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {
     return false
@@ -151,6 +169,13 @@ export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
   if (filter.tag && (!p.tags || !p.tags.includes(filter.tag))) {
     return false
   }
+
+  if (!pinMatchesQuery(p, filter.query)) {
+    return false
+  }
+
+  // Text search is for discovery — skip "open now" while a query is active.
+  if (filter.query.trim() !== "") return true
 
   if (filter.time !== "now") return true
 

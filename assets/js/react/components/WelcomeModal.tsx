@@ -90,6 +90,10 @@ export default function WelcomeModal({ onClose }: Props) {
               </li>
               <li>Use the Address Bar in the map top-left to search for an address or location.</li>
               <li>
+                Use <span className="font-medium">Search pins</span> below the address bar to find pins by
+                name, description, or tag.
+              </li>
+              <li>
                 Use the filter button in the map top-right to filter by pin type and other unique qualities.
               </li>
               <li>Note the key in the lower-left for understanding the pin types you are seeing.</li>

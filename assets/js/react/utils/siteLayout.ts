@@ -46,6 +46,15 @@ export function mapShellTopRightOverlayTop(): string {
 }
 
 /**
+ * Vertical offset for pin search below MapLibre's Stadia place search control (~40px + margin).
+ */
+export const MAPLIBRE_PLACE_SEARCH_RESERVE = "3.25rem"
+
+export function mapShellTopLeftPinSearchTop(): string {
+  return `calc(${MAP_SHELL_OVERLAY_TOP} + ${MAPLIBRE_PLACE_SEARCH_RESERVE})`
+}
+
+/**
  * Form vs overlay: inputs that affect pin save (title, tags, community options, etc.)
  * belong in PinModal / PinComposer — not in floating MapShell overlays. Overlays are for
  * map chrome only (legend, filters, toolbar). See PinComposer / PinFlowUI.

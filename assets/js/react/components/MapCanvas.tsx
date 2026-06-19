@@ -21,7 +21,8 @@ import {
 } from "./map/clusterInteraction"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
-import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import PinSearch from "./PinSearch"
+import { mapShellTopLeftPinSearchTop, mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -188,7 +189,9 @@ export default function MapCanvas({
   const [mapReady, setMapReady] = useState(false)
   const [mapInitError, setMapInitError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [searchActive, setSearchActive] = useState(false)
+  const [placeSearchActive, setPlaceSearchActive] = useState(false)
+  const [pinSearchActive, setPinSearchActive] = useState(false)
+  const overlaySearchActive = placeSearchActive || pinSearchActive
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
   const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
@@ -223,8 +226,8 @@ export default function MapCanvas({
     if (!input) return
     // Placeholder is not a label; the control is created by MapLibreSearchControl without a <label>.
     input.setAttribute("aria-label", "Search for places")
-    const onFocus = () => setSearchActive(true)
-    const onBlur = () => setTimeout(() => setSearchActive(false), 150)
+    const onFocus = () => setPlaceSearchActive(true)
+    const onBlur = () => setTimeout(() => setPlaceSearchActive(false), 150)
     input.addEventListener("focus", onFocus)
     input.addEventListener("blur", onBlur)
     return () => {
@@ -732,7 +735,7 @@ export default function MapCanvas({
         </div>
       )}
       {mapReady && !drawerOpen && (
-        <div className={searchActive ? "max-sm:hidden" : "contents"}>
+        <div className={overlaySearchActive ? "max-sm:hidden" : "contents"}>
           <MapFilters
             pins={pins}
             filter={filter}
@@ -742,6 +745,21 @@ export default function MapCanvas({
             panelTopOffset={mapShellTopRightOverlayTop()}
           />
         </div>
+      )}
+      {mapReady && !drawerOpen && (
+        <PinSearch
+          pins={pins}
+          filter={filter}
+          setFilter={setFilter}
+          topOffset={mapShellTopLeftPinSearchTop()}
+          onFocusChange={setPinSearchActive}
+          onSelectPin={(pin) => {
+            const map = mapRef.current
+            if (!map) return
+            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
+            openPinPopup(map, pin)
+          }}
+        />
       )}
       {onPlacementMapClick && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">

@@ -122,7 +122,8 @@ export default function MapFilters({
   const { catalog } = usePinTypes()
   const tags = deriveTags(pins)
   const filterPinTypes = listFilterPinTypes(pins)
-  const hasActiveFilter = filter.tag !== null || filter.time !== null || filter.pinType !== null
+  const hasActiveFilter =
+    filter.tag !== null || filter.time !== null || filter.pinType !== null || filter.query.trim() !== ""
   const filterChips = listActiveFilterChips(filter, catalog)
   const filtersSummary =
     filterChips.length > 0 ? filterChips.map((c) => c.label).join("; ") : "Map filters"
