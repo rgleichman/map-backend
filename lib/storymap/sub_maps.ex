@@ -131,21 +131,23 @@ defmodule Storymap.SubMaps do
   end
 
   def create_sub_map(%Scope{user: %User{} = user}, attrs) do
-    attrs = stringify_keys(attrs)
+    with :ok <- Storymap.Accounts.Policy.authorize_write?(user) do
+      attrs = stringify_keys(attrs)
 
-    Repo.transaction(fn ->
-      with {:ok, sub_map} <-
-             %SubMap{}
-             |> SubMap.changeset(attrs)
-             |> Ecto.Changeset.put_change(:owner_user_id, user.id)
-             |> Repo.insert(),
-           {:ok, _membership} <-
-             insert_membership(sub_map.id, user.id, "owner", "active") do
-        sub_map
-      else
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
+      Repo.transaction(fn ->
+        with {:ok, sub_map} <-
+               %SubMap{}
+               |> SubMap.changeset(attrs)
+               |> Ecto.Changeset.put_change(:owner_user_id, user.id)
+               |> Repo.insert(),
+             {:ok, _membership} <-
+               insert_membership(sub_map.id, user.id, "owner", "active") do
+          sub_map
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+    end
   end
 
   def update_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do

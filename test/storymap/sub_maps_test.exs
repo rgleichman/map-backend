@@ -215,4 +215,57 @@ defmodule Storymap.SubMapsTest do
     assert {:error, :forbidden} =
              SubMaps.update_sub_map(%Scope{user: other}, sub_map, %{"name" => "Hacked"})
   end
+
+  test "create_sub_map/2 forbidden when user is muted" do
+    user = muted_user_fixture()
+
+    assert {:error, :forbidden} =
+             SubMaps.create_sub_map(%Scope{user: user}, %{
+               "name" => "Muted",
+               "community_url" => "muted-create"
+             })
+  end
+
+  test "update_sub_map/3 forbidden when owner is muted" do
+    user = user_fixture()
+
+    {:ok, sub_map} =
+      SubMaps.create_sub_map(%Scope{user: user}, %{
+        "name" => "Orig",
+        "community_url" => "muted-upd"
+      })
+
+    muted = muted_user_fixture(user)
+
+    assert {:error, :forbidden} =
+             SubMaps.update_sub_map(%Scope{user: muted}, sub_map, %{"name" => "Renamed"})
+  end
+
+  test "approve_pin/3 forbidden when moderator is muted" do
+    owner = user_fixture()
+    contributor = user_fixture()
+
+    sub_map =
+      sub_map_fixture(
+        %{"contribution_mode" => "approval_required", "community_url" => "muted-approve"},
+        owner
+      )
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: contributor},
+        sub_map,
+        %{
+          "title" => "Spot",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    muted_owner = muted_user_fixture(owner)
+
+    assert {:error, :forbidden} =
+             SubMaps.approve_pin(%Scope{user: muted_owner}, sub_map, pin.id)
+  end
 end

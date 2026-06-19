@@ -2,6 +2,8 @@ defmodule StorymapWeb.PinTypeLive.New do
   @moduledoc "Create a global custom pin type."
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_not_muted}
+
   alias Storymap.PinTypes
   alias Storymap.PinTypes.CustomPinType
   alias StorymapWeb.PinTypeLive.Form

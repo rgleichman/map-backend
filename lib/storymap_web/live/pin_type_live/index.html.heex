@@ -10,7 +10,7 @@
           Global templates anyone can use when adding pins on the world map or in communities that enable them.
         </p>
       </div>
-      <%= if @logged_in? do %>
+      <%= if @logged_in? && user_can_write?(@current_scope) do %>
         <.link navigate={~p"/pin-types/new"} class="btn btn-primary" id="pin-types-create-link">
           Create pin type
         </.link>

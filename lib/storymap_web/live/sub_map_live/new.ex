@@ -2,6 +2,8 @@ defmodule StorymapWeb.SubMapLive.New do
   @moduledoc "Create a new community."
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_not_muted}
+
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, SubMap}
   alias StorymapWeb.SubMapLive.PinTypeForm

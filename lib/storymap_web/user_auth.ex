@@ -236,6 +236,28 @@ defmodule StorymapWeb.UserAuth do
     end
   end
 
+  def on_mount(:require_not_muted, _params, _session, socket) do
+    case socket.assigns.current_scope do
+      %{user: user} ->
+        if Storymap.Accounts.Policy.muted?(user) do
+          socket =
+            socket
+            |> Phoenix.LiveView.put_flash(
+              :error,
+              "Your account is muted and cannot create or edit content."
+            )
+            |> Phoenix.LiveView.redirect(to: ~p"/map")
+
+          {:halt, socket}
+        else
+          {:cont, socket}
+        end
+
+      _ ->
+        {:cont, socket}
+    end
+  end
+
   def on_mount(:require_sudo_mode, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 

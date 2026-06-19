@@ -29,6 +29,7 @@ async function uploadMusicDrafts(
 
 type Params = {
   userId?: number
+  userMuted?: boolean
   csrfToken?: string
   communityUrl?: string
   subMap: SubMap | null
@@ -41,6 +42,7 @@ type Params = {
 
 export function usePinWorkflow({
   userId,
+  userMuted = false,
   csrfToken,
   communityUrl,
   subMap,
@@ -82,13 +84,17 @@ export function usePinWorkflow({
       dispatch({ type: "login_required" })
       return
     }
+    if (userMuted) {
+      setApiError("Your account is muted and cannot add or edit pins.")
+      return
+    }
     if (subMap && subMap.can_post === false) {
       setApiError("You must join this community before adding pins.")
       return
     }
     if (modalRef.current?.mode === "add" || modalRef.current?.mode === "edit") return
     dispatch({ type: "begin_add_at", lat, lng })
-  }, [userId, subMap, setApiError])
+  }, [userId, userMuted, subMap, setApiError])
 
   const onEdit = useCallback((pinId: number) => {
     const pin = pins.find(p => p.id === pinId)

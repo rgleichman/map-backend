@@ -2,6 +2,7 @@ defmodule Storymap.SubMaps.Policy do
   @moduledoc """
   Authorization for sub-map membership, posting, and moderation.
   """
+  alias Storymap.Accounts.Policy, as: AccountsPolicy
   alias Storymap.Accounts.User
   alias Storymap.SubMaps.{Membership, SubMap}
 
@@ -9,18 +10,26 @@ defmodule Storymap.SubMaps.Policy do
   def can_view?(%SubMap{visibility: "unlisted"}, _user, _membership), do: true
 
   def can_moderate?(%User{} = user, %SubMap{} = sub_map, membership) do
-    site_admin?(user) or mod_role?(membership) or owner?(sub_map, user)
+    if AccountsPolicy.muted?(user) do
+      false
+    else
+      site_admin?(user) or mod_role?(membership) or owner?(sub_map, user)
+    end
   end
 
   def can_moderate?(_, _, _), do: false
 
   def can_edit_sub_map?(%User{} = user, %SubMap{owner_user_id: owner_id}) do
-    user.id == owner_id or site_admin?(user)
+    if AccountsPolicy.muted?(user) do
+      false
+    else
+      user.id == owner_id or site_admin?(user)
+    end
   end
 
   def can_post?(%User{} = user, %SubMap{} = sub_map, membership) do
     cond do
-      Storymap.Pins.Policy.muted?(user) -> false
+      AccountsPolicy.muted?(user) -> false
       site_admin?(user) -> true
       sub_map.contribution_mode == "members_only" -> active_member?(membership)
       true -> true

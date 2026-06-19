@@ -94,4 +94,15 @@ defmodule Storymap.AccountsFixtures do
       set: [inserted_at: dt, authenticated_at: dt]
     )
   end
+
+  def muted_user_fixture(user_or_attrs \\ %{})
+
+  def muted_user_fixture(%Storymap.Accounts.User{} = user) do
+    Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+  end
+
+  def muted_user_fixture(attrs) when is_map(attrs) do
+    user = user_fixture(attrs)
+    muted_user_fixture(user)
+  end
 end

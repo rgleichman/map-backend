@@ -33,11 +33,14 @@ defmodule StorymapWeb.PinTypeController do
         |> put_status(:created)
         |> render(:show, pin_type: pin_type)
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      {:error, :forbidden} ->
+        forbidden(conn)
 
       {:error, :unauthorized} ->
         unauthorized(conn)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
     end
   end
 

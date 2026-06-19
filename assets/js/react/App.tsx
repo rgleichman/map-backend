@@ -21,6 +21,7 @@ import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Props = {
   userId?: number
+  userMuted?: boolean
   csrfToken?: string
   styleUrl?: string
   communityUrl?: string
@@ -34,7 +35,7 @@ const parseInitialPinId = () => {
 
 const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
-export default function App({ userId, csrfToken, styleUrl = "/api/map/style", communityUrl: datasetCommunityUrl }: Props) {
+export default function App({ userId, userMuted = false, csrfToken, styleUrl = "/api/map/style", communityUrl: datasetCommunityUrl }: Props) {
   const isDesktop = useIsDesktop()
   const [communityUrl, setCommunityUrl] = useState<string | undefined>(
     () => datasetCommunityUrl ?? communityUrlFromPathname(window.location.pathname)
@@ -71,6 +72,7 @@ export default function App({ userId, csrfToken, styleUrl = "/api/map/style", co
 
   const workflow = usePinWorkflow({
     userId,
+    userMuted,
     csrfToken,
     communityUrl,
     subMap,

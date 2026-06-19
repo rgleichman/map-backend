@@ -6,6 +6,7 @@ defmodule Storymap.Pins.Policy do
   `StorymapWeb.PinJSON` so ownership and admin checks stay in one place.
   """
 
+  alias Storymap.Accounts.Policy, as: AccountsPolicy
   alias Storymap.Accounts.User
   alias Storymap.Pins.Pin
 
@@ -59,6 +60,5 @@ defmodule Storymap.Pins.Policy do
   def catalog_admin?(_), do: false
 
   @doc false
-  def muted?(%User{muted_at: nil}), do: false
-  def muted?(%User{muted_at: _}), do: true
+  def muted?(%User{} = user), do: AccountsPolicy.muted?(user)
 end

@@ -40,6 +40,9 @@ defmodule StorymapWeb.SubMapController do
           counts: SubMaps.counts(sub_map)
         )
 
+      {:error, :forbidden} ->
+        forbidden(conn)
+
       {:error, %Ecto.Changeset{} = changeset} ->
         {:error, changeset}
     end

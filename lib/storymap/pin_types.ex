@@ -37,11 +37,15 @@ defmodule Storymap.PinTypes do
   def get_by_pin_type(_), do: nil
 
   def create_pin_type(%Scope{user: %User{} = user}, attrs) do
-    attrs = stringify_keys(attrs)
+    if Policy.can_create?(user) do
+      attrs = stringify_keys(attrs)
 
-    %CustomPinType{created_by_user_id: user.id}
-    |> CustomPinType.changeset(attrs)
-    |> Repo.insert()
+      %CustomPinType{created_by_user_id: user.id}
+      |> CustomPinType.changeset(attrs)
+      |> Repo.insert()
+    else
+      {:error, :forbidden}
+    end
   end
 
   def create_pin_type(_, _), do: {:error, :unauthorized}

@@ -1,6 +1,7 @@
 defmodule StorymapWeb.SubMapControllerTest do
   use StorymapWeb.ConnCase
 
+  import Storymap.AccountsFixtures
   import Storymap.SubMapsFixtures
 
   setup %{conn: conn} do
@@ -30,6 +31,22 @@ defmodule StorymapWeb.SubMapControllerTest do
         })
 
       assert %{"community_url" => "my-bbq"} = json_response(conn, 201)["data"]
+    end
+
+    test "forbids create when user is muted", %{conn: conn, user: user} do
+      user = muted_user_fixture(user)
+      conn = log_in_user(conn, user)
+
+      conn =
+        post(conn, ~p"/api/sub_maps", %{
+          sub_map: %{
+            name: "Muted Map",
+            community_url: "muted-map",
+            contribution_mode: "open"
+          }
+        })
+
+      assert json_response(conn, 403)["errors"] != %{}
     end
   end
 
@@ -66,6 +83,19 @@ defmodule StorymapWeb.SubMapControllerTest do
       body = json_response(conn, 200)["data"]
       assert body["name"] == "After"
       assert body["description"] == "Updated"
+    end
+
+    test "PATCH forbidden when owner is muted", %{conn: conn, user: user} do
+      sub_map = sub_map_fixture(%{"community_url" => "muted-patch", "name" => "Before"}, user)
+      user = muted_user_fixture(user)
+      conn = log_in_user(conn, user)
+
+      conn =
+        patch(conn, ~p"/api/sub_maps/#{sub_map.community_url}", %{
+          sub_map: %{name: "After"}
+        })
+
+      assert json_response(conn, 403)["errors"] != %{}
     end
   end
 end

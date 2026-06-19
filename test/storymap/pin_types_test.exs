@@ -48,6 +48,33 @@ defmodule Storymap.PinTypesTest do
 
       assert "must include a fields array" in errors_on(changeset).schema
     end
+
+    test "forbids muted user" do
+      user = muted_user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:error, :forbidden} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Muted",
+                 "schema" => %{
+                   "fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]
+                 }
+               })
+    end
+  end
+
+  describe "update_pin_type/3 and delete_pin_type/2" do
+    test "forbids muted owner" do
+      user = user_fixture()
+      pin_type = custom_pin_type_fixture(%{}, user)
+      muted = muted_user_fixture(user)
+      scope = %Scope{user: muted}
+
+      assert {:error, :forbidden} =
+               PinTypes.update_pin_type(scope, pin_type, %{"label" => "Renamed"})
+
+      assert {:error, :forbidden} = PinTypes.delete_pin_type(scope, pin_type)
+    end
   end
 
   describe "delete_pin_type/2" do

@@ -85,6 +85,7 @@ defmodule StorymapWeb do
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components
+      import StorymapWeb.AccountHelpers
       import StorymapWeb.CoreComponents
       import StorymapWeb.SubMapComponents
 

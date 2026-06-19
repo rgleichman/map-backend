@@ -1,6 +1,7 @@
 defmodule StorymapWeb.PinMusicFieldControllerTest do
   use StorymapWeb.ConnCase
 
+  import Storymap.AccountsFixtures
   import Storymap.PinsFixtures
 
   @payload "tempo=120;seq=kick,snare,hihat"
@@ -46,6 +47,19 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
         )
 
       assert json_response(conn, 422)["errors"]["field_key"] != []
+    end
+
+    test "forbids upsert when user is muted", %{conn: conn, user: user} do
+      pin = music_pin_fixture(user)
+      user = muted_user_fixture(user)
+      conn = log_in_user(conn, user)
+
+      conn =
+        post(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+          music_field: %{payload: @payload, format: "music/v1", version: 1}
+        )
+
+      assert json_response(conn, 403)["errors"] != %{}
     end
   end
 

@@ -8,7 +8,7 @@
             Curated pin collections with their own rules and moderators.
           </p>
         </div>
-        <%= if @current_scope && @current_scope.user do %>
+        <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
           <.link navigate={~p"/m/new"} class="btn btn-primary shrink-0" id="sub-maps-create">
             Create a community
           </.link>
@@ -45,7 +45,7 @@
         <p class="text-base-content/80">
           No communities yet. Be the first to create one and start mapping together.
         </p>
-        <%= if @current_scope && @current_scope.user do %>
+        <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
           <.link navigate={~p"/m/new"} class="btn btn-primary">
             Create a community
           </.link>

@@ -72,9 +72,4 @@ defmodule Storymap.Pins.PolicyTest do
       refute Policy.catalog_admin?(user_fixture())
     end
   end
-
-  defp muted_user_fixture(user \\ nil) do
-    user = user || user_fixture()
-    Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
-  end
 end
