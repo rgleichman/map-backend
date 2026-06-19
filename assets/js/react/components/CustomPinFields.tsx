@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { CustomFieldSchema } from "../types"
 import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
 import MusicPlayStopLabel from "./music/MusicPlayStopLabel"
-import { musicFieldDraftHasContent } from "../utils/musicFieldValue"
+import { isMusicFieldDraft, musicFieldDraftHasContent } from "../utils/musicFieldValue"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchMusicPayload } from "../utils/musicPayloadCache"
 
@@ -179,6 +179,7 @@ export function isCustomFieldEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true
   if (Array.isArray(value) && value.length === 0) return true
   if (musicFieldDraftHasContent(value)) return false
+  if (isMusicFieldDraft(value)) return true
   if (isMusicFieldRef(value)) return false
   if (typeof value === "object" && value != null && "ref" in (value as Record<string, unknown>)) return true
   return false

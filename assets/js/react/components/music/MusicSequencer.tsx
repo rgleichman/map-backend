@@ -84,9 +84,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     onChange(prev)
   }, [onChange])
 
-  const previewNote = useCallback((note: string) => {
+  const previewNote = useCallback(async (note: string) => {
     const ctx = getAudioContext()
-    void ctx.resume()
+    if (ctx.state === "suspended") await ctx.resume()
     playNotePreview(ctx, note)
   }, [])
 
