@@ -5,7 +5,27 @@ import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import { usePinTypes } from "../context/PinTypesContext"
 import type { Pin, PinType, SubMap } from "../types"
 import { canChooseWorldVisibility } from "../utils/subMapForm"
+import { invalidateMusicPayloadCache } from "../utils/musicPayloadCache"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
+
+async function uploadMusicDrafts(
+  csrfToken: string | undefined,
+  pin: Pin,
+  drafts: Record<string, string>
+): Promise<Pin> {
+  let updated = pin
+  for (const [fieldKey, payload] of Object.entries(drafts)) {
+    const refValue = await api.upsertMusicFieldAndGetRef(csrfToken, updated.id, fieldKey, payload)
+    if (refValue !== undefined) {
+      invalidateMusicPayloadCache(updated.id, fieldKey)
+      updated = {
+        ...updated,
+        custom_data: { ...(updated.custom_data ?? {}), [fieldKey]: refValue },
+      }
+    }
+  }
+  return updated
+}
 
 type Params = {
   userId?: number
@@ -146,11 +166,19 @@ export function usePinWorkflow({
         const { data: pinData } = communityUrl
           ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
           : await api.createPin(csrfToken, result.payload)
-        updateOrAddPin(pinData)
+        const pinWithMusic =
+          Object.keys(result.musicDrafts).length > 0
+            ? await uploadMusicDrafts(csrfToken, pinData, result.musicDrafts)
+            : pinData
+        updateOrAddPin(pinWithMusic)
         dispatch({ type: "after_add_saved" })
       } else {
         const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
-        updateOrAddPin(data)
+        const pinWithMusic =
+          Object.keys(result.musicDrafts).length > 0
+            ? await uploadMusicDrafts(csrfToken, data, result.musicDrafts)
+            : data
+        updateOrAddPin(pinWithMusic)
         dispatch({ type: "after_edit_saved" })
       }
     } catch (err) {

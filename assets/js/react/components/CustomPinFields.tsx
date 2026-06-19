@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { CustomFieldSchema } from "../types"
 import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
+import MusicPlayStopLabel from "./music/MusicPlayStopLabel"
+import { musicFieldDraftHasContent } from "../utils/musicFieldValue"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchMusicPayload } from "../utils/musicPayloadCache"
 
@@ -139,6 +141,7 @@ function renderField(
           csrfToken={ctx.csrfToken}
           pinId={ctx.pinId ?? null}
           fieldKey={ctx.fieldKey}
+          fieldLabel={field.label}
           value={value}
           onValue={onValue}
         />
@@ -162,6 +165,9 @@ export function validateCustomFields(
   for (const field of fields) {
     if (!field.required) continue
     const value = values[field.key]
+    if (field.type === "music") {
+      if (isMusicFieldRef(value) || musicFieldDraftHasContent(value)) continue
+    }
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
       return `${field.label} is required`
     }
@@ -172,7 +178,9 @@ export function validateCustomFields(
 export function isCustomFieldEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true
   if (Array.isArray(value) && value.length === 0) return true
-  if (isMusicFieldRef(value) === false && typeof value === "object" && value != null && "ref" in (value as any)) return true
+  if (musicFieldDraftHasContent(value)) return false
+  if (isMusicFieldRef(value)) return false
+  if (typeof value === "object" && value != null && "ref" in (value as Record<string, unknown>)) return true
   return false
 }
 
@@ -289,7 +297,7 @@ function MusicFieldDisplay({ fieldKey, value, className }: MusicFieldDisplayProp
         onClick={() => void toggle()}
         disabled={loading}
       >
-        {loading ? "Loading…" : playing ? "Pause" : "Play"}
+        {loading ? "Loading…" : <MusicPlayStopLabel playing={playing} />}
       </button>
       {error ? <span className="text-xs text-error">{error}</span> : null}
     </div>

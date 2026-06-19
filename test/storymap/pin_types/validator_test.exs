@@ -42,4 +42,41 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
     assert get_field(changeset, :custom_data) == %{"status" => "working", "cost" => 1}
   end
+
+  test "does not require music fields in custom_data on pin create" do
+    import Storymap.PinTypesFixtures
+
+    pin_type =
+      custom_pin_type_fixture(%{
+        "schema" => %{
+          "fields" => [
+            %{
+              "key" => "status",
+              "label" => "Status",
+              "type" => "select",
+              "required" => true,
+              "options" => [
+                %{"value" => "working", "label" => "Working"}
+              ]
+            },
+            %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+          ]
+        }
+      })
+
+    changeset =
+      %Pin{}
+      |> Pin.changeset(%{
+        "title" => "Arcade",
+        "latitude" => 30.0,
+        "longitude" => -97.0,
+        "pin_type" => "custom:#{pin_type.slug}",
+        "custom_data" => %{"status" => "working"},
+        "user_id" => 1
+      })
+      |> Validator.validate_custom_data(pin_type)
+
+    assert changeset.valid?
+    assert get_field(changeset, :custom_data) == %{"status" => "working"}
+  end
 end

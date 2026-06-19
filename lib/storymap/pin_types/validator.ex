@@ -39,6 +39,7 @@ defmodule Storymap.PinTypes.Validator do
     missing =
       fields
       |> Enum.filter(&required?/1)
+      |> Enum.reject(&music_field?/1)
       |> Enum.reject(fn field -> present?(data, field_key(field)) end)
       |> Enum.map(&field_label/1)
 
@@ -166,6 +167,10 @@ defmodule Storymap.PinTypes.Validator do
   defp required?(%{"required" => true}), do: true
   defp required?(%{required: true}), do: true
   defp required?(_), do: false
+
+  defp music_field?(%{"type" => "music"}), do: true
+  defp music_field?(%{type: "music"}), do: true
+  defp music_field?(_), do: false
 
   defp present?(data, key) do
     case Map.get(data, key) do

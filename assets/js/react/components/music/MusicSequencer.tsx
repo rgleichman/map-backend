@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { MusicScore } from "../../utils/musicScore"
 import { cloneScore, serializeScore } from "../../utils/musicScore"
 import { getAudioContext, playNotePreview, playPayload } from "../../utils/musicAudio"
+import MusicPlayStopLabel from "./MusicPlayStopLabel"
 
 type Props = {
   score: MusicScore
@@ -10,10 +11,17 @@ type Props = {
 }
 
 const MAX_UNDO = 24
+const TEMPO_MIN = 40
+const TEMPO_MAX = 220
+
+function clampTempo(value: number): number {
+  return Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, Math.round(value)))
+}
 
 export default function MusicSequencer({ score, onChange, disabled = false }: Props) {
   const [activeStep, setActiveStep] = useState(-1)
   const [previewing, setPreviewing] = useState(false)
+  const [tempoInput, setTempoInput] = useState<string | null>(null)
   const undoStack = useRef<MusicScore[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const playerRef = useRef<ReturnType<typeof playPayload> | null>(null)
@@ -51,14 +59,15 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     [applyChange, disabled, score]
   )
 
-  const setTempo = useCallback(
-    (tempo: number) => {
-      const clamped = Math.min(220, Math.max(40, Math.round(tempo)))
-      if (clamped === score.tempo) return
-      applyChange({ ...cloneScore(score), tempo: clamped })
-    },
-    [applyChange, score]
-  )
+  const commitTempo = useCallback(() => {
+    const raw = tempoInput ?? String(score.tempo)
+    setTempoInput(null)
+    const parsed = parseInt(raw, 10)
+    if (Number.isNaN(parsed)) return
+    const clamped = clampTempo(parsed)
+    if (clamped === score.tempo) return
+    applyChange({ ...cloneScore(score), tempo: clamped })
+  }, [applyChange, score, tempoInput])
 
   const clearGrid = useCallback(() => {
     const next = cloneScore(score)
@@ -75,9 +84,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     onChange(prev)
   }, [onChange])
 
-  const previewNote = useCallback(async (note: string) => {
+  const previewNote = useCallback((note: string) => {
     const ctx = getAudioContext()
-    if (ctx.state === "suspended") await ctx.resume()
+    void ctx.resume()
     playNotePreview(ctx, note)
   }, [])
 
@@ -110,14 +119,23 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
         <label className="form-control w-28">
           <span className="label-text text-xs text-base-content/70">Tempo (BPM)</span>
           <input
-            type="number"
-            min={40}
-            max={220}
-            step={1}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             className="input input-bordered input-sm w-full"
-            value={score.tempo}
+            value={tempoInput ?? String(score.tempo)}
             disabled={disabled}
-            onChange={(e) => setTempo(Number(e.target.value))}
+            onChange={(e) => setTempoInput(e.target.value.replace(/[^\d]/g, ""))}
+            onBlur={() => commitTempo()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                commitTempo()
+              } else if (e.key === "Escape") {
+                e.preventDefault()
+                setTempoInput(null)
+              }
+            }}
           />
         </label>
         <div className="flex flex-wrap gap-2">
@@ -127,7 +145,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
             onClick={() => void togglePreview()}
             disabled={disabled}
           >
-            {previewing ? "Stop" : "Preview"}
+            <MusicPlayStopLabel playing={previewing} />
           </button>
           <button
             type="button"
@@ -204,7 +222,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
       </div>
 
       <p className="text-xs text-base-content/60">
-        Tap pads to hear notes. Toggle steps to build a pattern. Preview plays left to right.
+        Tap pads to hear notes. Toggle steps to build a pattern. Play runs left to right.
       </p>
     </div>
   )

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Pin } from "../types"
+import type { CustomPinType } from "../types"
 import type { DraftState } from "./types"
 import { validateAndBuildSavePayload } from "./savePin"
 
@@ -126,6 +127,7 @@ describe("validateAndBuildSavePayload", () => {
     expect(result).toEqual({
       mode: "edit",
       pinId: 42,
+      musicDrafts: {},
       changes: expect.objectContaining({
         title: "Updated",
         latitude: 41,
@@ -133,5 +135,75 @@ describe("validateAndBuildSavePayload", () => {
         visible_on_world_map: false,
       }),
     })
+  })
+
+  it("strips music drafts from custom_data in add payload", () => {
+    const draftPayload = JSON.stringify({
+      version: 1,
+      tempo: 120,
+      steps: 16,
+      rows: [
+        {
+          note: "C4",
+          hits: [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+        },
+      ],
+    })
+    const catalog: CustomPinType[] = [
+      {
+        id: 1,
+        slug: "song-pin",
+        label: "Song Pin",
+        pin_type: "custom:song-pin",
+        enabled: true,
+        schema: {
+          fields: [{ key: "song", type: "music", label: "Song", required: true }],
+        },
+      },
+    ]
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "custom:song-pin" },
+      minimalDraft({
+        pinType: "custom:song-pin",
+        customData: { song: { draft: draftPayload } },
+      }),
+      false,
+      catalog
+    )
+    if ("payload" in result) {
+      expect(result.payload.custom_data).toEqual({})
+      expect(result.musicDrafts).toEqual({ song: draftPayload })
+    } else {
+      throw new Error("expected add payload")
+    }
+  })
+
+  it("strips music drafts even when catalog is empty", () => {
+    const draftPayload = JSON.stringify({
+      version: 1,
+      tempo: 120,
+      steps: 16,
+      rows: [
+        {
+          note: "C4",
+          hits: [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+        },
+      ],
+    })
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "custom:song-pin" },
+      minimalDraft({
+        pinType: "custom:song-pin",
+        customData: { song: { draft: draftPayload } },
+      }),
+      false,
+      []
+    )
+    if ("payload" in result) {
+      expect(result.payload.custom_data).toEqual({})
+      expect(result.musicDrafts).toEqual({ song: draftPayload })
+    } else {
+      throw new Error("expected add payload")
+    }
   })
 })
