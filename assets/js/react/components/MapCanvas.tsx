@@ -40,8 +40,8 @@ const CLUSTER_MAX_ZOOM = 15
 const GEOLOCATE_MAX_ZOOM = 12
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
-  timeout: 6000,
-  maximumAge: 0,
+  timeout: 10_000,
+  maximumAge: 20 * 60 * 1000,
 }
 
 function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
