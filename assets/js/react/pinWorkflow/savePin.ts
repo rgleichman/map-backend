@@ -1,7 +1,7 @@
 import type { CustomPinType, NewPin, PinType, UpdatePin } from "../types"
 import { findCustomPinType, isCustomPinType } from "../utils/customPinTypes"
 import { validateCustomFields } from "../components/CustomPinFields"
-import { stripMusicDraftsFromCustomData } from "../utils/musicFieldValue"
+import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import { buildPinTimeFields } from "./buildPinPayload"
 import type { DraftState, ModalState } from "./types"
 
@@ -9,8 +9,8 @@ export type SavePinValidationError =
   | { kind: "time"; message: string }
   | { kind: "form"; message: string }
 
-export type SavePinAddPayload = { mode: "add"; payload: NewPin; musicDrafts: Record<string, string> }
-export type SavePinEditPayload = { mode: "edit"; pinId: number; changes: UpdatePin; musicDrafts: Record<string, string> }
+export type SavePinAddPayload = { mode: "add"; payload: NewPin; blobDrafts: Record<string, BlobFieldDraftEntry> }
+export type SavePinEditPayload = { mode: "edit"; pinId: number; changes: UpdatePin; blobDrafts: Record<string, BlobFieldDraftEntry> }
 
 export type SavePinResult = SavePinAddPayload | SavePinEditPayload
 
@@ -57,9 +57,9 @@ export function validateAndBuildSavePayload(
       return { kind: "form", message: "Please select a pin type" }
     }
     const customFields = isCustom ? findCustomPinType(effectiveType, catalog)?.schema?.fields ?? [] : []
-    const { cleaned: cleanedCustomData, drafts: musicDrafts } = isCustom
-      ? stripMusicDraftsFromCustomData(customData, customFields)
-      : { cleaned: customData, drafts: {} as Record<string, string> }
+    const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
+      ? stripBlobDraftsFromCustomData(customData, customFields)
+      : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }
     const payload: NewPin = {
       title,
       pin_type: pinType,
@@ -70,15 +70,15 @@ export function validateAndBuildSavePayload(
       ...(isCustom ? { custom_data: cleanedCustomData } : buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule)),
       ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
     }
-    return { mode: "add", payload, musicDrafts }
+    return { mode: "add", payload, blobDrafts }
   }
 
   const lat = editLocation?.lat ?? modal.pin.latitude
   const lng = editLocation?.lng ?? modal.pin.longitude
   const customFields = isCustom ? findCustomPinType(effectiveType, catalog)?.schema?.fields ?? [] : []
-  const { cleaned: cleanedCustomData, drafts: musicDrafts } = isCustom
-    ? stripMusicDraftsFromCustomData(customData, customFields)
-    : { cleaned: customData, drafts: {} as Record<string, string> }
+  const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
+    ? stripBlobDraftsFromCustomData(customData, customFields)
+    : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }
   const changes: UpdatePin = {
     title,
     description,
@@ -88,5 +88,5 @@ export function validateAndBuildSavePayload(
     longitude: lng,
     ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
   }
-  return { mode: "edit", pinId: modal.pin.id, changes, musicDrafts }
+  return { mode: "edit", pinId: modal.pin.id, changes, blobDrafts }
 }

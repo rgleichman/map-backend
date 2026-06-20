@@ -1,7 +1,7 @@
 defmodule Storymap.PinTypes.Schema do
   @moduledoc false
 
-  @field_types ~w(text textarea number boolean select url list music)
+  @field_types ~w(text textarea number boolean select url list music drawing)
   @max_fields 30
   @max_key_length 64
   @max_label_length 120

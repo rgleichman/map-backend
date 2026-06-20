@@ -39,7 +39,7 @@ defmodule Storymap.PinTypes.Validator do
     missing =
       fields
       |> Enum.filter(&required?/1)
-      |> Enum.reject(&music_field?/1)
+      |> Enum.reject(&blob_field?/1)
       |> Enum.reject(fn field -> present?(data, field_key(field)) end)
       |> Enum.map(&field_label/1)
 
@@ -99,8 +99,11 @@ defmodule Storymap.PinTypes.Validator do
   defp validate_value(value, %{"type" => "list"}), do: validate_list(value)
   defp validate_value(value, %{type: "list"}), do: validate_list(value)
 
-  defp validate_value(value, %{"type" => "music"}), do: validate_music_ref(value)
-  defp validate_value(value, %{type: "music"}), do: validate_music_ref(value)
+  defp validate_value(value, %{"type" => "music"}), do: validate_blob_ref(value)
+  defp validate_value(value, %{type: "music"}), do: validate_blob_ref(value)
+
+  defp validate_value(value, %{"type" => "drawing"}), do: validate_blob_ref(value)
+  defp validate_value(value, %{type: "drawing"}), do: validate_blob_ref(value)
 
   defp validate_value(_, _), do: {:error, "has invalid type"}
 
@@ -156,21 +159,21 @@ defmodule Storymap.PinTypes.Validator do
 
   defp validate_list(_), do: {:error, "must be a list"}
 
-  defp validate_music_ref(value) when is_integer(value) and value > 0, do: :ok
+  defp validate_blob_ref(value) when is_integer(value) and value > 0, do: :ok
 
-  defp validate_music_ref(%{"ref" => ref}) when is_integer(ref) and ref > 0, do: :ok
-  defp validate_music_ref(%{ref: ref}) when is_integer(ref) and ref > 0, do: :ok
+  defp validate_blob_ref(%{"ref" => ref}) when is_integer(ref) and ref > 0, do: :ok
+  defp validate_blob_ref(%{ref: ref}) when is_integer(ref) and ref > 0, do: :ok
 
-  defp validate_music_ref(_),
+  defp validate_blob_ref(_),
     do: {:error, "must be a reference (integer id or %{ref: id})"}
 
   defp required?(%{"required" => true}), do: true
   defp required?(%{required: true}), do: true
   defp required?(_), do: false
 
-  defp music_field?(%{"type" => "music"}), do: true
-  defp music_field?(%{type: "music"}), do: true
-  defp music_field?(_), do: false
+  defp blob_field?(%{"type" => type}) when type in ["music", "drawing"], do: true
+  defp blob_field?(%{type: type}) when type in ["music", "drawing"], do: true
+  defp blob_field?(_), do: false
 
   defp present?(data, key) do
     case Map.get(data, key) do

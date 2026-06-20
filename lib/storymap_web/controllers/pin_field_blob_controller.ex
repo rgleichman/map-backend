@@ -1,4 +1,4 @@
-defmodule StorymapWeb.PinMusicFieldController do
+defmodule StorymapWeb.PinFieldBlobController do
   use StorymapWeb, :controller
 
   alias Storymap.Pins
@@ -7,28 +7,25 @@ defmodule StorymapWeb.PinMusicFieldController do
 
   action_fallback StorymapWeb.FallbackController
 
+  defp blob_type(conn) do
+    conn.private[:blob_type] || conn.params["blob_type"]
+  end
+
   def show(conn, %{"id" => id, "field_key" => field_key}) do
+    type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
-    current_user = conn.assigns.current_scope.user
-    {sub_map, membership} = sub_map_and_membership(pin, current_user)
-    opts = [sub_map: sub_map, membership: membership, user: current_user]
 
-    case Authorizer.authorize_update(current_user, pin, opts) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    case Pins.get_field_blob(pin.id, field_key, type) do
+      nil ->
+        {:error, :not_found}
 
-      :ok ->
-        case Pins.get_music_blob(pin.id, field_key) do
-          nil ->
-            {:error, :not_found}
-
-          blob ->
-            render(conn, :show, blob: blob)
-        end
+      blob ->
+        render(conn, :show, blob: blob)
     end
   end
 
   def create(conn, %{"id" => id, "field_key" => field_key} = params) do
+    type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
@@ -40,7 +37,7 @@ defmodule StorymapWeb.PinMusicFieldController do
 
       :ok ->
         with {:ok, %{pin: pin}} <-
-               Pins.upsert_music_blob(pin, field_key, music_field_params(params)) do
+               Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
           pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
           conn
@@ -52,8 +49,8 @@ defmodule StorymapWeb.PinMusicFieldController do
             membership: membership
           )
         else
-          {:error, :invalid_music_field} ->
-            invalid_music_field(conn)
+          {:error, :invalid_blob_field} ->
+            invalid_blob_field(conn, type)
 
           other ->
             other
@@ -61,11 +58,10 @@ defmodule StorymapWeb.PinMusicFieldController do
     end
   end
 
-  def update(conn, %{"id" => id, "field_key" => field_key} = params) do
-    create(conn, Map.put(params, "id", id) |> Map.put("field_key", field_key))
-  end
+  def update(conn, params), do: create(conn, params)
 
   def delete(conn, %{"id" => id, "field_key" => field_key}) do
+    type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
@@ -76,7 +72,7 @@ defmodule StorymapWeb.PinMusicFieldController do
         forbidden(conn)
 
       :ok ->
-        with {:ok, pin} <- Pins.delete_music_blob(pin, field_key) do
+        with {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
           pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
           conn
@@ -88,11 +84,11 @@ defmodule StorymapWeb.PinMusicFieldController do
             membership: membership
           )
         else
-          {:error, :invalid_music_field} ->
-            invalid_music_field(conn)
+          {:error, :invalid_blob_field} ->
+            invalid_blob_field(conn, type)
 
-          {:error, :required_music_field} ->
-            required_music_field(conn)
+          {:error, :required_blob_field} ->
+            required_blob_field(conn)
 
           other ->
             other
@@ -100,15 +96,17 @@ defmodule StorymapWeb.PinMusicFieldController do
     end
   end
 
-  defp music_field_params(%{"music_field" => %{} = params}), do: params
+  defp field_blob_params(%{"field_blob" => %{} = params}), do: params
 
-  defp music_field_params(%{"payload" => _} = params),
+  defp field_blob_params(%{"music_field" => %{} = params}), do: params
+
+  defp field_blob_params(%{"payload" => _} = params),
     do: Map.take(params, ["payload", "format", "version"])
 
-  defp music_field_params(%{payload: _} = params),
+  defp field_blob_params(%{payload: _} = params),
     do: Map.take(params, [:payload, :format, :version])
 
-  defp music_field_params(_), do: %{}
+  defp field_blob_params(_), do: %{}
 
   defp sub_map_and_membership(pin, user) do
     sub_map = pin.sub_map
@@ -116,13 +114,17 @@ defmodule StorymapWeb.PinMusicFieldController do
     {sub_map, membership}
   end
 
-  defp invalid_music_field(conn) do
+  defp invalid_blob_field(conn, blob_type) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{errors: %{field_key: ["is not a music field for this pin type"]}})
+    |> json(%{
+      errors: %{
+        field_key: ["is not a #{blob_type} field for this pin type"]
+      }
+    })
   end
 
-  defp required_music_field(conn) do
+  defp required_blob_field(conn) do
     conn
     |> put_status(:unprocessable_entity)
     |> json(%{errors: %{field_key: ["cannot delete required field"]}})

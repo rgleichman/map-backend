@@ -48,6 +48,13 @@ defmodule StorymapWeb.Router do
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
     get "/pins/:id", PinController, :show
+
+    get "/pins/:id/music_fields/:field_key", PinFieldBlobController, :show,
+      private: %{blob_type: "music"}
+
+    get "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :show,
+      private: %{blob_type: "drawing"}
+
     get "/pin_types", PinTypeController, :index
     get "/pin_types/:slug", PinTypeController, :show
     get "/sub_maps", SubMapController, :index
@@ -88,10 +95,23 @@ defmodule StorymapWeb.Router do
     patch "/pins/:id", PinController, :update
     delete "/pins/:id", PinController, :delete
 
-    get "/pins/:id/music_fields/:field_key", PinMusicFieldController, :show
-    post "/pins/:id/music_fields/:field_key", PinMusicFieldController, :create
-    put "/pins/:id/music_fields/:field_key", PinMusicFieldController, :update
-    delete "/pins/:id/music_fields/:field_key", PinMusicFieldController, :delete
+    post "/pins/:id/music_fields/:field_key", PinFieldBlobController, :create,
+      private: %{blob_type: "music"}
+
+    put "/pins/:id/music_fields/:field_key", PinFieldBlobController, :update,
+      private: %{blob_type: "music"}
+
+    delete "/pins/:id/music_fields/:field_key", PinFieldBlobController, :delete,
+      private: %{blob_type: "music"}
+
+    post "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :create,
+      private: %{blob_type: "drawing"}
+
+    put "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :update,
+      private: %{blob_type: "drawing"}
+
+    delete "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :delete,
+      private: %{blob_type: "drawing"}
 
     post "/pin_types", PinTypeController, :create
     patch "/pin_types/:id", PinTypeController, :update

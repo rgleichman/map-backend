@@ -1,4 +1,5 @@
 import type { ContentReportPayload, CustomPinType, NewPin, Pin, SubMap, UpdatePin } from "../types"
+import { BLOB_FIELD_API_SEGMENT, BlobFieldType } from "../utils/blobFieldType"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -131,18 +132,24 @@ export function submitReport(
   })
 }
 
-export type MusicFieldRef = { ref: string | number }
+export type BlobFieldRef = { ref: string | number }
+export type MusicFieldRef = BlobFieldRef
 
-type MusicFieldUpsertResponse =
+type FieldBlobUpsertResponse =
   | { data: { value: unknown } }
   | { data: { custom_data_value: unknown } }
   | { data: { custom_data: Record<string, unknown> } }
 
-function pickMusicCustomDataValue(fieldKey: string, res: MusicFieldUpsertResponse): unknown {
-  const data = (res as { data: unknown }).data as any
+function fieldBlobPath(blobType: BlobFieldType, pinId: number, fieldKey: string) {
+  const segment = BLOB_FIELD_API_SEGMENT[blobType]
+  return `/api/pins/${pinId}/${segment}/${encodeURIComponent(fieldKey)}`
+}
+
+function pickFieldBlobCustomDataValue(fieldKey: string, res: FieldBlobUpsertResponse): unknown {
+  const data = (res as { data: unknown }).data as Record<string, unknown> | undefined
   if (data && typeof data === "object") {
-    if ("value" in data) return (data as any).value
-    if ("custom_data_value" in data) return (data as any).custom_data_value
+    if ("value" in data) return data.value
+    if ("custom_data_value" in data) return data.custom_data_value
     if ("custom_data" in data && data.custom_data && typeof data.custom_data === "object") {
       return (data.custom_data as Record<string, unknown>)[fieldKey]
     }
@@ -150,13 +157,22 @@ function pickMusicCustomDataValue(fieldKey: string, res: MusicFieldUpsertRespons
   return undefined
 }
 
-export function upsertMusicField(
+export function getFieldBlob(
+  pinId: number,
+  blobType: BlobFieldType,
+  fieldKey: string
+): Promise<{ data: { payload: string } }> {
+  return jsonFetch(fieldBlobPath(blobType, pinId, fieldKey))
+}
+
+export function upsertFieldBlob(
   csrf: string | undefined,
   pinId: number,
+  blobType: BlobFieldType,
   fieldKey: string,
   payload: string
-): Promise<MusicFieldUpsertResponse> {
-  return jsonFetch(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`, {
+): Promise<FieldBlobUpsertResponse> {
+  return jsonFetch(fieldBlobPath(blobType, pinId, fieldKey), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -167,12 +183,13 @@ export function upsertMusicField(
   })
 }
 
-export async function deleteMusicField(
+export async function deleteFieldBlob(
   csrf: string | undefined,
   pinId: number,
+  blobType: BlobFieldType,
   fieldKey: string
 ): Promise<void> {
-  await fetchRequest(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`, {
+  await fetchRequest(fieldBlobPath(blobType, pinId, fieldKey), {
     method: "DELETE",
     headers: {
       ...(csrf ? { "x-csrf-token": csrf } : {}),
@@ -181,11 +198,39 @@ export async function deleteMusicField(
   })
 }
 
+export async function upsertFieldBlobAndGetRef(
+  csrf: string | undefined,
+  pinId: number,
+  blobType: BlobFieldType,
+  fieldKey: string,
+  payload: string
+): Promise<unknown> {
+  const res = await upsertFieldBlob(csrf, pinId, blobType, fieldKey, payload)
+  return pickFieldBlobCustomDataValue(fieldKey, res)
+}
+
+export function upsertMusicField(
+  csrf: string | undefined,
+  pinId: number,
+  fieldKey: string,
+  payload: string
+): Promise<FieldBlobUpsertResponse> {
+  return upsertFieldBlob(csrf, pinId, BlobFieldType.Music, fieldKey, payload)
+}
+
+export async function deleteMusicField(
+  csrf: string | undefined,
+  pinId: number,
+  fieldKey: string
+): Promise<void> {
+  return deleteFieldBlob(csrf, pinId, BlobFieldType.Music, fieldKey)
+}
+
 export function getMusicField(
   pinId: number,
   fieldKey: string
 ): Promise<{ data: { payload: string } }> {
-  return jsonFetch(`/api/pins/${pinId}/music_fields/${encodeURIComponent(fieldKey)}`)
+  return getFieldBlob(pinId, BlobFieldType.Music, fieldKey)
 }
 
 export async function upsertMusicFieldAndGetRef(
@@ -194,8 +239,7 @@ export async function upsertMusicFieldAndGetRef(
   fieldKey: string,
   payload: string
 ): Promise<unknown> {
-  const res = await upsertMusicField(csrf, pinId, fieldKey, payload)
-  return pickMusicCustomDataValue(fieldKey, res)
+  return upsertFieldBlobAndGetRef(csrf, pinId, BlobFieldType.Music, fieldKey, payload)
 }
 
 

@@ -3,6 +3,7 @@ import type { Pin } from "../types"
 import type { CustomPinType } from "../types"
 import type { DraftState } from "./types"
 import { validateAndBuildSavePayload } from "./savePin"
+import { BlobFieldType } from "../utils/blobFieldType"
 
 function minimalDraft(overrides: Partial<DraftState> = {}): DraftState {
   return {
@@ -127,7 +128,7 @@ describe("validateAndBuildSavePayload", () => {
     expect(result).toEqual({
       mode: "edit",
       pinId: 42,
-      musicDrafts: {},
+      blobDrafts: {},
       changes: expect.objectContaining({
         title: "Updated",
         latitude: 41,
@@ -137,7 +138,7 @@ describe("validateAndBuildSavePayload", () => {
     })
   })
 
-  it("strips music drafts from custom_data in add payload", () => {
+  it("strips blob drafts from custom_data in add payload", () => {
     const draftPayload = JSON.stringify({
       version: 1,
       tempo: 120,
@@ -157,7 +158,7 @@ describe("validateAndBuildSavePayload", () => {
         pin_type: "custom:song-pin",
         enabled: true,
         schema: {
-          fields: [{ key: "song", type: "music", label: "Song", required: true }],
+          fields: [{ key: "song", type: BlobFieldType.Music, label: "Song", required: true }],
         },
       },
     ]
@@ -172,13 +173,13 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.musicDrafts).toEqual({ song: draftPayload })
+      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
     } else {
       throw new Error("expected add payload")
     }
   })
 
-  it("strips music drafts even when catalog is empty", () => {
+  it("strips blob drafts even when catalog is empty", () => {
     const draftPayload = JSON.stringify({
       version: 1,
       tempo: 120,
@@ -201,7 +202,43 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.musicDrafts).toEqual({ song: draftPayload })
+      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+    } else {
+      throw new Error("expected add payload")
+    }
+  })
+
+  it("strips drawing blob drafts from custom_data in add payload", () => {
+    const draftPayload = JSON.stringify({
+      version: 1,
+      width: 256,
+      height: 256,
+      strokes: [{ tool: "pen", size: 2, points: [[1, 2], [3, 4]] }],
+    })
+    const catalog: CustomPinType[] = [
+      {
+        id: 1,
+        slug: "sketch-pin",
+        label: "Sketch Pin",
+        pin_type: "custom:sketch-pin",
+        enabled: true,
+        schema: {
+          fields: [{ key: "sketch", type: BlobFieldType.Drawing, label: "Sketch", required: true }],
+        },
+      },
+    ]
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "custom:sketch-pin" },
+      minimalDraft({
+        pinType: "custom:sketch-pin",
+        customData: { sketch: { draft: draftPayload } },
+      }),
+      false,
+      catalog
+    )
+    if ("payload" in result) {
+      expect(result.payload.custom_data).toEqual({})
+      expect(result.blobDrafts).toEqual({ sketch: { type: BlobFieldType.Drawing, payload: draftPayload } })
     } else {
       throw new Error("expected add payload")
     }

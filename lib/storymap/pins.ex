@@ -13,7 +13,7 @@ defmodule Storymap.Pins do
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, Policy, SubMap}
 
-  @music_blob_type "music"
+  @blob_field_types ~w(music drawing)
 
   def list_pins do
     Query.world_pins()
@@ -107,25 +107,25 @@ defmodule Storymap.Pins do
   end
 
   @doc """
-  Returns the music payload blob for the given pin + field key, or nil.
+  Returns a field blob payload for the given pin, field key, and type, or nil.
   """
-  def get_music_blob(pin_id, field_key)
-      when is_integer(pin_id) and is_binary(field_key) do
+  def get_field_blob(pin_id, field_key, type)
+      when is_integer(pin_id) and is_binary(field_key) and is_binary(type) do
     Repo.one(
       from b in PinFieldBlob,
-        where: b.pin_id == ^pin_id and b.field_key == ^field_key and b.type == ^@music_blob_type
+        where: b.pin_id == ^pin_id and b.field_key == ^field_key and b.type == ^type
     )
   end
 
   @doc """
-  Creates or updates a music payload blob and stores only a reference in `pins.custom_data`.
+  Creates or updates a field blob and stores only a reference in `pins.custom_data`.
 
   Returns `{:ok, %{pin: pin, blob: blob}}` on success.
   """
-  def upsert_music_blob(%Pin{} = pin, field_key, attrs)
-      when is_binary(field_key) and is_map(attrs) do
-    with :ok <- validate_music_field_key(pin, field_key) do
-      format = Map.get(attrs, "format") || Map.get(attrs, :format) || "music/v1"
+  def upsert_field_blob(%Pin{} = pin, field_key, type, attrs)
+      when is_binary(field_key) and is_binary(type) and is_map(attrs) do
+    with :ok <- validate_blob_field_key(pin, field_key, type) do
+      format = Map.get(attrs, "format") || Map.get(attrs, :format) || default_format(type)
       version = Map.get(attrs, "version") || Map.get(attrs, :version) || 1
       payload = Map.get(attrs, "payload") || Map.get(attrs, :payload)
 
@@ -134,7 +134,7 @@ defmodule Storymap.Pins do
         |> PinFieldBlob.changeset(%{
           pin_id: pin.id,
           field_key: field_key,
-          type: @music_blob_type,
+          type: type,
           format: format,
           version: version,
           payload: payload
@@ -172,18 +172,18 @@ defmodule Storymap.Pins do
   end
 
   @doc """
-  Deletes a music payload blob and removes its reference from `pins.custom_data`.
+  Deletes a field blob and removes its reference from `pins.custom_data`.
 
   Returns `{:ok, pin}` on success, or `{:error, changeset}`.
   """
-  def delete_music_blob(%Pin{} = pin, field_key) when is_binary(field_key) do
-    with :ok <- validate_music_field_key(pin, field_key),
-         :ok <- validate_music_field_not_required(pin, field_key) do
+  def delete_field_blob(%Pin{} = pin, field_key, type)
+      when is_binary(field_key) and is_binary(type) do
+    with :ok <- validate_blob_field_key(pin, field_key, type),
+         :ok <- validate_blob_field_not_required(pin, field_key, type) do
       Repo.transaction(fn ->
         _ =
           from(b in PinFieldBlob,
-            where:
-              b.pin_id == ^pin.id and b.field_key == ^field_key and b.type == ^@music_blob_type
+            where: b.pin_id == ^pin.id and b.field_key == ^field_key and b.type == ^type
           )
           |> Repo.delete_all()
 
@@ -201,6 +201,14 @@ defmodule Storymap.Pins do
     end
   end
 
+  def get_music_blob(pin_id, field_key), do: get_field_blob(pin_id, field_key, "music")
+
+  def upsert_music_blob(%Pin{} = pin, field_key, attrs),
+    do: upsert_field_blob(pin, field_key, "music", attrs)
+
+  def delete_music_blob(%Pin{} = pin, field_key),
+    do: delete_field_blob(pin, field_key, "music")
+
   defp update_pin_custom_data(%Pin{} = pin, custom_data) when is_map(custom_data) do
     pin
     |> Pin.changeset(%{"custom_data" => custom_data})
@@ -208,33 +216,39 @@ defmodule Storymap.Pins do
     |> Repo.update()
   end
 
-  defp validate_music_field_key(%Pin{pin_type: "custom:" <> _} = pin, field_key) do
+  defp default_format("music"), do: "music/v1"
+  defp default_format("drawing"), do: "drawing/v1"
+  defp default_format(type), do: "#{type}/v1"
+
+  defp validate_blob_field_key(%Pin{pin_type: "custom:" <> _} = pin, field_key, type)
+       when type in @blob_field_types do
     case PinTypes.get_by_pin_type(pin.pin_type) do
       %CustomPinType{} = custom_type ->
         fields = PinTypeSchema.fields(custom_type.schema)
 
-        if Enum.any?(fields, fn f -> field_key(f) == field_key and field_type(f) == "music" end) do
+        if Enum.any?(fields, fn f -> field_key(f) == field_key and field_type(f) == type end) do
           :ok
         else
-          {:error, :invalid_music_field}
+          {:error, :invalid_blob_field}
         end
 
       _ ->
-        {:error, :invalid_music_field}
+        {:error, :invalid_blob_field}
     end
   end
 
-  defp validate_music_field_key(_pin, _field_key), do: {:error, :invalid_music_field}
+  defp validate_blob_field_key(_pin, _field_key, _type), do: {:error, :invalid_blob_field}
 
-  defp validate_music_field_not_required(%Pin{pin_type: "custom:" <> _} = pin, field_key) do
+  defp validate_blob_field_not_required(%Pin{pin_type: "custom:" <> _} = pin, field_key, type)
+       when type in @blob_field_types do
     case PinTypes.get_by_pin_type(pin.pin_type) do
       %CustomPinType{} = custom_type ->
         fields = PinTypeSchema.fields(custom_type.schema)
 
         if Enum.any?(fields, fn f ->
-             field_key(f) == field_key and field_type(f) == "music" and required_field?(f)
+             field_key(f) == field_key and field_type(f) == type and required_field?(f)
            end) do
-          {:error, :required_music_field}
+          {:error, :required_blob_field}
         else
           :ok
         end
@@ -244,7 +258,7 @@ defmodule Storymap.Pins do
     end
   end
 
-  defp validate_music_field_not_required(_pin, _field_key), do: :ok
+  defp validate_blob_field_not_required(_pin, _field_key, _type), do: :ok
 
   defp field_key(%{"key" => key}) when is_binary(key), do: key
   defp field_key(%{key: key}) when is_binary(key), do: key

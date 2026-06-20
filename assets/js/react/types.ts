@@ -1,3 +1,5 @@
+import type { BlobFieldType } from "./utils/blobFieldType"
+
 export type BuiltinPinType = "one_time" | "scheduled" | "food_bank" | "other"
 
 /** Built-in enum or `custom:<slug>` from the global catalog. */
@@ -5,10 +7,19 @@ export type PinType = BuiltinPinType | `custom:${string}`
 
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 
+export type CustomFieldPrimitiveType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "boolean"
+  | "select"
+  | "url"
+  | "list"
+
 export type CustomFieldSchema = {
   key: string
   label: string
-  type: "text" | "textarea" | "number" | "boolean" | "select" | "url" | "list" | "music"
+  type: CustomFieldPrimitiveType | BlobFieldType
   required?: boolean
   options?: { value: string; label: string }[]
   item_type?: "text"

@@ -5,19 +5,20 @@ import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import { usePinTypes } from "../context/PinTypesContext"
 import type { Pin, PinType, SubMap } from "../types"
 import { canChooseWorldVisibility } from "../utils/subMapForm"
-import { invalidateMusicPayloadCache } from "../utils/musicPayloadCache"
+import { invalidateBlobPayloadCache } from "../utils/blobPayloadCache"
+import type { BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
 
-async function uploadMusicDrafts(
+async function uploadBlobDrafts(
   csrfToken: string | undefined,
   pin: Pin,
-  drafts: Record<string, string>
+  drafts: Record<string, BlobFieldDraftEntry>
 ): Promise<Pin> {
   let updated = pin
-  for (const [fieldKey, payload] of Object.entries(drafts)) {
-    const refValue = await api.upsertMusicFieldAndGetRef(csrfToken, updated.id, fieldKey, payload)
+  for (const [fieldKey, { type, payload }] of Object.entries(drafts)) {
+    const refValue = await api.upsertFieldBlobAndGetRef(csrfToken, updated.id, type, fieldKey, payload)
     if (refValue !== undefined) {
-      invalidateMusicPayloadCache(updated.id, fieldKey)
+      invalidateBlobPayloadCache(updated.id, type, fieldKey)
       updated = {
         ...updated,
         custom_data: { ...(updated.custom_data ?? {}), [fieldKey]: refValue },
@@ -172,19 +173,19 @@ export function usePinWorkflow({
         const { data: pinData } = communityUrl
           ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
           : await api.createPin(csrfToken, result.payload)
-        const pinWithMusic =
-          Object.keys(result.musicDrafts).length > 0
-            ? await uploadMusicDrafts(csrfToken, pinData, result.musicDrafts)
+        const pinWithBlobs =
+          Object.keys(result.blobDrafts).length > 0
+            ? await uploadBlobDrafts(csrfToken, pinData, result.blobDrafts)
             : pinData
-        updateOrAddPin(pinWithMusic)
+        updateOrAddPin(pinWithBlobs)
         dispatch({ type: "after_add_saved" })
       } else {
         const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
-        const pinWithMusic =
-          Object.keys(result.musicDrafts).length > 0
-            ? await uploadMusicDrafts(csrfToken, data, result.musicDrafts)
+        const pinWithBlobs =
+          Object.keys(result.blobDrafts).length > 0
+            ? await uploadBlobDrafts(csrfToken, data, result.blobDrafts)
             : data
-        updateOrAddPin(pinWithMusic)
+        updateOrAddPin(pinWithBlobs)
         dispatch({ type: "after_edit_saved" })
       }
     } catch (err) {

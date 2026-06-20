@@ -2,9 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { CustomFieldSchema } from "../types"
 import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
 import MusicPlayStopLabel from "./music/MusicPlayStopLabel"
+import DrawingFieldEditor from "./drawing/DrawingFieldEditor"
+import { DrawingPreviewFromPayload } from "./drawing/DrawingPreview"
+import {
+  isBlobFieldDraft,
+  isBlobFieldRef,
+} from "../utils/blobFieldValue"
 import { isMusicFieldDraft, musicFieldDraftHasContent } from "../utils/musicFieldValue"
+import { drawingHasContent, parseDrawing } from "../utils/drawingPayload"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
-import { fetchMusicPayload } from "../utils/musicPayloadCache"
+import { fetchBlobPayload } from "../utils/blobPayloadCache"
+import { BlobFieldType } from "../utils/blobFieldType"
 
 type Props = {
   fields: CustomFieldSchema[]
@@ -135,9 +143,20 @@ function renderField(
         </div>
       )
     }
-    case "music":
+    case BlobFieldType.Music:
       return (
         <MusicFieldEditor
+          csrfToken={ctx.csrfToken}
+          pinId={ctx.pinId ?? null}
+          fieldKey={ctx.fieldKey}
+          fieldLabel={field.label}
+          value={value}
+          onValue={onValue}
+        />
+      )
+    case BlobFieldType.Drawing:
+      return (
+        <DrawingFieldEditor
           csrfToken={ctx.csrfToken}
           pinId={ctx.pinId ?? null}
           fieldKey={ctx.fieldKey}
@@ -158,6 +177,17 @@ function renderField(
   }
 }
 
+function blobDraftHasContent(field: CustomFieldSchema, value: unknown): boolean {
+  if (field.type === BlobFieldType.Music) return musicFieldDraftHasContent(value)
+  if (field.type === BlobFieldType.Drawing) {
+    if (!isBlobFieldDraft(value)) return false
+    const payload = value.draft.trim()
+    if (!payload) return false
+    return drawingHasContent(parseDrawing(payload))
+  }
+  return false
+}
+
 export function validateCustomFields(
   fields: CustomFieldSchema[],
   values: Record<string, unknown>
@@ -165,8 +195,8 @@ export function validateCustomFields(
   for (const field of fields) {
     if (!field.required) continue
     const value = values[field.key]
-    if (field.type === "music") {
-      if (isMusicFieldRef(value) || musicFieldDraftHasContent(value)) continue
+    if (field.type === BlobFieldType.Music || field.type === BlobFieldType.Drawing) {
+      if (isBlobFieldRef(value) || blobDraftHasContent(field, value)) continue
     }
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
       return `${field.label} is required`
@@ -178,9 +208,21 @@ export function validateCustomFields(
 export function isCustomFieldEmpty(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true
   if (Array.isArray(value) && value.length === 0) return true
-  if (musicFieldDraftHasContent(value)) return false
-  if (isMusicFieldDraft(value)) return true
-  if (isMusicFieldRef(value)) return false
+  if (isMusicFieldDraft(value) && !musicFieldDraftHasContent(value)) return true
+  if (isBlobFieldDraft(value)) {
+    const payload = value.draft.trim()
+    if (!payload) return true
+    try {
+      const parsed = JSON.parse(payload) as { strokes?: unknown[] }
+      if (Array.isArray(parsed.strokes)) {
+        return !drawingHasContent(parseDrawing(payload))
+      }
+    } catch {
+      return true
+    }
+    return !musicFieldDraftHasContent(value)
+  }
+  if (isBlobFieldRef(value)) return false
   if (typeof value === "object" && value != null && "ref" in (value as Record<string, unknown>)) return true
   return false
 }
@@ -207,8 +249,12 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
     return <span className={`text-base-content/50 ${className ?? ""}`.trim()}>—</span>
   }
 
-  if (field.type === "music") {
+  if (field.type === BlobFieldType.Music) {
     return <MusicFieldDisplay fieldKey={field.key} value={value} className={className} />
+  }
+
+  if (field.type === BlobFieldType.Drawing) {
+    return <DrawingFieldDisplay fieldKey={field.key} value={value} className={className} />
   }
 
   if (field.type === "url" && typeof value === "string") {
@@ -232,15 +278,14 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
   return <span className={className}>{text}</span>
 }
 
-type MusicFieldDisplayProps = {
+type BlobFieldDisplayProps = {
   fieldKey: string
   value: unknown
   className?: string
-  pinId?: number
 }
 
-function MusicFieldDisplay({ fieldKey, value, className }: MusicFieldDisplayProps) {
-  const pinId = useMusicPinId()
+function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps) {
+  const pinId = usePinId()
   const refOk = isMusicFieldRef(value)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -271,7 +316,7 @@ function MusicFieldDisplay({ fieldKey, value, className }: MusicFieldDisplayProp
       if (ctx.state === "suspended") {
         await ctx.resume()
       }
-      const payload = await fetchMusicPayload(pinId, fieldKey)
+      const payload = await fetchBlobPayload(pinId, BlobFieldType.Music, fieldKey)
       const player = playPayload(ctx, payload)
       playerRef.current = player
       setPlaying(true)
@@ -305,14 +350,59 @@ function MusicFieldDisplay({ fieldKey, value, className }: MusicFieldDisplayProp
   )
 }
 
-/**
- * Popup content renders within a maplibre popup; we don't have direct access to the pin id in
- * `CustomFieldDisplay`'s props today. `PopupContent` injects it via a lightweight context.
- */
-const MusicPinIdContext = React.createContext<number | null>(null)
-export function MusicPinIdProvider({ pinId, children }: { pinId: number; children: React.ReactNode }) {
-  return <MusicPinIdContext.Provider value={pinId}>{children}</MusicPinIdContext.Provider>
+function DrawingFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps) {
+  const pinId = usePinId()
+  const refOk = isBlobFieldRef(value)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [payload, setPayload] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!pinId || !refOk) {
+      setPayload(null)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    void fetchBlobPayload(pinId, BlobFieldType.Drawing, fieldKey)
+      .then((p) => {
+        if (!cancelled) setPayload(p)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load drawing.")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fieldKey, pinId, refOk])
+
+  if (!pinId || !refOk) return <span className={className}>Drawing</span>
+  if (loading) return <span className={`text-xs text-base-content/60 ${className ?? ""}`.trim()}>Loading…</span>
+  if (error) return <span className={`text-xs text-error ${className ?? ""}`.trim()}>{error}</span>
+  if (!payload) return <span className={className}>Drawing</span>
+
+  return (
+    <div className={className}>
+      <DrawingPreviewFromPayload payload={payload} />
+    </div>
+  )
 }
-function useMusicPinId(): number | null {
-  return React.useContext(MusicPinIdContext)
+
+const PinIdContext = React.createContext<number | null>(null)
+
+export function PinIdProvider({ pinId, children }: { pinId: number; children: React.ReactNode }) {
+  return <PinIdContext.Provider value={pinId}>{children}</PinIdContext.Provider>
+}
+
+/** @deprecated Use PinIdProvider */
+export function MusicPinIdProvider(props: { pinId: number; children: React.ReactNode }) {
+  return <PinIdProvider {...props} />
+}
+
+function usePinId(): number | null {
+  return React.useContext(PinIdContext)
 }

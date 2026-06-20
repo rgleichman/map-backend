@@ -43,7 +43,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     assert get_field(changeset, :custom_data) == %{"status" => "working", "cost" => 1}
   end
 
-  test "does not require music fields in custom_data on pin create" do
+  test "does not require blob fields in custom_data on pin create" do
     import Storymap.PinTypesFixtures
 
     pin_type =
@@ -59,7 +59,8 @@ defmodule Storymap.PinTypes.ValidatorTest do
                 %{"value" => "working", "label" => "Working"}
               ]
             },
-            %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+            %{"key" => "song", "label" => "Song", "type" => "music", "required" => true},
+            %{"key" => "sketch", "label" => "Sketch", "type" => "drawing", "required" => true}
           ]
         }
       })
