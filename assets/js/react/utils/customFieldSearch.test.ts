@@ -79,4 +79,9 @@ describe("pinCustomFieldsMatchQuery", () => {
     })
     expect(pinCustomFieldsMatchQuery(pin, "patio")).toBe(true)
   })
+
+  it("falls back to raw custom_data when catalog lacks the pin type", () => {
+    const pin = minimalPin({ custom_data: { artist: "Beatles" } })
+    expect(pinCustomFieldsMatchQuery(pin, "beatles", [])).toBe(true)
+  })
 })

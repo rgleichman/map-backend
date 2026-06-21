@@ -48,10 +48,13 @@ export function pinCustomFieldsMatchQuery(
   if (q === "" || !pin.custom_data) return false
 
   if (catalog && isCustomPinType(pin.pin_type)) {
-    for (const { text } of customFieldSearchHits(pin, catalog)) {
-      if (text.toLowerCase().includes(q)) return true
+    const customType = findCustomPinType(pin.pin_type, catalog)
+    if (customType) {
+      for (const { text } of customFieldSearchHits(pin, catalog)) {
+        if (text.toLowerCase().includes(q)) return true
+      }
+      return false
     }
-    return false
   }
 
   return rawCustomDataSearchTexts(pin.custom_data).some((text) => text.toLowerCase().includes(q))
