@@ -180,7 +180,7 @@ describe("validateAndBuildSavePayload", () => {
     }
   })
 
-  it("strips blob drafts even when catalog is empty", () => {
+  it("infers music blob type from payload when catalog is empty", () => {
     const draftPayload = JSON.stringify({
       version: 1,
       tempo: 120,
@@ -204,6 +204,30 @@ describe("validateAndBuildSavePayload", () => {
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
       expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+    } else {
+      throw new Error("expected add payload")
+    }
+  })
+
+  it("infers drawing blob type from payload when catalog is empty", () => {
+    const draftPayload = JSON.stringify({
+      version: 1,
+      width: 256,
+      height: 256,
+      strokes: [{ tool: "pen", size: 2, points: [[1, 2], [3, 4]] }],
+    })
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "custom:sketch-pin" },
+      minimalDraft({
+        pinType: "custom:sketch-pin",
+        customData: { sketch: { draft: draftPayload } },
+      }),
+      false,
+      []
+    )
+    if ("payload" in result) {
+      expect(result.payload.custom_data).toEqual({})
+      expect(result.blobDrafts).toEqual({ sketch: { type: BlobFieldType.Drawing, payload: draftPayload } })
     } else {
       throw new Error("expected add payload")
     }

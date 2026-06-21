@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import * as api from "../api/client"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
-import { usePinTypes } from "../context/PinTypesContext"
-import type { Pin, PinType, SubMap } from "../types"
+import type { CustomPinType, Pin, PinType, SubMap } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
 import { canChooseWorldVisibility } from "../utils/subMapForm"
 import { invalidateBlobPayloadCache } from "../utils/blobPayloadCache"
@@ -35,6 +34,7 @@ type Params = {
   csrfToken?: string
   communityUrl?: string
   subMap: SubMap | null
+  catalog: CustomPinType[]
   pins: Pin[]
   isDesktop: boolean
   updateOrAddPin: (pin: Pin) => void
@@ -48,6 +48,7 @@ export function usePinWorkflow({
   csrfToken,
   communityUrl,
   subMap,
+  catalog,
   pins,
   isDesktop,
   updateOrAddPin,
@@ -58,7 +59,6 @@ export function usePinWorkflow({
   const { modal, placement, draft, timeError, formError } = state
   const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap } = draft
   const [saving, setSaving] = useState(false)
-  const { catalog } = usePinTypes()
 
   const modalRef = useRef(modal)
   modalRef.current = modal

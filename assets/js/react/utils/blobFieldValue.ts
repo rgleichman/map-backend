@@ -32,6 +32,20 @@ export function blobFieldDraftPayload(value: unknown): string | null {
 
 export type BlobFieldDraftEntry = { type: BlobFieldKind; payload: string }
 
+/** Infer blob field kind from draft JSON when schema is unavailable. */
+export function inferBlobFieldTypeFromPayload(payload: string): BlobFieldKind | null {
+  try {
+    const parsed = JSON.parse(payload) as Record<string, unknown>
+    if (parsed != null && typeof parsed === "object") {
+      if (Array.isArray(parsed.strokes)) return BlobFieldType.Drawing
+      if (Array.isArray(parsed.rows)) return BlobFieldType.Music
+    }
+  } catch {
+    // ignore invalid JSON
+  }
+  return null
+}
+
 export function stripBlobDraftsFromCustomData(
   customData: Record<string, unknown>,
   fields: CustomFieldSchema[] = []
@@ -49,9 +63,11 @@ export function stripBlobDraftsFromCustomData(
   for (const [key, value] of Object.entries(customData)) {
     const payload = blobFieldDraftPayload(value)
     if (payload == null) continue
-    const type = blobFields.get(key)
-    if (blobFields.size > 0 && type == null) continue
-    drafts[key] = { type: type ?? BlobFieldType.Music, payload }
+    const schemaType = blobFields.get(key)
+    if (blobFields.size > 0 && schemaType == null) continue
+    const type = schemaType ?? inferBlobFieldTypeFromPayload(payload)
+    if (type == null) continue
+    drafts[key] = { type, payload }
     delete cleaned[key]
   }
 

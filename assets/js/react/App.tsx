@@ -76,6 +76,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     csrfToken,
     communityUrl,
     subMap,
+    catalog: customPinTypes,
     pins,
     isDesktop,
     updateOrAddPin,
