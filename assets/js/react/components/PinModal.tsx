@@ -3,7 +3,7 @@ import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import CustomPinFields from "./CustomPinFields"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { findCustomPinType, isCustomPinType } from "../utils/customPinTypes"
+import { findCustomPinType, isCustomPinType, isTimeOnlyBuiltinPinType, BuiltinPinType } from "../utils/customPinTypes"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -78,9 +78,9 @@ export default function PinModal({
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
   const [tagInput, setTagInput] = useState("")
-  const isTimeOnly = pinType === "scheduled" || pinType === "food_bank"
-  const isFoodBank = pinType === "food_bank"
-  const isOther = pinType === "other"
+  const isTimeOnly = isTimeOnlyBuiltinPinType(pinType)
+  const isFoodBank = pinType === BuiltinPinType.FoodBank
+  const isOther = pinType === BuiltinPinType.Other
   const isCustom = isCustomPinType(pinType)
   const customType = isCustom ? findCustomPinType(pinType, catalog) : undefined
   const showTimeFields = !isOther && !isCustom && !(isFoodBank && open24_7)

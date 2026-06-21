@@ -8,6 +8,7 @@ import {
   clearFilterDimension,
   listActiveFilterChips,
   TIME_FILTER_LABEL,
+  TIME_FILTER_NOW,
   type FilterState
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
@@ -64,7 +65,6 @@ function ActiveFilterChips({
     <div className={["flex flex-wrap gap-1.5 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
       {chips.map(({ dimension, label, pinType: chipPinType }) => {
         const pinCfg = chipPinType != null ? resolvePinTypeConfig(chipPinType, catalog) : null
-        const iconType = chipPinType?.startsWith("custom:") ? "other" : chipPinType
         return (
           <span
             key={dimension}
@@ -80,7 +80,7 @@ function ActiveFilterChips({
                   color: pinCfg.textColor
                 }}
               >
-                <PinTypeIcon pinType={iconType as PinType} size={14} catalog={catalog} />
+                <PinTypeIcon pinType={chipPinType} size={14} catalog={catalog} />
               </span>
             )}
             <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
@@ -220,9 +220,9 @@ export default function MapFilters({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              aria-pressed={filter.time === "now"}
-              onClick={() => setTime(filter.time === "now" ? null : "now")}
-              className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === "now" ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+              aria-pressed={filter.time === TIME_FILTER_NOW}
+              onClick={() => setTime(filter.time === TIME_FILTER_NOW ? null : TIME_FILTER_NOW)}
+              className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === TIME_FILTER_NOW ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
             >
               {TIME_FILTER_LABEL}
             </button>
@@ -262,7 +262,6 @@ export default function MapFilters({
           <div className="flex flex-col gap-1.5">
             {filterPinTypes.map((pinType) => {
               const config = resolvePinTypeConfig(pinType, catalog)
-              const iconType = pinType.startsWith("custom:") ? "other" : pinType
               const selected = filter.pinType === pinType
               return (
                 <button
@@ -286,7 +285,7 @@ export default function MapFilters({
                       color: config.textColor
                     }}
                   >
-                    <PinTypeIcon pinType={iconType as PinType} size={20} catalog={catalog} />
+                    <PinTypeIcon pinType={pinType} size={20} catalog={catalog} />
                   </span>
                   <span className="font-medium">{config.label}</span>
                 </button>

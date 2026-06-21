@@ -1,11 +1,17 @@
 import React from "react"
 import type { CustomPinType, PinType } from "../types"
 import {
-  DEFAULT_PIN_TYPE,
   getPinTypeColorEntry,
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
+import {
+  BUILTIN_PIN_TYPES,
+  BuiltinPinType,
+  DEFAULT_BUILTIN_PIN_TYPE,
+  builtinIconKeyForPinType,
+  isCustomPinType,
+} from "./builtinPinType"
 import {
   customTypeMarkerColor,
   findCustomPinType,
@@ -57,12 +63,6 @@ const ICON_PATH_DEFS: Record<PinType, SvgPathDef[]> = {
   ]
 }
 
-function iconKeyForPinType(pinType: PinType | string | null | undefined): PinType {
-  if (pinType && isBuiltinPinType(pinType)) return pinType
-  if (typeof pinType === "string" && pinType.startsWith("custom:")) return "other"
-  return DEFAULT_PIN_TYPE
-}
-
 export type PinTypeConfig = PinTypeColorEntry & {
   /** Which builtin icon to render for this pin type. */
   iconKey: PinType
@@ -75,7 +75,7 @@ const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
   ])
 ) as Record<PinType, PinTypeConfig>
 
-export const PIN_TYPES: PinType[] = ["one_time", "scheduled", "food_bank", "other"]
+export const PIN_TYPES: PinType[] = [...BUILTIN_PIN_TYPES]
 
 export function resolvePinTypeConfig(
   pinType: PinType | string | null | undefined,
@@ -85,10 +85,10 @@ export function resolvePinTypeConfig(
     return getPinTypeConfig(pinType)
   }
 
-  if (typeof pinType === "string" && pinType.startsWith("custom:")) {
+  if (typeof pinType === "string" && isCustomPinType(pinType)) {
     const custom = findCustomPinType(pinType, catalog)
     const color = customTypeMarkerColor(custom)
-    const base = getPinTypeConfig("other")
+    const base = getPinTypeConfig(BuiltinPinType.Other)
     return {
       ...base,
       label: custom?.label ?? pinType,
@@ -108,7 +108,7 @@ export function resolvePinTypeConfig(
  */
 export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
   const colors = getPinTypeColorEntry(pinType)
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_BUILTIN_PIN_TYPE
   return { ...colors, iconKey: pinTypeConfigs[key].iconKey }
 }
 
@@ -120,10 +120,10 @@ const TEARDROP_PATH =
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(pinType: PinType | string | null | undefined): string {
-  if (typeof pinType === "string" && pinType.startsWith("custom:")) {
+  if (typeof pinType === "string" && isCustomPinType(pinType)) {
     return `pin-icon-${pinType.replace(":", "-")}`
   }
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_PIN_TYPE
+  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_BUILTIN_PIN_TYPE
   return `pin-icon-${key}`
 }
 
@@ -136,8 +136,8 @@ function buildPinMarkerSVGStringFallback(
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
-  const iconKey = iconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === "one_time"
+  const iconKey = builtinIconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
   const iconGroupAttrs = isStrokeIcon
     ? `fill="none" stroke="${iconFill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="${iconFill}"`
     : `fill="${iconFill}"`
@@ -187,8 +187,8 @@ function buildPinMarkerSVGElement(
 ): SVGSVGElement {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
-  const iconKey = iconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === "one_time"
+  const iconKey = builtinIconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
   const mainPathFillOpacity = pending ? "0.72" : "1"
   const circleFillOpacity = pending ? "0.85" : "1"
   const iconPaths = ICON_PATH_DEFS[iconKey]
@@ -344,8 +344,8 @@ export function PinTypeIcon({
   catalog = [],
 }: PinTypeIconProps & { catalog?: CustomPinType[] }): React.ReactElement {
   const config = resolvePinTypeConfig(pinType, catalog)
-  const iconKey = iconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === "one_time"
+  const iconKey = builtinIconKeyForPinType(pinType)
+  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
   const paths = ICON_PATH_DEFS[iconKey]
 
   return (

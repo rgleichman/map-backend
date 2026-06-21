@@ -1,7 +1,12 @@
 export const DRAWING_WIDTH = 256
 export const DRAWING_HEIGHT = 256
 
-export type DrawingTool = "pen" | "eraser"
+export const DrawingTool = {
+  Pen: "pen",
+  Eraser: "eraser",
+} as const
+
+export type DrawingTool = (typeof DrawingTool)[keyof typeof DrawingTool]
 
 export type DrawingStroke = {
   tool: DrawingTool
@@ -40,10 +45,18 @@ export function parseDrawing(payload: string): DrawingData {
       width: typeof parsed.width === "number" ? parsed.width : DRAWING_WIDTH,
       height: typeof parsed.height === "number" ? parsed.height : DRAWING_HEIGHT,
       strokes: parsed.strokes
-        .filter((stroke) => stroke && (stroke.tool === "pen" || stroke.tool === "eraser"))
+        .filter(
+          (stroke) =>
+            stroke && (stroke.tool === DrawingTool.Pen || stroke.tool === DrawingTool.Eraser)
+        )
         .map((stroke) => ({
           tool: stroke.tool as DrawingTool,
-          size: typeof stroke.size === "number" ? stroke.size : stroke.tool === "eraser" ? 12 : 2,
+          size:
+            typeof stroke.size === "number"
+              ? stroke.size
+              : stroke.tool === DrawingTool.Eraser
+                ? 12
+                : 2,
           points: (stroke.points ?? [])
             .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2)
             .map(([x, y]) => [Number(x), Number(y)] as [number, number]),
@@ -81,7 +94,7 @@ export function renderDrawingToCanvas(
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.lineWidth = stroke.size
-    if (stroke.tool === "eraser") {
+    if (stroke.tool === DrawingTool.Eraser) {
       ctx.globalCompositeOperation = "destination-out"
       ctx.strokeStyle = "rgba(0,0,0,1)"
     } else {

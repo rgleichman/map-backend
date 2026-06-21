@@ -1,5 +1,6 @@
 import { RRule } from "rrule"
 import type { CustomPinType, Pin, PinType } from "../../types"
+import { BuiltinPinType } from "../../utils/builtinPinType"
 import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import {
   addHoursToParts,
@@ -12,7 +13,9 @@ import {
 } from "../../utils/datetime"
 import { pinCustomFieldsMatchQuery } from "../../utils/customFieldSearch"
 
-export type TimeFilter = "now" | null
+export type TimeFilter = typeof TIME_FILTER_NOW | null
+
+export const TIME_FILTER_NOW = "now" as const
 
 export type FilterState = {
   tag: string | null
@@ -24,7 +27,7 @@ export type FilterState = {
 }
 
 /** Map opens with this (open now selected). */
-export const DEFAULT_FILTER: FilterState = { tag: null, time: "now", pinType: null, query: "" }
+export const DEFAULT_FILTER: FilterState = { tag: null, time: TIME_FILTER_NOW, pinType: null, query: "" }
 /** Clear all = show all pins (no tag, no time filter, all pin types). */
 export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null, query: "" }
 
@@ -56,7 +59,7 @@ export type ActiveFilterChip = {
 /** One chip per active constraint (time, tag, pin type), in stable order. */
 export function listActiveFilterChips(filter: FilterState, catalog: CustomPinType[] = []): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = []
-  if (filter.time === "now") {
+  if (filter.time === TIME_FILTER_NOW) {
     chips.push({ dimension: "time", label: TIME_FILTER_LABEL })
   }
   if (filter.tag !== null) {
@@ -179,7 +182,7 @@ export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPi
   // Text search is for discovery — skip "open now" while a query is active.
   if (filter.query.trim() !== "") return true
 
-  if (filter.time !== "now") return true
+  if (filter.time !== TIME_FILTER_NOW) return true
 
   if (!p.schedule_timezone) return true
   if (!p.start_time && !p.end_time && !p.schedule_rrule) return true
@@ -189,7 +192,7 @@ export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPi
 
   const nowPlus2hParts = addHoursToParts(nowParts, 2)
 
-  if (p.pin_type === "one_time") {
+  if (p.pin_type === BuiltinPinType.OneTime) {
     const startParts = p.start_time ? parseDateTimeFromISO(p.start_time) : null
     const endParts = p.end_time ? parseDateTimeFromISO(p.end_time) : null
     if (!startParts && !endParts) return true

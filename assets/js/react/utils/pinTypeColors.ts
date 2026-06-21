@@ -1,5 +1,6 @@
 import type { PinType } from "../types"
 import pinTypeColorsJson from "../../../shared/pin_type_colors.json"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "./builtinPinType"
 
 export type PinTypeColorEntry = {
   label: string
@@ -16,13 +17,11 @@ export const PIN_TYPE_COLORS: Record<PinType, PinTypeColorEntry> = pinTypeColors
   PinTypeColorEntry
 >
 
-export const DEFAULT_PIN_TYPE: PinType = "one_time"
-
 export function getPinTypeColorEntry(
   pinType: PinType | null | undefined
 ): PinTypeColorEntry {
   if (pinType != null && pinType in PIN_TYPE_COLORS) {
     return PIN_TYPE_COLORS[pinType]
   }
-  return PIN_TYPE_COLORS[DEFAULT_PIN_TYPE]
+  return PIN_TYPE_COLORS[DEFAULT_BUILTIN_PIN_TYPE]
 }

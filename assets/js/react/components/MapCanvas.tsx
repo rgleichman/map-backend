@@ -2,6 +2,7 @@ import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState 
 import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
 import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
@@ -527,7 +528,7 @@ export default function MapCanvas({
 
     if (pendingLocation) {
       map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: 14 })
-      const pinType: PinType = pendingPinType ?? "one_time"
+      const pinType: PinType = pendingPinType ?? DEFAULT_BUILTIN_PIN_TYPE
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
         pendingMarkerRef.current?.remove()

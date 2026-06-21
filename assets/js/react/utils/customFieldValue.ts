@@ -1,6 +1,7 @@
 import type { CustomFieldSchema } from "../types"
 import { isBlobFieldDraft, isBlobFieldRef } from "./blobFieldValue"
 import { BlobFieldType, isBlobFieldType } from "./blobFieldType"
+import { CustomFieldPrimitiveType } from "./customFieldPrimitiveType"
 import { drawingHasContent, parseDrawing } from "./drawingPayload"
 import { musicFieldDraftHasContent } from "./musicFieldValue"
 
@@ -48,9 +49,9 @@ export function isCustomFieldEmpty(value: unknown, field?: CustomFieldSchema): b
 /** Plain-text representation of a primitive custom field value (not blob payloads). */
 export function formatCustomFieldValue(field: CustomFieldSchema, value: unknown): string {
   if (value === undefined || value === null) return ""
-  if (field.type === "boolean") return value === true ? "Yes" : "No"
-  if (field.type === "list" && Array.isArray(value)) return value.join(", ")
-  if (field.type === "select") {
+  if (field.type === CustomFieldPrimitiveType.Boolean) return value === true ? "Yes" : "No"
+  if (field.type === CustomFieldPrimitiveType.List && Array.isArray(value)) return value.join(", ")
+  if (field.type === CustomFieldPrimitiveType.Select) {
     const opt = field.options?.find((o) => o.value === value)
     return opt?.label ?? String(value)
   }

@@ -1,6 +1,7 @@
 import React from "react"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
+import { builtinIconKeyForPinType } from "../utils/customPinTypes"
 import { getPinTypeConfig, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
 type Props = {
@@ -46,7 +47,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
         ) : null}
         {selectableTypes.map((type) => {
           const config = resolvePinTypeConfig(type, catalog)
-          const builtinConfig = getPinTypeConfig(type.startsWith("custom:") ? "other" : type)
+          const builtinConfig = getPinTypeConfig(builtinIconKeyForPinType(type))
           return (
             <button
               key={type}
@@ -62,7 +63,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
                     color: config.textColor
                   }}
                 >
-                  <PinTypeIcon pinType={type.startsWith("custom:") ? "other" : type} size={24} catalog={catalog} />
+                  <PinTypeIcon pinType={type} size={24} catalog={catalog} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base-content">

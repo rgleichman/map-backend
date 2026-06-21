@@ -4,6 +4,7 @@ import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/redu
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import { usePinTypes } from "../context/PinTypesContext"
 import type { Pin, PinType, SubMap } from "../types"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
 import { canChooseWorldVisibility } from "../utils/subMapForm"
 import { invalidateBlobPayloadCache } from "../utils/blobPayloadCache"
 import type { BlobFieldDraftEntry } from "../utils/blobFieldValue"
@@ -214,10 +215,10 @@ export function usePinWorkflow({
         : modal?.mode === "select-type"
           ? null
           : modal?.mode === "add"
-            ? (pinType ?? "one_time")
+            ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE)
             : modal?.mode === "edit"
               ? modal.pin.pin_type
-              : "one_time"
+              : DEFAULT_BUILTIN_PIN_TYPE
 
   const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
 

@@ -3,6 +3,7 @@ import PinComposer from "./PinComposer"
 import PinTypeModal from "./PinTypeModal"
 import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
 
 type Props = {
@@ -45,7 +46,7 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
     csrfToken,
     pinId: modal.mode === "edit" ? modal.pin.id : null,
-    pinType: modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type,
+    pinType: modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type,
     title,
     description,
     tags,

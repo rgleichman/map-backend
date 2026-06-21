@@ -1,4 +1,5 @@
 import type { NewPin, PinType } from "../types"
+import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import { localInputValueToISOString, timeOnlyToISOString } from "../utils/datetime"
 
 export function buildPinTimeFields(
@@ -12,13 +13,13 @@ export function buildPinTimeFields(
   end_time?: string | null
   schedule_rrule?: string | null
 } {
-  if (effectiveType === "other") {
+  if (effectiveType === BuiltinPinType.Other) {
     return { start_time: null, end_time: null, schedule_rrule: null }
   }
-  if (effectiveType === "food_bank" && open24_7) {
+  if (effectiveType === BuiltinPinType.FoodBank && open24_7) {
     return { start_time: null, end_time: null, schedule_rrule: null }
   }
-  const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
+  const isTimeOnly = isTimeOnlyBuiltinPinType(effectiveType)
   return {
     start_time: isTimeOnly ? timeOnlyToISOString(startTime) : localInputValueToISOString(startTime),
     end_time: isTimeOnly ? timeOnlyToISOString(endTime) : localInputValueToISOString(endTime),

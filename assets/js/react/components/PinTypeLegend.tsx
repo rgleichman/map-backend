@@ -30,7 +30,6 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
       <div className="space-y-1">
         {selectableTypes.map((pinType) => {
           const config = resolvePinTypeConfig(pinType, catalog)
-          const iconType = pinType.startsWith("custom:") ? "other" : pinType
           return (
             <button
               key={pinType}
@@ -53,7 +52,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
                   color: config.textColor
                 }}
               >
-                <PinTypeIcon pinType={iconType as PinType} size={20} catalog={catalog} />
+                <PinTypeIcon pinType={pinType} size={20} catalog={catalog} />
               </div>
               <span className="font-medium">{config.label}</span>
             </button>

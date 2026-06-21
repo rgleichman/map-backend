@@ -1,4 +1,9 @@
 import type { CustomPinType, NewPin, PinType, UpdatePin } from "../types"
+import {
+  DEFAULT_BUILTIN_PIN_TYPE,
+  isTimeOnlyBuiltinPinType,
+  skipBuiltinTimeValidation,
+} from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType } from "../utils/customPinTypes"
 import { validateCustomFields } from "../components/CustomPinFields"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
@@ -21,11 +26,10 @@ export function validateAndBuildSavePayload(
   catalog: CustomPinType[] = []
 ): SavePinResult | SavePinValidationError {
   const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap } = draft
-  const effectiveType: PinType = modal.mode === "add" ? (pinType ?? "one_time") : modal.pin.pin_type
+  const effectiveType: PinType = modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type
   const isCustom = isCustomPinType(effectiveType)
-  const isTimeOnly = effectiveType === "scheduled" || effectiveType === "food_bank"
-  const skipTimeValidation =
-    effectiveType === "other" || isCustom || (effectiveType === "food_bank" && open24_7)
+  const isTimeOnly = isTimeOnlyBuiltinPinType(effectiveType)
+  const skipTimeValidation = skipBuiltinTimeValidation(effectiveType, { isCustom, open24_7 })
 
   if (isCustom) {
     const customType = findCustomPinType(effectiveType, catalog)

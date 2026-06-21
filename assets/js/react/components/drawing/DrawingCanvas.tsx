@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react"
-import type { DrawingData, DrawingStroke, DrawingTool } from "../../utils/drawingPayload"
+import type { DrawingData, DrawingStroke } from "../../utils/drawingPayload"
 import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
+  DrawingTool,
   drawingHasContent,
   emptyDrawing,
   renderDrawingToCanvas,
 } from "../../utils/drawingPayload"
+
+type DrawingToolType = (typeof DrawingTool)[keyof typeof DrawingTool]
 
 type Props = {
   data: DrawingData
@@ -26,7 +29,7 @@ function clientPoint(canvas: HTMLCanvasElement, clientX: number, clientY: number
 export default function DrawingCanvas({ data, onChange, disabled = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [tool, setTool] = useState<DrawingTool>("pen")
+  const [tool, setTool] = useState<DrawingToolType>(DrawingTool.Pen)
   const [displaySize, setDisplaySize] = useState(DRAWING_WIDTH)
   const drawingRef = useRef(false)
   const activeStrokeRef = useRef<DrawingStroke | null>(null)
@@ -76,7 +79,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
       drawingRef.current = true
       const stroke: DrawingStroke = {
         tool,
-        size: tool === "eraser" ? 12 : 2,
+        size: tool === DrawingTool.Eraser ? 12 : 2,
         points: [point],
       }
       activeStrokeRef.current = stroke
@@ -138,16 +141,16 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
       <div className="flex shrink-0 flex-wrap gap-2">
         <button
           type="button"
-          className={`btn btn-xs ${tool === "pen" ? "btn-primary" : "btn-outline"}`}
-          onClick={() => setTool("pen")}
+          className={`btn btn-xs ${tool === DrawingTool.Pen ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setTool(DrawingTool.Pen)}
           disabled={disabled}
         >
           Pen
         </button>
         <button
           type="button"
-          className={`btn btn-xs ${tool === "eraser" ? "btn-primary" : "btn-outline"}`}
-          onClick={() => setTool("eraser")}
+          className={`btn btn-xs ${tool === DrawingTool.Eraser ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setTool(DrawingTool.Eraser)}
           disabled={disabled}
         >
           Eraser

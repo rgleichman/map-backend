@@ -1,5 +1,5 @@
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly } from "../utils/datetime"
-import { isCustomPinType } from "../utils/customPinTypes"
+import { BuiltinPinType, isCustomPinType, isTimeOnlyBuiltinPinType } from "../utils/customPinTypes"
 import type { DraftState, PinWorkflowAction, PinWorkflowState } from "./types"
 
 export const makeDefaultDraft = (): DraftState => {
@@ -85,9 +85,9 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         draft: {
           ...state.draft,
           pinType: action.pinType,
-          ...(action.pinType === "food_bank"
+          ...(action.pinType === BuiltinPinType.FoodBank
             ? { open24_7: true }
-            : action.pinType === "scheduled"
+            : action.pinType === BuiltinPinType.Scheduled
               ? { startTime: "09:00", endTime: "17:00" }
               : {}),
         },
@@ -106,17 +106,17 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
           tags: action.pin.tags || [],
           startTime: isCustomPinType(action.pin.pin_type)
             ? ""
-            : (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+            : isTimeOnlyBuiltinPinType(action.pin.pin_type)
               ? isoToTimeOnly(action.pin.start_time)
               : isoToLocalInputValue(action.pin.start_time),
           endTime: isCustomPinType(action.pin.pin_type)
             ? ""
-            : (action.pin.pin_type === "scheduled" || action.pin.pin_type === "food_bank")
+            : isTimeOnlyBuiltinPinType(action.pin.pin_type)
               ? isoToTimeOnly(action.pin.end_time)
               : isoToLocalInputValue(action.pin.end_time),
           scheduleRrule: action.pin.schedule_rrule ?? "",
           scheduleTimezone: action.pin.schedule_timezone ?? "",
-          open24_7: action.pin.pin_type === "food_bank"
+          open24_7: action.pin.pin_type === BuiltinPinType.FoodBank
             ? !(action.pin.start_time || action.pin.end_time || action.pin.schedule_rrule)
             : state.draft.open24_7,
           visibleOnWorldMap: action.pin.visible_on_world_map ?? false,

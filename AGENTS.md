@@ -60,10 +60,33 @@ The application should work for both **desktop** and **cross-platform mobile web
 - **Never** bypass CSRF protection in API calls; always include the token
 - **Callback stability when passed to children:** If a callback (e.g. `onMapClick`) is passed to a child that uses it in a `useEffect` (or similar) dependency array, **do not** add frequently-changing state to the callback's `useCallback` dependency array if that would cause the child's effect to re-run (e.g. re-initializing a map or heavy DOM). **Prefer** keeping the callback reference stable: use a ref (e.g. `someRef.current = value` and read `someRef.current` inside the callback) so the callback can keep a minimal dependency array. Before adding a new dependency to a callback that is passed down, check whether the child includes that callback in an effect's dependency list; if so, use a ref for the value instead of adding it to the callback's deps.
 
+### Wire enums and domain constants (TypeScript)
+
+For **closed, fixed** categorical values on the React/JSON boundary (mirroring backend `Ecto.Enum` wire strings or other stable API literals):
+
+- Define the **string union** in `assets/js/react/types.ts` (e.g. `PinStatus`, `BuiltinPinType`, `CustomFieldPrimitiveType`).
+- Define the **runtime values once** in `assets/js/react/utils/<domain>.ts` as a `const` object (`as const satisfies Record<string, UnionType>`), following `utils/blobFieldType.ts` (`BlobFieldType`, `isBlobFieldType`).
+- Add **shared predicates** in the same util (e.g. `isTimeOnlyBuiltinPinType`, `skipBuiltinTimeValidation`) instead of repeating compound `===` checks in components.
+
+**Do not** scatter raw wire strings in `switch`, `===`, or ternaries when a util module exists — use `SomeEnum.Member` and the shared helpers. Test fixtures may still use string literals.
+
+**Existing modules** (extend these rather than inventing parallel patterns):
+
+- Blob field kinds (`music`, `drawing`): `utils/blobFieldType.ts`
+- Custom field primitives (`text`, `boolean`, …): `utils/customFieldPrimitiveType.ts`
+- Built-in pin types (`one_time`, `scheduled`, …): `utils/builtinPinType.ts` (re-exported from `utils/customPinTypes.ts`)
+- `promote_to_world_default`: `utils/promoteToWorldDefault.ts`
+- Map “open now” time filter: `TIME_FILTER_NOW` in `components/map/filters.ts`
+- Drawing canvas tools: `DrawingTool` in `utils/drawingPayload.ts`
+
+**Open-ended** string domains (e.g. `pin_type` as `custom:<slug>`) stay as strings; use `isCustomPinType` / `CUSTOM_PIN_TYPE_PREFIX` from `utils/builtinPinType.ts` (via `customPinTypes.ts`), not ad-hoc `startsWith("custom:")` in new code.
+
+When adding a new closed domain: union in `types.ts` → const object + guards in `utils/` → import from utils in components and workflows.
+
 ### Custom pin fields (React)
 
 - Schema and wire types live in `assets/js/react/types.ts` (`CustomFieldSchema`, `CustomFieldPrimitiveType`, blob kinds via `BlobFieldType` in `utils/blobFieldType.ts`).
-- **Do not** duplicate primitive `field.type` string checks, ad-hoc `typeof value === "object"` guards, or blob-shape checks in new code — use the shared utilities below.
+- **Do not** duplicate primitive `field.type` string checks, ad-hoc `typeof value === "object"` guards, or blob-shape checks in new code — use `CustomFieldPrimitiveType`, `BlobFieldType`, and the shared utilities below (see **Wire enums and domain constants**).
 - **Value semantics and display text:** `utils/customFieldValue.ts` — `isCustomFieldEmpty`, `formatCustomFieldValue`, `searchableCustomFieldText`.
 - **Blob field shapes:** `utils/blobFieldValue.ts` — `isBlobFieldRef`, `isBlobFieldDraft`; field kind checks via `isBlobFieldType` / `BlobFieldType`.
 - **Catalog / schema:** `utils/customPinTypes.ts` — `findCustomPinType`, `schemaFields`, `isCustomPinType`.
@@ -226,7 +249,7 @@ Use **`Ecto.Enum`** for **closed, fixed sets** of categorical values (e.g. sub-m
 - **Schema helpers**: define allowed values once (`@contribution_modes`, `values:` on the field), add `@type` aliases, and expose `*_options/0` for LiveView `<.input type="select">` (label + atom value tuples). Rely on schema defaults instead of duplicating them in `mount/3`.
 - **Do not** use `Ecto.Enum` for **open-ended** string domains — e.g. `pin_type` (`"one_time"` … or `"custom:<slug>"`), JSONB settings lists, or user-defined slugs. Keep those as `:string` with appropriate custom validation.
 - **Tests**: pass **strings** in fixture/API/form attrs; assert **atoms** on loaded structs after insert (`assert pin.status == :pending`).
-- **TypeScript**: mirror closed enums with string union types in `assets/js/react/types.ts` (e.g. `ContributionMode`, `PinStatus`). No code generation required.
+- **TypeScript**: mirror closed enums with string union types in `assets/js/react/types.ts` (e.g. `ContributionMode`, `PinStatus`). Use const objects and helpers in `assets/js/react/utils/` for runtime comparisons — see **Wire enums and domain constants** under React guidelines. No code generation required.
 <!-- phoenix:ecto-end -->
 
 <!-- phoenix:html-start -->

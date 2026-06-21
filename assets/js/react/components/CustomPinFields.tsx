@@ -8,6 +8,7 @@ import { isBlobFieldRef } from "../utils/blobFieldValue"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchBlobPayload } from "../utils/blobPayloadCache"
 import { BlobFieldType } from "../utils/blobFieldType"
+import { CustomFieldPrimitiveType } from "../utils/customFieldPrimitiveType"
 import {
   formatCustomFieldValue,
   isCustomFieldEmpty,
@@ -54,7 +55,7 @@ function renderField(
   ctx: { csrfToken?: string; pinId?: number | null; fieldKey: string }
 ) {
   switch (field.type) {
-    case "textarea":
+    case CustomFieldPrimitiveType.Textarea:
       return (
         <textarea
           className="textarea textarea-bordered w-full text-base-content"
@@ -63,7 +64,7 @@ function renderField(
           onChange={(e) => onValue(e.target.value)}
         />
       )
-    case "number":
+    case CustomFieldPrimitiveType.Number:
       return (
         <input
           type="number"
@@ -72,7 +73,7 @@ function renderField(
           onChange={(e) => onValue(e.target.value === "" ? undefined : Number(e.target.value))}
         />
       )
-    case "boolean":
+    case CustomFieldPrimitiveType.Boolean:
       return (
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -84,7 +85,7 @@ function renderField(
           <span className="text-sm text-base-content/80">Yes</span>
         </label>
       )
-    case "select":
+    case CustomFieldPrimitiveType.Select:
       return (
         <select
           className="select select-bordered w-full"
@@ -99,7 +100,7 @@ function renderField(
           ))}
         </select>
       )
-    case "url":
+    case CustomFieldPrimitiveType.Url:
       return (
         <input
           type="url"
@@ -109,7 +110,7 @@ function renderField(
           onChange={(e) => onValue(e.target.value)}
         />
       )
-    case "list": {
+    case CustomFieldPrimitiveType.List: {
       const items = Array.isArray(value) ? value.map(String) : [""]
       return (
         <div className="space-y-2">
@@ -211,7 +212,7 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
     return <DrawingFieldDisplay fieldKey={field.key} value={value} className={className} />
   }
 
-  if (field.type === "url" && typeof value === "string") {
+  if (field.type === CustomFieldPrimitiveType.Url && typeof value === "string") {
     return (
       <a
         href={value}
@@ -225,7 +226,7 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
   }
 
   const text = formatCustomFieldValue(field, value)
-  if (field.type === "textarea") {
+  if (field.type === CustomFieldPrimitiveType.Textarea) {
     return <span className={`whitespace-pre-wrap break-words ${className ?? ""}`.trim()}>{text}</span>
   }
 
