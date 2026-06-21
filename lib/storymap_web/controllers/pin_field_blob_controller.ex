@@ -15,13 +15,21 @@ defmodule StorymapWeb.PinFieldBlobController do
   def show(conn, %{"id" => id, "field_key" => field_key}) do
     type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
+    user = get_current_user(conn)
+    opts = pin_auth_opts(pin, user)
 
-    case Pins.get_field_blob(pin.id, field_key, type) do
-      nil ->
+    case Authorizer.authorize_show(user, pin, opts) do
+      {:error, :not_found} ->
         {:error, :not_found}
 
-      blob ->
-        render(conn, :show, blob: blob)
+      :ok ->
+        case Pins.get_field_blob(pin.id, field_key, type) do
+          nil ->
+            {:error, :not_found}
+
+          blob ->
+            render(conn, :show, blob: blob)
+        end
     end
   end
 
@@ -31,7 +39,7 @@ defmodule StorymapWeb.PinFieldBlobController do
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
-    opts = [sub_map: sub_map, membership: membership, user: current_user]
+    opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
     case Authorizer.authorize_update(current_user, pin, opts) do
       {:error, :forbidden} ->
@@ -69,7 +77,7 @@ defmodule StorymapWeb.PinFieldBlobController do
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
-    opts = [sub_map: sub_map, membership: membership, user: current_user]
+    opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
     case Authorizer.authorize_update(current_user, pin, opts) do
       {:error, :forbidden} ->
@@ -112,9 +120,28 @@ defmodule StorymapWeb.PinFieldBlobController do
 
   defp field_blob_params(_), do: %{}
 
+  defp get_current_user(conn) do
+    case conn.assigns[:current_scope] do
+      %{user: %{} = user} -> user
+      _ -> nil
+    end
+  end
+
+  defp pin_auth_opts(pin, user) do
+    {sub_map, membership} = sub_map_and_membership(pin, user)
+    [sub_map: sub_map, membership: membership]
+  end
+
   defp sub_map_and_membership(pin, user) do
     sub_map = pin.sub_map
-    membership = if sub_map, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
+
+    membership =
+      if sub_map && match?(%Storymap.Accounts.User{}, user) do
+        SubMaps.get_membership(sub_map.id, user.id)
+      else
+        nil
+      end
+
     {sub_map, membership}
   end
 

@@ -7,8 +7,13 @@ defmodule Storymap.SubMaps.Policy do
   alias Storymap.SubMaps.{Membership, SubMap}
 
   @spec can_view?(SubMap.t(), User.t() | nil, Membership.t() | nil) :: boolean()
-  def can_view?(%SubMap{visibility: :public}, _user, _membership), do: true
-  def can_view?(%SubMap{visibility: :unlisted}, _user, _membership), do: true
+  def can_view?(%SubMap{visibility: visibility}, _user, _membership) do
+    case visibility do
+      :public -> true
+      :unlisted -> true
+      _ -> false
+    end
+  end
 
   @spec can_moderate?(User.t() | any(), SubMap.t() | any(), Membership.t() | nil) :: boolean()
   def can_moderate?(%User{} = user, %SubMap{} = sub_map, membership) do

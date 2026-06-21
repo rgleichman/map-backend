@@ -63,6 +63,91 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
     end
   end
 
+  describe "show authorization" do
+    setup :register_and_log_in_user
+
+    test "returns 404 for pending sub-map pin when anonymous", %{user: owner} do
+      import Storymap.SubMapsFixtures
+
+      contributor = user_fixture()
+      {pin, _sub_map} = pending_sub_map_music_pin(owner, contributor)
+
+      contributor_conn = log_in_user(json_conn(), contributor)
+
+      assert json_response(
+               post(contributor_conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+                 music_field: %{payload: @payload, format: "music/v1", version: 1}
+               ),
+               200
+             )
+
+      assert json_response(get(json_conn(), ~p"/api/pins/#{pin.id}/music_fields/song"), 404)
+    end
+  end
+
+  defp json_conn do
+    build_conn() |> put_req_header("accept", "application/json")
+  end
+
+  defp pending_sub_map_music_pin(owner, contributor) do
+    import Storymap.PinTypesFixtures
+    import Storymap.SubMapsFixtures
+
+    alias Storymap.Accounts.Scope
+
+    pin_type =
+      custom_pin_type_fixture(
+        %{
+          "schema" => %{
+            "fields" => [
+              %{
+                "key" => "status",
+                "label" => "Status",
+                "type" => "select",
+                "required" => true,
+                "options" => [
+                  %{"value" => "working", "label" => "Working"},
+                  %{"value" => "broken", "label" => "Broken"}
+                ]
+              },
+              %{"key" => "song", "label" => "Song", "type" => "music"}
+            ]
+          }
+        },
+        owner
+      )
+
+    sub_map =
+      sub_map_fixture(
+        %{
+          "contribution_mode" => "approval_required",
+          "community_url" => "music-blob-auth-#{System.unique_integer([:positive])}"
+        },
+        owner
+      )
+
+    {:ok, sub_map} =
+      Storymap.SubMaps.update_pin_type_settings(%Scope{user: owner}, sub_map, %{
+        "enabled_builtin_pin_types" => [],
+        "enabled_custom_pin_types" => [pin_type.slug]
+      })
+
+    {:ok, pin} =
+      Storymap.SubMaps.create_pin_in_sub_map(
+        %Scope{user: contributor},
+        sub_map,
+        %{
+          "title" => "Pending song",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "custom:#{pin_type.slug}",
+          "custom_data" => %{"status" => "working"}
+        }
+      )
+
+    {pin, sub_map}
+  end
+
   defp music_pin_fixture(user) do
     import Storymap.PinTypesFixtures
 

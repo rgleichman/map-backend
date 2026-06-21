@@ -20,6 +20,13 @@ defmodule Storymap.Pins.Query do
     )
   end
 
+  @spec world_visible_pin?(Pin.t()) :: boolean()
+  def world_visible_pin?(%Pin{status: :approved, sub_map_id: nil}), do: true
+
+  def world_visible_pin?(%Pin{status: :approved, visible_on_world_map: true}), do: true
+
+  def world_visible_pin?(_), do: false
+
   @spec sub_map_pins(integer(), Ecto.Query.t()) :: Ecto.Query.t()
   def sub_map_pins(sub_map_id, query \\ base()) do
     from(p in query,

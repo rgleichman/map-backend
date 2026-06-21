@@ -57,13 +57,20 @@ defmodule StorymapWeb.PinController do
     user = get_current_user(conn)
     sub_map = pin.sub_map
     membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
+    opts = [sub_map: sub_map, membership: membership]
 
-    render(conn, :show,
-      pin: pin,
-      current_user: user,
-      sub_map: sub_map,
-      membership: membership
-    )
+    case Authorizer.authorize_show(user, pin, opts) do
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      :ok ->
+        render(conn, :show,
+          pin: pin,
+          current_user: user,
+          sub_map: sub_map,
+          membership: membership
+        )
+    end
   end
 
   @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()

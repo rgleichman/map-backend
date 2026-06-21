@@ -63,6 +63,181 @@ defmodule StorymapWeb.PinControllerTest do
     end
   end
 
+  describe "show pin" do
+    test "returns approved world pin for anonymous users", %{conn: conn} do
+      pin = pin_fixture()
+      conn = get(conn, ~p"/api/pins/#{pin.id}")
+      assert json_response(conn, 200)["data"]["id"] == pin.id
+    end
+
+    test "returns sub-map-only approved pin for anonymous users", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      sub_map = sub_map_fixture(%{"promote_to_world_default" => "never"}, owner)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Local only",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = get(conn, ~p"/api/pins/#{pin.id}")
+      assert json_response(conn, 200)["data"]["id"] == pin.id
+    end
+
+    test "returns 404 for pending pin when anonymous", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-pending"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      assert pin.status == :pending
+      assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 404)
+    end
+
+    test "returns pending pin for owner", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-owner"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = log_in_user(conn, contributor)
+      assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 200)["data"]["id"] == pin.id
+    end
+
+    test "returns pending pin for community mod", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-mod"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = log_in_user(conn, owner)
+      assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 200)["data"]["id"] == pin.id
+    end
+
+    test "returns 404 for rejected pin when anonymous", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-rejected"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, _} =
+        Storymap.SubMaps.reject_pin(%Storymap.Accounts.Scope{user: owner}, sub_map, pin.id)
+
+      assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 404)
+    end
+
+    test "returns rejected pin for community mod", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-rejected-mod"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, _} =
+        Storymap.SubMaps.reject_pin(%Storymap.Accounts.Scope{user: owner}, sub_map, pin.id)
+
+      conn = log_in_user(conn, owner)
+      assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 200)["data"]["id"] == pin.id
+    end
+  end
+
   describe "create pin" do
     setup :register_and_log_in_user
 

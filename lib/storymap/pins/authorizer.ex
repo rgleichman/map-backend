@@ -3,7 +3,7 @@ defmodule Storymap.Pins.Authorizer do
   Composes pin-level and sub-map-level authorization.
   """
   alias Storymap.Accounts.User
-  alias Storymap.Pins.{Pin, Policy}
+  alias Storymap.Pins.{Pin, Policy, Query}
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
   alias Storymap.SubMaps.Policy, as: SubMapPolicy
@@ -77,6 +77,28 @@ defmodule Storymap.Pins.Authorizer do
     end
   end
 
+  @spec authorize_show(User.t() | nil, Pin.t(), keyword()) :: :ok | {:error, :not_found}
+  def authorize_show(user, %Pin{} = pin, opts \\ []) do
+    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
+    membership = Keyword.get(opts, :membership)
+
+    cond do
+      Query.world_visible_pin?(pin) ->
+        :ok
+
+      match?(%User{}, user) && site_pin_moderator?(user) ->
+        :ok
+
+      sub_map &&
+        SubMapPolicy.can_view?(sub_map, user, membership) &&
+          sub_map_pin_status_visible?(user, pin, sub_map, membership) ->
+        :ok
+
+      true ->
+        {:error, :not_found}
+    end
+  end
+
   @spec can_edit_in_json?(User.t(), Pin.t(), keyword()) :: boolean()
   def can_edit_in_json?(%User{} = user, %Pin{} = pin, opts \\ []) do
     case authorize_update(user, pin, opts) do
@@ -84,6 +106,25 @@ defmodule Storymap.Pins.Authorizer do
       {:error, :forbidden} -> false
     end
   end
+
+  defp sub_map_pin_status_visible?(_user, %Pin{status: :approved}, _sub_map, _membership),
+    do: true
+
+  defp sub_map_pin_status_visible?(
+         %User{} = user,
+         %Pin{status: :pending} = pin,
+         sub_map,
+         membership
+       ) do
+    SubMapPolicy.can_moderate?(user, sub_map, membership) or pin.user_id == user.id
+  end
+
+  defp sub_map_pin_status_visible?(%User{} = user, %Pin{status: status}, sub_map, membership)
+       when status in [:rejected, :archived] do
+    SubMapPolicy.can_moderate?(user, sub_map, membership)
+  end
+
+  defp sub_map_pin_status_visible?(_, _, _, _), do: false
 
   defp site_pin_moderator?(%User{admin_level: level}) when is_integer(level) and level >= 1,
     do: true
