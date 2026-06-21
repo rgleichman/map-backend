@@ -112,7 +112,7 @@ export type SubMap = {
   visibility: SubMapVisibility
   settings: Record<string, unknown>
   enabled_builtin_pin_types?: BuiltinPinType[]
-  enabled_custom_slugs?: string[]
+  enabled_custom_pin_types?: string[]
   available_custom_pin_types?: CustomPinType[]
   pin_count?: number
   member_count?: number

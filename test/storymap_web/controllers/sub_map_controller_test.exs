@@ -17,6 +17,34 @@ defmodule StorymapWeb.SubMapControllerTest do
     end
   end
 
+  describe "GET /api/sub_maps/:community_url" do
+    test "show response uses wire keys for pin type settings", %{conn: conn} do
+      import Storymap.PinTypesFixtures
+
+      owner = user_fixture()
+      pin_type = custom_pin_type_fixture(%{}, owner)
+      sub_map = sub_map_fixture(%{"community_url" => "wire-keys-show"}, owner)
+
+      {:ok, sub_map} =
+        Storymap.SubMaps.update_pin_type_settings(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "enabled_builtin_pin_types" => ["other"],
+            "enabled_custom_pin_types" => [pin_type.slug]
+          }
+        )
+
+      conn = get(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
+      data = json_response(conn, 200)["data"]
+
+      assert data["enabled_builtin_pin_types"] == ["other"]
+      assert data["enabled_custom_pin_types"] == [pin_type.slug]
+      assert is_list(data["available_custom_pin_types"])
+      refute Map.has_key?(data, "enabled_custom_slugs")
+    end
+  end
+
   describe "POST /api/sub_maps" do
     setup :register_and_log_in_user
 
