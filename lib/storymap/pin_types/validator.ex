@@ -3,8 +3,8 @@ defmodule Storymap.PinTypes.Validator do
 
   import Ecto.Changeset
 
-  alias Storymap.PinTypes.CustomPinType
-  alias Storymap.PinTypes.Schema
+  alias Storymap.Pins.BlobFieldType
+  alias Storymap.PinTypes.{CustomPinType, Schema}
   alias Storymap.URL
 
   @max_json_bytes 16_384
@@ -172,8 +172,8 @@ defmodule Storymap.PinTypes.Validator do
   defp required?(%{required: true}), do: true
   defp required?(_), do: false
 
-  defp blob_field?(%{"type" => type}) when type in ["music", "drawing"], do: true
-  defp blob_field?(%{type: type}) when type in ["music", "drawing"], do: true
+  defp blob_field?(%{"type" => type}), do: BlobFieldType.blob_field?(type)
+  defp blob_field?(%{type: type}), do: BlobFieldType.blob_field?(type)
   defp blob_field?(_), do: false
 
   defp present?(data, key) do

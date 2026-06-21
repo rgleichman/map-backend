@@ -123,7 +123,7 @@ defmodule StorymapWeb.PinFieldBlobController do
     |> put_status(:unprocessable_entity)
     |> json(%{
       errors: %{
-        field_key: ["is not a #{blob_type} field for this pin type"]
+        field_key: ["is not a #{to_string(blob_type)} field for this pin type"]
       }
     })
   end

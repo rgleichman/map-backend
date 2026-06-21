@@ -28,6 +28,7 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "custom:music",
+    status: "approved",
     tags: [],
     ...overrides,
   }

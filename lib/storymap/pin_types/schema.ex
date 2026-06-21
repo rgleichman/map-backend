@@ -1,13 +1,14 @@
 defmodule Storymap.PinTypes.Schema do
   @moduledoc false
 
-  @field_types ~w(text textarea number boolean select url list music drawing)
+  alias Storymap.PinTypes.FieldType
+
   @max_fields 30
   @max_key_length 64
   @max_label_length 120
   @max_options 50
 
-  @type field_type :: String.t()
+  @type field_type :: FieldType.t()
 
   @type select_option :: map()
 
@@ -88,7 +89,7 @@ defmodule Storymap.PinTypes.Schema do
       not is_binary(key) or String.length(key) > @max_key_length or not valid_key?(key) ->
         {:error, "Field key is invalid"}
 
-      type not in @field_types ->
+      type not in FieldType.values() ->
         {:error, "Field type is invalid"}
 
       not is_binary(label) or String.length(label) > @max_label_length ->

@@ -31,6 +31,7 @@ defmodule Storymap.ContentReportsTest do
                reporter.id
              )
 
+    assert report.category == :inaccurate
     assert report.subject_label == "Reportable pin"
     assert report.reporter_user_id == reporter.id
     assert report.resolved_at == nil

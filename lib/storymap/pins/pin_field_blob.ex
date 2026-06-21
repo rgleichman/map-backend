@@ -4,11 +4,17 @@ defmodule Storymap.Pins.PinFieldBlob do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Storymap.Pins.BlobFieldType
+
+  @blob_types BlobFieldType.values()
+
+  @type blob_type :: BlobFieldType.t()
+
   @type t :: %__MODULE__{
           id: integer() | nil,
           pin_id: integer() | nil,
           field_key: String.t() | nil,
-          type: String.t() | nil,
+          type: blob_type() | nil,
           format: String.t() | nil,
           version: integer() | nil,
           payload: String.t() | nil,
@@ -20,7 +26,7 @@ defmodule Storymap.Pins.PinFieldBlob do
     belongs_to :pin, Storymap.Pins.Pin
 
     field :field_key, :string
-    field :type, :string
+    field :type, Ecto.Enum, values: @blob_types
     field :format, :string, default: "music/v1"
     field :version, :integer, default: 1
     field :payload, :string
@@ -34,7 +40,6 @@ defmodule Storymap.Pins.PinFieldBlob do
     |> cast(attrs, [:pin_id, :field_key, :type, :format, :version, :payload])
     |> validate_required([:pin_id, :field_key, :type, :format, :version, :payload])
     |> validate_length(:field_key, max: 64)
-    |> validate_length(:type, max: 32)
     |> validate_length(:format, max: 32)
     |> validate_number(:version, greater_than_or_equal_to: 1)
     |> validate_payload_size()

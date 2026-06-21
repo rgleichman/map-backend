@@ -42,6 +42,7 @@ defmodule StorymapWeb.ReportControllerTest do
 
       report = Storymap.Repo.get!(Storymap.ContentReports.ContentReport, id)
       assert report.reporter_user_id == user.id
+      assert report.category == :inaccurate
     end
 
     test "returns 404 when pin missing", %{conn: conn} do

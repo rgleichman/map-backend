@@ -1,9 +1,9 @@
 defmodule StorymapWeb.PinTypeLive.Form do
   @moduledoc false
 
-  alias Storymap.PinTypes.Schema
+  alias Storymap.PinTypes.{FieldType, Schema}
 
-  @field_types ~w(text textarea number boolean select url list music drawing)
+  @field_types FieldType.values()
   @key_pattern ~r/^[a-z][a-z0-9_]*$/
 
   @type field_form :: %{
@@ -12,20 +12,11 @@ defmodule StorymapWeb.PinTypeLive.Form do
 
   @type field_errors :: %{String.t() => [String.t()]}
 
-  @spec field_types() :: [String.t()]
-  def field_types, do: @field_types
+  @spec field_types() :: [FieldType.t()]
+  def field_types, do: FieldType.values()
 
   @spec field_type_label(String.t()) :: String.t()
-  def field_type_label("text"), do: "Text"
-  def field_type_label("textarea"), do: "Long text"
-  def field_type_label("number"), do: "Number"
-  def field_type_label("boolean"), do: "Yes/No"
-  def field_type_label("select"), do: "Dropdown"
-  def field_type_label("url"), do: "Link"
-  def field_type_label("list"), do: "List of text"
-  def field_type_label("music"), do: "Music"
-  def field_type_label("drawing"), do: "Drawing"
-  def field_type_label(type), do: type
+  def field_type_label(type), do: FieldType.field_type_label(type)
 
   @spec field_type_description(String.t()) :: String.t()
   def field_type_description("text"), do: "Short single-line text."

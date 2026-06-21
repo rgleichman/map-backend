@@ -1,4 +1,13 @@
-import type { ContentReportPayload, CustomPinType, NewPin, Pin, SubMap, UpdatePin } from "../types"
+import type {
+  ContentReportPayload,
+  CustomPinType,
+  MembershipRole,
+  MembershipStatus,
+  NewPin,
+  Pin,
+  SubMap,
+  UpdatePin,
+} from "../types"
 import { BLOB_FIELD_API_SEGMENT, BlobFieldType } from "../utils/blobFieldType"
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
@@ -39,7 +48,10 @@ export function getSubMapPins(communityUrl: string): Promise<{ data: Pin[] }> {
   return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/pins`)
 }
 
-export function joinSubMap(csrf: string | undefined, communityUrl: string): Promise<{ data: { role: string; status: string } }> {
+export function joinSubMap(
+  csrf: string | undefined,
+  communityUrl: string
+): Promise<{ data: { role: MembershipRole; status: MembershipStatus } }> {
   return jsonFetch(`/api/sub_maps/${encodeURIComponent(communityUrl)}/memberships`, {
     method: "POST",
     headers: {

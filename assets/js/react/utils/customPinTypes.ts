@@ -37,7 +37,7 @@ export function listSelectablePinTypes(
   customTypes: CustomPinType[]
 ): PinType[] {
   const builtins = BUILTIN_PIN_TYPES.filter((t) => enabledBuiltins.includes(t))
-  const customs = customTypes.map((t) => t.pin_type as PinType)
+  const customs = customTypes.map((t) => t.pin_type)
   return [...builtins, ...customs]
 }
 

@@ -50,10 +50,10 @@ defmodule StorymapWeb.Router do
     get "/pins/:id", PinController, :show
 
     get "/pins/:id/music_fields/:field_key", PinFieldBlobController, :show,
-      private: %{blob_type: "music"}
+      private: %{blob_type: :music}
 
     get "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :show,
-      private: %{blob_type: "drawing"}
+      private: %{blob_type: :drawing}
 
     get "/pin_types", PinTypeController, :index
     get "/pin_types/:slug", PinTypeController, :show
@@ -96,22 +96,22 @@ defmodule StorymapWeb.Router do
     delete "/pins/:id", PinController, :delete
 
     post "/pins/:id/music_fields/:field_key", PinFieldBlobController, :create,
-      private: %{blob_type: "music"}
+      private: %{blob_type: :music}
 
     put "/pins/:id/music_fields/:field_key", PinFieldBlobController, :update,
-      private: %{blob_type: "music"}
+      private: %{blob_type: :music}
 
     delete "/pins/:id/music_fields/:field_key", PinFieldBlobController, :delete,
-      private: %{blob_type: "music"}
+      private: %{blob_type: :music}
 
     post "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :create,
-      private: %{blob_type: "drawing"}
+      private: %{blob_type: :drawing}
 
     put "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :update,
-      private: %{blob_type: "drawing"}
+      private: %{blob_type: :drawing}
 
     delete "/pins/:id/drawing_fields/:field_key", PinFieldBlobController, :delete,
-      private: %{blob_type: "drawing"}
+      private: %{blob_type: :drawing}
 
     post "/pin_types", PinTypeController, :create
     patch "/pin_types/:id", PinTypeController, :update

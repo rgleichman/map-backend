@@ -11,7 +11,7 @@ defmodule StorymapWeb.PinFieldBlobJSON do
       id: blob.id,
       pin_id: blob.pin_id,
       field_key: blob.field_key,
-      type: blob.type,
+      type: to_string(blob.type),
       format: blob.format,
       version: blob.version,
       payload: blob.payload

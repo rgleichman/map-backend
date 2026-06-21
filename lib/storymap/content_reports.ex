@@ -49,7 +49,7 @@ defmodule Storymap.ContentReports do
             AdminActivity.record_event("content_reported", reporter_user_id, %{
               "pin_id" => pin.id,
               "report_id" => report.id,
-              "category" => report.category,
+              "category" => to_string(report.category),
               "title" => pin.title
             })
 

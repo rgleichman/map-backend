@@ -39,7 +39,7 @@ export type CustomPinType = {
   marker_color?: string | null
   icon?: string | null
   schema: { fields: CustomFieldSchema[] }
-  pin_type: string
+  pin_type: `custom:${string}`
   enabled: boolean
 }
 
@@ -58,7 +58,7 @@ export type Pin = {
   icon_url?: string
   custom_data?: Record<string, unknown>
   is_owner?: boolean
-  status?: PinStatus
+  status: PinStatus
   visible_on_world_map?: boolean
   community?: PinCommunity | null
   tags: string[]
@@ -112,7 +112,7 @@ export type SubMap = {
   visibility: SubMapVisibility
   settings: Record<string, unknown>
   enabled_builtin_pin_types?: BuiltinPinType[]
-  enabled_custom_pin_types?: string[]
+  enabled_custom_slugs?: string[]
   available_custom_pin_types?: CustomPinType[]
   pin_count?: number
   member_count?: number

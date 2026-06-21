@@ -345,6 +345,9 @@ defmodule StorymapWeb.Admin.EventView do
     ]
   end
 
+  def humanize_category(category) when is_atom(category),
+    do: humanize_category(to_string(category))
+
   def humanize_category("abusive_or_hateful"), do: "Abusive or hateful"
   def humanize_category("inaccurate"), do: "Inaccurate"
   def humanize_category("spam"), do: "Spam"

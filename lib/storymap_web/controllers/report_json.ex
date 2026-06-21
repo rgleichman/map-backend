@@ -12,7 +12,7 @@ defmodule StorymapWeb.ReportJSON do
       subject_type: report.subject_type,
       subject_id: report.subject_id,
       subject_label: report.subject_label,
-      category: report.category,
+      category: to_string(report.category),
       details: report.details,
       resolved_at: datetime_iso(report.resolved_at),
       inserted_at: datetime_iso(report.inserted_at)

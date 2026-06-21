@@ -3,14 +3,16 @@ defmodule Storymap.ContentReports.ContentReport do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @categories ~w(inaccurate abusive_or_hateful spam other)
+  @categories [:inaccurate, :abusive_or_hateful, :spam, :other]
+
+  @type category :: :inaccurate | :abusive_or_hateful | :spam | :other
 
   @type t :: %__MODULE__{
           id: integer() | nil,
           subject_type: String.t() | nil,
           subject_id: integer() | nil,
           subject_label: String.t() | nil,
-          category: String.t() | nil,
+          category: category() | nil,
           details: String.t() | nil,
           resolved_at: DateTime.t() | nil,
           reporter_user_id: integer() | nil,
@@ -23,7 +25,7 @@ defmodule Storymap.ContentReports.ContentReport do
     field :subject_type, :string
     field :subject_id, :integer
     field :subject_label, :string
-    field :category, :string
+    field :category, Ecto.Enum, values: @categories
     field :details, :string
     field :resolved_at, :utc_datetime
 
@@ -33,7 +35,7 @@ defmodule Storymap.ContentReports.ContentReport do
     timestamps(type: :utc_datetime)
   end
 
-  @spec categories() :: [String.t()]
+  @spec categories() :: [category()]
   def categories, do: @categories
 
   @spec create_changeset(map(), keyword()) :: Ecto.Changeset.t()
@@ -44,7 +46,6 @@ defmodule Storymap.ContentReports.ContentReport do
     |> cast(attrs, [:subject_type, :subject_id, :subject_label, :category, :details, :sub_map_id])
     |> validate_required([:subject_type, :subject_id, :category])
     |> validate_inclusion(:subject_type, ["pin"])
-    |> validate_inclusion(:category, @categories)
     |> validate_number(:subject_id, greater_than: 0)
     |> validate_length(:details, max: 2000)
     |> maybe_put_reporter(reporter_user_id)
