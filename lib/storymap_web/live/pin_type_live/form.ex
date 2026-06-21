@@ -2,22 +2,74 @@ defmodule StorymapWeb.PinTypeLive.Form do
   @moduledoc false
 
   @field_types ~w(text textarea number boolean select url list music drawing)
+  @key_pattern ~r/^[a-z][a-z0-9_]*$/
 
   def field_types, do: @field_types
 
+  def field_type_label("text"), do: "Text"
+  def field_type_label("textarea"), do: "Long text"
+  def field_type_label("number"), do: "Number"
+  def field_type_label("boolean"), do: "Yes/No"
+  def field_type_label("select"), do: "Dropdown"
+  def field_type_label("url"), do: "Link"
+  def field_type_label("list"), do: "List of text"
   def field_type_label("music"), do: "Music"
   def field_type_label("drawing"), do: "Drawing"
   def field_type_label(type), do: type
 
-  def build_schema_from_params(%{"fields" => fields}) when is_map(fields) do
-    fields
-    |> Enum.sort_by(fn {k, _} -> String.to_integer(k) end)
-    |> Enum.map(fn {_idx, field} -> normalize_field(field) end)
-    |> Enum.reject(&is_nil/1)
-    |> then(&%{"fields" => &1})
+  def field_type_description("text"), do: "Short single-line text."
+  def field_type_description("textarea"), do: "Multi-line text for longer notes."
+  def field_type_description("number"), do: "Numeric values such as counts or amounts."
+  def field_type_description("boolean"), do: "A yes or no toggle."
+  def field_type_description("select"), do: "Choose one option from a list you define."
+  def field_type_description("url"), do: "A web link."
+  def field_type_description("list"), do: "Multiple short text items."
+  def field_type_description("music"), do: "Attach or link to music."
+  def field_type_description("drawing"), do: "Freehand drawing on the map."
+  def field_type_description(_), do: ""
+
+  def validate_fields_from_params(params) do
+    fields =
+      case fields_from_params(params) do
+        nil -> []
+        fields -> assign_field_keys([], fields)
+      end
+
+    errors = collect_field_errors(fields)
+
+    if errors == %{} do
+      {:ok, build_schema_from_fields(fields)}
+    else
+      {:error, errors}
+    end
   end
 
-  def build_schema_from_params(_), do: %{"fields" => []}
+  def field_errors_from_params(params) do
+    case validate_fields_from_params(params) do
+      {:ok, _} -> %{}
+      {:error, errors} -> errors
+    end
+  end
+
+  def build_schema_from_params(params) do
+    case validate_fields_from_params(params) do
+      {:ok, schema} ->
+        schema
+
+      {:error, _} ->
+        params
+        |> fields_from_params()
+        |> case do
+          nil ->
+            %{"fields" => []}
+
+          fields ->
+            fields
+            |> then(&assign_field_keys([], &1))
+            |> build_schema_from_fields()
+        end
+    end
+  end
 
   @doc """
   Parses raw form params into field assigns for the UI.
@@ -30,6 +82,129 @@ defmodule StorymapWeb.PinTypeLive.Form do
   end
 
   def fields_from_params(_), do: nil
+
+  def merge_field_keys(previous_fields, fields)
+      when is_list(previous_fields) and is_list(fields) do
+    fields
+    |> then(&assign_field_keys(previous_fields, &1))
+    |> dedupe_field_keys()
+  end
+
+  defp assign_field_keys(previous_fields, fields) do
+    fields
+    |> Enum.with_index()
+    |> Enum.map(fn {field, index} ->
+      previous = Enum.at(previous_fields, index)
+      key = resolve_field_key(field, previous)
+      Map.put(field, "key", key)
+    end)
+  end
+
+  defp resolve_field_key(field, previous) do
+    existing = field["key"] |> to_string() |> String.trim()
+
+    cond do
+      existing != "" ->
+        existing
+
+      previous && previous["key"] |> to_string() |> String.trim() != "" ->
+        String.trim(previous["key"])
+
+      true ->
+        derive_key_from_label(field["label"])
+    end
+  end
+
+  defp derive_key_from_label(label) do
+    slug = label |> to_string() |> String.trim() |> slugify_value()
+
+    cond do
+      slug == "" -> ""
+      Regex.match?(@key_pattern, slug) -> slug
+      true -> "field_" <> slug
+    end
+  end
+
+  defp dedupe_field_keys(fields) do
+    fields
+    |> Enum.reduce({[], %{}}, fn field, {acc, counts} ->
+      base_key = field["key"]
+
+      {new_key, counts} =
+        if base_key == "" do
+          {"", counts}
+        else
+          count = Map.get(counts, base_key, 0) + 1
+          key = if count == 1, do: base_key, else: "#{base_key}_#{count}"
+          {key, Map.put(counts, base_key, count)}
+        end
+
+      {[Map.put(field, "key", new_key) | acc], counts}
+    end)
+    |> elem(0)
+    |> Enum.reverse()
+  end
+
+  defp collect_field_errors(fields) do
+    fields
+    |> Enum.with_index()
+    |> Enum.reduce(%{}, fn {field, index}, errors ->
+      case validate_field_row(field, fields) do
+        [] -> errors
+        messages -> Map.put(errors, to_string(index), messages)
+      end
+    end)
+  end
+
+  defp validate_field_row(field, all_fields) do
+    if row_active?(field) do
+      label = field["label"] |> to_string() |> String.trim()
+      type = Map.get(field, "type", "text")
+
+      []
+      |> maybe_add(label == "", "Enter a label for this field")
+      |> maybe_add(
+        type == "select" and parse_select_options(field["options"]) == [],
+        "Add at least one option (one per line)"
+      )
+      |> maybe_add(
+        label != "" and duplicate_label?(field, all_fields),
+        "Another field already uses this label"
+      )
+    else
+      []
+    end
+  end
+
+  defp row_active?(field) do
+    label = field["label"] |> to_string() |> String.trim()
+    type = field["type"] || "text"
+    required = field["required"] in [true, "true"]
+    options = field["options"] |> to_string() |> String.trim()
+
+    label != "" or required or type != "text" or options != ""
+  end
+
+  defp duplicate_label?(field, all_fields) do
+    label = field["label"] |> to_string() |> String.trim()
+
+    label != "" and
+      all_fields
+      |> Enum.filter(&row_active?/1)
+      |> Enum.count(fn other -> String.trim(other["label"]) == label end) > 1
+  end
+
+  defp maybe_add(errors, false, _message), do: errors
+  defp maybe_add(errors, true, message), do: errors ++ [message]
+
+  defp build_schema_from_fields(fields) do
+    fields
+    |> Enum.filter(&row_active?/1)
+    |> dedupe_field_keys()
+    |> Enum.map(&normalize_field/1)
+    |> Enum.reject(&is_nil/1)
+    |> then(&%{"fields" => &1})
+  end
 
   defp field_for_form(field) when is_map(field) do
     %{

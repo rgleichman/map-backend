@@ -13,109 +13,32 @@
       class="space-y-6"
     >
       <.input field={@form[:label]} type="text" label="Label" required />
-      <.input
-        field={@form[:slug]}
-        type="text"
-        label="Slug (optional)"
-        placeholder="auto-generated-from-label"
-      />
       <.input field={@form[:description]} type="textarea" label="Description" />
-      <.input
-        field={@form[:marker_color]}
-        type="text"
-        label="Marker color (hex)"
-        placeholder="#6366f1"
-      />
 
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-base-content">Fields</h2>
-          <button
-            type="button"
-            class="btn btn-sm btn-ghost"
-            phx-click="add_field"
-            id="pin-type-add-field"
-          >
-            Add field
-          </button>
+      <% marker_color = @form[:marker_color].value || "#6366f1" %>
+      <div class="flex items-end gap-3">
+        <div class="fieldset mb-2">
+          <label>
+            <span class="label mb-1">Marker color</span>
+            <input
+              type="color"
+              name={@form[:marker_color].name}
+              id={@form[:marker_color].id}
+              value={marker_color}
+              class="h-10 w-14 cursor-pointer rounded border border-base-300 bg-base-100"
+            />
+          </label>
         </div>
-
-        <%= for {field, index} <- Enum.with_index(@fields) do %>
-          <div
-            id={"pin-type-field-#{index}"}
-            class="rounded-lg border border-base-300 p-4 space-y-3"
-          >
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-base-content/70">Field {index + 1}</span>
-              <button
-                type="button"
-                class="btn btn-xs btn-ghost text-error"
-                phx-click="remove_field"
-                phx-value-index={index}
-              >
-                Remove
-              </button>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label class="label"><span class="label-text">Key</span></label>
-                <input
-                  type="text"
-                  name={"pin_type[fields][#{index}][key]"}
-                  value={field["key"]}
-                  class="input input-bordered w-full"
-                  placeholder="machine_status"
-                />
-              </div>
-              <div>
-                <label class="label"><span class="label-text">Label</span></label>
-                <input
-                  type="text"
-                  name={"pin_type[fields][#{index}][label]"}
-                  value={field["label"]}
-                  class="input input-bordered w-full"
-                  placeholder="Machine status"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="label"><span class="label-text">Type</span></label>
-              <select
-                name={"pin_type[fields][#{index}][type]"}
-                class="select select-bordered w-full"
-              >
-                <%= for type <- StorymapWeb.PinTypeLive.Form.field_types() do %>
-                  <option value={type} selected={field["type"] == type}>
-                    {StorymapWeb.PinTypeLive.Form.field_type_label(type)}
-                  </option>
-                <% end %>
-              </select>
-            </div>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                name={"pin_type[fields][#{index}][required]"}
-                value="true"
-                checked={field["required"] in [true, "true"]}
-                class="checkbox checkbox-sm"
-              />
-              <span class="label-text">Required</span>
-            </label>
-            <%= if field["type"] == "select" do %>
-              <div>
-                <label class="label">
-                  <span class="label-text">Options (one per line)</span>
-                </label>
-                <textarea
-                  name={"pin_type[fields][#{index}][options]"}
-                  class="textarea textarea-bordered w-full"
-                  rows="3"
-                >{field["options"]}</textarea>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
+        <span class="text-sm text-base-content/60 pb-2 font-mono">{marker_color}</span>
       </div>
+
+      <%= if @form[:schema] && @form[:schema].errors != [] do %>
+        <p :for={error <- @form[:schema].errors} class="text-error text-sm">
+          {translate_error(error)}
+        </p>
+      <% end %>
+
+      <.fields_editor fields={@fields} field_errors={@field_errors} />
 
       <div class="flex flex-wrap gap-3 pt-2">
         <button type="submit" class="btn btn-primary" id="pin-type-save">Save</button>

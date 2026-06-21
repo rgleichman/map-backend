@@ -33,9 +33,33 @@ defmodule Storymap.PinTypes.Schema do
 
       true ->
         case Enum.find_index(fields, &(validate_field(&1) != :ok)) do
-          nil -> :ok
-          idx -> {:error, "invalid field at index #{idx}"}
+          nil ->
+            :ok
+
+          idx ->
+            field = Enum.at(fields, idx)
+            {:error, field_error_message(field, idx)}
         end
+    end
+  end
+
+  defp field_error_message(field, idx) do
+    key = field_key(field)
+    type = get(field, "type")
+    label = get(field, "label")
+
+    cond do
+      is_nil(key) ->
+        "Field #{idx + 1} is missing an internal key"
+
+      not is_binary(label) or label == "" ->
+        "Field #{idx + 1} needs a label"
+
+      type == "select" and not valid_select_options?(field) ->
+        "Field #{idx + 1} needs at least one dropdown option"
+
+      true ->
+        "Field #{idx + 1} is invalid"
     end
   end
 
@@ -50,19 +74,19 @@ defmodule Storymap.PinTypes.Schema do
 
     cond do
       not is_binary(key) or String.length(key) > @max_key_length or not valid_key?(key) ->
-        :error
+        {:error, "Field key is invalid"}
 
       type not in @field_types ->
-        :error
+        {:error, "Field type is invalid"}
 
       not is_binary(label) or String.length(label) > @max_label_length ->
-        :error
+        {:error, "Field label is invalid"}
 
       type == "select" and not valid_select_options?(field) ->
-        :error
+        {:error, "Select fields need at least one option"}
 
       type == "list" and get(field, "item_type") not in [nil, "text"] ->
-        :error
+        {:error, "List fields must use text items"}
 
       true ->
         :ok
