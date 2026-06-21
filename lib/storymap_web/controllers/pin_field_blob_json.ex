@@ -1,6 +1,7 @@
 defmodule StorymapWeb.PinFieldBlobJSON do
   @moduledoc false
 
+  @spec show(map()) :: map()
   def show(%{blob: blob}) do
     %{data: blob_data(blob)}
   end

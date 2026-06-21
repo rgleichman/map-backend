@@ -6,6 +6,8 @@ defmodule StorymapWeb.SubMapLive.OnMount do
   alias Storymap.SubMaps
   alias Storymap.SubMaps.Policy
 
+  @spec on_mount(:load_sub_map, map(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
   def on_mount(:load_sub_map, %{"community_url" => url}, _session, socket) do
     case SubMaps.get_by_community_url(url) do
       nil ->
@@ -28,6 +30,8 @@ defmodule StorymapWeb.SubMapLive.OnMount do
     end
   end
 
+  @spec on_mount(:require_moderator, map(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
   def on_mount(:require_moderator, _params, _session, socket) do
     if socket.assigns.can_moderate_sub_map do
       {:cont, socket}
@@ -39,6 +43,8 @@ defmodule StorymapWeb.SubMapLive.OnMount do
     end
   end
 
+  @spec on_mount(:require_owner, map(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
   def on_mount(:require_owner, _params, _session, socket) do
     sub_map = socket.assigns.sub_map
 

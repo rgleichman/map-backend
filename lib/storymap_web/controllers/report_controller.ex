@@ -5,6 +5,7 @@ defmodule StorymapWeb.ReportController do
 
   action_fallback StorymapWeb.FallbackController
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"report" => params}) do
     reporter_user_id =
       case conn.assigns[:current_scope] do
@@ -29,6 +30,7 @@ defmodule StorymapWeb.ReportController do
     end
   end
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, _params) do
     conn
     |> put_status(:unprocessable_entity)

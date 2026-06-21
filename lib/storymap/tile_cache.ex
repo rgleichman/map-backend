@@ -10,16 +10,21 @@ defmodule Storymap.TileCache do
   @cache_max_age 2_592_000
   @miss_count_table :storymap_maptiler_miss_count
 
+  @spec allowed_layer?(String.t()) :: boolean()
   def allowed_layer?(layer), do: layer in @allowed_layers
 
+  @spec cache_max_age() :: integer()
   def cache_max_age, do: @cache_max_age
 
+  @spec extension_for_layer(String.t()) :: String.t()
   def extension_for_layer("satellite-v2"), do: "jpg"
   def extension_for_layer("v3"), do: "pbf"
 
+  @spec content_type_for_layer(String.t()) :: String.t()
   def content_type_for_layer("satellite-v2"), do: "image/jpeg"
   def content_type_for_layer("v3"), do: "application/x-protobuf"
 
+  @spec cache_dir() :: String.t()
   def cache_dir do
     Application.get_env(:storymap, :tile_cache_dir) ||
       Application.app_dir(:storymap, "priv/tile_cache")
@@ -46,20 +51,25 @@ defmodule Storymap.TileCache do
     end
   end
 
+  @spec tile_path(String.t(), integer(), integer(), integer()) :: String.t()
   def tile_path(layer, z, x, y) do
     ext = extension_for_layer(layer)
     Path.join([cache_dir(), layer, Integer.to_string(z), Integer.to_string(x), "#{y}.#{ext}"])
   end
 
+  @spec tiles_json_path(String.t()) :: String.t()
   def tiles_json_path(layer) do
     Path.join([cache_dir(), "tiles_json", "#{layer}.json"])
   end
 
+  @spec get_tile(String.t(), integer(), integer(), integer()) ::
+          {:ok, binary()} | {:error, term()} | :miss
   def get_tile(layer, z, x, y) do
     path = tile_path(layer, z, x, y)
     if File.exists?(path), do: File.read(path), else: :miss
   end
 
+  @spec put_tile(String.t(), integer(), integer(), integer(), binary()) :: :ok
   def put_tile(layer, z, x, y, body) do
     path = tile_path(layer, z, x, y)
     dir = Path.dirname(path)
@@ -70,11 +80,13 @@ defmodule Storymap.TileCache do
     :ok
   end
 
+  @spec get_tiles_json(String.t()) :: {:ok, binary()} | {:error, term()} | :miss
   def get_tiles_json(layer) do
     path = tiles_json_path(layer)
     if File.exists?(path), do: File.read(path), else: :miss
   end
 
+  @spec put_tiles_json(String.t(), binary()) :: :ok
   def put_tiles_json(layer, body) when is_binary(body) do
     path = tiles_json_path(layer)
     dir = Path.dirname(path)
@@ -85,6 +97,8 @@ defmodule Storymap.TileCache do
     :ok
   end
 
+  @spec fetch_tile(String.t(), integer(), integer(), integer(), String.t() | nil) ::
+          {:ok, binary()} | {:error, term()}
   def fetch_tile(layer, z, x, y, referer \\ nil) do
     log_cache_miss()
 
@@ -115,6 +129,7 @@ defmodule Storymap.TileCache do
     end
   end
 
+  @spec fetch_tiles_json(String.t(), String.t() | nil) :: {:ok, term()} | {:error, term()}
   def fetch_tiles_json(layer, referer \\ nil) do
     log_cache_miss()
 
@@ -142,10 +157,12 @@ defmodule Storymap.TileCache do
     end
   end
 
+  @spec rewrite_tiles_json_tile_urls(String.t(), String.t(), String.t()) :: String.t()
   def rewrite_tiles_json_tile_urls(body, layer, base_path) when is_binary(body) do
     body |> Jason.decode!() |> rewrite_tiles_json_tile_urls(layer, base_path)
   end
 
+  @spec rewrite_tiles_json_tile_urls(map(), String.t(), String.t()) :: String.t()
   def rewrite_tiles_json_tile_urls(decoded, _layer, base_path) when is_map(decoded) do
     # base_path e.g. "/api/tiles/satellite-v2"
     tiles = Map.get(decoded, "tiles", [])
@@ -154,6 +171,7 @@ defmodule Storymap.TileCache do
     Jason.encode!(decoded)
   end
 
+  @spec valid_tile_params?(integer(), integer(), integer()) :: boolean()
   def valid_tile_params?(z, x, y) when is_integer(z) and z >= 0 and z <= @max_zoom do
     max_xy = round(:math.pow(2, z)) - 1
 

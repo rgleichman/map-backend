@@ -5,6 +5,7 @@ defmodule Storymap.SubMaps.PinTypeSettings do
 
   @default_builtin CustomPinType.builtin_pin_types()
 
+  @spec normalize_settings(map()) :: map()
   def normalize_settings(settings) when is_map(settings) do
     settings
     |> migrate_allowed_pin_types()
@@ -14,6 +15,7 @@ defmodule Storymap.SubMaps.PinTypeSettings do
 
   def normalize_settings(_), do: normalize_settings(%{})
 
+  @spec enabled_builtin_types(map()) :: [String.t()]
   def enabled_builtin_types(settings) do
     settings
     |> normalize_settings()
@@ -21,6 +23,7 @@ defmodule Storymap.SubMaps.PinTypeSettings do
     |> List.wrap()
   end
 
+  @spec enabled_custom_slugs(map()) :: [String.t()]
   def enabled_custom_slugs(settings) do
     settings
     |> normalize_settings()
@@ -28,6 +31,7 @@ defmodule Storymap.SubMaps.PinTypeSettings do
     |> List.wrap()
   end
 
+  @spec pin_type_allowed?(map(), String.t()) :: boolean()
   def pin_type_allowed?(settings, pin_type) when is_binary(pin_type) do
     cond do
       pin_type in @default_builtin ->
@@ -42,6 +46,7 @@ defmodule Storymap.SubMaps.PinTypeSettings do
     end
   end
 
+  @spec merge_pin_type_settings(map(), map()) :: map()
   def merge_pin_type_settings(existing_settings, attrs) when is_map(attrs) do
     existing = normalize_settings(existing_settings)
 

@@ -6,7 +6,9 @@ defmodule StorymapWeb.FallbackController do
   """
   use StorymapWeb, :controller
 
-  # This clause handles errors returned by Ecto's insert/update/delete.
+  alias Storymap.Types
+
+  @spec call(Plug.Conn.t(), Types.ecto_err()) :: Plug.Conn.t()
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
     |> put_status(:unprocessable_entity)
@@ -15,6 +17,7 @@ defmodule StorymapWeb.FallbackController do
   end
 
   # This clause is an example of how to handle resources that cannot be found.
+  @spec call(Plug.Conn.t(), {:error, :not_found}) :: Plug.Conn.t()
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
@@ -22,6 +25,7 @@ defmodule StorymapWeb.FallbackController do
     |> render(:"404")
   end
 
+  @spec call(Plug.Conn.t(), {:error, :invalid_subject}) :: Plug.Conn.t()
   def call(conn, {:error, :invalid_subject}) do
     conn
     |> put_status(:unprocessable_entity)

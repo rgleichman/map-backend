@@ -3,10 +3,12 @@ defmodule StorymapWeb.Plugs.RequireAdminLevel do
 
   import Plug.Conn
 
+  @spec init(keyword()) :: %{min_admin_level: integer()}
   def init(opts) do
     %{min_admin_level: Keyword.fetch!(opts, :min_admin_level)}
   end
 
+  @spec call(Plug.Conn.t(), %{min_admin_level: integer()}) :: Plug.Conn.t()
   def call(conn, %{min_admin_level: min_admin_level}) do
     case conn.assigns[:current_scope] do
       %{user: %{admin_level: admin_level}} when admin_level >= min_admin_level ->

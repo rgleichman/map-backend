@@ -9,12 +9,15 @@ defmodule Storymap.SubMaps.CommunityTag do
 
   @prefix "community:"
 
+  @spec prefix() :: String.t()
   def prefix, do: @prefix
 
+  @spec name(map() | String.t()) :: String.t()
   def name(%{community_url: url}) when is_binary(url), do: @prefix <> url
 
   def name(url) when is_binary(url), do: @prefix <> url
 
+  @spec community_url_from_tag(String.t()) :: {:ok, String.t()} | :error
   def community_url_from_tag(tag) when is_binary(tag) do
     case String.split(tag, @prefix, parts: 2) do
       ["", url] when url != "" -> {:ok, url}
@@ -22,12 +25,14 @@ defmodule Storymap.SubMaps.CommunityTag do
     end
   end
 
+  @spec community_tag?(term()) :: boolean()
   def community_tag?(tag) when is_binary(tag), do: String.starts_with?(tag, @prefix)
   def community_tag?(_), do: false
 
   @doc """
   Merges the community tag into a tag name list without duplicates.
   """
+  @spec merge([String.t()], map()) :: [String.t()]
   def merge(tags, sub_map) when is_list(tags) do
     community = name(sub_map)
     normalized = Enum.map(tags, &to_string/1)

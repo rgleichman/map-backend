@@ -6,11 +6,13 @@ defmodule StorymapWeb.PinTypeController do
 
   action_fallback StorymapWeb.FallbackController
 
+  @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     pin_types = PinTypes.list_enabled_pin_types()
     render(conn, :index, pin_types: pin_types)
   end
 
+  @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"slug" => slug}) do
     case PinTypes.get_by_slug(slug) do
       %CustomPinType{enabled: true} = pin_type ->
@@ -24,6 +26,7 @@ defmodule StorymapWeb.PinTypeController do
     end
   end
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"pin_type" => params}) do
     scope = conn.assigns.current_scope
 
@@ -44,6 +47,7 @@ defmodule StorymapWeb.PinTypeController do
     end
   end
 
+  @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"id" => id, "pin_type" => params}) do
     scope = conn.assigns.current_scope
     pin_type = PinTypes.get_pin_type!(id)
@@ -60,6 +64,7 @@ defmodule StorymapWeb.PinTypeController do
     end
   end
 
+  @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id}) do
     scope = conn.assigns.current_scope
     pin_type = PinTypes.get_pin_type!(id)

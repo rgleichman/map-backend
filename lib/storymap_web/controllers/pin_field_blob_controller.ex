@@ -11,6 +11,7 @@ defmodule StorymapWeb.PinFieldBlobController do
     conn.private[:blob_type] || conn.params["blob_type"]
   end
 
+  @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id, "field_key" => field_key}) do
     type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
@@ -24,6 +25,7 @@ defmodule StorymapWeb.PinFieldBlobController do
     end
   end
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"id" => id, "field_key" => field_key} = params) do
     type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
@@ -58,8 +60,10 @@ defmodule StorymapWeb.PinFieldBlobController do
     end
   end
 
+  @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, params), do: create(conn, params)
 
+  @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id, "field_key" => field_key}) do
     type = blob_type(conn)
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)

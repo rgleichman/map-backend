@@ -32,9 +32,13 @@ defmodule Storymap.SubMaps.Membership do
     timestamps(type: :utc_datetime)
   end
 
+  @spec roles() :: [role()]
   def roles, do: @roles
+
+  @spec statuses() :: [status()]
   def statuses, do: @statuses
 
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(membership, attrs) do
     membership
     |> cast(attrs, [:role, :status, :sub_map_id, :user_id])

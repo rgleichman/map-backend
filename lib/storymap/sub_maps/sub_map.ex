@@ -53,10 +53,16 @@ defmodule Storymap.SubMaps.SubMap do
     timestamps(type: :utc_datetime)
   end
 
+  @spec contribution_modes() :: [contribution_mode()]
   def contribution_modes, do: @contribution_modes
+
+  @spec promote_defaults() :: [promote_to_world_default()]
   def promote_defaults, do: @promote_defaults
+
+  @spec visibilities() :: [visibility()]
   def visibilities, do: @visibilities
 
+  @spec contribution_mode_options() :: [{String.t(), contribution_mode()}]
   def contribution_mode_options do
     [
       {"Anyone logged in", :open},
@@ -65,6 +71,7 @@ defmodule Storymap.SubMaps.SubMap do
     ]
   end
 
+  @spec promote_default_options() :: [{String.t(), promote_to_world_default()}]
   def promote_default_options do
     [
       {"Never", :never},
@@ -73,6 +80,7 @@ defmodule Storymap.SubMaps.SubMap do
     ]
   end
 
+  @spec visibility_options() :: [{String.t(), visibility()}]
   def visibility_options do
     [
       {"Public (listed in browse)", :public},
@@ -80,6 +88,7 @@ defmodule Storymap.SubMaps.SubMap do
     ]
   end
 
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(sub_map, attrs) do
     sub_map
     |> cast(attrs, [

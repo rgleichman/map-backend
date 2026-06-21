@@ -25,6 +25,7 @@ defmodule Storymap.Linkify do
   @doc """
   Returns safe HTML for a description string, or an empty string for nil/blank input.
   """
+  @spec render(String.t() | nil) :: String.t() | Phoenix.HTML.safe()
   def render(nil), do: ""
   def render(""), do: ""
 

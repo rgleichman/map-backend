@@ -6,8 +6,10 @@ defmodule StorymapWeb.Plugs.LoadSubMap do
   alias Storymap.Accounts.Scope
   alias Storymap.SubMaps
 
+  @spec init(keyword()) :: keyword()
   def init(opts), do: opts
 
+  @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _opts) do
     community_url = conn.params["community_url"]
 

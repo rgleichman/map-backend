@@ -33,8 +33,10 @@ defmodule Storymap.ContentReports.ContentReport do
     timestamps(type: :utc_datetime)
   end
 
+  @spec categories() :: [String.t()]
   def categories, do: @categories
 
+  @spec create_changeset(map(), keyword()) :: Ecto.Changeset.t()
   def create_changeset(attrs, opts \\ []) do
     reporter_user_id = Keyword.get(opts, :reporter_user_id)
 
@@ -54,11 +56,13 @@ defmodule Storymap.ContentReports.ContentReport do
 
   defp maybe_put_reporter(changeset, _), do: changeset
 
+  @spec resolve_changeset(t()) :: Ecto.Changeset.t()
   def resolve_changeset(%__MODULE__{} = report) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     change(report, %{resolved_at: now})
   end
 
+  @spec unresolve_changeset(t()) :: Ecto.Changeset.t()
   def unresolve_changeset(%__MODULE__{} = report) do
     change(report, %{resolved_at: nil})
   end

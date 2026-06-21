@@ -9,6 +9,7 @@ defmodule StorymapWeb.AdminLive.Reports do
 
   use Queue
 
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   @impl true
   def mount(_params, _session, socket) do
     scope = socket.assigns.current_scope
@@ -23,6 +24,8 @@ defmodule StorymapWeb.AdminLive.Reports do
      |> sync_admin_nav()}
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_event("resolve", %{"id" => id}, socket) do
     scope = socket.assigns.current_scope
@@ -38,6 +41,8 @@ defmodule StorymapWeb.AdminLive.Reports do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("unresolve", %{"id" => id}, socket) do
     scope = socket.assigns.current_scope
 
@@ -52,6 +57,8 @@ defmodule StorymapWeb.AdminLive.Reports do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("mark_all_resolved", _params, socket) do
     scope = socket.assigns.current_scope
     :ok = ContentReports.mark_all_resolved(scope)
@@ -64,15 +71,21 @@ defmodule StorymapWeb.AdminLive.Reports do
      |> assign(:unresolved_count, ContentReports.unresolved_count(scope))}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_info({:report_created, report}, socket) do
     {:noreply, stream_insert(socket, :reports, report, at: 0)}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:report_updated, report}, socket) do
     {:noreply, stream_insert(socket, :reports, report)}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info(:reports_bulk_resolved, socket) do
     scope = socket.assigns.current_scope
     reports = ContentReports.list_reports_for_admin(scope, limit: @page_size)
@@ -83,6 +96,8 @@ defmodule StorymapWeb.AdminLive.Reports do
      |> assign(:unresolved_count, ContentReports.unresolved_count(scope))}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:counts_changed, admin_user_id, counts}, socket) do
     {:noreply,
      QueueHelpers.apply_counts_changed(
@@ -94,5 +109,7 @@ defmodule StorymapWeb.AdminLive.Reports do
      )}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info(_msg, socket), do: {:noreply, socket}
 end

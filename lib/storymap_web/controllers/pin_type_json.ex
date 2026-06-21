@@ -3,14 +3,17 @@ defmodule StorymapWeb.PinTypeJSON do
 
   alias Storymap.PinTypes.CustomPinType
 
+  @spec index(map()) :: map()
   def index(%{pin_types: pin_types}) do
     %{data: Enum.map(pin_types, &data/1)}
   end
 
+  @spec show(map()) :: map()
   def show(%{pin_type: pin_type}) do
     %{data: data(pin_type)}
   end
 
+  @spec data(CustomPinType.t()) :: map()
   def data(%CustomPinType{} = pin_type) do
     %{
       id: pin_type.id,

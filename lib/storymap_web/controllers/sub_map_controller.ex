@@ -20,11 +20,13 @@ defmodule StorymapWeb.SubMapController do
               :update_pin_type_settings
             ]
 
+  @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, params) do
     sub_maps = SubMaps.list_public(q: params["q"], sort: params["sort"])
     render(conn, :index, sub_maps: sub_maps, current_user: current_user(conn))
   end
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"sub_map" => params}) do
     scope = conn.assigns.current_scope
 
@@ -48,10 +50,12 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, _params) do
     render_show(conn)
   end
 
+  @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"sub_map" => params}) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map
@@ -63,6 +67,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec update_pin_type_settings(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update_pin_type_settings(conn, %{"pin_type_settings" => params}) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map
@@ -74,6 +79,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec pins(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def pins(conn, _params) do
     sub_map = conn.assigns.sub_map
     user = current_user(conn)
@@ -88,6 +94,7 @@ defmodule StorymapWeb.SubMapController do
     )
   end
 
+  @spec create_pin(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create_pin(conn, %{"pin" => pin_params}) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map
@@ -125,6 +132,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec join(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def join(conn, _params) do
     scope = conn.assigns.current_scope
 
@@ -139,6 +147,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec leave(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def leave(conn, _params) do
     scope = conn.assigns.current_scope
 
@@ -149,6 +158,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec approve_pin(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def approve_pin(conn, %{"id" => id}) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map
@@ -175,6 +185,7 @@ defmodule StorymapWeb.SubMapController do
     end
   end
 
+  @spec reject_pin(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def reject_pin(conn, %{"id" => id}) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map

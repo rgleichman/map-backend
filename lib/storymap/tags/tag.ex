@@ -17,6 +17,7 @@ defmodule Storymap.Tags.Tag do
   end
 
   @doc false
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(tag, attrs) do
     tag
     |> cast(attrs, [:name])

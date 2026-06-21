@@ -18,7 +18,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
      socket
      |> assign(:page_title, "Settings — #{sub_map.name}")
      |> assign(:form, to_form(changeset, as: :sub_map))
-     |> PinTypeForm.assign_pin_types(sub_map.settings || %{})}
+     |> PinTypeForm.assign_pin_types(sub_map.settings)}
   end
 
   @impl true

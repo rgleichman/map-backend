@@ -7,10 +7,12 @@ defmodule StorymapWeb.SubMapJSON do
   alias StorymapWeb.PinJSON
   alias StorymapWeb.PinTypeJSON
 
+  @spec index(map()) :: map()
   def index(%{sub_maps: sub_maps}) do
     %{data: Enum.map(sub_maps, &data/1)}
   end
 
+  @spec show(map()) :: map()
   def show(%{sub_map: sub_map} = assigns) do
     user = Map.get(assigns, :current_user)
     membership = Map.get(assigns, :membership)
@@ -28,6 +30,7 @@ defmodule StorymapWeb.SubMapJSON do
     }
   end
 
+  @spec pins(map()) :: map()
   def pins(assigns) do
     PinJSON.index(assigns)
   end

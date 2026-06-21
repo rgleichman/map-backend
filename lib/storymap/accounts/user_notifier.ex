@@ -21,6 +21,8 @@ defmodule Storymap.Accounts.UserNotifier do
   @doc """
   Deliver instructions to update a user email (`recipient` is the new address).
   """
+  @spec deliver_update_email_instructions(String.t(), String.t()) ::
+          {:ok, term()} | {:error, term()}
   def deliver_update_email_instructions(recipient, url) when is_binary(recipient) do
     deliver(recipient, "Update email instructions", """
 
@@ -41,6 +43,8 @@ defmodule Storymap.Accounts.UserNotifier do
   @doc """
   Deliver instructions to log in with a magic link or confirm a new account.
   """
+  @spec deliver_login_instructions(String.t(), String.t(), User.t()) ::
+          {:ok, term()} | {:error, term()}
   def deliver_login_instructions(recipient, url, %User{} = user) when is_binary(recipient) do
     case user do
       %User{confirmed_at: nil} -> deliver_confirmation_instructions(recipient, url)

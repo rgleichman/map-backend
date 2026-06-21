@@ -1,6 +1,7 @@
 defmodule StorymapWeb.ReportJSON do
   @moduledoc false
 
+  @spec show(map()) :: map()
   def show(%{report: report}) do
     %{data: data(report)}
   end

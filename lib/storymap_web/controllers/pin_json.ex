@@ -16,6 +16,7 @@ defmodule StorymapWeb.PinJSON do
     "#{dt.year}-#{pad.(dt.month)}-#{pad.(dt.day)}T#{pad.(dt.hour)}:#{pad.(dt.minute)}:#{pad.(dt.second)}"
   end
 
+  @spec index(map()) :: map()
   def index(%{pins: pins, current_user: %{} = current_user} = assigns) do
     %{data: for(pin <- pins, do: data_with_user(pin, current_user, assigns))}
   end
@@ -24,6 +25,7 @@ defmodule StorymapWeb.PinJSON do
     %{data: for(pin <- pins, do: data(pin))}
   end
 
+  @spec show(map()) :: map()
   def show(%{pin: pin, current_user: %{} = current_user} = assigns) do
     %{data: data_with_user(pin, current_user, assigns)}
   end
@@ -36,6 +38,7 @@ defmodule StorymapWeb.PinJSON do
   Renders pin data for public (unauthenticated) responses.
   Does not include user_id or is_owner to prevent user enumeration.
   """
+  @spec data(Pin.t()) :: map()
   def data(%Pin{} = pin) do
     base =
       Pin.public_json_fields()
@@ -58,6 +61,7 @@ defmodule StorymapWeb.PinJSON do
 
   defp put_community(map, _pin), do: map
 
+  @spec data_with_user(Pin.t(), map(), map()) :: map()
   def data_with_user(%Pin{} = pin, %{} = current_user, assigns \\ %{}) do
     opts = authorizer_opts(assigns)
 

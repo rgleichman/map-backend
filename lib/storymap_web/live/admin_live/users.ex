@@ -7,6 +7,7 @@ defmodule StorymapWeb.AdminLive.Users do
   alias Storymap.Accounts.User
   alias Storymap.Pins
 
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   @impl true
   def mount(_params, _session, socket) do
     users = Accounts.list_users_for_admin(socket.assigns.current_scope)
@@ -19,6 +20,8 @@ defmodule StorymapWeb.AdminLive.Users do
      |> stream(:users, users)}
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_event("toggle_user_pins", %{"id" => id}, socket) do
     user_id = String.to_integer(id)
@@ -57,6 +60,8 @@ defmodule StorymapWeb.AdminLive.Users do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_event("mute_toggle", %{"id" => id, "muted" => muted}, socket) do
     target_user = Accounts.get_user!(String.to_integer(id))
@@ -94,6 +99,8 @@ defmodule StorymapWeb.AdminLive.Users do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_event(
         "save_admin_level",

@@ -83,6 +83,7 @@ defmodule Storymap.Pins.Pin do
   end
 
   @doc false
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(pin, attrs) do
     changeset =
       pin
@@ -165,10 +166,16 @@ defmodule Storymap.Pins.Pin do
   Fields safe to include in JSON (schema fields minus user_id).
   Used by PinJSON so the API and Jason.Encoder stay in sync.
   """
+  @spec public_json_fields() :: [atom()]
   def public_json_fields, do: @public_json_fields
+
+  @spec statuses() :: [status()]
   def statuses, do: @statuses
+
+  @spec builtin_pin_types() :: [String.t()]
   def builtin_pin_types, do: @builtin_pin_types
 
+  @spec custom_pin_type?(String.t() | any()) :: boolean()
   def custom_pin_type?(pin_type) when is_binary(pin_type),
     do: String.starts_with?(pin_type, "custom:")
 

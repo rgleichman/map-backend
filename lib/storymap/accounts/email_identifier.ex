@@ -10,11 +10,13 @@ defmodule Storymap.Accounts.EmailIdentifier do
   @doc """
   Normalizes an email for hashing (trim + lowercase).
   """
+  @spec normalize(String.t()) :: String.t()
   def normalize(email) when is_binary(email), do: email |> String.trim() |> String.downcase()
 
   @doc """
   Returns the HMAC-SHA3-512 binary for the normalized email (64 bytes).
   """
+  @spec hash(String.t()) :: binary()
   def hash(email) when is_binary(email) do
     normalized = normalize(email)
     :crypto.mac(:hmac, :sha3_512, secret(), normalized)
@@ -23,6 +25,7 @@ defmodule Storymap.Accounts.EmailIdentifier do
   @doc """
   Context string for change-email tokens, binding the token to the user's current identifier.
   """
+  @spec change_email_context(User.t()) :: String.t()
   def change_email_context(%User{id: id, email_hmac: hmac}) when is_binary(hmac) do
     "change:#{id}:#{Base.encode16(hmac, case: :lower)}"
   end

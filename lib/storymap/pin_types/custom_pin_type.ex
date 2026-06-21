@@ -37,8 +37,10 @@ defmodule Storymap.PinTypes.CustomPinType do
     timestamps(type: :utc_datetime)
   end
 
+  @spec builtin_pin_types() :: [String.t()]
   def builtin_pin_types, do: @builtin_pin_types
 
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(custom_pin_type, attrs) do
     custom_pin_type
     |> cast(attrs, [:slug, :label, :description, :marker_color, :icon, :schema, :enabled])
@@ -56,15 +58,18 @@ defmodule Storymap.PinTypes.CustomPinType do
     |> foreign_key_constraint(:created_by_user_id)
   end
 
+  @spec pin_type_value(t() | String.t()) :: String.t()
   def pin_type_value(%__MODULE__{slug: slug}), do: "custom:#{slug}"
 
   def pin_type_value(slug) when is_binary(slug), do: "custom:#{slug}"
 
+  @spec custom_pin_type?(String.t() | any()) :: boolean()
   def custom_pin_type?(pin_type) when is_binary(pin_type),
     do: String.starts_with?(pin_type, "custom:")
 
   def custom_pin_type?(_), do: false
 
+  @spec slug_from_pin_type(String.t()) :: String.t() | nil
   def slug_from_pin_type("custom:" <> slug) when slug != "", do: slug
   def slug_from_pin_type(_), do: nil
 

@@ -9,6 +9,7 @@ defmodule StorymapWeb.PinController do
 
   action_fallback StorymapWeb.FallbackController
 
+  @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     current_user = get_current_user(conn)
     pins = Pins.list_pins()
@@ -22,6 +23,7 @@ defmodule StorymapWeb.PinController do
     end
   end
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"pin" => pin_params}) do
     user = conn.assigns.current_scope.user
 
@@ -49,6 +51,7 @@ defmodule StorymapWeb.PinController do
     end
   end
 
+  @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     user = get_current_user(conn)
@@ -63,6 +66,7 @@ defmodule StorymapWeb.PinController do
     )
   end
 
+  @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"id" => id, "pin" => pin_params}) do
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
@@ -105,6 +109,7 @@ defmodule StorymapWeb.PinController do
     end
   end
 
+  @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id}) do
     pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user

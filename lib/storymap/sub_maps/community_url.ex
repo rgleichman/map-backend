@@ -13,8 +13,13 @@ defmodule Storymap.SubMaps.CommunityUrl do
     dev admin
   )
 
+  @type url_error :: :required | :too_short | :too_long | :reserved | :invalid_format
+  @type validate_result :: {:ok, String.t()} | {:error, url_error()}
+
+  @spec reserved_words() :: [String.t()]
   def reserved_words, do: @reserved
 
+  @spec normalize(String.t() | nil) :: String.t() | nil
   def normalize(nil), do: nil
 
   def normalize(url) when is_binary(url) do
@@ -24,6 +29,7 @@ defmodule Storymap.SubMaps.CommunityUrl do
     |> then(fn s -> if s == "", do: nil, else: s end)
   end
 
+  @spec generate_from_name(String.t()) :: String.t() | nil
   def generate_from_name(name) when is_binary(name) do
     name
     |> String.downcase()
@@ -36,6 +42,7 @@ defmodule Storymap.SubMaps.CommunityUrl do
     end
   end
 
+  @spec validate(String.t() | any()) :: validate_result()
   def validate(url) when is_binary(url) do
     url = normalize(url)
 
@@ -62,6 +69,7 @@ defmodule Storymap.SubMaps.CommunityUrl do
 
   def validate(_), do: {:error, :required}
 
+  @spec changeset_errors() :: map()
   def changeset_errors do
     %{
       required: "can't be blank",
@@ -72,6 +80,7 @@ defmodule Storymap.SubMaps.CommunityUrl do
     }
   end
 
+  @spec error_message(url_error() | term()) :: String.t()
   def error_message(:required), do: changeset_errors().required
   def error_message(key), do: Map.get(changeset_errors(), key, "is invalid")
 end

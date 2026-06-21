@@ -9,6 +9,7 @@ defmodule StorymapWeb.AdminLive.Activity do
 
   use Queue
 
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   @impl true
   def mount(_params, _session, socket) do
     scope = socket.assigns.current_scope
@@ -27,6 +28,8 @@ defmodule StorymapWeb.AdminLive.Activity do
      |> sync_admin_nav()}
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_event("mark_read", %{"id" => id}, socket) do
     scope = socket.assigns.current_scope
@@ -45,6 +48,8 @@ defmodule StorymapWeb.AdminLive.Activity do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("mark_unread", %{"id" => id}, socket) do
     scope = socket.assigns.current_scope
 
@@ -62,6 +67,8 @@ defmodule StorymapWeb.AdminLive.Activity do
     end
   end
 
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("mark_all_read", _params, socket) do
     scope = socket.assigns.current_scope
     :ok = AdminActivity.mark_all_read(scope)
@@ -78,6 +85,8 @@ defmodule StorymapWeb.AdminLive.Activity do
      |> assign(:unread_count, AdminActivity.unread_count(scope))}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
   def handle_info({:activity_event, event}, socket) do
     {:noreply,
@@ -86,6 +95,8 @@ defmodule StorymapWeb.AdminLive.Activity do
      |> track_streamed_event_ids([event])}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:activity_reads_changed, admin_user_id}, socket) do
     if admin_user_id == socket.assigns.current_scope.user.id do
       scope = socket.assigns.current_scope
@@ -100,6 +111,8 @@ defmodule StorymapWeb.AdminLive.Activity do
     end
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info({:counts_changed, admin_user_id, counts}, socket) do
     {:noreply,
      QueueHelpers.apply_counts_changed(
@@ -111,6 +124,8 @@ defmodule StorymapWeb.AdminLive.Activity do
      )}
   end
 
+  @spec handle_info(term(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp track_streamed_event_ids(socket, events) do
