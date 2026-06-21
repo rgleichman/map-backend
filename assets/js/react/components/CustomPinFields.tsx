@@ -8,11 +8,11 @@ import {
   isBlobFieldDraft,
   isBlobFieldRef,
 } from "../utils/blobFieldValue"
-import { isMusicFieldDraft, musicFieldDraftHasContent } from "../utils/musicFieldValue"
+import { musicFieldDraftHasContent } from "../utils/musicFieldValue"
 import { drawingHasContent, parseDrawing } from "../utils/drawingPayload"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchBlobPayload } from "../utils/blobPayloadCache"
-import { BlobFieldType } from "../utils/blobFieldType"
+import { BlobFieldType, isBlobFieldType } from "../utils/blobFieldType"
 
 type Props = {
   fields: CustomFieldSchema[]
@@ -177,13 +177,28 @@ function renderField(
   }
 }
 
-function blobDraftHasContent(field: CustomFieldSchema, value: unknown): boolean {
-  if (field.type === BlobFieldType.Music) return musicFieldDraftHasContent(value)
-  if (field.type === BlobFieldType.Drawing) {
-    if (!isBlobFieldDraft(value)) return false
-    const payload = value.draft.trim()
-    if (!payload) return false
-    return drawingHasContent(parseDrawing(payload))
+function blobDraftHasContent(field: CustomFieldSchema | undefined, value: unknown): boolean {
+  if (!isBlobFieldDraft(value)) return false
+  const payload = value.draft.trim()
+  if (!payload) return false
+
+  if (field && isBlobFieldType(field.type)) {
+    if (field.type === BlobFieldType.Music) return musicFieldDraftHasContent(value)
+    if (field.type === BlobFieldType.Drawing) {
+      return drawingHasContent(parseDrawing(payload))
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(payload) as { strokes?: unknown[]; rows?: unknown[] }
+    if (Array.isArray(parsed.strokes)) {
+      return drawingHasContent(parseDrawing(payload))
+    }
+    if (Array.isArray(parsed.rows)) {
+      return musicFieldDraftHasContent(value)
+    }
+  } catch {
+    return false
   }
   return false
 }
@@ -205,22 +220,13 @@ export function validateCustomFields(
   return null
 }
 
-export function isCustomFieldEmpty(value: unknown): boolean {
+export function isCustomFieldEmpty(value: unknown, field?: CustomFieldSchema): boolean {
   if (value === undefined || value === null || value === "") return true
   if (Array.isArray(value) && value.length === 0) return true
-  if (isMusicFieldDraft(value) && !musicFieldDraftHasContent(value)) return true
   if (isBlobFieldDraft(value)) {
     const payload = value.draft.trim()
     if (!payload) return true
-    try {
-      const parsed = JSON.parse(payload) as { strokes?: unknown[] }
-      if (Array.isArray(parsed.strokes)) {
-        return !drawingHasContent(parseDrawing(payload))
-      }
-    } catch {
-      return true
-    }
-    return !musicFieldDraftHasContent(value)
+    return !blobDraftHasContent(field, value)
   }
   if (isBlobFieldRef(value)) return false
   if (typeof value === "object" && value != null && "ref" in (value as Record<string, unknown>)) return true
@@ -245,7 +251,7 @@ type CustomFieldDisplayProps = {
 }
 
 export function CustomFieldDisplay({ field, value, className }: CustomFieldDisplayProps) {
-  if (isCustomFieldEmpty(value)) {
+  if (isCustomFieldEmpty(value, field)) {
     return <span className={`text-base-content/50 ${className ?? ""}`.trim()}>—</span>
   }
 

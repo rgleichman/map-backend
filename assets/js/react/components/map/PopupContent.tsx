@@ -66,7 +66,7 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
   const customFields = schemaFields(customType)
   const customFieldsWithValues = useMemo(
     () =>
-      customFields.filter((field) => !isCustomFieldEmpty(pin.custom_data?.[field.key])),
+      customFields.filter((field) => !isCustomFieldEmpty(pin.custom_data?.[field.key], field)),
     [customFields, pin.custom_data]
   )
   const [reportOpen, setReportOpen] = useState(false)
