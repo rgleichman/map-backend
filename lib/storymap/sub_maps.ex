@@ -9,13 +9,27 @@ defmodule Storymap.SubMaps do
   alias Storymap.Pins.{Authorizer, Pin, Query}
   alias Storymap.Repo
   alias Storymap.SubMaps.{CommunityTag, Membership, PinTypeSettings, Policy, SubMap}
+  alias Storymap.Types
 
+  @type counts_map :: %{
+          pin_count: non_neg_integer(),
+          member_count: non_neg_integer(),
+          pending_count: non_neg_integer()
+        }
+
+  @type leave_error :: {:error, :owner_cannot_leave} | {:error, :not_member}
+
+  @type moderation_error :: Types.forbidden() | {:error, :not_found} | Types.ecto_err()
+
+  @spec get_by_community_url(String.t()) :: SubMap.t() | nil
   def get_by_community_url(url) when is_binary(url) do
     Repo.get_by(SubMap, community_url: url)
   end
 
+  @spec get_by_community_url!(String.t()) :: SubMap.t()
   def get_by_community_url!(url), do: Repo.get_by!(SubMap, community_url: url)
 
+  @spec get!(integer()) :: SubMap.t()
   def get!(id) when is_integer(id), do: Repo.get!(SubMap, id)
 
   @doc """
@@ -23,6 +37,7 @@ defmodule Storymap.SubMaps do
 
   Never reads `pin.sub_map` unless `Ecto.assoc_loaded?/1` is true.
   """
+  @spec resolve_for_pin(SubMap.t() | nil, Pin.t()) :: SubMap.t() | nil
   def resolve_for_pin(nil, %Pin{sub_map_id: nil}), do: nil
   def resolve_for_pin(%SubMap{} = sub_map, _pin), do: sub_map
 
@@ -36,10 +51,12 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec get_membership(integer(), integer()) :: Membership.t() | nil
   def get_membership(sub_map_id, user_id) do
     Repo.get_by(Membership, sub_map_id: sub_map_id, user_id: user_id)
   end
 
+  @spec list_public(keyword()) :: [SubMap.t()]
   def list_public(opts \\ []) do
     q = Keyword.get(opts, :q, "") |> to_string() |> String.trim()
     sort = Keyword.get(opts, :sort, "newest")
@@ -78,6 +95,7 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec counts(SubMap.t()) :: counts_map()
   def counts(%SubMap{id: id}) do
     pin_count =
       Repo.aggregate(
@@ -130,6 +148,8 @@ defmodule Storymap.SubMaps do
     end)
   end
 
+  @spec create_sub_map(Scope.t(), map()) ::
+          Types.ecto_result(SubMap.t()) | Types.authorize_result()
   def create_sub_map(%Scope{user: %User{} = user}, attrs) do
     with :ok <- Storymap.Accounts.Policy.authorize_write?(user) do
       attrs = stringify_keys(attrs)
@@ -150,6 +170,8 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec update_sub_map(Scope.t(), SubMap.t(), map()) ::
+          Types.ecto_result(SubMap.t()) | Types.forbidden()
   def update_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
     if Policy.can_edit_sub_map?(user, sub_map) do
       sub_map
@@ -160,6 +182,8 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec update_pin_type_settings(Scope.t(), SubMap.t(), map()) ::
+          Types.ecto_result(SubMap.t()) | Types.forbidden()
   def update_pin_type_settings(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
     membership = get_membership(sub_map.id, user.id)
 
@@ -176,6 +200,7 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec join(Scope.t(), SubMap.t()) :: Types.ecto_result(Membership.t())
   def join(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
     case get_membership(sub_map.id, user.id) do
       %Membership{status: :active} = m ->
@@ -191,6 +216,7 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec leave(Scope.t(), SubMap.t()) :: Types.ecto_ok(Membership.t()) | leave_error()
   def leave(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
     case get_membership(sub_map.id, user.id) do
       %Membership{role: :owner} ->
@@ -204,6 +230,7 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec list_pins(SubMap.t(), User.t() | nil, Membership.t() | nil) :: [Pin.t()]
   def list_pins(%SubMap{} = sub_map, viewer, membership) do
     query =
       if Policy.can_moderate?(viewer, sub_map, membership) do
@@ -215,10 +242,13 @@ defmodule Storymap.SubMaps do
     Repo.all(query)
   end
 
+  @spec pending_pins(SubMap.t()) :: [Pin.t()]
   def pending_pins(%SubMap{} = sub_map) do
     Repo.all(Query.pending_pins(sub_map.id))
   end
 
+  @spec approve_pin(Scope.t(), SubMap.t(), integer()) ::
+          Types.ecto_ok(Pin.t()) | moderation_error()
   def approve_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
     with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
          membership <- get_membership(sub_map.id, user.id),
@@ -235,6 +265,8 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec reject_pin(Scope.t(), SubMap.t(), integer()) ::
+          Types.ecto_ok(Pin.t()) | moderation_error()
   def reject_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
     with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
          membership <- get_membership(sub_map.id, user.id),
@@ -251,6 +283,8 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @spec create_pin_in_sub_map(Scope.t(), SubMap.t(), map()) ::
+          Types.ecto_result(Pin.t()) | Types.authorize_result()
   def create_pin_in_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
     membership = get_membership(sub_map.id, user.id)
 

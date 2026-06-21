@@ -1,11 +1,21 @@
 defmodule StorymapWeb.PinTypeLive.Form do
   @moduledoc false
 
+  alias Storymap.PinTypes.Schema
+
   @field_types ~w(text textarea number boolean select url list music drawing)
   @key_pattern ~r/^[a-z][a-z0-9_]*$/
 
+  @type field_form :: %{
+          String.t() => String.t() | boolean()
+        }
+
+  @type field_errors :: %{String.t() => [String.t()]}
+
+  @spec field_types() :: [String.t()]
   def field_types, do: @field_types
 
+  @spec field_type_label(String.t()) :: String.t()
   def field_type_label("text"), do: "Text"
   def field_type_label("textarea"), do: "Long text"
   def field_type_label("number"), do: "Number"
@@ -17,6 +27,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
   def field_type_label("drawing"), do: "Drawing"
   def field_type_label(type), do: type
 
+  @spec field_type_description(String.t()) :: String.t()
   def field_type_description("text"), do: "Short single-line text."
   def field_type_description("textarea"), do: "Multi-line text for longer notes."
   def field_type_description("number"), do: "Numeric values such as counts or amounts."
@@ -28,6 +39,8 @@ defmodule StorymapWeb.PinTypeLive.Form do
   def field_type_description("drawing"), do: "Freehand drawing on the map."
   def field_type_description(_), do: ""
 
+  @spec validate_fields_from_params(map()) ::
+          {:ok, Schema.definition()} | {:error, field_errors()}
   def validate_fields_from_params(params) do
     fields =
       case fields_from_params(params) do
@@ -44,6 +57,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
     end
   end
 
+  @spec field_errors_from_params(map()) :: field_errors()
   def field_errors_from_params(params) do
     case validate_fields_from_params(params) do
       {:ok, _} -> %{}
@@ -51,6 +65,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
     end
   end
 
+  @spec build_schema_from_params(map()) :: Schema.definition()
   def build_schema_from_params(params) do
     case validate_fields_from_params(params) do
       {:ok, schema} ->
@@ -75,6 +90,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
   Parses raw form params into field assigns for the UI.
   Unlike `build_schema_from_params/1`, keeps partial fields (key without label, etc.).
   """
+  @spec fields_from_params(map()) :: [field_form()] | nil
   def fields_from_params(%{"fields" => fields}) when is_map(fields) do
     fields
     |> Enum.sort_by(fn {k, _} -> String.to_integer(k) end)
@@ -83,6 +99,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
 
   def fields_from_params(_), do: nil
 
+  @spec merge_field_keys([field_form()], [field_form()]) :: [field_form()]
   def merge_field_keys(previous_fields, fields)
       when is_list(previous_fields) and is_list(fields) do
     fields

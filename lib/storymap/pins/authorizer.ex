@@ -7,11 +7,16 @@ defmodule Storymap.Pins.Authorizer do
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
   alias Storymap.SubMaps.Policy, as: SubMapPolicy
+  alias Storymap.SubMaps.Membership
+  alias Storymap.Types
 
+  @spec authorize_create(User.t()) :: Types.authorize_result()
   def authorize_create(%User{} = user) do
     Policy.authorize_create(user)
   end
 
+  @spec authorize_create_in_sub_map(User.t(), SubMap.t(), Membership.t() | nil) ::
+          Types.authorize_result()
   def authorize_create_in_sub_map(%User{} = user, %SubMap{} = sub_map, membership) do
     case authorize_create(user) do
       {:error, :forbidden} = err ->
@@ -22,6 +27,7 @@ defmodule Storymap.Pins.Authorizer do
     end
   end
 
+  @spec authorize_update(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
   def authorize_update(%User{} = user, %Pin{} = pin, opts \\ []) do
     sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
     membership = Keyword.get(opts, :membership)
@@ -48,6 +54,7 @@ defmodule Storymap.Pins.Authorizer do
     end
   end
 
+  @spec authorize_delete(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
   def authorize_delete(%User{} = user, %Pin{} = pin, opts \\ []) do
     sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
     membership = Keyword.get(opts, :membership)
@@ -70,6 +77,7 @@ defmodule Storymap.Pins.Authorizer do
     end
   end
 
+  @spec can_edit_in_json?(User.t(), Pin.t(), keyword()) :: boolean()
   def can_edit_in_json?(%User{} = user, %Pin{} = pin, opts \\ []) do
     case authorize_update(user, pin, opts) do
       :ok -> true

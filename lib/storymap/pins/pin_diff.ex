@@ -7,6 +7,12 @@ defmodule Storymap.Pins.PinDiff do
 
   alias Storymap.Pins.Pin
 
+  @type change_value :: String.t() | float() | integer() | boolean() | nil | [String.t()]
+
+  @type field_change :: map()
+
+  @type diff_map :: map()
+
   @diff_fields [
     :title,
     :latitude,
@@ -20,7 +26,7 @@ defmodule Storymap.Pins.PinDiff do
     :schedule_timezone
   ]
 
-  @spec diff(%Pin{}, %Pin{}) :: map()
+  @spec diff(Pin.t(), Pin.t()) :: diff_map()
   def diff(%Pin{} = before, %Pin{} = after_pin) do
     field_changes =
       Enum.reduce(@diff_fields, %{}, fn field, acc ->

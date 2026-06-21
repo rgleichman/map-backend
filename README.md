@@ -84,6 +84,18 @@ Known false positives are listed in `.dialyzer_ignore.exs`. Fix real warnings wh
 
 **When to run:** before merging enum/policy changes, when adding `@spec` to context modules, or when debugging suspected string-vs-atom mismatches at API boundaries.
 
+#### Types and `@spec` conventions
+
+When you touch policy or context modules, add or update types alongside the change:
+
+- **Shared result types** live in [`lib/storymap/types.ex`](lib/storymap/types.ex) (`Types.ecto_result/1`, `Types.authorize_result/0`, etc.).
+- **Schemas** exposed in public APIs should define `@type t` (see [`lib/storymap/admin_activity/event.ex`](lib/storymap/admin_activity/event.ex)); reuse existing enum `@type` aliases on the same module.
+- **Policy modules** — `@spec` every public function; booleans for `can_*?`, `Types.authorize_result()` for `authorize_*`.
+- **Context modules** — `@spec` public functions; use `Scope.t()` for scoped calls and `Storymap.Types` for auth/Ecto tuples.
+- **JSONB / form boundary maps** — Elixir typespecs do not support string-literal map keys; use `map()` or `String.t()` and keep runtime validation (e.g. `@field_types` in [`lib/storymap/pin_types/schema.ex`](lib/storymap/pin_types/schema.ex)).
+
+Run `mix dialyzer` after adding specs; fix real mismatches in the same change rather than broad ignores.
+
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
 ## Learn more

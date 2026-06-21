@@ -21,35 +21,57 @@ defmodule Storymap.AdminPubSub do
   alias Storymap.Accounts.Scope
   alias Storymap.AdminActivity
   alias Storymap.ContentReports
+  alias Storymap.ContentReports.ContentReport
   alias Storymap.Repo
 
   @pubsub Storymap.PubSub
   @topic "admin:updates"
 
+  @type counts_map :: %{
+          activity_unread: non_neg_integer(),
+          reports_unresolved: non_neg_integer()
+        }
+
+  @type message ::
+          {:activity_event, Storymap.AdminActivity.Event.t()}
+          | {:activity_reads_changed, integer()}
+          | {:report_created, ContentReport.t()}
+          | {:report_updated, ContentReport.t()}
+          | :reports_bulk_resolved
+          | {:counts_changed, integer() | nil, counts_map()}
+
+  @spec topic() :: String.t()
   def topic, do: @topic
 
+  @spec subscribe() :: :ok | {:error, term()}
   def subscribe, do: Phoenix.PubSub.subscribe(@pubsub, @topic)
 
+  @spec broadcast(message()) :: :ok
   def broadcast(message) when is_tuple(message) or is_atom(message) do
     Phoenix.PubSub.broadcast(@pubsub, @topic, message)
   end
 
+  @spec broadcast_activity_event(Storymap.AdminActivity.Event.t()) :: :ok
   def broadcast_activity_event(event) do
     broadcast({:activity_event, event})
   end
 
+  @spec broadcast_activity_reads_changed(integer()) :: :ok
   def broadcast_activity_reads_changed(admin_user_id) when is_integer(admin_user_id) do
     broadcast({:activity_reads_changed, admin_user_id})
   end
 
+  @spec broadcast_report_created(ContentReport.t()) :: :ok
   def broadcast_report_created(report) do
     broadcast({:report_created, report})
   end
 
+  @spec broadcast_report_updated(ContentReport.t()) :: :ok
   def broadcast_report_updated(report) do
     broadcast({:report_updated, report})
   end
 
+  @spec broadcast_reports_bulk_resolved() :: :ok
   def broadcast_reports_bulk_resolved do
     broadcast(:reports_bulk_resolved)
   end
@@ -58,6 +80,7 @@ defmodule Storymap.AdminPubSub do
   Re-queries badge counts for an admin scope and broadcasts `{:counts_changed, admin_user_id, counts}`.
   Pass `nil` scope to broadcast global reports count only (`admin_user_id` is `nil`).
   """
+  @spec broadcast_counts_changed(Scope.t() | nil) :: counts_map()
   def broadcast_counts_changed(%Scope{user: %{id: admin_user_id}} = scope) do
     counts = counts_for_scope(scope)
     broadcast({:counts_changed, admin_user_id, counts})
@@ -70,6 +93,7 @@ defmodule Storymap.AdminPubSub do
     counts
   end
 
+  @spec counts_for_scope(Scope.t()) :: counts_map()
   def counts_for_scope(%Scope{} = scope) do
     %{
       activity_unread: AdminActivity.unread_count(scope),
@@ -78,6 +102,7 @@ defmodule Storymap.AdminPubSub do
   end
 
   @doc "After activity/report mutations affecting multiple admins' nav badges."
+  @spec broadcast_counts_for_all_admins() :: :ok
   def broadcast_counts_for_all_admins do
     admin_user_ids =
       from(u in Storymap.Accounts.User,

@@ -11,6 +11,7 @@ defmodule Storymap.PinTypes.Validator do
   @max_string_length 2000
   @max_list_items 50
 
+  @spec validate_custom_data(Ecto.Changeset.t(), CustomPinType.t() | nil) :: Ecto.Changeset.t()
   def validate_custom_data(changeset, %CustomPinType{} = pin_type) do
     data = get_field(changeset, :custom_data) || %{}
     fields = Schema.fields(pin_type.schema)

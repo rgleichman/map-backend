@@ -7,6 +7,17 @@ defmodule Storymap.PinTypes.Schema do
   @max_label_length 120
   @max_options 50
 
+  @type field_type :: String.t()
+
+  @type select_option :: map()
+
+  @type field_definition :: map()
+
+  @type definition :: map()
+
+  @type validation_result :: :ok | {:error, String.t()}
+
+  @spec validate_definition(map()) :: validation_result()
   def validate_definition(%{"fields" => fields}) when is_list(fields),
     do: validate_fields(fields)
 
@@ -14,6 +25,7 @@ defmodule Storymap.PinTypes.Schema do
 
   def validate_definition(_), do: {:error, "must include a fields array"}
 
+  @spec fields(map()) :: [field_definition()]
   def fields(%{"fields" => fields}) when is_list(fields), do: fields
   def fields(%{fields: fields}) when is_list(fields), do: fields
   def fields(_), do: []

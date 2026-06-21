@@ -18,10 +18,15 @@ defmodule Storymap.ContentReports do
   alias Storymap.Pins
   alias Storymap.Pins.Pin
   alias Storymap.Repo
+  alias Storymap.Types
+
+  @type create_error :: {:error, :invalid_subject} | {:error, :not_found}
 
   @doc """
   Creates a report for an existing pin. Notifies admins via AdminPubSub.
   """
+  @spec create_report(map() | keyword(), integer() | nil) ::
+          Types.ecto_result(ContentReport.t()) | create_error()
   def create_report(attrs, reporter_user_id \\ nil)
       when is_map(attrs) or is_list(attrs) do
     attrs = for {k, v} <- Enum.into(attrs, %{}), into: %{}, do: {to_string(k), v}
@@ -74,6 +79,7 @@ defmodule Storymap.ContentReports do
   defp ensure_subject_type_pin("pin"), do: :ok
   defp ensure_subject_type_pin(_), do: {:error, :invalid_subject}
 
+  @spec list_reports_for_admin(Scope.t(), keyword()) :: [ContentReport.t()]
   def list_reports_for_admin(scope, opts \\ [])
 
   def list_reports_for_admin(%Scope{user: %User{admin_level: admin_level}}, opts)
@@ -90,6 +96,7 @@ defmodule Storymap.ContentReports do
 
   def list_reports_for_admin(_scope, _opts), do: []
 
+  @spec unresolved_count(Scope.t()) :: non_neg_integer()
   def unresolved_count(%Scope{user: %User{admin_level: admin_level}})
       when is_admin_level(admin_level) do
     unresolved_count_global()
@@ -97,11 +104,17 @@ defmodule Storymap.ContentReports do
 
   def unresolved_count(_scope), do: 0
 
+  @spec unresolved_count_global() :: non_neg_integer()
   def unresolved_count_global do
     from(r in ContentReport, where: is_nil(r.resolved_at), select: count(r.id))
     |> Repo.one()
   end
 
+  @spec resolve_report(Scope.t(), integer()) ::
+          Types.ecto_result(ContentReport.t())
+          | {:ok, :noop}
+          | Types.unauthorized()
+          | {:error, :not_found}
   def resolve_report(%Scope{user: %User{admin_level: admin_level}}, id)
       when is_admin_level(admin_level) and is_integer(id) do
     case Repo.get(ContentReport, id) do
@@ -129,6 +142,11 @@ defmodule Storymap.ContentReports do
 
   def resolve_report(_scope, _id), do: {:error, :unauthorized}
 
+  @spec unresolve_report(Scope.t(), integer()) ::
+          Types.ecto_result(ContentReport.t())
+          | {:ok, :noop}
+          | Types.unauthorized()
+          | {:error, :not_found}
   def unresolve_report(%Scope{user: %User{admin_level: admin_level}}, id)
       when is_admin_level(admin_level) and is_integer(id) do
     case Repo.get(ContentReport, id) do
@@ -156,6 +174,7 @@ defmodule Storymap.ContentReports do
 
   def unresolve_report(_scope, _id), do: {:error, :unauthorized}
 
+  @spec mark_all_resolved(Scope.t()) :: :ok | Types.unauthorized()
   def mark_all_resolved(%Scope{user: %User{admin_level: admin_level}} = _scope)
       when is_admin_level(admin_level) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

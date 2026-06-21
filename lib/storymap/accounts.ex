@@ -9,12 +9,14 @@ defmodule Storymap.Accounts do
   alias Storymap.AdminActivity
   alias Storymap.Accounts.{EmailIdentifier, User, UserToken, UserNotifier}
   alias Storymap.Accounts.Scope
+  alias Storymap.Types
 
   ## Database getters
 
   @doc """
   Gets a user by email address using the stored HMAC identifier (plaintext email is not persisted).
   """
+  @spec get_user_by_email(String.t()) :: User.t() | nil
   def get_user_by_email(email) when is_binary(email) do
     Repo.get_by(User, email_hmac: EmailIdentifier.hash(email))
   end
@@ -33,13 +35,16 @@ defmodule Storymap.Accounts do
       ** (Ecto.NoResultsError)
 
   """
+  @spec get_user!(integer()) :: User.t()
   def get_user!(id), do: Repo.get!(User, id)
 
   @doc """
   Gets a single user, or `nil` if the user does not exist.
   """
+  @spec get_user(integer()) :: User.t() | nil
   def get_user(id) when is_integer(id), do: Repo.get(User, id)
 
+  @spec list_users_for_admin(Scope.t()) :: [User.t()]
   def list_users_for_admin(%Scope{user: %User{admin_level: admin_level}})
       when admin_level >= 10 do
     from(u in User, order_by: [desc: u.inserted_at])
@@ -48,6 +53,8 @@ defmodule Storymap.Accounts do
 
   def list_users_for_admin(_scope), do: []
 
+  @spec update_user_admin_level(Scope.t(), User.t(), map()) ::
+          Types.ecto_result(User.t()) | Types.unauthorized()
   def update_user_admin_level(
         %Scope{user: %User{admin_level: admin_level}},
         %User{} = user,
@@ -61,6 +68,8 @@ defmodule Storymap.Accounts do
 
   def update_user_admin_level(_scope, _user, _attrs), do: {:error, :unauthorized}
 
+  @spec set_user_muted(Scope.t(), User.t(), boolean()) ::
+          Types.ecto_result(User.t()) | Types.unauthorized()
   def set_user_muted(%Scope{user: %User{admin_level: admin_level}}, %User{} = user, muted?)
       when admin_level >= 10 and is_boolean(muted?) do
     user
@@ -84,6 +93,7 @@ defmodule Storymap.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
+  @spec register_user(map()) :: Types.ecto_result(User.t())
   def register_user(attrs) do
     %User{}
     |> User.email_changeset(attrs)
@@ -106,6 +116,7 @@ defmodule Storymap.Accounts do
   The user is in sudo mode when the last authentication was done no further
   than 20 minutes ago. The limit can be given as second argument in minutes.
   """
+  @spec sudo_mode?(User.t(), integer()) :: boolean()
   def sudo_mode?(user, minutes \\ -20)
 
   def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, DateTime) do
@@ -125,6 +136,7 @@ defmodule Storymap.Accounts do
       %Ecto.Changeset{data: %User{}}
 
   """
+  @spec change_user_email(User.t(), map(), keyword()) :: Ecto.Changeset.t()
   def change_user_email(user, attrs \\ %{}, opts \\ []) do
     User.email_changeset(user, attrs, opts)
   end
@@ -134,6 +146,8 @@ defmodule Storymap.Accounts do
 
   If the token matches, the user email is updated and the token is deleted.
   """
+  @spec update_user_email(User.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :transaction_aborted}
   def update_user_email(user, token) do
     context = EmailIdentifier.change_email_context(user)
 
@@ -155,6 +169,7 @@ defmodule Storymap.Accounts do
   @doc """
   Generates a session token.
   """
+  @spec generate_user_session_token(User.t()) :: String.t()
   def generate_user_session_token(user) do
     {token, user_token} = UserToken.build_session_token(user)
     Repo.insert!(user_token)
@@ -166,6 +181,7 @@ defmodule Storymap.Accounts do
 
   If the token is valid `{user, token_inserted_at}` is returned, otherwise `nil` is returned.
   """
+  @spec get_user_by_session_token(String.t()) :: {User.t(), DateTime.t()} | nil
   def get_user_by_session_token(token) do
     {:ok, query} = UserToken.verify_session_token_query(token)
     Repo.one(query)
@@ -174,6 +190,7 @@ defmodule Storymap.Accounts do
   @doc """
   Gets the user with the given magic link token.
   """
+  @spec get_user_by_magic_link_token(String.t()) :: User.t() | nil
   def get_user_by_magic_link_token(token) do
     with {:ok, query} <- UserToken.verify_magic_link_token_query(token),
          {user, _token} <- Repo.one(query) do
@@ -201,6 +218,8 @@ defmodule Storymap.Accounts do
      source of security pitfalls. See the "Mixing magic link and password registration" section of
      `mix help phx.gen.auth`.
   """
+  @spec login_user_by_magic_link(String.t()) ::
+          {:ok, {User.t(), [UserToken.t()]}} | {:error, :not_found}
   def login_user_by_magic_link(token) do
     {:ok, query} = UserToken.verify_magic_link_token_query(token)
 
@@ -222,6 +241,8 @@ defmodule Storymap.Accounts do
   @doc """
   Delivers update-email instructions to `new_email` (plaintext used only for delivery).
   """
+  @spec deliver_user_update_email_instructions(User.t(), String.t(), (String.t() -> String.t())) ::
+          {:ok, term()} | {:error, term()}
   def deliver_user_update_email_instructions(
         %User{} = user,
         new_email,
@@ -244,6 +265,8 @@ defmodule Storymap.Accounts do
   @doc """
   Delivers the magic link login instructions to the given user.
   """
+  @spec deliver_login_instructions(User.t(), String.t(), (String.t() -> String.t())) ::
+          {:ok, term()} | {:error, term()}
   def deliver_login_instructions(%User{} = user, recipient_email, magic_link_url_fun)
       when is_binary(recipient_email) and is_function(magic_link_url_fun, 1) do
     {encoded_token, user_token} =
@@ -261,6 +284,7 @@ defmodule Storymap.Accounts do
   @doc """
   Deletes the signed token with the given context.
   """
+  @spec delete_user_session_token(String.t()) :: :ok
   def delete_user_session_token(token) do
     Repo.delete_all(from(UserToken, where: [token: ^token, context: "session"]))
     :ok
@@ -292,6 +316,7 @@ defmodule Storymap.Accounts do
       {:error, reason}
 
   """
+  @spec delete_user(User.t()) :: Types.ecto_result(User.t())
   def delete_user(%User{} = user) do
     Repo.transact(fn ->
       # Delete all pins for the user

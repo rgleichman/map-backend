@@ -167,8 +167,11 @@ defmodule StorymapWeb.SubMapController do
       {:error, :not_found} ->
         not_found(conn)
 
-      {:error, _} = err ->
-        err
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> put_view(json: StorymapWeb.ChangesetJSON)
+        |> render(:error, changeset: changeset)
     end
   end
 
@@ -190,8 +193,11 @@ defmodule StorymapWeb.SubMapController do
       {:error, :not_found} ->
         not_found(conn)
 
-      {:error, _} = err ->
-        err
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> put_view(json: StorymapWeb.ChangesetJSON)
+        |> render(:error, changeset: changeset)
     end
   end
 

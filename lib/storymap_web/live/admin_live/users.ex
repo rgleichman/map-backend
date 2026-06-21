@@ -134,9 +134,6 @@ defmodule StorymapWeb.AdminLive.Users do
         {:error, :unauthorized} ->
           {:noreply,
            socket |> put_flash(:error, "You are not authorized to change admin levels.")}
-
-        _ ->
-          {:noreply, socket |> put_flash(:error, "Could not update admin level.")}
       end
     end
   end

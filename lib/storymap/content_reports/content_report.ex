@@ -5,6 +5,20 @@ defmodule Storymap.ContentReports.ContentReport do
 
   @categories ~w(inaccurate abusive_or_hateful spam other)
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          subject_type: String.t() | nil,
+          subject_id: integer() | nil,
+          subject_label: String.t() | nil,
+          category: String.t() | nil,
+          details: String.t() | nil,
+          resolved_at: DateTime.t() | nil,
+          reporter_user_id: integer() | nil,
+          sub_map_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "content_reports" do
     field :subject_type, :string
     field :subject_id, :integer

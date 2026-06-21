@@ -33,6 +33,27 @@ defmodule Storymap.Pins.Pin do
 
   @type status :: :pending | :approved | :rejected | :archived
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          user_id: integer() | nil,
+          sub_map_id: integer() | nil,
+          status: status(),
+          visible_on_world_map: boolean(),
+          title: String.t() | nil,
+          latitude: float() | nil,
+          longitude: float() | nil,
+          description: String.t() | nil,
+          icon_url: String.t() | nil,
+          start_time: DateTime.t() | nil,
+          end_time: DateTime.t() | nil,
+          pin_type: String.t() | nil,
+          schedule_rrule: String.t() | nil,
+          schedule_timezone: String.t() | nil,
+          custom_data: map(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   @derive {Jason.Encoder, only: @public_json_fields}
 
   schema "pins" do

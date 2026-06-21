@@ -5,9 +5,14 @@ defmodule Storymap.PinTypes.Policy do
   alias Storymap.Accounts.User
   alias Storymap.PinTypes.CustomPinType
 
-  def can_create?(%User{} = user), do: not AccountsPolicy.muted?(user)
+  @spec can_create?(term()) :: boolean()
+  def can_create?(%User{} = user) do
+    AccountsPolicy.authorize_write?(user) == :ok
+  end
+
   def can_create?(_), do: false
 
+  @spec can_edit?(term(), term()) :: boolean()
   def can_edit?(%User{} = user, %CustomPinType{} = pin_type) do
     if AccountsPolicy.muted?(user) do
       false
@@ -18,12 +23,13 @@ defmodule Storymap.PinTypes.Policy do
 
   def can_edit?(_, _), do: false
 
+  @spec can_delete?(term(), term()) :: boolean()
   def can_delete?(%User{} = user, %CustomPinType{} = pin_type), do: can_edit?(user, pin_type)
   def can_delete?(_, _), do: false
 
   defp can_edit_unmuted?(%User{id: user_id, admin_level: level}, %CustomPinType{
          created_by_user_id: creator_id
        }) do
-    creator_id == user_id or (is_integer(level) and level >= 1)
+    creator_id == user_id or level >= 1
   end
 end

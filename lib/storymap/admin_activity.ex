@@ -16,7 +16,10 @@ defmodule Storymap.AdminActivity do
   alias Storymap.AdminActivity.Read
   alias Storymap.AdminPubSub
   alias Storymap.Repo
+  alias Storymap.Types
 
+  @spec record_event(String.t(), integer() | nil, map(), keyword()) ::
+          Types.ecto_result(Event.t())
   def record_event(type, actor_user_id, metadata \\ %{}, opts \\ [])
       when is_binary(type) and (is_integer(actor_user_id) or is_nil(actor_user_id)) and
              is_map(metadata) do
@@ -45,6 +48,7 @@ defmodule Storymap.AdminActivity do
     end
   end
 
+  @spec list_events_for_admin(Scope.t(), keyword()) :: [Event.t()]
   def list_events_for_admin(scope, opts \\ [])
 
   def list_events_for_admin(%Scope{user: %User{admin_level: admin_level}}, opts)
@@ -76,6 +80,7 @@ defmodule Storymap.AdminActivity do
 
   def list_events_for_admin(_scope, _opts), do: []
 
+  @spec unread_count(Scope.t(), integer()) :: non_neg_integer()
   def unread_count(%Scope{user: %User{} = user} = scope), do: unread_count(scope, user.id)
 
   def unread_count(%Scope{user: %User{admin_level: admin_level}}, admin_user_id)
@@ -96,6 +101,7 @@ defmodule Storymap.AdminActivity do
 
   def unread_count(_scope, _admin_user_id), do: 0
 
+  @spec read_event_ids_for_admin(Scope.t(), [integer()]) :: [integer()]
   def read_event_ids_for_admin(
         %Scope{user: %User{admin_level: admin_level, id: admin_user_id}},
         event_ids
@@ -116,11 +122,13 @@ defmodule Storymap.AdminActivity do
 
   def read_event_ids_for_admin(_scope, _event_ids), do: []
 
+  @spec get_event!(Scope.t(), integer()) :: Event.t()
   def get_event!(%Scope{user: %User{admin_level: admin_level}}, event_id)
       when is_admin_level(admin_level) and is_integer(event_id) do
     Repo.get!(Event, event_id)
   end
 
+  @spec mark_read(Scope.t(), integer()) :: Types.ecto_result(Read.t()) | Types.unauthorized()
   def mark_read(
         %Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope,
         event_id
@@ -149,6 +157,8 @@ defmodule Storymap.AdminActivity do
 
   def mark_read(_scope, _event_id), do: {:error, :unauthorized}
 
+  @spec mark_unread(Scope.t(), integer()) ::
+          {:ok, :cleared} | {:ok, :noop} | Types.unauthorized()
   def mark_unread(
         %Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope,
         event_id
@@ -172,6 +182,7 @@ defmodule Storymap.AdminActivity do
 
   def mark_unread(_scope, _event_id), do: {:error, :unauthorized}
 
+  @spec mark_all_read(Scope.t()) :: :ok | Types.unauthorized()
   def mark_all_read(%Scope{user: %User{admin_level: admin_level, id: admin_user_id}} = scope)
       when is_admin_level(admin_level) do
     now = utc_now_second()

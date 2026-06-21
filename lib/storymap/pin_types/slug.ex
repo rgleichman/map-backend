@@ -10,6 +10,10 @@ defmodule Storymap.PinTypes.Slug do
     new admin map api pins pin-types
   )
 
+  @type slug_error :: :required | :too_short | :too_long | :reserved | :invalid_format
+  @type validate_result :: {:ok, String.t()} | {:error, slug_error()}
+
+  @spec normalize(String.t() | nil) :: String.t() | nil
   def normalize(nil), do: nil
 
   def normalize(slug) when is_binary(slug) do
@@ -19,6 +23,7 @@ defmodule Storymap.PinTypes.Slug do
     |> then(fn s -> if s == "", do: nil, else: s end)
   end
 
+  @spec generate_from_label(String.t()) :: String.t() | nil
   def generate_from_label(label) when is_binary(label) do
     label
     |> String.downcase()
@@ -31,6 +36,7 @@ defmodule Storymap.PinTypes.Slug do
     end
   end
 
+  @spec validate(String.t()) :: validate_result()
   def validate(slug) when is_binary(slug) do
     slug = normalize(slug)
 
@@ -44,6 +50,7 @@ defmodule Storymap.PinTypes.Slug do
     end
   end
 
+  @spec error_message(slug_error() | term()) :: String.t()
   def error_message(:required), do: "can't be blank"
   def error_message(:too_short), do: "must be at least #{@min_length} characters"
   def error_message(:too_long), do: "must be at most #{@max_length} characters"

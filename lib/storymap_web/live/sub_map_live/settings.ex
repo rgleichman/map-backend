@@ -42,7 +42,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
          socket
          |> assign(:sub_map, sub_map)
          |> assign(:form, to_form(SubMap.changeset(sub_map, %{}), as: :sub_map))
-         |> PinTypeForm.assign_pin_types(sub_map.settings || %{})
+         |> PinTypeForm.assign_pin_types(sub_map.settings)
          |> put_flash(:info, "Community settings saved")}
 
       {:error, %Ecto.Changeset{} = changeset} ->

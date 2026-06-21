@@ -15,10 +15,12 @@ defmodule Storymap.URL do
 
   @max_mailto_len 2048
 
+  @spec sanitize_link_input(String.t()) :: String.t()
   def sanitize_link_input(url) when is_binary(url) do
     url |> String.trim() |> String.normalize(:nfkc)
   end
 
+  @spec normalize_url(String.t()) :: String.t()
   def normalize_url(url) when is_binary(url) do
     url = sanitize_link_input(url)
     lower = String.downcase(url)
@@ -31,6 +33,7 @@ defmodule Storymap.URL do
     end
   end
 
+  @spec safe_url?(String.t() | any()) :: boolean()
   def safe_url?(url) when is_binary(url) do
     url = sanitize_link_input(url)
     if url == "", do: false, else: safe_url_normalized?(url)

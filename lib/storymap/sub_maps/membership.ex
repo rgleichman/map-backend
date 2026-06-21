@@ -12,6 +12,16 @@ defmodule Storymap.SubMaps.Membership do
   @type role :: :owner | :moderator | :member
   @type status :: :active | :pending | :banned
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          role: role(),
+          status: status(),
+          sub_map_id: integer() | nil,
+          user_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "sub_map_memberships" do
     field :role, Ecto.Enum, values: @roles, default: :member
     field :status, Ecto.Enum, values: @statuses, default: :active

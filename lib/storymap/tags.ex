@@ -6,10 +6,12 @@ defmodule Storymap.Tags do
   import Ecto.Query
   alias Storymap.Repo
   alias Storymap.Tags.Tag
+  alias Storymap.Types
 
   @doc """
   Gets a tag by name, or creates it if it doesn't exist.
   """
+  @spec get_or_create_tag_by_name(String.t()) :: Types.ecto_result(Tag.t())
   def get_or_create_tag_by_name(name) do
     lowercase_name = String.downcase(name)
 
@@ -28,6 +30,7 @@ defmodule Storymap.Tags do
   Gets all tags for a list of names.
   Returns `{:ok, [%Tag{}]}` or `{:error, changeset}` if any tag creation fails.
   """
+  @spec get_or_create_tags_by_names([String.t()]) :: Types.ecto_result([Tag.t()])
   def get_or_create_tags_by_names(names) do
     lowercase_names =
       names

@@ -12,6 +12,16 @@ defmodule Storymap.Accounts.UserToken do
   @change_email_validity_in_days 7
   @session_validity_in_days 14
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          token: binary() | nil,
+          context: String.t() | nil,
+          sent_to: binary() | nil,
+          authenticated_at: DateTime.t() | nil,
+          user_id: integer() | nil,
+          inserted_at: DateTime.t() | nil
+        }
+
   schema "users_tokens" do
     field :token, :binary
     field :context, :string

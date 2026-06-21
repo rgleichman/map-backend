@@ -14,6 +14,25 @@ defmodule Storymap.SubMaps.SubMap do
   @type promote_to_world_default :: :never | :ask | :always
   @type visibility :: :public | :unlisted
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          community_url: String.t() | nil,
+          name: String.t() | nil,
+          description: String.t() | nil,
+          rules: String.t() | nil,
+          contribution_mode: contribution_mode(),
+          promote_to_world_default: promote_to_world_default(),
+          visibility: visibility(),
+          bounds: map() | nil,
+          settings: map(),
+          pin_count: integer() | nil,
+          member_count: integer() | nil,
+          pending_count: integer() | nil,
+          owner_user_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "sub_maps" do
     field :community_url, :string
     field :name, :string

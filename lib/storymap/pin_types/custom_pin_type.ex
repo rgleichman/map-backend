@@ -9,6 +9,20 @@ defmodule Storymap.PinTypes.CustomPinType do
   @builtin_pin_types ~w(one_time scheduled food_bank other)
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          slug: String.t() | nil,
+          label: String.t() | nil,
+          description: String.t() | nil,
+          marker_color: String.t() | nil,
+          icon: String.t() | nil,
+          schema: map(),
+          enabled: boolean(),
+          created_by_user_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "custom_pin_types" do
     field :slug, :string
     field :label, :string

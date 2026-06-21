@@ -6,6 +6,18 @@ defmodule Storymap.Accounts.User do
   alias Storymap.Accounts.EmailIdentifier
   alias Storymap.Repo
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          email_hmac: binary() | nil,
+          email: String.t() | nil,
+          admin_level: integer(),
+          muted_at: DateTime.t() | nil,
+          confirmed_at: DateTime.t() | nil,
+          authenticated_at: DateTime.t() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "users" do
     field :email_hmac, :binary
     field :email, :string, virtual: true

@@ -11,7 +11,11 @@ defmodule Storymap.PinTypes do
   alias Storymap.PinTypes.{CustomPinType, Policy}
   alias Storymap.Repo
   alias Storymap.SubMaps.PinTypeSettings
+  alias Storymap.Types
 
+  @type delete_error :: Types.forbidden() | {:error, :in_use}
+
+  @spec list_enabled_pin_types() :: [CustomPinType.t()]
   def list_enabled_pin_types do
     CustomPinType
     |> where([t], t.enabled == true)
@@ -19,23 +23,29 @@ defmodule Storymap.PinTypes do
     |> Repo.all()
   end
 
+  @spec list_all_pin_types() :: [CustomPinType.t()]
   def list_all_pin_types do
     CustomPinType
     |> order_by([t], asc: t.label)
     |> Repo.all()
   end
 
+  @spec get_pin_type!(integer()) :: CustomPinType.t()
   def get_pin_type!(id), do: Repo.get!(CustomPinType, id)
 
+  @spec get_by_slug(String.t()) :: CustomPinType.t() | nil
   def get_by_slug(slug) when is_binary(slug) do
     Repo.get_by(CustomPinType, slug: slug)
   end
 
   def get_by_slug(_), do: nil
 
+  @spec get_by_pin_type(String.t()) :: CustomPinType.t() | nil
   def get_by_pin_type("custom:" <> slug) when slug != "", do: get_by_slug(slug)
   def get_by_pin_type(_), do: nil
 
+  @spec create_pin_type(Scope.t() | any(), map()) ::
+          Types.ecto_result(CustomPinType.t()) | Types.forbidden() | Types.unauthorized()
   def create_pin_type(%Scope{user: %User{} = user}, attrs) do
     if Policy.can_create?(user) do
       attrs = stringify_keys(attrs)
@@ -50,6 +60,8 @@ defmodule Storymap.PinTypes do
 
   def create_pin_type(_, _), do: {:error, :unauthorized}
 
+  @spec update_pin_type(Scope.t(), CustomPinType.t(), map()) ::
+          Types.ecto_result(CustomPinType.t()) | Types.forbidden()
   def update_pin_type(%Scope{user: user}, %CustomPinType{} = pin_type, attrs) do
     if Policy.can_edit?(user, pin_type) do
       pin_type
@@ -60,6 +72,8 @@ defmodule Storymap.PinTypes do
     end
   end
 
+  @spec delete_pin_type(Scope.t(), CustomPinType.t()) ::
+          Types.ecto_result(CustomPinType.t()) | delete_error()
   def delete_pin_type(%Scope{user: user}, %CustomPinType{} = pin_type) do
     if Policy.can_delete?(user, pin_type) do
       if pin_type_in_use?(pin_type) do
@@ -72,6 +86,7 @@ defmodule Storymap.PinTypes do
     end
   end
 
+  @spec available_pin_types_for_settings(map()) :: [CustomPinType.t()]
   def available_pin_types_for_settings(settings) do
     enabled_slugs = PinTypeSettings.enabled_custom_slugs(settings)
 
@@ -79,10 +94,12 @@ defmodule Storymap.PinTypes do
     |> Enum.filter(&(&1.slug in enabled_slugs))
   end
 
+  @spec available_pin_types_for_world() :: [CustomPinType.t()]
   def available_pin_types_for_world do
     list_enabled_pin_types()
   end
 
+  @spec change_pin_type(CustomPinType.t(), map()) :: Ecto.Changeset.t()
   def change_pin_type(%CustomPinType{} = pin_type, attrs \\ %{}) do
     CustomPinType.changeset(pin_type, attrs)
   end

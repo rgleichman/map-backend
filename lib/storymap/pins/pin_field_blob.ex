@@ -4,6 +4,18 @@ defmodule Storymap.Pins.PinFieldBlob do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          pin_id: integer() | nil,
+          field_key: String.t() | nil,
+          type: String.t() | nil,
+          format: String.t() | nil,
+          version: integer() | nil,
+          payload: String.t() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "pin_field_blobs" do
     belongs_to :pin, Storymap.Pins.Pin
 

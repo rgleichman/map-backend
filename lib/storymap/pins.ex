@@ -12,21 +12,33 @@ defmodule Storymap.Pins do
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, Policy, SubMap}
+  alias Storymap.Types
 
   @blob_field_types ~w(music drawing)
 
+  @type blob_upsert_result :: %{
+          pin: Pin.t(),
+          blob: PinFieldBlob.t()
+        }
+
+  @type blob_error :: {:error, :invalid_blob_field} | {:error, :required_blob_field}
+
+  @spec list_pins() :: [Pin.t()]
   def list_pins do
     Query.world_pins()
     |> Repo.all()
   end
 
+  @spec list_pins_by_user(integer()) :: [Pin.t()]
   def list_pins_by_user(user_id) when is_integer(user_id) do
     Query.by_user(user_id)
     |> Repo.all()
   end
 
+  @spec get_pin!(integer()) :: Pin.t()
   def get_pin!(id), do: Repo.get!(Pin, id) |> Repo.preload(:tags)
 
+  @spec get_pin(integer()) :: Pin.t() | nil
   def get_pin(id) when is_integer(id) do
     case Repo.get(Pin, id) do
       nil -> nil
@@ -37,14 +49,17 @@ defmodule Storymap.Pins do
   @doc """
   Returns the in-app map URL for a pin, using the community map when the pin belongs to one.
   """
+  @spec map_path_for_pin(Pin.t()) :: String.t()
   def map_path_for_pin(%Pin{id: id, sub_map: %SubMap{community_url: url}}) do
     "/m/#{url}/map?pin=#{id}"
   end
 
+  @spec map_path_for_pin(Pin.t()) :: String.t()
   def map_path_for_pin(%Pin{id: id}) do
     "/map?pin=#{id}"
   end
 
+  @spec map_path_for_pin(integer()) :: String.t()
   def map_path_for_pin(pin_id) when is_integer(pin_id) do
     case get_pin(pin_id) do
       nil -> "/map?pin=#{pin_id}"
@@ -52,6 +67,7 @@ defmodule Storymap.Pins do
     end
   end
 
+  @spec create_pin(map(), integer(), keyword()) :: Types.ecto_result(Pin.t())
   def create_pin(attrs, user_id, opts \\ []) do
     attrs_with_user = Map.put(stringify_keys(attrs), "user_id", user_id)
     sub_map = Keyword.get(opts, :sub_map)
@@ -72,6 +88,7 @@ defmodule Storymap.Pins do
     end
   end
 
+  @spec update_pin(Pin.t(), map(), keyword()) :: Types.ecto_result(Pin.t())
   def update_pin(%Pin{} = pin, attrs, opts \\ []) do
     sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
     user = Keyword.get(opts, :user)
@@ -98,10 +115,12 @@ defmodule Storymap.Pins do
     end
   end
 
+  @spec delete_pin(Pin.t()) :: Types.ecto_result(Pin.t())
   def delete_pin(%Pin{} = pin) do
     Repo.delete(pin)
   end
 
+  @spec change_pin(Pin.t(), map()) :: Ecto.Changeset.t()
   def change_pin(%Pin{} = pin, attrs \\ %{}) do
     Pin.changeset(pin, attrs)
   end
@@ -109,6 +128,7 @@ defmodule Storymap.Pins do
   @doc """
   Returns a field blob payload for the given pin, field key, and type, or nil.
   """
+  @spec get_field_blob(integer(), String.t(), String.t()) :: PinFieldBlob.t() | nil
   def get_field_blob(pin_id, field_key, type)
       when is_integer(pin_id) and is_binary(field_key) and is_binary(type) do
     Repo.one(
@@ -122,6 +142,8 @@ defmodule Storymap.Pins do
 
   Returns `{:ok, %{pin: pin, blob: blob}}` on success.
   """
+  @spec upsert_field_blob(Pin.t(), String.t(), String.t(), map()) ::
+          Types.ecto_ok(blob_upsert_result()) | Types.ecto_err() | blob_error()
   def upsert_field_blob(%Pin{} = pin, field_key, type, attrs)
       when is_binary(field_key) and is_binary(type) and is_map(attrs) do
     with :ok <- validate_blob_field_key(pin, field_key, type) do
@@ -176,6 +198,8 @@ defmodule Storymap.Pins do
 
   Returns `{:ok, pin}` on success, or `{:error, changeset}`.
   """
+  @spec delete_field_blob(Pin.t(), String.t(), String.t()) ::
+          Types.ecto_ok(Pin.t()) | Types.ecto_err() | blob_error()
   def delete_field_blob(%Pin{} = pin, field_key, type)
       when is_binary(field_key) and is_binary(type) do
     with :ok <- validate_blob_field_key(pin, field_key, type),
@@ -201,11 +225,16 @@ defmodule Storymap.Pins do
     end
   end
 
+  @spec get_music_blob(integer(), String.t()) :: PinFieldBlob.t() | nil
   def get_music_blob(pin_id, field_key), do: get_field_blob(pin_id, field_key, "music")
 
+  @spec upsert_music_blob(Pin.t(), String.t(), map()) ::
+          Types.ecto_ok(blob_upsert_result()) | Types.ecto_err() | blob_error()
   def upsert_music_blob(%Pin{} = pin, field_key, attrs),
     do: upsert_field_blob(pin, field_key, "music", attrs)
 
+  @spec delete_music_blob(Pin.t(), String.t()) ::
+          Types.ecto_ok(Pin.t()) | Types.ecto_err() | blob_error()
   def delete_music_blob(%Pin{} = pin, field_key),
     do: delete_field_blob(pin, field_key, "music")
 
