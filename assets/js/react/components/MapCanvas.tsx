@@ -98,7 +98,7 @@ function buildPinFeatureSets(pinList: Pin[], filterState: FilterState, catalog: 
   const dimmed: ReturnType<typeof toPinFeature>[] = []
   for (const pin of pinList) {
     const feature = toPinFeature(pin, catalog)
-    if (pinMatchesFilter(pin, filterState)) matching.push(feature)
+    if (pinMatchesFilter(pin, filterState, catalog)) matching.push(feature)
     else dimmed.push(feature)
   }
   return { matching, dimmed }

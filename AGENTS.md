@@ -60,6 +60,16 @@ The application should work for both **desktop** and **cross-platform mobile web
 - **Never** bypass CSRF protection in API calls; always include the token
 - **Callback stability when passed to children:** If a callback (e.g. `onMapClick`) is passed to a child that uses it in a `useEffect` (or similar) dependency array, **do not** add frequently-changing state to the callback's `useCallback` dependency array if that would cause the child's effect to re-run (e.g. re-initializing a map or heavy DOM). **Prefer** keeping the callback reference stable: use a ref (e.g. `someRef.current = value` and read `someRef.current` inside the callback) so the callback can keep a minimal dependency array. Before adding a new dependency to a callback that is passed down, check whether the child includes that callback in an effect's dependency list; if so, use a ref for the value instead of adding it to the callback's deps.
 
+### Custom pin fields (React)
+
+- Schema and wire types live in `assets/js/react/types.ts` (`CustomFieldSchema`, `CustomFieldPrimitiveType`, blob kinds via `BlobFieldType` in `utils/blobFieldType.ts`).
+- **Do not** duplicate primitive `field.type` string checks, ad-hoc `typeof value === "object"` guards, or blob-shape checks in new code — use the shared utilities below.
+- **Value semantics and display text:** `utils/customFieldValue.ts` — `isCustomFieldEmpty`, `formatCustomFieldValue`, `searchableCustomFieldText`.
+- **Blob field shapes:** `utils/blobFieldValue.ts` — `isBlobFieldRef`, `isBlobFieldDraft`; field kind checks via `isBlobFieldType` / `BlobFieldType`.
+- **Catalog / schema:** `utils/customPinTypes.ts` — `findCustomPinType`, `schemaFields`, `isCustomPinType`.
+- **Search and filtering over `custom_data`:** `utils/customFieldSearch.ts` (builds on the above; do not reimplement).
+- React components may re-export helpers from `customFieldValue.ts` for convenience, but **utils and non-UI code must import from `utils/`**, not from `components/`.
+
 ### UI/UX & design guidelines
 
 - **Produce world-class UI designs** with a focus on usability, aesthetics, and modern design principles

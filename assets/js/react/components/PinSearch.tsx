@@ -1,29 +1,34 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
-import type { Pin } from "../types"
+import type { CustomPinType, Pin } from "../types"
 import { useIsDesktop } from "../utils/useMediaQuery"
+import { usePinTypes } from "../context/PinTypesContext"
 import { pinMatchesQuery, type FilterState } from "./map/filters"
+import { customFieldSearchHits } from "../utils/customFieldSearch"
+import { HighlightedExcerpt } from "../utils/HighlightedExcerpt"
+import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
 
 const DEBOUNCE_MS = 150
 const MAX_SUGGESTIONS = 8
 
-function rankPin(pin: Pin, query: string): number {
+function rankPin(pin: Pin, query: string, catalog: CustomPinType[]): number {
   const q = query.trim().toLowerCase()
   const title = pin.title.toLowerCase()
   if (title.startsWith(q)) return 0
   if (title.includes(q)) return 1
   if (pin.tags?.some((t) => t.toLowerCase().includes(q))) return 2
-  if (pin.description?.toLowerCase().includes(q)) return 3
-  return 4
+  if (customFieldSearchHits(pin, catalog).some((h) => h.text.toLowerCase().includes(q))) return 3
+  if (pin.description?.toLowerCase().includes(q)) return 4
+  return 5
 }
 
-function searchSuggestions(pins: Pin[], query: string): Pin[] {
+function searchSuggestions(pins: Pin[], query: string, catalog: CustomPinType[]): Pin[] {
   const q = query.trim()
   if (q === "") return []
   return pins
-    .filter((p) => pinMatchesQuery(p, q))
+    .filter((p) => pinMatchesQuery(p, q, catalog))
     .sort((a, b) => {
-      const ra = rankPin(a, q)
-      const rb = rankPin(b, q)
+      const ra = rankPin(a, q, catalog)
+      const rb = rankPin(b, q, catalog)
       if (ra !== rb) return ra - rb
       return a.title.localeCompare(b.title)
     })
@@ -61,6 +66,7 @@ export default function PinSearch({
   onFocusChange,
 }: Props) {
   const isDesktop = useIsDesktop()
+  const { catalog } = usePinTypes()
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState(filter.query)
@@ -79,8 +85,8 @@ export default function PinSearch({
   }, [inputValue, setFilter])
 
   const suggestions = useMemo(
-    () => searchSuggestions(pins, inputValue),
-    [pins, inputValue]
+    () => searchSuggestions(pins, inputValue, catalog),
+    [pins, inputValue, catalog]
   )
 
   const showList = focused && inputValue.trim() !== "" && suggestions.length > 0
@@ -193,29 +199,32 @@ export default function PinSearch({
             role="listbox"
             className="absolute left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg py-1"
           >
-            {suggestions.map((pin, index) => (
-              <li
-                key={pin.id}
-                id={`${listboxId}-option-${index}`}
-                role="option"
-                aria-selected={index === highlightIndex}
-                className={[
-                  "px-3 py-2 cursor-pointer text-sm",
-                  index === highlightIndex
-                    ? "bg-primary/15 text-base-content"
-                    : "text-base-content hover:bg-base-200/80",
-                ].join(" ")}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectPin(pin)}
-              >
-                <span className="font-medium line-clamp-1">{pin.title}</span>
-                {pin.tags && pin.tags.length > 0 && (
-                  <span className="mt-0.5 block text-xs text-base-content/60 line-clamp-1">
-                    {pin.tags.slice(0, 3).join(" · ")}
-                  </span>
-                )}
-              </li>
-            ))}
+            {suggestions.map((pin, index) => {
+              const excerpt = pinSearchExcerpt(pin, inputValue.trim(), catalog)
+              return (
+                <li
+                  key={pin.id}
+                  id={`${listboxId}-option-${index}`}
+                  role="option"
+                  aria-selected={index === highlightIndex}
+                  className={[
+                    "px-3 py-2 cursor-pointer text-sm",
+                    index === highlightIndex
+                      ? "bg-primary/15 text-base-content"
+                      : "text-base-content hover:bg-base-200/80",
+                  ].join(" ")}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectPin(pin)}
+                >
+                  <span className="font-medium line-clamp-1">{pin.title}</span>
+                  {excerpt && (
+                    <span className="mt-0.5 block text-xs text-base-content/70 line-clamp-1">
+                      <HighlightedExcerpt excerpt={excerpt} />
+                    </span>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

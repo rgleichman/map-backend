@@ -10,6 +10,7 @@ import {
   partsGte,
   partsLte,
 } from "../../utils/datetime"
+import { pinCustomFieldsMatchQuery } from "../../utils/customFieldSearch"
 
 export type TimeFilter = "now" | null
 
@@ -150,18 +151,19 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
   return isRecurrenceDayForParts(nowParts, rruleStr, ianaTimezone)
 }
 
-/** True if the pin matches a case-insensitive substring query on title, description, or tags. */
-export function pinMatchesQuery(p: Pin, query: string): boolean {
+/** True if the pin matches a case-insensitive substring query on title, description, tags, or custom fields. */
+export function pinMatchesQuery(p: Pin, query: string, catalog?: CustomPinType[]): boolean {
   const q = query.trim().toLowerCase()
   if (q === "") return true
   if (p.title.toLowerCase().includes(q)) return true
   if (p.description?.toLowerCase().includes(q)) return true
   if (p.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
+  if (pinCustomFieldsMatchQuery(p, query, catalog)) return true
   return false
 }
 
 /** True if the pin passes the current tag, time, pin-type, and query filter rules. */
-export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
+export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPinType[]): boolean {
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {
     return false
   }
@@ -170,7 +172,7 @@ export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
     return false
   }
 
-  if (!pinMatchesQuery(p, filter.query)) {
+  if (!pinMatchesQuery(p, filter.query, catalog)) {
     return false
   }
 
@@ -222,6 +224,6 @@ export function pinMatchesFilter(p: Pin, filter: FilterState): boolean {
   return true
 }
 
-export function filterPins(pins: Pin[], filter: FilterState): Pin[] {
-  return pins.filter((p) => pinMatchesFilter(p, filter))
+export function filterPins(pins: Pin[], filter: FilterState, catalog?: CustomPinType[]): Pin[] {
+  return pins.filter((p) => pinMatchesFilter(p, filter, catalog))
 }

@@ -4,15 +4,16 @@ import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
 import MusicPlayStopLabel from "./music/MusicPlayStopLabel"
 import DrawingFieldEditor from "./drawing/DrawingFieldEditor"
 import { DrawingPreviewFromPayload } from "./drawing/DrawingPreview"
-import {
-  isBlobFieldDraft,
-  isBlobFieldRef,
-} from "../utils/blobFieldValue"
-import { musicFieldDraftHasContent } from "../utils/musicFieldValue"
-import { drawingHasContent, parseDrawing } from "../utils/drawingPayload"
+import { isBlobFieldRef } from "../utils/blobFieldValue"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchBlobPayload } from "../utils/blobPayloadCache"
-import { BlobFieldType, isBlobFieldType } from "../utils/blobFieldType"
+import { BlobFieldType } from "../utils/blobFieldType"
+import {
+  formatCustomFieldValue,
+  isCustomFieldEmpty,
+} from "../utils/customFieldValue"
+
+export { formatCustomFieldValue, isCustomFieldEmpty } from "../utils/customFieldValue"
 
 type Props = {
   fields: CustomFieldSchema[]
@@ -177,32 +178,6 @@ function renderField(
   }
 }
 
-function blobDraftHasContent(field: CustomFieldSchema | undefined, value: unknown): boolean {
-  if (!isBlobFieldDraft(value)) return false
-  const payload = value.draft.trim()
-  if (!payload) return false
-
-  if (field && isBlobFieldType(field.type)) {
-    if (field.type === BlobFieldType.Music) return musicFieldDraftHasContent(value)
-    if (field.type === BlobFieldType.Drawing) {
-      return drawingHasContent(parseDrawing(payload))
-    }
-  }
-
-  try {
-    const parsed = JSON.parse(payload) as { strokes?: unknown[]; rows?: unknown[] }
-    if (Array.isArray(parsed.strokes)) {
-      return drawingHasContent(parseDrawing(payload))
-    }
-    if (Array.isArray(parsed.rows)) {
-      return musicFieldDraftHasContent(value)
-    }
-  } catch {
-    return false
-  }
-  return false
-}
-
 export function validateCustomFields(
   fields: CustomFieldSchema[],
   values: Record<string, unknown>
@@ -215,30 +190,6 @@ export function validateCustomFields(
     }
   }
   return null
-}
-
-export function isCustomFieldEmpty(value: unknown, field?: CustomFieldSchema): boolean {
-  if (value === undefined || value === null || value === "") return true
-  if (Array.isArray(value) && value.length === 0) return true
-  if (isBlobFieldDraft(value)) {
-    const payload = value.draft.trim()
-    if (!payload) return true
-    return !blobDraftHasContent(field, value)
-  }
-  if (isBlobFieldRef(value)) return false
-  if (typeof value === "object" && value != null && "ref" in (value as Record<string, unknown>)) return true
-  return false
-}
-
-export function formatCustomFieldValue(field: CustomFieldSchema, value: unknown): string {
-  if (value === undefined || value === null) return ""
-  if (field.type === "boolean") return value === true ? "Yes" : "No"
-  if (field.type === "list" && Array.isArray(value)) return value.join(", ")
-  if (field.type === "select") {
-    const opt = field.options?.find((o) => o.value === value)
-    return opt?.label ?? String(value)
-  }
-  return String(value)
 }
 
 type CustomFieldDisplayProps = {

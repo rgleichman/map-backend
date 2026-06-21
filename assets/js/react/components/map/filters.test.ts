@@ -226,6 +226,14 @@ describe("pinMatchesQuery", () => {
     expect(pinMatchesQuery(pin, "dinner")).toBe(false)
   })
 
+  it("matches custom field values via raw custom_data", () => {
+    const pin = minimalPin({
+      title: "Place",
+      custom_data: { venue: "Rooftop garden" },
+    })
+    expect(pinMatchesQuery(pin, "rooftop")).toBe(true)
+  })
+
   it("empty query matches everything", () => {
     const pin = minimalPin({ title: "Anything" })
     expect(pinMatchesQuery(pin, "")).toBe(true)
