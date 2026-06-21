@@ -210,10 +210,7 @@ export function validateCustomFields(
   for (const field of fields) {
     if (!field.required) continue
     const value = values[field.key]
-    if (field.type === BlobFieldType.Music || field.type === BlobFieldType.Drawing) {
-      if (isBlobFieldRef(value) || blobDraftHasContent(field, value)) continue
-    }
-    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
+    if (isCustomFieldEmpty(value, field)) {
       return `${field.label} is required`
     }
   }

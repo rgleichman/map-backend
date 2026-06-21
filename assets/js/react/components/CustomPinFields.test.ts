@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isCustomFieldEmpty } from "./CustomPinFields"
+import { isCustomFieldEmpty, validateCustomFields } from "./CustomPinFields"
 import { BlobFieldType } from "../utils/blobFieldType"
 import { serializeDrawing } from "../utils/drawingPayload"
 import { serializeScore, emptyScore } from "../utils/musicScore"
@@ -46,5 +46,31 @@ describe("isCustomFieldEmpty", () => {
 
   it("treats blob refs as non-empty", () => {
     expect(isCustomFieldEmpty({ ref: 42 }, drawingField)).toBe(false)
+  })
+})
+
+describe("validateCustomFields", () => {
+  it("rejects required blob fields with empty drafts", () => {
+    expect(
+      validateCustomFields([{ ...drawingField, required: true }], { sketch: { draft: "" } })
+    ).toBe("Sketch is required")
+    expect(
+      validateCustomFields([{ ...musicField, required: true }], { tune: { draft: "   " } })
+    ).toBe("Tune is required")
+  })
+
+  it("accepts required blob fields with refs or contentful drafts", () => {
+    const fields = [
+      { ...drawingField, required: true },
+      { ...musicField, required: true },
+    ]
+    const score = emptyScore()
+    score.rows[0].hits[0] = true
+    expect(
+      validateCustomFields(fields, {
+        sketch: { ref: 1 },
+        tune: { draft: serializeScore(score) },
+      })
+    ).toBeNull()
   })
 })
