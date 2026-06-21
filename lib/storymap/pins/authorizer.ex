@@ -82,16 +82,16 @@ defmodule Storymap.Pins.Authorizer do
 
   defp site_pin_moderator?(_), do: false
 
-  defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: "approval_required"}, %Pin{
-         status: "pending"
+  defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: :approval_required}, %Pin{
+         status: :pending
        }),
        do: true
 
-  defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: "approval_required"}, _pin),
+  defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: :approval_required}, _pin),
     do: false
 
   defp owner_can_edit_sub_map_pin?(%SubMap{}, %Pin{status: status})
-       when status in ["pending", "approved"],
+       when status in [:pending, :approved],
        do: true
 
   defp owner_can_edit_sub_map_pin?(_, _), do: false

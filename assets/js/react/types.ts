@@ -1,5 +1,11 @@
 import type { BlobFieldType } from "./utils/blobFieldType"
 
+export type ContributionMode = "open" | "members_only" | "approval_required"
+export type PromoteToWorldDefault = "never" | "ask" | "always"
+export type SubMapVisibility = "public" | "unlisted"
+export type MembershipRole = "owner" | "moderator" | "member"
+export type MembershipStatus = "active" | "pending" | "banned"
+
 export type BuiltinPinType = "one_time" | "scheduled" | "food_bank" | "other"
 
 /** Built-in enum or `custom:<slug>` from the global catalog. */
@@ -101,9 +107,9 @@ export type SubMap = {
   name: string
   description?: string | null
   rules?: string | null
-  contribution_mode: string
-  promote_to_world_default: string
-  visibility: string
+  contribution_mode: ContributionMode
+  promote_to_world_default: PromoteToWorldDefault
+  visibility: SubMapVisibility
   settings: Record<string, unknown>
   enabled_builtin_pin_types?: BuiltinPinType[]
   enabled_custom_pin_types?: string[]
@@ -114,7 +120,7 @@ export type SubMap = {
   can_moderate?: boolean
   can_post?: boolean
   can_edit?: boolean
-  membership?: { role: string; status: string } | null
+  membership?: { role: MembershipRole; status: MembershipStatus } | null
 }
 
 export type ReportCategory = "inaccurate" | "abusive_or_hateful" | "spam" | "other"

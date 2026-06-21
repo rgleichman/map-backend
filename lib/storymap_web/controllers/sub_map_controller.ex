@@ -130,7 +130,9 @@ defmodule StorymapWeb.SubMapController do
 
     case SubMaps.join(scope, conn.assigns.sub_map) do
       {:ok, membership} ->
-        json(conn, %{data: %{role: membership.role, status: membership.status}})
+        json(conn, %{
+          data: %{role: to_string(membership.role), status: to_string(membership.status)}
+        })
 
       {:error, _} ->
         forbidden(conn)

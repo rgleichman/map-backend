@@ -26,21 +26,13 @@
         field={@form[:contribution_mode]}
         type="select"
         label="Who can add pins?"
-        options={[
-          {"Anyone logged in", "open"},
-          {"Members only", "members_only"},
-          {"Requires moderator approval", "approval_required"}
-        ]}
+        options={SubMap.contribution_mode_options()}
       />
       <.input
         field={@form[:promote_to_world_default]}
         type="select"
         label="Show pins on world map"
-        options={[
-          {"Never", "never"},
-          {"Ask each time", "ask"},
-          {"Always", "always"}
-        ]}
+        options={SubMap.promote_default_options()}
       />
 
       <.pin_type_fields

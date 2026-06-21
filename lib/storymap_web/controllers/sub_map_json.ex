@@ -41,9 +41,9 @@ defmodule StorymapWeb.SubMapJSON do
       name: sub_map.name,
       description: sub_map.description,
       rules: sub_map.rules,
-      contribution_mode: sub_map.contribution_mode,
-      promote_to_world_default: sub_map.promote_to_world_default,
-      visibility: sub_map.visibility,
+      contribution_mode: to_string(sub_map.contribution_mode),
+      promote_to_world_default: to_string(sub_map.promote_to_world_default),
+      visibility: to_string(sub_map.visibility),
       bounds: sub_map.bounds,
       settings: settings,
       enabled_builtin_pin_types: PinTypeSettings.enabled_builtin_types(settings),
@@ -73,6 +73,6 @@ defmodule StorymapWeb.SubMapJSON do
   defp membership_data(nil), do: nil
 
   defp membership_data(%Membership{} = m) do
-    %{role: m.role, status: m.status}
+    %{role: to_string(m.role), status: to_string(m.status)}
   end
 end

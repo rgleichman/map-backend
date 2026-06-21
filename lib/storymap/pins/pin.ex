@@ -28,14 +28,17 @@ defmodule Storymap.Pins.Pin do
     :updated_at
   ]
 
-  @builtin_pin_types ~w(one_time scheduled food_bank other)
+  @statuses [:pending, :approved, :rejected, :archived]
+  @builtin_pin_types Storymap.PinTypes.CustomPinType.builtin_pin_types()
+
+  @type status :: :pending | :approved | :rejected | :archived
 
   @derive {Jason.Encoder, only: @public_json_fields}
 
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
     belongs_to :sub_map, Storymap.SubMaps.SubMap
-    field :status, :string, default: "approved"
+    field :status, Ecto.Enum, values: @statuses, default: :approved
     field :visible_on_world_map, :boolean, default: true
     field :title, :string
     field :latitude, :float
@@ -77,7 +80,6 @@ defmodule Storymap.Pins.Pin do
         :status,
         :visible_on_world_map
       ])
-      |> validate_inclusion(:status, ["pending", "approved", "rejected", "archived"])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_pin_type()
       |> validate_length(:description, max: 5000)
@@ -143,6 +145,7 @@ defmodule Storymap.Pins.Pin do
   Used by PinJSON so the API and Jason.Encoder stay in sync.
   """
   def public_json_fields, do: @public_json_fields
+  def statuses, do: @statuses
   def builtin_pin_types, do: @builtin_pin_types
 
   def custom_pin_type?(pin_type) when is_binary(pin_type),

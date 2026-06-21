@@ -42,6 +42,7 @@ defmodule StorymapWeb.PinJSON do
       |> Enum.map(fn
         :start_time -> {:start_time, pin.start_time && datetime_to_iso_local(pin.start_time)}
         :end_time -> {:end_time, pin.end_time && datetime_to_iso_local(pin.end_time)}
+        :status -> {:status, to_string(pin.status)}
         key -> {key, Map.get(pin, key)}
       end)
       |> Map.new()

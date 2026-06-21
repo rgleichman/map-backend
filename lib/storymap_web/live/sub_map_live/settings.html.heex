@@ -21,30 +21,19 @@
         field={@form[:contribution_mode]}
         type="select"
         label="Who can add pins?"
-        options={[
-          {"Anyone logged in", "open"},
-          {"Members only", "members_only"},
-          {"Requires moderator approval", "approval_required"}
-        ]}
+        options={SubMap.contribution_mode_options()}
       />
       <.input
         field={@form[:promote_to_world_default]}
         type="select"
         label="Show pins on world map"
-        options={[
-          {"Never", "never"},
-          {"Ask each time", "ask"},
-          {"Always", "always"}
-        ]}
+        options={SubMap.promote_default_options()}
       />
       <.input
         field={@form[:visibility]}
         type="select"
         label="Visibility"
-        options={[
-          {"Public (listed in browse)", "public"},
-          {"Unlisted (direct link only)", "unlisted"}
-        ]}
+        options={SubMap.visibility_options()}
       />
       <p class="text-sm text-base-content/60">
         Community URL: <span class="font-mono">/m/{@sub_map.community_url}</span>

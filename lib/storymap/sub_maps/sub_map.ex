@@ -6,18 +6,22 @@ defmodule Storymap.SubMaps.SubMap do
   alias Storymap.Accounts.User
   alias Storymap.SubMaps.{CommunityUrl, Membership}
 
-  @contribution_modes ~w(open members_only approval_required)
-  @promote_defaults ~w(never ask always)
-  @visibilities ~w(public unlisted)
+  @contribution_modes [:open, :members_only, :approval_required]
+  @promote_defaults [:never, :ask, :always]
+  @visibilities [:public, :unlisted]
+
+  @type contribution_mode :: :open | :members_only | :approval_required
+  @type promote_to_world_default :: :never | :ask | :always
+  @type visibility :: :public | :unlisted
 
   schema "sub_maps" do
     field :community_url, :string
     field :name, :string
     field :description, :string
     field :rules, :string
-    field :contribution_mode, :string, default: "open"
-    field :promote_to_world_default, :string, default: "ask"
-    field :visibility, :string, default: "public"
+    field :contribution_mode, Ecto.Enum, values: @contribution_modes, default: :open
+    field :promote_to_world_default, Ecto.Enum, values: @promote_defaults, default: :ask
+    field :visibility, Ecto.Enum, values: @visibilities, default: :public
     field :bounds, :map
     field :settings, :map, default: %{}
     field :pin_count, :integer, virtual: true
@@ -34,6 +38,29 @@ defmodule Storymap.SubMaps.SubMap do
   def promote_defaults, do: @promote_defaults
   def visibilities, do: @visibilities
 
+  def contribution_mode_options do
+    [
+      {"Anyone logged in", :open},
+      {"Members only", :members_only},
+      {"Requires moderator approval", :approval_required}
+    ]
+  end
+
+  def promote_default_options do
+    [
+      {"Never", :never},
+      {"Ask each time", :ask},
+      {"Always", :always}
+    ]
+  end
+
+  def visibility_options do
+    [
+      {"Public (listed in browse)", :public},
+      {"Unlisted (direct link only)", :unlisted}
+    ]
+  end
+
   def changeset(sub_map, attrs) do
     sub_map
     |> cast(attrs, [
@@ -48,9 +75,6 @@ defmodule Storymap.SubMaps.SubMap do
       :settings
     ])
     |> validate_required([:name, :contribution_mode, :promote_to_world_default, :visibility])
-    |> validate_inclusion(:contribution_mode, @contribution_modes)
-    |> validate_inclusion(:promote_to_world_default, @promote_defaults)
-    |> validate_inclusion(:visibility, @visibilities)
     |> validate_length(:name, max: 120)
     |> validate_length(:description, max: 5000)
     |> validate_length(:rules, max: 10000)

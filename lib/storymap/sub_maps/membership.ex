@@ -6,12 +6,15 @@ defmodule Storymap.SubMaps.Membership do
   alias Storymap.Accounts.User
   alias Storymap.SubMaps.SubMap
 
-  @roles ~w(owner moderator member)
-  @statuses ~w(active pending banned)
+  @roles [:owner, :moderator, :member]
+  @statuses [:active, :pending, :banned]
+
+  @type role :: :owner | :moderator | :member
+  @type status :: :active | :pending | :banned
 
   schema "sub_map_memberships" do
-    field :role, :string, default: "member"
-    field :status, :string, default: "active"
+    field :role, Ecto.Enum, values: @roles, default: :member
+    field :status, Ecto.Enum, values: @statuses, default: :active
 
     belongs_to :sub_map, SubMap
     belongs_to :user, User
@@ -26,8 +29,6 @@ defmodule Storymap.SubMaps.Membership do
     membership
     |> cast(attrs, [:role, :status, :sub_map_id, :user_id])
     |> validate_required([:role, :status, :sub_map_id, :user_id])
-    |> validate_inclusion(:role, @roles)
-    |> validate_inclusion(:status, @statuses)
     |> unique_constraint([:sub_map_id, :user_id])
     |> foreign_key_constraint(:sub_map_id)
     |> foreign_key_constraint(:user_id)

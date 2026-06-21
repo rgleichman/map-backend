@@ -10,13 +10,7 @@ defmodule StorymapWeb.SubMapLive.New do
 
   @impl true
   def mount(_params, _session, socket) do
-    changeset =
-      %SubMap{}
-      |> SubMap.changeset(%{
-        "contribution_mode" => "open",
-        "promote_to_world_default" => "ask",
-        "visibility" => "public"
-      })
+    changeset = %SubMap{} |> SubMap.changeset(%{})
 
     {:ok,
      socket

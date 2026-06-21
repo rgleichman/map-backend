@@ -55,7 +55,7 @@ The application should work for both **desktop** and **cross-platform mobile web
 - **Always** handle authentication state properly (check `is_owner` flags, handle 401s)
 - **Always** use functional components with hooks (useState, useEffect, useCallback, useMemo)
 - **Always** structure React code in modular files: `components/`, `api/`, `types.ts`
-- **Always** use proper TypeScript types for API responses and component props
+- **Always** use proper TypeScript types for API responses and component props; for backend `Ecto.Enum` fields exposed in JSON, use matching string union types (see **Typed enums** under Ecto guidelines)
 - **Never** mix React state management with Phoenix LiveView state
 - **Never** bypass CSRF protection in API calls; always include the token
 - **Callback stability when passed to children:** If a callback (e.g. `onMapClick`) is passed to a child that uses it in a `useEffect` (or similar) dependency array, **do not** add frequently-changing state to the callback's `useCallback` dependency array if that would cause the child's effect to re-run (e.g. re-initializing a map or heavy DOM). **Prefer** keeping the callback reference stable: use a ref (e.g. `someRef.current = value` and read `someRef.current` inside the callback) so the callback can keep a minimal dependency array. Before adding a new dependency to a callback that is passed down, check whether the child includes that callback in an effect's dependency list; if so, use a ref for the value instead of adding it to the callback's deps.
@@ -204,6 +204,18 @@ Controllers automatically have the `current_scope` available if they use the `:b
 - `Ecto.Changeset.validate_number/2` **DOES NOT SUPPORT the `:allow_nil` option**. By default, Ecto validations only run if a change for the given field exists and the change value is not nil, so such as option is never needed
 - You **must** use `Ecto.Changeset.get_field(changeset, :field)` to access changeset fields
 - Fields which are set programatically, such as `user_id`, must not be listed in `cast` calls or similar for security purposes. Instead they must be explicitly set when creating the struct
+
+### Typed enums (`Ecto.Enum`)
+
+Use **`Ecto.Enum`** for **closed, fixed sets** of categorical values (e.g. sub-map `contribution_mode`, membership `role`, pin `status`). Do **not** use `:string` + `validate_inclusion/3` for those fields — `Ecto.Enum` validates allowed values during `cast/3`, so **do not** add redundant `validate_inclusion` on the same field.
+
+- **Inside Elixir** (schemas, policy, queries, context): use **atoms** (`:open`, `:approved`). Pattern-match and compare with atoms in `where` clauses (`p.status == ^:approved`).
+- **At boundaries** (HTML forms, HTTP params, JSON API, TypeScript): keep **strings** with the same spellings (`"open"`, `"approved"`). `Ecto.Enum` casts string params to atoms; JSON views should use explicit `to_string/1` on enum fields for a clear wire contract.
+- **Postgres**: no migration needed when switching from string columns — default `Ecto.Enum` storage uses the atom name as a string (`"open"`).
+- **Schema helpers**: define allowed values once (`@contribution_modes`, `values:` on the field), add `@type` aliases, and expose `*_options/0` for LiveView `<.input type="select">` (label + atom value tuples). Rely on schema defaults instead of duplicating them in `mount/3`.
+- **Do not** use `Ecto.Enum` for **open-ended** string domains — e.g. `pin_type` (`"one_time"` … or `"custom:<slug>"`), JSONB settings lists, or user-defined slugs. Keep those as `:string` with appropriate custom validation.
+- **Tests**: pass **strings** in fixture/API/form attrs; assert **atoms** on loaded structs after insert (`assert pin.status == :pending`).
+- **TypeScript**: mirror closed enums with string union types in `assets/js/react/types.ts` (e.g. `ContributionMode`, `PinStatus`). No code generation required.
 <!-- phoenix:ecto-end -->
 
 <!-- phoenix:html-start -->

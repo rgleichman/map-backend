@@ -7,8 +7,6 @@ defmodule StorymapWeb.PinBroadcast do
   alias StorymapWeb.Endpoint
   alias StorymapWeb.PinJSON
 
-  @approved "approved"
-
   def broadcast_pin_event(%Pin{} = pin, event) when event in [:created, :updated, :deleted] do
     pin = Repo.preload(pin, [:tags, :sub_map])
 
@@ -31,9 +29,9 @@ defmodule StorymapWeb.PinBroadcast do
     :ok
   end
 
-  defp broadcast_to_world?(%Pin{sub_map_id: nil, status: @approved}), do: true
+  defp broadcast_to_world?(%Pin{sub_map_id: nil, status: :approved}), do: true
 
-  defp broadcast_to_world?(%Pin{status: @approved, visible_on_world_map: true}), do: true
+  defp broadcast_to_world?(%Pin{status: :approved, visible_on_world_map: true}), do: true
   defp broadcast_to_world?(_), do: false
 
   defp submap_topic(community_url), do: "map:submap:#{community_url}"

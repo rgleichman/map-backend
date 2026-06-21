@@ -5,9 +5,6 @@ defmodule Storymap.Pins.Query do
   import Ecto.Query
   alias Storymap.Pins.Pin
 
-  @approved "approved"
-  @pending "pending"
-
   def base do
     from(p in Pin, preload: [:tags, :sub_map])
   end
@@ -15,7 +12,7 @@ defmodule Storymap.Pins.Query do
   def world_pins(query \\ base()) do
     from(p in query,
       where:
-        p.status == ^@approved and
+        p.status == ^:approved and
           (is_nil(p.sub_map_id) or p.visible_on_world_map == true),
       order_by: [desc: p.updated_at]
     )
@@ -23,7 +20,7 @@ defmodule Storymap.Pins.Query do
 
   def sub_map_pins(sub_map_id, query \\ base()) do
     from(p in query,
-      where: p.sub_map_id == ^sub_map_id and p.status == ^@approved,
+      where: p.sub_map_id == ^sub_map_id and p.status == ^:approved,
       order_by: [desc: p.updated_at]
     )
   end
@@ -32,14 +29,14 @@ defmodule Storymap.Pins.Query do
     from(p in query,
       where:
         p.sub_map_id == ^sub_map_id and
-          p.status in [^@approved, ^@pending],
+          p.status in [^:approved, ^:pending],
       order_by: [desc: p.updated_at]
     )
   end
 
   def pending_pins(sub_map_id, query \\ base()) do
     from(p in query,
-      where: p.sub_map_id == ^sub_map_id and p.status == ^@pending,
+      where: p.sub_map_id == ^sub_map_id and p.status == ^:pending,
       order_by: [asc: p.inserted_at]
     )
   end

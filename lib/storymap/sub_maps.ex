@@ -46,7 +46,7 @@ defmodule Storymap.SubMaps do
 
     query =
       from(s in SubMap,
-        where: s.visibility == "public",
+        where: s.visibility == ^:public,
         preload: [:owner]
       )
 
@@ -81,19 +81,19 @@ defmodule Storymap.SubMaps do
   def counts(%SubMap{id: id}) do
     pin_count =
       Repo.aggregate(
-        from(p in Pin, where: p.sub_map_id == ^id and p.status == "approved"),
+        from(p in Pin, where: p.sub_map_id == ^id and p.status == ^:approved),
         :count
       )
 
     member_count =
       Repo.aggregate(
-        from(m in Membership, where: m.sub_map_id == ^id and m.status == "active"),
+        from(m in Membership, where: m.sub_map_id == ^id and m.status == ^:active),
         :count
       )
 
     pending_count =
       Repo.aggregate(
-        from(p in Pin, where: p.sub_map_id == ^id and p.status == "pending"),
+        from(p in Pin, where: p.sub_map_id == ^id and p.status == ^:pending),
         :count
       )
 
@@ -105,7 +105,7 @@ defmodule Storymap.SubMaps do
   defp batch_counts(sub_map_ids) do
     pin_counts =
       from(p in Pin,
-        where: p.sub_map_id in ^sub_map_ids and p.status == "approved",
+        where: p.sub_map_id in ^sub_map_ids and p.status == ^:approved,
         group_by: p.sub_map_id,
         select: {p.sub_map_id, count(p.id)}
       )
@@ -114,7 +114,7 @@ defmodule Storymap.SubMaps do
 
     member_counts =
       from(m in Membership,
-        where: m.sub_map_id in ^sub_map_ids and m.status == "active",
+        where: m.sub_map_id in ^sub_map_ids and m.status == ^:active,
         group_by: m.sub_map_id,
         select: {m.sub_map_id, count(m.id)}
       )
@@ -178,7 +178,7 @@ defmodule Storymap.SubMaps do
 
   def join(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
     case get_membership(sub_map.id, user.id) do
-      %Membership{status: "active"} = m ->
+      %Membership{status: :active} = m ->
         {:ok, m}
 
       %Membership{} = m ->
@@ -193,7 +193,7 @@ defmodule Storymap.SubMaps do
 
   def leave(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
     case get_membership(sub_map.id, user.id) do
-      %Membership{role: "owner"} ->
+      %Membership{role: :owner} ->
         {:error, :owner_cannot_leave}
 
       %Membership{} = m ->
@@ -225,7 +225,7 @@ defmodule Storymap.SubMaps do
          true <- Policy.can_moderate?(user, sub_map, membership),
          {:ok, pin} <-
            pin
-           |> Ecto.Changeset.change(%{status: "approved"})
+           |> Ecto.Changeset.change(%{status: :approved})
            |> Repo.update() do
       {:ok, Repo.preload(pin, [:tags, :sub_map])}
     else
@@ -241,7 +241,7 @@ defmodule Storymap.SubMaps do
          true <- Policy.can_moderate?(user, sub_map, membership),
          {:ok, pin} <-
            pin
-           |> Ecto.Changeset.change(%{status: "rejected"})
+           |> Ecto.Changeset.change(%{status: :rejected})
            |> Repo.update() do
       {:ok, Repo.preload(pin, [:tags, :sub_map])}
     else
@@ -264,7 +264,7 @@ defmodule Storymap.SubMaps do
     attrs = stringify_keys(attrs)
 
     status =
-      if sub_map.contribution_mode == "approval_required", do: "pending", else: "approved"
+      if sub_map.contribution_mode == :approval_required, do: "pending", else: "approved"
 
     visible =
       case attrs["visible_on_world_map"] do

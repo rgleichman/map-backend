@@ -70,7 +70,7 @@ defmodule Storymap.SubMapsTest do
         }
       )
 
-    assert pin.status == "pending"
+    assert pin.status == :pending
     assert [%{title: "Pending Spot"}] = SubMaps.pending_pins(sub_map)
     refute pin.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
   end
@@ -98,7 +98,7 @@ defmodule Storymap.SubMapsTest do
       )
 
     {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
-    assert approved.status == "approved"
+    assert approved.status == :approved
     assert approved.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
   end
 
