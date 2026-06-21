@@ -175,6 +175,7 @@ Controllers automatically have the `current_scope` available if they use the `:b
 - Read the docs and options before using tasks (by using `mix help task_name`)
 - To debug test failures, run tests in a specific file with `mix test test/my_test.exs` or run all previously failed tests with `mix test --failed`
 - `mix deps.clean --all` is **almost never needed**. **Avoid** using it unless you have good reason
+- **Dialyzer** (optional): run `mix dialyzer.setup` once after clone or when deps change, then `mix dialyzer` before larger refactors. Not part of `mix precommit`. Add `@spec` when touching policy/context modules; see README for setup details.
 <!-- phoenix:elixir-end -->
 
 <!-- phoenix:phoenix-start -->

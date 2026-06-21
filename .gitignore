@@ -52,6 +52,9 @@ Thumbs.db
 # Elixir LS
 /.elixir_ls/
 
+# Dialyzer PLT (built locally via mix dialyzer.setup)
+/priv/plts/
+
 # TypeScript build info
 /assets/tsconfig.tsbuildinfo
 /assets/*.tsbuildinfo

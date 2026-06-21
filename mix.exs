@@ -10,6 +10,7 @@ defmodule Storymap.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      dialyzer: dialyzer(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
     ]
@@ -70,7 +71,16 @@ defmodule Storymap.MixProject do
       {:bandit, "~> 1.5"},
       {:resend, "~> 0.4.0"},
       {:tz_world, "~> 1.3"},
-      {:dotenv_parser, "~> 2.0"}
+      {:dotenv_parser, "~> 2.0"},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [:ex_unit, :mix, :runtime_tools],
+      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+      ignore_warnings: ".dialyzer_ignore.exs"
     ]
   end
 
@@ -93,6 +103,8 @@ defmodule Storymap.MixProject do
         "esbuild storymap --minify",
         "phx.digest"
       ],
+      "dialyzer.setup": ["dialyzer --plt"],
+      dialyzer: ["dialyzer --format short"],
       precommit: [
         "compile --warning-as-errors",
         "deps.unlock --unused",

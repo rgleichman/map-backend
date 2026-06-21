@@ -62,6 +62,28 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 * **[LiveDashboard](http://localhost:4000/dev/dashboard)** (`/dev/dashboard`, dev only) — request and database telemetry while you exercise the app.
 * See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) for performance tests, hot-path notes, and profiling tips.
 
+#### Dialyzer (optional static analysis)
+
+Dialyzer checks for type inconsistencies and impossible calls. It is **not** run by `mix precommit`; use it locally before larger refactors (especially enum or API boundary changes).
+
+**One-time setup** (after `mix setup`, or whenever Elixir deps change):
+
+```bash
+mix dialyzer.setup
+```
+
+This builds a Persistent Lookup Table (PLT) under `priv/plts/` (gitignored). The first run can take several minutes; later runs reuse the PLT and are much faster.
+
+**Run analysis:**
+
+```bash
+mix dialyzer
+```
+
+Known false positives are listed in `.dialyzer_ignore.exs`. Fix real warnings when you can; add narrowly scoped ignores only when Dialyzer cannot understand framework patterns (Ecto, LiveView, etc.).
+
+**When to run:** before merging enum/policy changes, when adding `@spec` to context modules, or when debugging suspected string-vs-atom mismatches at API boundaries.
+
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
 ## Learn more
