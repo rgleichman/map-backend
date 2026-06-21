@@ -3,7 +3,7 @@ import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import CustomPinFields from "./CustomPinFields"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { findCustomPinType, isCustomPinType, isTimeOnlyBuiltinPinType, BuiltinPinType } from "../utils/customPinTypes"
+import { findCustomPinType, isCustomPinType, isTimeOnlyBuiltinPinType, schemaFields, BuiltinPinType } from "../utils/customPinTypes"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -140,7 +140,7 @@ export default function PinModal({
       {isCustom && customType && setCustomData ? (
         <div className="mb-4">
           <CustomPinFields
-            fields={customType.schema?.fields ?? []}
+            fields={schemaFields(customType)}
             values={customData}
             onChange={setCustomData}
             csrfToken={csrfToken}

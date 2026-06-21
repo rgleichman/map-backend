@@ -1,21 +1,22 @@
 import React, { useCallback, useMemo, useState } from "react"
 import { RRule } from "rrule"
 import * as api from "../../api/client"
-import type { Pin, ReportCategory } from "../../types"
+import type { Pin, ReportCategory as ReportCategoryName } from "../../types"
 import LinkifiedText from "../LinkifiedText"
 import { CustomFieldDisplay, PinIdProvider } from "../CustomPinFields"
 import { isCustomFieldEmpty } from "../../utils/customFieldValue"
 import { usePinTypes } from "../../context/PinTypesContext"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
 import { communityUrlFromTag } from "../../utils/pinMapUrl"
+import { ReportCategory } from "../../utils/reportCategory"
 
 const SENTINEL_DATE_PREFIX = "2000-01-01T"
 
-const REPORT_CATEGORY_OPTIONS: { value: ReportCategory; label: string }[] = [
-  { value: "inaccurate", label: "Inaccurate information" },
-  { value: "abusive_or_hateful", label: "Abusive or hateful content" },
-  { value: "spam", label: "Spam" },
-  { value: "other", label: "Other" },
+const REPORT_CATEGORY_OPTIONS: { value: ReportCategoryName; label: string }[] = [
+  { value: ReportCategory.Inaccurate, label: "Inaccurate information" },
+  { value: ReportCategory.AbusiveOrHateful, label: "Abusive or hateful content" },
+  { value: ReportCategory.Spam, label: "Spam" },
+  { value: ReportCategory.Other, label: "Other" },
 ]
 
 function rruleToHumanReadable(rruleStr: string): string {
@@ -71,7 +72,7 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
     [customFields, pin.custom_data]
   )
   const [reportOpen, setReportOpen] = useState(false)
-  const [category, setCategory] = useState<ReportCategory>("inaccurate")
+  const [category, setCategory] = useState<ReportCategoryName>(ReportCategory.Inaccurate)
   const [details, setDetails] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -99,7 +100,7 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
     setFormError(null)
     setSubmitting(false)
     setDetails("")
-    setCategory("inaccurate")
+    setCategory(ReportCategory.Inaccurate)
   }, [])
 
   const submitReport = useCallback(async () => {
@@ -275,7 +276,7 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
                 <select
                   className="select select-bordered select-sm w-full mt-1"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value as ReportCategory)}
+                  onChange={(e) => setCategory(e.target.value as ReportCategoryName)}
                 >
                   {REPORT_CATEGORY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>

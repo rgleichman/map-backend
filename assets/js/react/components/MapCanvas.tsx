@@ -2,12 +2,11 @@ import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState 
 import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
+import { BUILTIN_PIN_TYPES, DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   getPinTypeMarkerImageId,
-  PIN_TYPES,
   resolvePinTypeConfig,
 } from "../utils/pinTypeIcons"
 import type { CustomPinType } from "../types"
@@ -315,7 +314,7 @@ export default function MapCanvas({
         const map = mapRef.current
         if (!map) return
         try {
-          for (const pinType of PIN_TYPES) {
+          for (const pinType of BUILTIN_PIN_TYPES) {
             const dataUrl = createPinTypeMarkerSVG(pinType)
             const img = await loadImage(dataUrl)
             map.addImage(getPinTypeMarkerImageId(pinType), img)

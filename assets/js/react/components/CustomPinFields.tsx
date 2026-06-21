@@ -7,14 +7,12 @@ import { DrawingPreviewFromPayload } from "./drawing/DrawingPreview"
 import { isBlobFieldRef } from "../utils/blobFieldValue"
 import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchBlobPayload } from "../utils/blobPayloadCache"
-import { BlobFieldType } from "../utils/blobFieldType"
-import { CustomFieldPrimitiveType } from "../utils/customFieldPrimitiveType"
+import { BlobFieldType, isBlobFieldType } from "../utils/blobFieldType"
+import { CustomFieldPrimitiveType, isCustomFieldPrimitiveType } from "../utils/customFieldPrimitiveType"
 import {
   formatCustomFieldValue,
   isCustomFieldEmpty,
 } from "../utils/customFieldValue"
-
-export { formatCustomFieldValue, isCustomFieldEmpty } from "../utils/customFieldValue"
 
 type Props = {
   fields: CustomFieldSchema[]
@@ -167,7 +165,19 @@ function renderField(
           onValue={onValue}
         />
       )
+    case CustomFieldPrimitiveType.Text:
+      return (
+        <input
+          type="text"
+          className="input input-bordered w-full"
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => onValue(e.target.value)}
+        />
+      )
     default:
+      if (!isCustomFieldPrimitiveType(field.type) && !isBlobFieldType(field.type)) {
+        return null
+      }
       return (
         <input
           type="text"
@@ -179,19 +189,6 @@ function renderField(
   }
 }
 
-export function validateCustomFields(
-  fields: CustomFieldSchema[],
-  values: Record<string, unknown>
-): string | null {
-  for (const field of fields) {
-    if (!field.required) continue
-    const value = values[field.key]
-    if (isCustomFieldEmpty(value, field)) {
-      return `${field.label} is required`
-    }
-  }
-  return null
-}
 
 type CustomFieldDisplayProps = {
   field: CustomFieldSchema
@@ -351,11 +348,6 @@ const PinIdContext = React.createContext<number | null>(null)
 
 export function PinIdProvider({ pinId, children }: { pinId: number; children: React.ReactNode }) {
   return <PinIdContext.Provider value={pinId}>{children}</PinIdContext.Provider>
-}
-
-/** @deprecated Use PinIdProvider */
-export function MusicPinIdProvider(props: { pinId: number; children: React.ReactNode }) {
-  return <PinIdProvider {...props} />
 }
 
 function usePinId(): number | null {

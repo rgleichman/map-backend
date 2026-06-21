@@ -1,21 +1,20 @@
 import React from "react"
-import type { CustomPinType, PinType } from "../types"
+import type { BuiltinPinType as BuiltinPinTypeName, CustomPinType, PinType } from "../types"
 import {
   getPinTypeColorEntry,
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
 import {
-  BUILTIN_PIN_TYPES,
   BuiltinPinType,
-  DEFAULT_BUILTIN_PIN_TYPE,
   builtinIconKeyForPinType,
+  customPinTypeMarkerImageId,
+  isBuiltinPinType,
   isCustomPinType,
 } from "./builtinPinType"
 import {
   customTypeMarkerColor,
   findCustomPinType,
-  isBuiltinPinType,
 } from "./customPinTypes"
 
 /**
@@ -29,22 +28,22 @@ type SvgPathDef = {
 }
 
 /** one_time: Lucide carrot (stroke). scheduled/food_bank/other: Heroicons 24 solid (fill). */
-const ICON_PATH_DEFS: Record<PinType, SvgPathDef[]> = {
-  one_time: [
+const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
+  [BuiltinPinType.OneTime]: [
     {
       d: "M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"
     },
     { d: "M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" },
     { d: "M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" },
   ],
-  scheduled: [
+  [BuiltinPinType.Scheduled]: [
     {
       d: "M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z",
       fillRule: "evenodd",
       clipRule: "evenodd"
     }
   ],
-  food_bank: [
+  [BuiltinPinType.FoodBank]: [
     {
       d: "M5.223 2.25c-.497 0-.974.198-1.325.55l-1.3 1.298A3.75 3.75 0 0 0 7.5 9.75c.627.47 1.406.75 2.25.75.844 0 1.624-.28 2.25-.75.626.47 1.406.75 2.25.75.844 0 1.623-.28 2.25-.75a3.75 3.75 0 0 0 4.902-5.652l-1.3-1.299a1.875 1.875 0 0 0-1.325-.549H5.223Z"
     },
@@ -54,7 +53,7 @@ const ICON_PATH_DEFS: Record<PinType, SvgPathDef[]> = {
       clipRule: "evenodd"
     }
   ],
-  other: [
+  [BuiltinPinType.Other]: [
     {
       d: "M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.267 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.267-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z",
       fillRule: "evenodd",
@@ -74,8 +73,6 @@ const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
     { ...PIN_TYPE_COLORS[pinType], iconKey: pinType }
   ])
 ) as Record<PinType, PinTypeConfig>
-
-export const PIN_TYPES: PinType[] = [...BUILTIN_PIN_TYPES]
 
 export function resolvePinTypeConfig(
   pinType: PinType | string | null | undefined,
@@ -104,12 +101,12 @@ export function resolvePinTypeConfig(
 
 /**
  * Get configuration for a pin type including colors and icon.
- * Falls back to one_time config when pinType is missing or unknown.
+ * Falls back via builtinIconKeyForPinType when pinType is missing or unknown.
  */
 export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
+  const iconKey = builtinIconKeyForPinType(pinType)
   const colors = getPinTypeColorEntry(pinType)
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_BUILTIN_PIN_TYPE
-  return { ...colors, iconKey: pinTypeConfigs[key].iconKey }
+  return { ...colors, iconKey: pinTypeConfigs[iconKey].iconKey }
 }
 
 /** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
@@ -121,9 +118,9 @@ const TEARDROP_PATH =
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(pinType: PinType | string | null | undefined): string {
   if (typeof pinType === "string" && isCustomPinType(pinType)) {
-    return `pin-icon-${pinType.replace(":", "-")}`
+    return customPinTypeMarkerImageId(pinType)
   }
-  const key = pinType != null && pinType in pinTypeConfigs ? pinType : DEFAULT_BUILTIN_PIN_TYPE
+  const key = builtinIconKeyForPinType(pinType)
   return `pin-icon-${key}`
 }
 
@@ -318,13 +315,6 @@ export function getPinTypeLabel(
   catalog: CustomPinType[] = []
 ): string {
   return resolvePinTypeConfig(pinType, catalog).label
-}
-
-/**
- * Get color for a pin type (for use in UI elements)
- */
-export function getPinTypeColor(pinType: PinType): string {
-  return pinTypeConfigs[pinType].color
 }
 
 type PinTypeIconProps = {

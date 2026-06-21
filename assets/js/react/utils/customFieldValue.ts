@@ -58,6 +58,20 @@ export function formatCustomFieldValue(field: CustomFieldSchema, value: unknown)
   return String(value)
 }
 
+export function validateCustomFields(
+  fields: CustomFieldSchema[],
+  values: Record<string, unknown>
+): string | null {
+  for (const field of fields) {
+    if (!field.required) continue
+    const value = values[field.key]
+    if (isCustomFieldEmpty(value, field)) {
+      return `${field.label} is required`
+    }
+  }
+  return null
+}
+
 /** Searchable text for a schema field, or null when empty or not plain-text (e.g. blob ref). */
 export function searchableCustomFieldText(field: CustomFieldSchema, value: unknown): string | null {
   if (isBlobFieldType(field.type)) return null

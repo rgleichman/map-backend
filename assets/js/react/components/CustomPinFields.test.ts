@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { validateCustomFields } from "./CustomPinFields"
+import { validateCustomFields } from "../utils/customFieldValue"
 import { BlobFieldType } from "../utils/blobFieldType"
 import { serializeScore, emptyScore } from "../utils/musicScore"
 

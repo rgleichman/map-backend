@@ -45,3 +45,8 @@ export function builtinIconKeyForPinType(
   if (typeof pinType === "string" && isCustomPinType(pinType)) return BuiltinPinType.Other
   return DEFAULT_BUILTIN_PIN_TYPE
 }
+
+/** MapLibre image id for a custom pin type marker (e.g. `custom:foo` → `pin-icon-custom-foo`). */
+export function customPinTypeMarkerImageId(pinType: `custom:${string}`): string {
+  return `pin-icon-custom-${pinType.slice(CUSTOM_PIN_TYPE_PREFIX.length)}`
+}

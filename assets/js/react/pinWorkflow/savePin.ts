@@ -4,8 +4,8 @@ import {
   isTimeOnlyBuiltinPinType,
   skipBuiltinTimeValidation,
 } from "../utils/builtinPinType"
-import { findCustomPinType, isCustomPinType } from "../utils/customPinTypes"
-import { validateCustomFields } from "../components/CustomPinFields"
+import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
+import { validateCustomFields } from "../utils/customFieldValue"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import { buildPinTimeFields } from "./buildPinPayload"
 import type { DraftState, ModalState } from "./types"
@@ -33,7 +33,7 @@ export function validateAndBuildSavePayload(
 
   if (isCustom) {
     const customType = findCustomPinType(effectiveType, catalog)
-    const fieldError = validateCustomFields(customType?.schema?.fields ?? [], customData)
+    const fieldError = validateCustomFields(schemaFields(customType), customData)
     if (fieldError) return { kind: "form", message: fieldError }
   }
 
@@ -60,7 +60,7 @@ export function validateAndBuildSavePayload(
     if (!pinType) {
       return { kind: "form", message: "Please select a pin type" }
     }
-    const customFields = isCustom ? findCustomPinType(effectiveType, catalog)?.schema?.fields ?? [] : []
+    const customFields = isCustom ? schemaFields(findCustomPinType(effectiveType, catalog)) : []
     const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
       ? stripBlobDraftsFromCustomData(customData, customFields)
       : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }
@@ -79,7 +79,7 @@ export function validateAndBuildSavePayload(
 
   const lat = editLocation?.lat ?? modal.pin.latitude
   const lng = editLocation?.lng ?? modal.pin.longitude
-  const customFields = isCustom ? findCustomPinType(effectiveType, catalog)?.schema?.fields ?? [] : []
+  const customFields = isCustom ? schemaFields(findCustomPinType(effectiveType, catalog)) : []
   const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
     ? stripBlobDraftsFromCustomData(customData, customFields)
     : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }

@@ -239,7 +239,6 @@ export function usePinWorkflow({
     formError,
     dispatch: dispatch as React.Dispatch<PinWorkflowAction>,
     saving,
-    showPromoteToWorld,
     onMapClick,
     onEdit,
     onDelete,
