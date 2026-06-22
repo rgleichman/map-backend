@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { filterPins, isTodayRecurrenceDay, pinMatchesQuery } from "./filters"
+import { isTodayRecurrenceDay, pinMatchesFilter, pinMatchesQuery, type FilterState } from "./filters"
 import type { Pin } from "../../types"
 import * as datetime from "../../utils/datetime"
+
+function filterPins(pins: Pin[], filter: FilterState) {
+  return pins.filter((p) => pinMatchesFilter(p, filter))
+}
 
 vi.mock("../../utils/datetime", async (importOriginal) => {
   const actual = await importOriginal<typeof datetime>()

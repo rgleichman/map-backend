@@ -1,7 +1,7 @@
 import React from "react"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { builtinIconKeyForPinType } from "../utils/customPinTypes"
+import { builtinIconKeyForPinType } from "../utils/builtinPinType"
 import { getPinTypeConfig, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
 type Props = {

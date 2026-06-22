@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react"
 import type { BuiltinPinType, CustomPinType } from "../types"
-import { BUILTIN_PIN_TYPES, listSelectablePinTypes } from "../utils/customPinTypes"
+import { BUILTIN_PIN_TYPES } from "../utils/builtinPinType"
+import { listSelectablePinTypes } from "../utils/customPinTypes"
 
 type PinTypesContextValue = {
   catalog: CustomPinType[]

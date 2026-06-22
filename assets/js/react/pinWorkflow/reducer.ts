@@ -1,5 +1,5 @@
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly } from "../utils/datetime"
-import { BuiltinPinType, isCustomPinType, isTimeOnlyBuiltinPinType } from "../utils/customPinTypes"
+import { BuiltinPinType, isCustomPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import type { DraftState, PinWorkflowAction, PinWorkflowState } from "./types"
 
 export const makeDefaultDraft = (): DraftState => {

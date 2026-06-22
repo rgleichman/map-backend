@@ -6,12 +6,14 @@ import PinFlowUI from "./components/PinFlowUI"
 import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
+import ErrorToast from "./components/ErrorToast"
 import { SubMapProvider } from "./context/SubMapContext"
 import { PinTypesProvider } from "./context/PinTypesContext"
 import { usePinWorkflow } from "./hooks/usePinWorkflow"
 import { useIsDesktop } from "./utils/useMediaQuery"
 import type { BuiltinPinType, CustomPinType, Pin, PinType, SubMap } from "./types"
-import { BUILTIN_PIN_TYPES } from "./utils/customPinTypes"
+import { BUILTIN_PIN_TYPES } from "./utils/builtinPinType"
+import { canChooseWorldVisibility } from "./utils/subMapForm"
 import * as api from "./api/client"
 import { usePinChannelSync } from "./hooks/usePinChannelSync"
 import { loadMapData } from "./loadMapData"
@@ -77,6 +79,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     communityUrl,
     subMap,
     catalog: customPinTypes,
+    showPromoteToWorld: canChooseWorldVisibility(subMap),
     pins,
     isDesktop,
     updateOrAddPin,
@@ -365,21 +368,9 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
           <PinFlowUI isDesktop={isDesktop} workflow={workflow} />
 
-          {timeError && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">⏰ {timeError}</div>
-            </div>
-          )}
-          {formError && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{formError}</div>
-            </div>
-          )}
-          {apiError && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-              <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">{apiError}</div>
-            </div>
-          )}
+          {timeError && <ErrorToast message={timeError} prefix="⏰ " />}
+          {formError && <ErrorToast message={formError} />}
+          {apiError && <ErrorToast message={apiError} />}
         </div>
       </SubMapProvider>
     </PinTypesProvider>

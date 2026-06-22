@@ -3,7 +3,8 @@ import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import CustomPinFields from "./CustomPinFields"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { findCustomPinType, isCustomPinType, isTimeOnlyBuiltinPinType, schemaFields, BuiltinPinType } from "../utils/customPinTypes"
+import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
+import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
 
 type Props = {
   layout?: "modal" | "panel"

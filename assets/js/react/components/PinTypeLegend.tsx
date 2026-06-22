@@ -2,7 +2,7 @@ import React from "react"
 import type { PinType } from "../types"
 import { useIsDesktop } from "../utils/useMediaQuery"
 import { usePinTypes } from "../context/PinTypesContext"
-import { getPinTypeLabel, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import FloatingPanel from "./FloatingPanel"
 
 type Props = {

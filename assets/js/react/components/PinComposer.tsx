@@ -1,9 +1,7 @@
 import React from "react"
 import PinModal from "./PinModal"
 import type { PinType } from "../types"
-import type { PinDraftAction, PinWorkflowAction } from "../pinWorkflow/types"
-
-export type { PinDraftAction }
+import type { PinWorkflowAction } from "../pinWorkflow/types"
 
 type Props = {
   layout: "modal" | "panel"

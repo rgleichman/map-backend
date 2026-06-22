@@ -226,7 +226,3 @@ export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPi
   }
   return true
 }
-
-export function filterPins(pins: Pin[], filter: FilterState, catalog?: CustomPinType[]): Pin[] {
-  return pins.filter((p) => pinMatchesFilter(p, filter, catalog))
-}

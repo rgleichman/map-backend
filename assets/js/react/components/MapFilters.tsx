@@ -1,6 +1,6 @@
 import React from "react"
 import type { Pin, PinType } from "../types"
-import { getPinTypeLabel, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
 import { listFilterPinTypes } from "../utils/customPinTypes"
 import {

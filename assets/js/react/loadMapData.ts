@@ -1,6 +1,6 @@
 import * as api from "./api/client"
 import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "./types"
-import { BUILTIN_PIN_TYPES } from "./utils/customPinTypes"
+import { BUILTIN_PIN_TYPES } from "./utils/builtinPinType"
 
 export type MapData = {
   pins: Pin[]

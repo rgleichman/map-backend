@@ -3,8 +3,7 @@ import * as api from "../api/client"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import type { CustomPinType, Pin, PinType, SubMap } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/customPinTypes"
-import { canChooseWorldVisibility } from "../utils/subMapForm"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import { invalidateBlobPayloadCache } from "../utils/blobPayloadCache"
 import type { BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
@@ -35,6 +34,7 @@ type Params = {
   communityUrl?: string
   subMap: SubMap | null
   catalog: CustomPinType[]
+  showPromoteToWorld: boolean
   pins: Pin[]
   isDesktop: boolean
   updateOrAddPin: (pin: Pin) => void
@@ -49,6 +49,7 @@ export function usePinWorkflow({
   communityUrl,
   subMap,
   catalog,
+  showPromoteToWorld,
   pins,
   isDesktop,
   updateOrAddPin,
@@ -78,8 +79,6 @@ export function usePinWorkflow({
     document.addEventListener("keydown", handleKey, true)
     return () => document.removeEventListener("keydown", handleKey, true)
   }, [])
-
-  const showPromoteToWorld = useMemo(() => canChooseWorldVisibility(subMap), [subMap])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     if (!userId) {
