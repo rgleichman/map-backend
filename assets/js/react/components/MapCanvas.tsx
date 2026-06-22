@@ -37,8 +37,10 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
 const PIN_LABEL_MAX_LEN = 22
 
 const CLUSTER_RADIUS_PX = 16
-const CLUSTER_MAX_ZOOM = 15
+/** Stop clustering above this zoom so pin labels can render on individual features. */
+const CLUSTER_MAX_ZOOM = 10
 const GEOLOCATE_MAX_ZOOM = 12
+const PIN_FOCUS_ZOOM = 14
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
@@ -203,10 +205,20 @@ export default function MapCanvas({
   const pinsForMapRef = useRef<Pin[]>(pinsForMap)
   pinsForMapRef.current = pinsForMap
 
+  function closeOpenPopup(): void {
+    const popup = openPopupRef.current
+    const root = popupRootRef.current
+    openPopupRef.current = null
+    openPopupPinIdRef.current = null
+    popupRootRef.current = null
+    root?.unmount()
+    popup?.remove()
+  }
+
   useEffect(() => {
     focusedPinIdRef.current = null
     lastPinFocusSeqRef.current = 0
-    openPopupRef.current?.remove()
+    closeOpenPopup()
   }, [mapScopeKey])
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
@@ -402,8 +414,8 @@ export default function MapCanvas({
               "text-size": 14,
               "text-anchor": "top",
               "text-offset": [0, 0],
-              "text-allow-overlap": false,
-              "text-ignore-placement": false,
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
             },
             paint: {
               "text-color": "#1f2937",
@@ -526,7 +538,7 @@ export default function MapCanvas({
     if (!map || !mapReady) return
 
     if (pendingLocation) {
-      map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: 14 })
+      map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: PIN_FOCUS_ZOOM })
       const pinType: PinType = pendingPinType ?? DEFAULT_BUILTIN_PIN_TYPE
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
@@ -620,7 +632,7 @@ export default function MapCanvas({
 
   function openPinPopup(map: MLMap, pin: Pin): void {
     if (openPopupRef.current) {
-      openPopupRef.current.remove()
+      closeOpenPopup()
     }
     focusedPinIdRef.current = pin.id
     onPopupOpenRef.current?.(pin.id)
@@ -649,6 +661,7 @@ export default function MapCanvas({
     })
   }
 
+  // Sync GeoJSON pin layers when pins or filters change (not on unrelated popup prop changes).
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady || !pinLayersAddedRef.current) return
@@ -664,32 +677,40 @@ export default function MapCanvas({
         type: "FeatureCollection",
         features: featureSets.dimmed,
       })
+  }, [pinsForMap, filter, catalog, mapReady])
 
-    if (openPopupRef.current != null && openPopupPinIdRef.current != null && popupRootRef.current != null) {
-      const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
-      if (pin) {
-        popupRootRef.current.render(renderPopupContent(pin))
-      } else {
-        openPopupRef.current.remove()
-      }
+  // Refresh open popup content when pin data or popup props change.
+  useEffect(() => {
+    if (openPopupRef.current == null || openPopupPinIdRef.current == null || popupRootRef.current == null) {
+      return
     }
+    const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
+    if (pin) {
+      popupRootRef.current.render(renderPopupContent(pin))
+    } else {
+      closeOpenPopup()
+    }
+  }, [pinsForMap, mapReady, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
 
-    if (initialPinId != null) {
-      const focusRequested = pinFocusSeq !== lastPinFocusSeqRef.current
-      const pinChanged = initialPinId !== focusedPinIdRef.current
-      if (focusRequested || pinChanged) {
-        if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
-        const pin = pins.find((p) => p.id === initialPinId)
-        if (pin) {
-          // clear all filters in case the pin is not shown in the initial filters
-          setFilter(CLEARED_FILTER)
-          focusedPinIdRef.current = initialPinId
-          map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
-          openPinPopup(map, pin)
-        }
-      }
-    }
-  }, [pinsForMap, filter, catalog, mapReady, initialPinId, pinFocusSeq, pins, setFilter, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
+  // Deep-link / repeat navigation to a specific pin.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || initialPinId == null) return
+
+    const focusRequested = pinFocusSeq !== lastPinFocusSeqRef.current
+    const pinChanged = initialPinId !== focusedPinIdRef.current
+    if (!focusRequested && !pinChanged) return
+
+    if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
+    const pin = pins.find((p) => p.id === initialPinId)
+    if (!pin) return
+
+    // clear all filters in case the pin is not shown in the initial filters
+    setFilter(CLEARED_FILTER)
+    focusedPinIdRef.current = initialPinId
+    map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
+    openPinPopup(map, pin)
+  }, [initialPinId, pinFocusSeq, pins, mapReady, setFilter])
 
   useEffect(() => {
     const map = mapRef.current
@@ -756,7 +777,7 @@ export default function MapCanvas({
           onSelectPin={(pin) => {
             const map = mapRef.current
             if (!map) return
-            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: 14 })
+            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
             openPinPopup(map, pin)
           }}
         />
