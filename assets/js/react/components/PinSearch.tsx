@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { CustomPinType, Pin } from "../types"
-import { useIsDesktop } from "../utils/useMediaQuery"
+import { useIsDesktop } from "../hooks/useMediaQuery"
 import { usePinTypes } from "../context/PinTypesContext"
 import { pinMatchesQuery, type FilterState } from "./map/filters"
 import { customFieldSearchHits } from "../utils/customFieldSearch"
-import { HighlightedExcerpt } from "../utils/HighlightedExcerpt"
+import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
 
 const DEBOUNCE_MS = 150

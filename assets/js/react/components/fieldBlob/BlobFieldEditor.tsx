@@ -7,7 +7,7 @@ import {
   isBlobFieldRef,
 } from "../../utils/blobFieldValue"
 import type { BlobFieldType } from "../../utils/blobFieldType"
-import { useIsDesktop } from "../../utils/useMediaQuery"
+import { useIsDesktop } from "../../hooks/useMediaQuery"
 import FieldEditorModal from "./FieldEditorModal"
 
 export type BlobFieldEditorProps<T> = {

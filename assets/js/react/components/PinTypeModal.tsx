@@ -2,7 +2,8 @@ import React from "react"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { builtinIconKeyForPinType } from "../utils/builtinPinType"
-import { getPinTypeConfig, PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import PinTypeIcon from "./PinTypeIcon"
+import { getPinTypeConfig, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
 type Props = {
   layout?: "modal" | "panel"

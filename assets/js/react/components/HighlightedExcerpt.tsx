@@ -1,5 +1,5 @@
 import React from "react"
-import type { PinSearchExcerpt } from "./pinSearchExcerpt"
+import type { PinSearchExcerpt } from "../utils/pinSearchExcerpt"
 
 export function HighlightedExcerpt({ excerpt }: { excerpt: PinSearchExcerpt }) {
   return (

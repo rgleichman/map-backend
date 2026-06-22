@@ -1,8 +1,10 @@
 import React from "react"
 import type { Pin, PinType } from "../types"
-import { PinTypeIcon, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import PinTypeIcon from "./PinTypeIcon"
+import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
 import { listFilterPinTypes } from "../utils/customPinTypes"
+import PinTypeListRow from "./PinTypeListRow"
 import {
   CLEARED_FILTER,
   clearFilterDimension,
@@ -260,37 +262,15 @@ export default function MapFilters({
         <section>
           <p className={sectionTitle}>Pin type</p>
           <div className="flex flex-col gap-1.5">
-            {filterPinTypes.map((pinType) => {
-              const config = resolvePinTypeConfig(pinType, catalog)
-              const selected = filter.pinType === pinType
-              return (
-                <button
-                  key={pinType}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => togglePinType(pinType)}
-                  className={[
-                    "flex w-full items-center gap-2.5 text-left text-sm rounded-xl transition min-h-[44px] py-2 px-2.5",
-                    selected
-                      ? "bg-primary text-primary-content"
-                      : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80"
-                  ].join(" ")}
-                >
-                  <span
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                    aria-hidden
-                    style={{
-                      backgroundColor: config.color,
-                      border: `2px solid ${config.borderColor}`,
-                      color: config.textColor
-                    }}
-                  >
-                    <PinTypeIcon pinType={pinType} size={20} catalog={catalog} />
-                  </span>
-                  <span className="font-medium">{config.label}</span>
-                </button>
-              )
-            })}
+            {filterPinTypes.map((pinType) => (
+              <PinTypeListRow
+                key={pinType}
+                pinType={pinType}
+                catalog={catalog}
+                selected={filter.pinType === pinType}
+                onClick={() => togglePinType(pinType)}
+              />
+            ))}
           </div>
         </section>
       </div>

@@ -1,4 +1,3 @@
-import React from "react"
 import type { BuiltinPinType as BuiltinPinTypeName, CustomPinType, PinType } from "../types"
 import {
   getPinTypeColorEntry,
@@ -28,7 +27,7 @@ type SvgPathDef = {
 }
 
 /** one_time: Lucide carrot (stroke). scheduled/food_bank/other: Heroicons 24 solid (fill). */
-const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
+export const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
   [BuiltinPinType.OneTime]: [
     {
       d: "M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"
@@ -315,61 +314,4 @@ export function getPinTypeLabel(
   catalog: CustomPinType[] = []
 ): string {
   return resolvePinTypeConfig(pinType, catalog).label
-}
-
-type PinTypeIconProps = {
-  pinType: PinType | null | undefined
-  className?: string
-  size?: number
-}
-
-/**
- * Renders the SVG icon for a pin type. Use in legend and modal.
- * Size defaults to 24; use className for Tailwind (e.g. w-5 h-5).
- */
-export function PinTypeIcon({
-  pinType,
-  className,
-  size = 24,
-  catalog = [],
-}: PinTypeIconProps & { catalog?: CustomPinType[] }): React.ReactElement {
-  const config = resolvePinTypeConfig(pinType, catalog)
-  const iconKey = builtinIconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
-  const paths = ICON_PATH_DEFS[iconKey]
-
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill={isStrokeIcon ? "none" : "currentColor"}
-      stroke={isStrokeIcon ? "currentColor" : undefined}
-      style={isStrokeIcon ? { color: config.textColor } : undefined}
-      aria-hidden
-      width={size}
-      height={size}
-      className={className}
-    >
-      {isStrokeIcon ? (
-        <g
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          color={config.textColor}
-        >
-          {paths.map((p) => (
-            <path key={p.d} d={p.d} />
-          ))}
-        </g>
-      ) : (
-        <g fill="currentColor">
-          {paths.map((p) => (
-            <path key={p.d} d={p.d} fillRule={p.fillRule} clipRule={p.clipRule} />
-          ))}
-        </g>
-      )}
-    </svg>
-  )
 }

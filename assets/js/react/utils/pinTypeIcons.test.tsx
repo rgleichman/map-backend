@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import React from "react"
-import { createPinTypeMarkerElement, createPinTypeMarkerSVG, PinTypeIcon } from "./pinTypeIcons"
+import PinTypeIcon from "../components/PinTypeIcon"
+import { createPinTypeMarkerElement, createPinTypeMarkerSVG } from "./pinTypeIcons"
 
 function hasDangerouslySetInnerHTML(node: unknown): boolean {
   if (node == null) return false
