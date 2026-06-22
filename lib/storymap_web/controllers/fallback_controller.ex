@@ -31,4 +31,28 @@ defmodule StorymapWeb.FallbackController do
     |> put_status(:unprocessable_entity)
     |> json(%{errors: %{subject: "Invalid subject_type or subject_id"}})
   end
+
+  @spec call(Plug.Conn.t(), {:error, :forbidden}) :: Plug.Conn.t()
+  def call(conn, {:error, :forbidden}) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"403")
+  end
+
+  @spec call(Plug.Conn.t(), {:error, :unauthorized}) :: Plug.Conn.t()
+  def call(conn, {:error, :unauthorized}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"401")
+  end
+
+  @spec call(Plug.Conn.t(), {:error, :in_use}) :: Plug.Conn.t()
+  def call(conn, {:error, :in_use}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(json: StorymapWeb.ErrorJSON)
+    |> render(:"422")
+  end
 end

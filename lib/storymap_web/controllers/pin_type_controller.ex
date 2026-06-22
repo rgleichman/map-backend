@@ -36,14 +36,8 @@ defmodule StorymapWeb.PinTypeController do
         |> put_status(:created)
         |> render(:show, pin_type: pin_type)
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, :unauthorized} ->
-        unauthorized(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      other ->
+        other
     end
   end
 
@@ -56,11 +50,8 @@ defmodule StorymapWeb.PinTypeController do
       {:ok, pin_type} ->
         render(conn, :show, pin_type: pin_type)
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      other ->
+        other
     end
   end
 
@@ -73,32 +64,9 @@ defmodule StorymapWeb.PinTypeController do
       {:ok, _} ->
         send_resp(conn, :no_content, "")
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, :in_use} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> put_view(json: StorymapWeb.ErrorJSON)
-        |> render(:"422", message: "Cannot delete a pin type that is in use")
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      other ->
+        other
     end
-  end
-
-  defp forbidden(conn) do
-    conn
-    |> put_status(:forbidden)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"403")
-  end
-
-  defp unauthorized(conn) do
-    conn
-    |> put_status(:unauthorized)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"401")
   end
 
   defp render_not_found(conn) do

@@ -42,11 +42,8 @@ defmodule StorymapWeb.SubMapController do
           counts: SubMaps.counts(sub_map)
         )
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      other ->
+        other
     end
   end
 
@@ -62,8 +59,7 @@ defmodule StorymapWeb.SubMapController do
 
     case SubMaps.update_sub_map(scope, sub_map, params) do
       {:ok, sub_map} -> render_show(conn, sub_map)
-      {:error, :forbidden} -> forbidden(conn)
-      {:error, %Ecto.Changeset{} = cs} -> {:error, cs}
+      other -> other
     end
   end
 
@@ -74,8 +70,7 @@ defmodule StorymapWeb.SubMapController do
 
     case SubMaps.update_pin_type_settings(scope, sub_map, params) do
       {:ok, sub_map} -> render_show(conn, sub_map)
-      {:error, :forbidden} -> forbidden(conn)
-      {:error, %Ecto.Changeset{} = cs} -> {:error, cs}
+      other -> other
     end
   end
 
@@ -124,11 +119,8 @@ defmodule StorymapWeb.SubMapController do
           membership: conn.assigns.sub_map_membership
         )
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+      other ->
+        other
     end
   end
 
@@ -143,7 +135,7 @@ defmodule StorymapWeb.SubMapController do
         })
 
       {:error, _} ->
-        forbidden(conn)
+        {:error, :forbidden}
     end
   end
 
@@ -152,9 +144,11 @@ defmodule StorymapWeb.SubMapController do
     scope = conn.assigns.current_scope
 
     case SubMaps.leave(scope, conn.assigns.sub_map) do
-      {:ok, _} -> send_resp(conn, :no_content, "")
-      {:error, :owner_cannot_leave} -> forbidden(conn)
-      {:error, _} -> forbidden(conn)
+      {:ok, _} ->
+        send_resp(conn, :no_content, "")
+
+      {:error, _} ->
+        {:error, :forbidden}
     end
   end
 
@@ -171,17 +165,8 @@ defmodule StorymapWeb.SubMapController do
         |> put_view(json: PinJSON)
         |> render(:show, pin: pin, current_user: scope.user, sub_map: sub_map)
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, :not_found} ->
-        not_found(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> put_view(json: StorymapWeb.ChangesetJSON)
-        |> render(:error, changeset: changeset)
+      other ->
+        other
     end
   end
 
@@ -198,17 +183,8 @@ defmodule StorymapWeb.SubMapController do
         |> put_view(json: PinJSON)
         |> render(:show, pin: pin, current_user: scope.user, sub_map: sub_map)
 
-      {:error, :forbidden} ->
-        forbidden(conn)
-
-      {:error, :not_found} ->
-        not_found(conn)
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> put_view(json: StorymapWeb.ChangesetJSON)
-        |> render(:error, changeset: changeset)
+      other ->
+        other
     end
   end
 
@@ -229,19 +205,5 @@ defmodule StorymapWeb.SubMapController do
       %Scope{user: user} -> user
       _ -> nil
     end
-  end
-
-  defp forbidden(conn) do
-    conn
-    |> put_status(:forbidden)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"403")
-  end
-
-  defp not_found(conn) do
-    conn
-    |> put_status(:not_found)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"404")
   end
 end

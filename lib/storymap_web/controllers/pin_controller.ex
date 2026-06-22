@@ -27,27 +27,22 @@ defmodule StorymapWeb.PinController do
   def create(conn, %{"pin" => pin_params}) do
     user = conn.assigns.current_scope.user
 
-    case Authorizer.authorize_create(user) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    with :ok <- Authorizer.authorize_create(user),
+         {:ok, %Pin{} = pin} <- Pins.create_pin(pin_params, user.id) do
+      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
-      :ok ->
-        with {:ok, %Pin{} = pin} <- Pins.create_pin(pin_params, user.id) do
-          pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+      _ =
+        AdminActivity.record_event("pin_created", user.id, %{
+          "pin_id" => pin.id,
+          "title" => pin.title
+        })
 
-          _ =
-            AdminActivity.record_event("pin_created", user.id, %{
-              "pin_id" => pin.id,
-              "title" => pin.title
-            })
+      PinBroadcast.broadcast_pin_event(pin, :created)
 
-          PinBroadcast.broadcast_pin_event(pin, :created)
-
-          conn
-          |> put_status(:created)
-          |> put_resp_header("location", ~p"/api/pins/#{pin}")
-          |> render(:show, pin: pin, current_user: user)
-        end
+      conn
+      |> put_status(:created)
+      |> put_resp_header("location", ~p"/api/pins/#{pin}")
+      |> render(:show, pin: pin, current_user: user)
     end
   end
 
@@ -59,17 +54,13 @@ defmodule StorymapWeb.PinController do
     membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
     opts = [sub_map: sub_map, membership: membership]
 
-    case Authorizer.authorize_show(user, pin, opts) do
-      {:error, :not_found} ->
-        {:error, :not_found}
-
-      :ok ->
-        render(conn, :show,
-          pin: pin,
-          current_user: user,
-          sub_map: sub_map,
-          membership: membership
-        )
+    with :ok <- Authorizer.authorize_show(user, pin, opts) do
+      render(conn, :show,
+        pin: pin,
+        current_user: user,
+        sub_map: sub_map,
+        membership: membership
+      )
     end
   end
 
@@ -81,38 +72,34 @@ defmodule StorymapWeb.PinController do
     membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
     opts = [sub_map: sub_map, membership: membership, user: current_user]
 
-    case Authorizer.authorize_update(current_user, pin, opts) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    with :ok <- Authorizer.authorize_update(current_user, pin, opts) do
+      pin = Storymap.Repo.preload(pin, :tags)
+      before_pin = pin
 
-      :ok ->
-        pin = Storymap.Repo.preload(pin, :tags)
-        before_pin = pin
+      with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
+        pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
-        with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
-          pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
-
-          _ =
-            AdminActivity.record_event(
-              "pin_updated",
-              current_user.id,
-              %{
-                "pin_id" => pin.id,
-                "title" => pin.title,
-                "diff" => PinDiff.diff(before_pin, pin)
-              },
-              sub_map_id: pin.sub_map_id
-            )
-
-          PinBroadcast.broadcast_pin_event(pin, :updated)
-
-          render(conn, :show,
-            pin: pin,
-            current_user: current_user,
-            sub_map: sub_map,
-            membership: membership
+        _ =
+          AdminActivity.record_event(
+            "pin_updated",
+            current_user.id,
+            %{
+              "pin_id" => pin.id,
+              "title" => pin.title,
+              "diff" => PinDiff.diff(before_pin, pin)
+            },
+            sub_map_id: pin.sub_map_id
           )
-        end
+
+        PinBroadcast.broadcast_pin_event(pin, :updated)
+
+        render(conn, :show,
+          pin: pin,
+          current_user: current_user,
+          sub_map: sub_map,
+          membership: membership
+        )
+      end
     end
   end
 
@@ -124,35 +111,24 @@ defmodule StorymapWeb.PinController do
     membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
     opts = [sub_map: sub_map, membership: membership]
 
-    case Authorizer.authorize_delete(current_user, pin, opts) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    with :ok <- Authorizer.authorize_delete(current_user, pin, opts) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      pin_id = pin.id
+      pin_title = pin.title
 
-      :ok ->
-        pin = Storymap.Repo.preload(pin, :sub_map)
-        pin_id = pin.id
-        pin_title = pin.title
+      with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
+        _ =
+          AdminActivity.record_event(
+            "pin_deleted",
+            current_user.id,
+            %{"pin_id" => pin_id, "title" => pin_title},
+            sub_map_id: pin.sub_map_id
+          )
 
-        with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
-          _ =
-            AdminActivity.record_event(
-              "pin_deleted",
-              current_user.id,
-              %{"pin_id" => pin_id, "title" => pin_title},
-              sub_map_id: pin.sub_map_id
-            )
+        PinBroadcast.broadcast_pin_event(pin, :deleted)
 
-          PinBroadcast.broadcast_pin_event(pin, :deleted)
-
-          send_resp(conn, :no_content, "")
-        end
+        send_resp(conn, :no_content, "")
+      end
     end
-  end
-
-  defp forbidden(conn) do
-    conn
-    |> put_status(:forbidden)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"403")
   end
 end

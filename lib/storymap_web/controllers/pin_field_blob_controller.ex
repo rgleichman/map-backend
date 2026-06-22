@@ -18,18 +18,14 @@ defmodule StorymapWeb.PinFieldBlobController do
     user = get_current_user(conn)
     opts = pin_auth_opts(pin, user)
 
-    case Authorizer.authorize_show(user, pin, opts) do
-      {:error, :not_found} ->
-        {:error, :not_found}
+    with :ok <- Authorizer.authorize_show(user, pin, opts) do
+      case Pins.get_field_blob(pin.id, field_key, type) do
+        nil ->
+          {:error, :not_found}
 
-      :ok ->
-        case Pins.get_field_blob(pin.id, field_key, type) do
-          nil ->
-            {:error, :not_found}
-
-          blob ->
-            render(conn, :show, blob: blob)
-        end
+        blob ->
+          render(conn, :show, blob: blob)
+      end
     end
   end
 
@@ -41,30 +37,25 @@ defmodule StorymapWeb.PinFieldBlobController do
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
     opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-    case Authorizer.authorize_update(current_user, pin, opts) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    with :ok <- Authorizer.authorize_update(current_user, pin, opts),
+         {:ok, %{pin: pin}} <-
+           Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
+      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
-      :ok ->
-        with {:ok, %{pin: pin}} <-
-               Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
-          pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+      conn
+      |> put_view(StorymapWeb.PinJSON)
+      |> render(:show,
+        pin: pin,
+        current_user: current_user,
+        sub_map: sub_map,
+        membership: membership
+      )
+    else
+      {:error, :invalid_blob_field} ->
+        invalid_blob_field(conn, type)
 
-          conn
-          |> put_view(StorymapWeb.PinJSON)
-          |> render(:show,
-            pin: pin,
-            current_user: current_user,
-            sub_map: sub_map,
-            membership: membership
-          )
-        else
-          {:error, :invalid_blob_field} ->
-            invalid_blob_field(conn, type)
-
-          other ->
-            other
-        end
+      other ->
+        other
     end
   end
 
@@ -79,32 +70,27 @@ defmodule StorymapWeb.PinFieldBlobController do
     {sub_map, membership} = sub_map_and_membership(pin, current_user)
     opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-    case Authorizer.authorize_update(current_user, pin, opts) do
-      {:error, :forbidden} ->
-        forbidden(conn)
+    with :ok <- Authorizer.authorize_update(current_user, pin, opts),
+         {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
+      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
 
-      :ok ->
-        with {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
-          pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+      conn
+      |> put_view(StorymapWeb.PinJSON)
+      |> render(:show,
+        pin: pin,
+        current_user: current_user,
+        sub_map: sub_map,
+        membership: membership
+      )
+    else
+      {:error, :invalid_blob_field} ->
+        invalid_blob_field(conn, type)
 
-          conn
-          |> put_view(StorymapWeb.PinJSON)
-          |> render(:show,
-            pin: pin,
-            current_user: current_user,
-            sub_map: sub_map,
-            membership: membership
-          )
-        else
-          {:error, :invalid_blob_field} ->
-            invalid_blob_field(conn, type)
+      {:error, :required_blob_field} ->
+        required_blob_field(conn)
 
-          {:error, :required_blob_field} ->
-            required_blob_field(conn)
-
-          other ->
-            other
-        end
+      other ->
+        other
     end
   end
 
@@ -159,12 +145,5 @@ defmodule StorymapWeb.PinFieldBlobController do
     conn
     |> put_status(:unprocessable_entity)
     |> json(%{errors: %{field_key: ["cannot delete required field"]}})
-  end
-
-  defp forbidden(conn) do
-    conn
-    |> put_status(:forbidden)
-    |> put_view(json: StorymapWeb.ErrorJSON)
-    |> render(:"403")
   end
 end
