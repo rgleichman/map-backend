@@ -17,13 +17,20 @@ export type WorkflowUIDerivation = {
 type Params = {
   modal: ModalState
   placement: Placement | null
-  draft: DraftState
+  addLocation: DraftState["addLocation"]
+  editLocation: DraftState["editLocation"]
+  pinType: DraftState["pinType"]
   isDesktop: boolean
 }
 
-export function deriveWorkflowUI({ modal, placement, draft, isDesktop }: Params): WorkflowUIDerivation {
-  const { addLocation, editLocation, pinType } = draft
-
+export function deriveWorkflowUI({
+  modal,
+  placement,
+  addLocation,
+  editLocation,
+  pinType,
+  isDesktop,
+}: Params): WorkflowUIDerivation {
   const pendingLocation = (() => {
     if (placement) return { lat: placement.lat, lng: placement.lng }
     if (modal?.mode === "select-type") return { lat: modal.lat, lng: modal.lng }
