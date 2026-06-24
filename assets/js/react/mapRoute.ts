@@ -35,6 +35,20 @@ export function mapPathWithPinQuery(communityUrl: string | null | undefined, pin
   return path
 }
 
+export type SetCommunityScopeOptions = {
+  replace?: boolean
+  pinId?: number | null
+}
+
+/** Pin id from a `?pin=` query string, or null if absent or invalid. */
+export function parseInitialPinIdFromSearch(
+  search: string = typeof window !== "undefined" ? window.location.search : "",
+): number | null {
+  const p = new URLSearchParams(search).get("pin")
+  const n = p ? parseInt(p, 10) : NaN
+  return Number.isInteger(n) ? n : null
+}
+
 export type MapPinLink = {
   pinId: number
   communityUrl?: string

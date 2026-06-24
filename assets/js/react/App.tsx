@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState, type Dispatch } from "react"
 import MapCanvas from "./components/MapCanvas"
 import CommunityMapToolbar from "./components/CommunityMapToolbar"
 import MapShell from "./components/MapShell"
@@ -11,14 +11,12 @@ import { SubMapProvider } from "./context/SubMapContext"
 import { PinTypesProvider } from "./context/PinTypesContext"
 import { usePinWorkflow } from "./hooks/usePinWorkflow"
 import { useIsDesktop } from "./hooks/useMediaQuery"
-import type { BuiltinPinType, CustomPinType, Pin, PinType, SubMap } from "./types"
-import { BUILTIN_PIN_TYPES } from "./utils/builtinPinType"
+import { useMapScope } from "./hooks/useMapScope"
+import { useMapData } from "./hooks/useMapData"
+import type { PinType } from "./types"
+import type { PinWorkflowAction } from "./pinWorkflow/types"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import * as api from "./api/client"
-import { usePinChannelSync } from "./hooks/usePinChannelSync"
-import { loadMapData } from "./loadMapData"
-import { DEFAULT_FILTER, type FilterState } from "./components/map/filters"
-import { communityUrlFromPathname, mapPathForScope, mapPathWithPinQuery } from "./mapRoute"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Props = {
@@ -29,48 +27,48 @@ type Props = {
   communityUrl?: string
 }
 
-const parseInitialPinId = () => {
-  const p = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("pin")
-  const n = p ? parseInt(p, 10) : NaN
-  return Number.isInteger(n) ? n : null
-}
-
 const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
 export default function App({ userId, userMuted = false, csrfToken, styleUrl = "/api/map/style", communityUrl: datasetCommunityUrl }: Props) {
   const isDesktop = useIsDesktop()
-  const [communityUrl, setCommunityUrl] = useState<string | undefined>(
-    () => datasetCommunityUrl ?? communityUrlFromPathname(window.location.pathname)
-  )
-  const [initialPinId, setInitialPinId] = useState(parseInitialPinId)
-  const [pins, setPins] = useState<Pin[]>([])
-  const [subMap, setSubMap] = useState<SubMap | null>(null)
-  const [customPinTypes, setCustomPinTypes] = useState<CustomPinType[]>([])
-  const [enabledBuiltinTypes, setEnabledBuiltinTypes] = useState<BuiltinPinType[]>(BUILTIN_PIN_TYPES)
-  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
-  const [loading, setLoading] = useState(true)
-  const [mapInitialized, setMapInitialized] = useState(false)
-  const [apiError, setApiError] = useState<string | null>(null)
-  const [showWelcome, setShowWelcome] = useState(false)
-  const legendCloseRef = useRef<{ close(): void } | null>(null)
-  const resolvingPinIdsRef = useRef<Set<number>>(new Set())
-  const communityUrlRef = useRef(communityUrl)
-  communityUrlRef.current = communityUrl
-  const pinFocusSeqRef = useRef(0)
-  const [pinFocusSeq, setPinFocusSeq] = useState(0)
-
-  const updateOrAddPin = useCallback((pin: Pin) => {
-    setPins(prevPins => {
-      const existingIndex = prevPins.findIndex(p => p.id === pin.id)
-      if (existingIndex >= 0) {
-        const existing = prevPins[existingIndex]
-        const updated = [...prevPins]
-        updated[existingIndex] = { ...pin, is_owner: pin.is_owner ?? existing.is_owner ?? false }
-        return updated
-      }
-      return [...prevPins, { ...pin, is_owner: false }]
-    })
+  const onScopeChangeRef = useRef<Dispatch<PinWorkflowAction> | null>(null)
+  const onScopeChange = useCallback(() => {
+    onScopeChangeRef.current?.({ type: "close_all" })
   }, [])
+
+  const {
+    communityUrl,
+    onSelectWorld,
+    onSelectCommunity,
+    initialPinId,
+    pinFocusSeq,
+    navigateToPin,
+    resolvingPinIdsRef,
+    setInitialPinId,
+  } = useMapScope({ datasetCommunityUrl })
+
+  const {
+    pins,
+    subMap,
+    setSubMap,
+    customPinTypes,
+    enabledBuiltinTypes,
+    filter,
+    setFilter,
+    loading,
+    mapInitialized,
+    apiError,
+    setApiError,
+    updateOrAddPin,
+    setPins,
+  } = useMapData({
+    communityUrl,
+    setInitialPinId,
+    onScopeChange,
+    navigateToPin,
+    resolvingPinIdsRef,
+    initialPinId,
+  })
 
   const workflow = usePinWorkflow({
     userId,
@@ -88,79 +86,10 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   })
 
   const { modal, placement, timeError, formError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
+  onScopeChangeRef.current = dispatch
 
-  const setCommunityScope = useCallback((url: string | null, options?: { replace?: boolean; pinId?: number | null }) => {
-    const path =
-      options?.pinId != null
-        ? mapPathWithPinQuery(url, options.pinId)
-        : mapPathForScope(url)
-    if (options?.replace) {
-      window.history.replaceState(null, "", path)
-    } else {
-      window.history.pushState(null, "", path)
-    }
-    setCommunityUrl(url ?? undefined)
-  }, [])
-
-  const onSelectWorld = useCallback(() => {
-    setCommunityScope(null)
-  }, [setCommunityScope])
-
-  const onSelectCommunity = useCallback((url: string) => {
-    setCommunityScope(url)
-  }, [setCommunityScope])
-
-  useEffect(() => {
-    const onPopState = () => {
-      setCommunityUrl(communityUrlFromPathname(window.location.pathname))
-      setInitialPinId(parseInitialPinId())
-    }
-    window.addEventListener("popstate", onPopState)
-    return () => window.removeEventListener("popstate", onPopState)
-  }, [])
-
-  useEffect(() => {
-    dispatch({ type: "close_all" })
-    setFilter(DEFAULT_FILTER)
-    setPins([])
-    setSubMap(null)
-    setCustomPinTypes([])
-    setEnabledBuiltinTypes(BUILTIN_PIN_TYPES)
-    setLoading(true)
-    setApiError(null)
-    setInitialPinId(parseInitialPinId())
-
-    let cancelled = false
-    loadMapData(communityUrl)
-      .then(({ pins: nextPins, subMap: nextSubMap, customPinTypes: nextTypes, enabledBuiltinTypes: nextBuiltins }) => {
-        if (cancelled) return
-        setPins(nextPins)
-        setSubMap(nextSubMap)
-        setCustomPinTypes(nextTypes)
-        setEnabledBuiltinTypes(nextBuiltins)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        const message = err instanceof Error
-          ? err.message
-          : communityUrl
-            ? "Failed to load this community."
-            : "Failed to load pins."
-        setApiError(message)
-        setPins([])
-        setSubMap(null)
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-          setMapInitialized(true)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [communityUrl, dispatch])
+  const [showWelcome, setShowWelcome] = useState(false)
+  const legendCloseRef = useRef<{ close(): void } | null>(null)
 
   useEffect(() => {
     try {
@@ -182,65 +111,14 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const openWelcome = useCallback(() => setShowWelcome(true), [])
 
-  const bumpPinFocus = useCallback(() => {
-    pinFocusSeqRef.current += 1
-    setPinFocusSeq(pinFocusSeqRef.current)
-  }, [])
-
-  const navigateToPin = useCallback(async (pinId: number) => {
-    const focusPin = () => {
-      bumpPinFocus()
-      setInitialPinId(pinId)
-      window.history.replaceState(null, "", mapPathWithPinQuery(communityUrlRef.current, pinId))
-    }
-
-    if (pins.some((p) => p.id === pinId)) {
-      resolvingPinIdsRef.current.delete(pinId)
-      focusPin()
-      return
-    }
-
-    if (resolvingPinIdsRef.current.has(pinId)) return
-    resolvingPinIdsRef.current.add(pinId)
-
-    try {
-      const { data } = await api.getPin(pinId)
-      if (data.community?.community_url) {
-        setCommunityScope(data.community.community_url, { replace: true, pinId })
-      } else {
-        setCommunityScope(null, { replace: true, pinId })
-      }
-      focusPin()
-    } catch {
-      window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
-      setInitialPinId(null)
-    } finally {
-      resolvingPinIdsRef.current.delete(pinId)
-    }
-  }, [pins, setCommunityScope, bumpPinFocus])
-
-  const navigateToPinRef = useRef(navigateToPin)
-  navigateToPinRef.current = navigateToPin
-
-  useEffect(() => {
-    if (loading || initialPinId === null) return
-    if (pins.some((p) => p.id === initialPinId)) {
-      resolvingPinIdsRef.current.delete(initialPinId)
-      return
-    }
-
-    void navigateToPinRef.current(initialPinId)
-  }, [loading, initialPinId, pins])
+  const handleNavigateToPin = useCallback(
+    (pinId: number) => navigateToPin(pinId, pins),
+    [navigateToPin, pins],
+  )
 
   useEffect(() => {
     if (modal === null) setApiError(null)
-  }, [modal])
-
-  usePinChannelSync({
-    onUpsertPin: updateOrAddPin,
-    onDeletePinId: (pinId) => setPins((prev) => prev.filter((p) => p.id !== pinId)),
-    communityUrl,
-  })
+  }, [modal, setApiError])
 
   const onPopupOpen = useCallback((pinId: number) => {
     legendCloseRef.current?.close()
@@ -259,13 +137,13 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const toggleMapPinTypeFilter = useCallback((pinType: PinType) => {
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
-  }, [])
+  }, [setFilter])
 
   const refreshSubMap = useCallback(async () => {
     if (!communityUrl) return
     const { data } = await api.getSubMap(communityUrl)
     setSubMap(data)
-  }, [communityUrl])
+  }, [communityUrl, setSubMap])
 
   const onJoinCommunity = useCallback(async () => {
     if (!communityUrl) return
@@ -275,7 +153,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Failed to join community.")
     }
-  }, [communityUrl, csrfToken, refreshSubMap])
+  }, [communityUrl, csrfToken, refreshSubMap, setApiError])
 
   const onLeaveCommunity = useCallback(async () => {
     if (!communityUrl) return
@@ -285,7 +163,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Failed to leave community.")
     }
-  }, [communityUrl, csrfToken, refreshSubMap])
+  }, [communityUrl, csrfToken, refreshSubMap, setApiError])
 
   return (
     <PinTypesProvider catalog={customPinTypes} enabledBuiltins={enabledBuiltinTypes}>
@@ -331,7 +209,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   csrfToken={csrfToken}
                   communityUrl={communityUrl}
                   onSelectCommunity={onSelectCommunity}
-                  onNavigateToPin={navigateToPin}
+                  onNavigateToPin={handleNavigateToPin}
                 />
                 <PinTypeLegend
                   closeRef={legendCloseRef}

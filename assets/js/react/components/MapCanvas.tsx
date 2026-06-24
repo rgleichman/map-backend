@@ -7,18 +7,26 @@ import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   getPinTypeMarkerImageId,
-  resolvePinTypeConfig,
 } from "../utils/pinTypeIcons"
-import type { CustomPinType } from "../types"
 import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { CLEARED_FILTER, pinMapGeoJsonSyncPart, pinMatchesFilter, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, type FilterState } from "./map/filters"
 import {
   expandClusterAtPoint,
   MATCHING_SOURCE_ID,
   pinIdFromTopFeatureAt,
   PIN_INTERACTIVE_LAYER_IDS,
 } from "./map/clusterInteraction"
+import {
+  buildPinFeatureSets,
+  buildPinGeoJsonSyncKey,
+  CLUSTER_MAX_ZOOM,
+  CLUSTER_RADIUS_PX,
+  DIMMED_SOURCE_ID,
+  FILTER_DIMMED_OPACITY,
+  pinIconLayout,
+  pinLabelsVisibleFilter,
+} from "./map/mapPinFeatures"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import PinSearch from "./PinSearch"
@@ -34,89 +42,12 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   })
 }
 
-const PIN_LABEL_MAX_LEN = 22
-
-const CLUSTER_RADIUS_PX = 16
-/** Stop clustering above this zoom so pin labels can render on individual features. */
-const CLUSTER_MAX_ZOOM = 10
 const GEOLOCATE_MAX_ZOOM = 12
 const PIN_FOCUS_ZOOM = 14
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
   maximumAge: 20 * 60 * 1000,
-}
-
-function truncateTitle(title: string, max = PIN_LABEL_MAX_LEN): string {
-  const t = title.trim()
-  if (t.length <= max) return t
-  return t.slice(0, max - 1) + "…"
-}
-
-/** Blend hex color with white for a desaturated halo that stays readable. */
-function desaturateHex(hex: string, whiteRatio = 0.85): string {
-  const n = hex.slice(1)
-  const r = parseInt(n.slice(0, 2), 16)
-  const g = parseInt(n.slice(2, 4), 16)
-  const b = parseInt(n.slice(4, 6), 16)
-  const wr = Math.round(whiteRatio * 255 + (1 - whiteRatio) * r)
-  const wg = Math.round(whiteRatio * 255 + (1 - whiteRatio) * g)
-  const wb = Math.round(whiteRatio * 255 + (1 - whiteRatio) * b)
-  return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
-}
-
-/** Opacity for pins that do not match the active filters (still visible and clickable). */
-const FILTER_DIMMED_OPACITY = 0.25
-
-const DIMMED_SOURCE_ID = "pin-features-dimmed"
-
-const pinLabelsVisibleFilter: maplibregl.FilterSpecification = ["!", ["has", "point_count"]]
-
-const pinIconLayout: maplibregl.SymbolLayerSpecification["layout"] = {
-  "icon-image": ["get", "pin_type_icon"],
-  "icon-size": 1,
-  "icon-anchor": "bottom",
-  "icon-allow-overlap": true,
-  "icon-ignore-placement": true,
-}
-
-function toPinFeature(pin: Pin, catalog: CustomPinType[]) {
-  const pinColor = resolvePinTypeConfig(pin.pin_type, catalog).color
-  return {
-    type: "Feature" as const,
-    geometry: { type: "Point" as const, coordinates: [pin.longitude, pin.latitude] as [number, number] },
-    properties: {
-      pin_id: pin.id,
-      title: truncateTitle(pin.title),
-      pin_type: pin.pin_type,
-      pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
-      haloColor: desaturateHex(pinColor),
-    },
-  }
-}
-
-function buildPinFeatureSets(pinList: Pin[], filterState: FilterState, catalog: CustomPinType[]) {
-  const matching: ReturnType<typeof toPinFeature>[] = []
-  const dimmed: ReturnType<typeof toPinFeature>[] = []
-  for (const pin of pinList) {
-    const feature = toPinFeature(pin, catalog)
-    if (pinMatchesFilter(pin, filterState, catalog)) matching.push(feature)
-    else dimmed.push(feature)
-  }
-  return { matching, dimmed }
-}
-
-/** Stable key so we skip redundant GeoJSON setData when nothing map-visible changed. */
-function buildPinGeoJsonSyncKey(
-  pins: Pin[],
-  filterState: FilterState,
-  catalog: CustomPinType[],
-): string {
-  const pinParts = pins.map(pinMapGeoJsonSyncPart)
-  const catalogParts = catalog.map(
-    (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
-  )
-  return `${pinParts.join("|")}::${JSON.stringify(filterState)}::${catalogParts.join("|")}`
 }
 
 type Props = {
