@@ -1,4 +1,4 @@
-import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react"
+import React, { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
 import type { Pin, PinType } from "../types"
@@ -106,6 +106,20 @@ function buildPinFeatureSets(pinList: Pin[], filterState: FilterState, catalog: 
   return { matching, dimmed }
 }
 
+/** Stable key so we skip redundant GeoJSON setData when nothing map-visible changed. */
+function buildPinGeoJsonSyncKey(
+  pins: Pin[],
+  filterState: FilterState,
+  catalog: CustomPinType[],
+): string {
+  const pinParts: string[] = []
+  for (const p of pins) {
+    pinParts.push(`${p.id}:${p.latitude}:${p.longitude}:${p.title}:${p.pin_type}`)
+  }
+  const catalogParts = catalog.map((c) => `${c.id}:${c.pin_type}`)
+  return `${pinParts.join("|")}::${JSON.stringify(filterState)}::${catalogParts.join("|")}`
+}
+
 type Props = {
   /** Changes when switching world ↔ community map; resets deep-link pin handling. */
   mapScopeKey?: string
@@ -197,6 +211,15 @@ export default function MapCanvas({
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
   const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
+  const pinLayerHandlersRef = useRef<{
+    handlePinIconClick: (e: maplibregl.MapLayerMouseEvent) => void
+    handleClusterClick: (e: maplibregl.MapLayerMouseEvent) => void
+    setPointerCursor: () => void
+    clearPointerCursor: () => void
+  } | null>(null)
+  const lastPinGeoJsonSyncKeyRef = useRef<string>("")
+  const syncPinGeoJsonRef = useRef<() => void>(() => { })
+  const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
   const filterRef = useRef(filter)
   filterRef.current = filter
 
@@ -204,6 +227,10 @@ export default function MapCanvas({
     editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
   const pinsForMapRef = useRef<Pin[]>(pinsForMap)
   pinsForMapRef.current = pinsForMap
+  const pinGeoJsonSyncKey = useMemo(
+    () => buildPinGeoJsonSyncKey(pinsForMap, filter, catalog),
+    [pinsForMap, filter, catalog],
+  )
 
   function closeOpenPopup(): void {
     const popup = openPopupRef.current
@@ -214,6 +241,32 @@ export default function MapCanvas({
     root?.unmount()
     popup?.remove()
   }
+
+  function syncPinGeoJsonToMap(): void {
+    const map = mapRef.current
+    if (!map || !pinLayersAddedRef.current) return
+
+    const pins = pinsForMapRef.current
+    const filterState = filterRef.current
+    const catalogSnapshot = catalogRef.current
+    const syncKey = buildPinGeoJsonSyncKey(pins, filterState, catalogSnapshot)
+    if (syncKey === lastPinGeoJsonSyncKeyRef.current) return
+
+    lastPinGeoJsonSyncKeyRef.current = syncKey
+    pinsByIdRef.current = new Map(pins.map((p) => [p.id, p]))
+
+    const featureSets = buildPinFeatureSets(pins, filterState, catalogSnapshot)
+      ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: featureSets.matching,
+      })
+      ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: featureSets.dimmed,
+      })
+  }
+
+  syncPinGeoJsonRef.current = syncPinGeoJsonToMap
 
   useEffect(() => {
     focusedPinIdRef.current = null
@@ -324,11 +377,12 @@ export default function MapCanvas({
       })
       map.on("load", async () => {
         const map = mapRef.current
-        if (!map) return
+        if (!map || !isMounted) return
         try {
           for (const pinType of BUILTIN_PIN_TYPES) {
             const dataUrl = createPinTypeMarkerSVG(pinType)
             const img = await loadImage(dataUrl)
+            if (!isMounted) return
             map.addImage(getPinTypeMarkerImageId(pinType), img)
           }
           map.addSource(MATCHING_SOURCE_ID, {
@@ -423,20 +477,6 @@ export default function MapCanvas({
               "text-halo-width": 1.7,
             },
           })
-          pinLayersAddedRef.current = true
-
-          const initialPins = pinsForMapRef.current
-          pinsByIdRef.current = new Map(initialPins.map((p) => [p.id, p]))
-          const initialFeatureSets = buildPinFeatureSets(initialPins, filterRef.current, catalogRef.current)
-            ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
-              type: "FeatureCollection",
-              features: initialFeatureSets.matching,
-            })
-            ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
-              type: "FeatureCollection",
-              features: initialFeatureSets.dimmed,
-            })
-
           const handlePinIconClick = (e: maplibregl.MapLayerMouseEvent) => {
             const pinId = pinIdFromTopFeatureAt(map, e.point)
             if (pinId == null) return
@@ -450,16 +490,24 @@ export default function MapCanvas({
             void expandClusterAtPoint(map, e.point, source)
           }
 
-          map.on("click", "pin-icons-layer", handlePinIconClick)
-          map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
-          map.on("click", "pin-clusters-layer", handleClusterClick)
-          map.on("click", "pin-cluster-count-layer", handleClusterClick)
           const setPointerCursor = () => {
             map.getCanvas().style.cursor = "pointer"
           }
           const clearPointerCursor = () => {
             map.getCanvas().style.cursor = ""
           }
+
+          pinLayerHandlersRef.current = {
+            handlePinIconClick,
+            handleClusterClick,
+            setPointerCursor,
+            clearPointerCursor,
+          }
+
+          map.on("click", "pin-icons-layer", handlePinIconClick)
+          map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
+          map.on("click", "pin-clusters-layer", handleClusterClick)
+          map.on("click", "pin-cluster-count-layer", handleClusterClick)
           map.on("mouseenter", "pin-icons-layer", setPointerCursor)
           map.on("mouseleave", "pin-icons-layer", clearPointerCursor)
           map.on("mouseenter", "pin-icons-dimmed-layer", setPointerCursor)
@@ -469,9 +517,14 @@ export default function MapCanvas({
           map.on("mouseenter", "pin-cluster-count-layer", setPointerCursor)
           map.on("mouseleave", "pin-cluster-count-layer", clearPointerCursor)
 
+          pinLayersAddedRef.current = true
+          syncPinGeoJsonRef.current()
+
+          if (!isMounted) return
           setMapReady(true)
         } catch (err) {
           console.error("Failed to set up pin layers", err)
+          if (!isMounted) return
           setMapReady(true)
         }
       })
@@ -486,6 +539,7 @@ export default function MapCanvas({
     return () => {
       isMounted = false
       pinLayersAddedRef.current = false
+      lastPinGeoJsonSyncKeyRef.current = ""
       initialGeolocateTriggeredRef.current = false
       const map = mapRef.current
       const handler = mapMouseDownHandlerRef.current
@@ -493,9 +547,27 @@ export default function MapCanvas({
         map.getContainer().removeEventListener("mousedown", handler)
         mapMouseDownHandlerRef.current = null
       }
+      const pinHandlers = pinLayerHandlersRef.current
+      if (map && pinHandlers) {
+        map.off("click", "pin-icons-layer", pinHandlers.handlePinIconClick)
+        map.off("click", "pin-icons-dimmed-layer", pinHandlers.handlePinIconClick)
+        map.off("click", "pin-clusters-layer", pinHandlers.handleClusterClick)
+        map.off("click", "pin-cluster-count-layer", pinHandlers.handleClusterClick)
+        map.off("mouseenter", "pin-icons-layer", pinHandlers.setPointerCursor)
+        map.off("mouseleave", "pin-icons-layer", pinHandlers.clearPointerCursor)
+        map.off("mouseenter", "pin-icons-dimmed-layer", pinHandlers.setPointerCursor)
+        map.off("mouseleave", "pin-icons-dimmed-layer", pinHandlers.clearPointerCursor)
+        map.off("mouseenter", "pin-clusters-layer", pinHandlers.setPointerCursor)
+        map.off("mouseleave", "pin-clusters-layer", pinHandlers.clearPointerCursor)
+        map.off("mouseenter", "pin-cluster-count-layer", pinHandlers.setPointerCursor)
+        map.off("mouseleave", "pin-cluster-count-layer", pinHandlers.clearPointerCursor)
+        pinLayerHandlersRef.current = null
+      }
+      closeOpenPopup()
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       geolocateControlRef.current = null
+      knownCustomImageIdsRef.current = new Set()
       mapRef.current?.remove()
       mapRef.current = null
       setMapReady(false)
@@ -663,21 +735,9 @@ export default function MapCanvas({
 
   // Sync GeoJSON pin layers when pins or filters change (not on unrelated popup prop changes).
   useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady || !pinLayersAddedRef.current) return
-
-    pinsByIdRef.current = new Map(pinsForMap.map((p) => [p.id, p]))
-
-    const featureSets = buildPinFeatureSets(pinsForMap, filter, catalog)
-      ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: featureSets.matching,
-      })
-      ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: featureSets.dimmed,
-      })
-  }, [pinsForMap, filter, catalog, mapReady])
+    if (!mapReady || !pinLayersAddedRef.current) return
+    syncPinGeoJsonRef.current()
+  }, [pinGeoJsonSyncKey, mapReady])
 
   // Refresh open popup content when pin data or popup props change.
   useEffect(() => {
@@ -690,7 +750,7 @@ export default function MapCanvas({
     } else {
       closeOpenPopup()
     }
-  }, [pinsForMap, mapReady, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin])
+  }, [pinsForMap, mapReady, csrfToken, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
 
   // Deep-link / repeat navigation to a specific pin.
   useEffect(() => {
@@ -717,17 +777,26 @@ export default function MapCanvas({
     if (!map || !mapReady) return
 
     const registerCustomImages = async () => {
+      const nextIds = new Set<string>()
       for (const pinType of catalog) {
         const imageId = getPinTypeMarkerImageId(pinType.pin_type)
+        nextIds.add(imageId)
         if (map.hasImage(imageId)) continue
         try {
           const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalog)
           const img = await loadImage(dataUrl)
-          map.addImage(imageId, img)
+          if (!mapRef.current || mapRef.current !== map) return
+          if (!map.hasImage(imageId)) map.addImage(imageId, img)
         } catch {
           // ignore failed custom marker images
         }
       }
+      for (const imageId of knownCustomImageIdsRef.current) {
+        if (!nextIds.has(imageId) && map.hasImage(imageId)) {
+          map.removeImage(imageId)
+        }
+      }
+      knownCustomImageIdsRef.current = nextIds
     }
 
     void registerCustomImages()
