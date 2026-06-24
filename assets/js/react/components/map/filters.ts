@@ -165,6 +165,27 @@ export function pinMatchesQuery(p: Pin, query: string, catalog?: CustomPinType[]
   return false
 }
 
+/**
+ * Stable serialization of pin fields that affect map GeoJSON layers
+ * (feature geometry/labels and filter matching/dimming).
+ */
+export function pinMapGeoJsonSyncPart(p: Pin): string {
+  return JSON.stringify({
+    id: p.id,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    title: p.title,
+    pin_type: p.pin_type,
+    tags: p.tags,
+    description: p.description ?? null,
+    schedule_timezone: p.schedule_timezone ?? null,
+    start_time: p.start_time ?? null,
+    end_time: p.end_time ?? null,
+    schedule_rrule: p.schedule_rrule ?? null,
+    custom_data: p.custom_data ?? null,
+  })
+}
+
 /** True if the pin passes the current tag, time, pin-type, and query filter rules. */
 export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPinType[]): boolean {
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {

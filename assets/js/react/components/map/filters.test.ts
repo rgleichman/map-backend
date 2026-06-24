@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { isTodayRecurrenceDay, pinMatchesFilter, pinMatchesQuery, type FilterState } from "./filters"
+import { isTodayRecurrenceDay, pinMapGeoJsonSyncPart, pinMatchesFilter, pinMatchesQuery, type FilterState } from "./filters"
 import type { Pin } from "../../types"
 import * as datetime from "../../utils/datetime"
 
@@ -276,5 +276,39 @@ describe("filterPins with query bypasses time filter", () => {
     const pin = minimalPin({ title: "Coffee Shop" })
     const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "pizza" })
     expect(result).toHaveLength(0)
+  })
+})
+
+describe("pinMapGeoJsonSyncPart", () => {
+  it("changes when filter-relevant pin fields change", () => {
+    const base = minimalPin({ id: 1, title: "Cafe" })
+    const baseKey = pinMapGeoJsonSyncPart(base)
+
+    expect(pinMapGeoJsonSyncPart({ ...base, tags: ["food"] })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, description: "Open late" })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, schedule_timezone: "America/Chicago" })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, start_time: "2025-06-01T09:00:00" })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, end_time: "2025-06-01T17:00:00" })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, schedule_rrule: "FREQ=WEEKLY;BYDAY=MO" })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, custom_data: { note: "hello" } })).not.toBe(baseKey)
+  })
+
+  it("is stable when only non-map fields change", () => {
+    const pin = minimalPin({
+      id: 1,
+      title: "Cafe",
+      status: "pending",
+      visible_on_world_map: false,
+      is_owner: true,
+    })
+    const key = pinMapGeoJsonSyncPart(pin)
+    expect(
+      pinMapGeoJsonSyncPart({
+        ...pin,
+        status: "approved",
+        visible_on_world_map: true,
+        is_owner: false,
+      }),
+    ).toBe(key)
   })
 })

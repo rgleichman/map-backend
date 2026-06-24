@@ -12,7 +12,7 @@ import {
 import type { CustomPinType } from "../types"
 import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { CLEARED_FILTER, pinMatchesFilter, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, pinMapGeoJsonSyncPart, pinMatchesFilter, type FilterState } from "./map/filters"
 import {
   expandClusterAtPoint,
   MATCHING_SOURCE_ID,
@@ -112,11 +112,10 @@ function buildPinGeoJsonSyncKey(
   filterState: FilterState,
   catalog: CustomPinType[],
 ): string {
-  const pinParts: string[] = []
-  for (const p of pins) {
-    pinParts.push(`${p.id}:${p.latitude}:${p.longitude}:${p.title}:${p.pin_type}`)
-  }
-  const catalogParts = catalog.map((c) => `${c.id}:${c.pin_type}`)
+  const pinParts = pins.map(pinMapGeoJsonSyncPart)
+  const catalogParts = catalog.map(
+    (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
+  )
   return `${pinParts.join("|")}::${JSON.stringify(filterState)}::${catalogParts.join("|")}`
 }
 
@@ -220,6 +219,7 @@ export default function MapCanvas({
   const lastPinGeoJsonSyncKeyRef = useRef<string>("")
   const syncPinGeoJsonRef = useRef<() => void>(() => { })
   const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
+  const customImageVisualKeysRef = useRef<Map<string, string>>(new Map())
   const filterRef = useRef(filter)
   filterRef.current = filter
 
@@ -271,6 +271,7 @@ export default function MapCanvas({
   useEffect(() => {
     focusedPinIdRef.current = null
     lastPinFocusSeqRef.current = 0
+    lastPinGeoJsonSyncKeyRef.current = ""
     closeOpenPopup()
   }, [mapScopeKey])
 
@@ -568,6 +569,7 @@ export default function MapCanvas({
       pendingMarkerRef.current = null
       geolocateControlRef.current = null
       knownCustomImageIdsRef.current = new Set()
+      customImageVisualKeysRef.current = new Map()
       mapRef.current?.remove()
       mapRef.current = null
       setMapReady(false)
@@ -744,13 +746,13 @@ export default function MapCanvas({
     if (openPopupRef.current == null || openPopupPinIdRef.current == null || popupRootRef.current == null) {
       return
     }
-    const pin = pinsByIdRef.current.get(openPopupPinIdRef.current)
+    const pin = pins.find((p) => p.id === openPopupPinIdRef.current)
     if (pin) {
       popupRootRef.current.render(renderPopupContent(pin))
     } else {
       closeOpenPopup()
     }
-  }, [pinsForMap, mapReady, csrfToken, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
+  }, [pins, mapReady, csrfToken, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
 
   // Deep-link / repeat navigation to a specific pin.
   useEffect(() => {
@@ -778,15 +780,20 @@ export default function MapCanvas({
 
     const registerCustomImages = async () => {
       const nextIds = new Set<string>()
+      const nextVisualKeys = new Map<string, string>()
       for (const pinType of catalog) {
         const imageId = getPinTypeMarkerImageId(pinType.pin_type)
+        const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
         nextIds.add(imageId)
-        if (map.hasImage(imageId)) continue
+        nextVisualKeys.set(imageId, visualKey)
+        const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
+        if (map.hasImage(imageId) && !visualChanged) continue
         try {
           const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalog)
           const img = await loadImage(dataUrl)
           if (!mapRef.current || mapRef.current !== map) return
-          if (!map.hasImage(imageId)) map.addImage(imageId, img)
+          if (map.hasImage(imageId)) map.removeImage(imageId)
+          map.addImage(imageId, img)
         } catch {
           // ignore failed custom marker images
         }
@@ -797,6 +804,7 @@ export default function MapCanvas({
         }
       }
       knownCustomImageIdsRef.current = nextIds
+      customImageVisualKeysRef.current = nextVisualKeys
     }
 
     void registerCustomImages()
