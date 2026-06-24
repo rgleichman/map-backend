@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import type { CustomFieldSchema } from "../types"
 import MusicFieldEditor, { isMusicFieldRef } from "./music/MusicFieldEditor"
 import MusicPlayStopLabel from "./music/MusicPlayStopLabel"
 import DrawingFieldEditor from "./drawing/DrawingFieldEditor"
 import { DrawingPreviewFromPayload } from "./drawing/DrawingPreview"
 import { isBlobFieldRef } from "../utils/blobFieldValue"
-import { getAudioContext, playPayload } from "../utils/musicAudio"
 import { fetchBlobPayload } from "../utils/blobPayloadCache"
+import { useMusicPreview } from "../hooks/useMusicPreview"
 import { BlobFieldType, isBlobFieldType } from "../utils/blobFieldType"
 import { CustomFieldPrimitiveType, isCustomFieldPrimitiveType } from "../utils/customFieldPrimitiveType"
 import {
@@ -239,50 +239,15 @@ type BlobFieldDisplayProps = {
 function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps) {
   const pinId = usePinId()
   const refOk = isMusicFieldRef(value)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [playing, setPlaying] = useState(false)
-  const playerRef = useRef<ReturnType<typeof playPayload> | null>(null)
-  const mountedRef = useRef(true)
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      playerRef.current?.stop()
-      playerRef.current = null
-    }
-  }, [])
+  const { playing, loading, error, toggle } = useMusicPreview()
 
-  const toggle = useCallback(async () => {
+  const onToggle = useCallback(() => {
     if (!pinId || !refOk) return
-    if (playing) {
-      playerRef.current?.stop()
-      playerRef.current = null
-      setPlaying(false)
-      return
-    }
-    setError(null)
-    setLoading(true)
-    try {
-      const ctx = getAudioContext()
-      if (ctx.state === "suspended") {
-        await ctx.resume()
-      }
-      const payload = await fetchBlobPayload(pinId, BlobFieldType.Music, fieldKey)
-      const player = playPayload(ctx, payload)
-      playerRef.current = player
-      setPlaying(true)
-      void player.done.then(() => {
-        if (!mountedRef.current) return
-        playerRef.current = null
-        setPlaying(false)
-      })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to play.")
-    } finally {
-      if (mountedRef.current) setLoading(false)
-    }
-  }, [fieldKey, pinId, playing, refOk])
+    void toggle(
+      () => fetchBlobPayload(pinId, BlobFieldType.Music, fieldKey),
+      { withLoading: true }
+    )
+  }, [fieldKey, pinId, refOk, toggle])
 
   if (!pinId) return <span className={className}>Music</span>
   if (!refOk) return <span className={className}>Music</span>
@@ -292,7 +257,7 @@ function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps
       <button
         type="button"
         className={`btn btn-xs ${playing ? "btn-secondary" : "btn-primary"}`}
-        onClick={() => void toggle()}
+        onClick={onToggle}
         disabled={loading}
       >
         {loading ? "Loading…" : <MusicPlayStopLabel playing={playing} />}

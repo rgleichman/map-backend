@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useRef, useState } from "react"
 import type { MusicScore } from "../../utils/musicScore"
 import { cloneScore, serializeScore } from "../../utils/musicScore"
-import { getAudioContext, playNotePreview, playPayload } from "../../utils/musicAudio"
+import { getAudioContext, playNotePreview } from "../../utils/musicAudio"
 import MusicPlayStopLabel from "./MusicPlayStopLabel"
+import { useMusicPreview } from "../../hooks/useMusicPreview"
 
 type Props = {
   score: MusicScore
@@ -20,21 +21,14 @@ function clampTempo(value: number): number {
 
 export default function MusicSequencer({ score, onChange, disabled = false }: Props) {
   const [activeStep, setActiveStep] = useState(-1)
-  const [previewing, setPreviewing] = useState(false)
   const [tempoInput, setTempoInput] = useState<string | null>(null)
   const undoStack = useRef<MusicScore[]>([])
   const [canUndo, setCanUndo] = useState(false)
-  const playerRef = useRef<ReturnType<typeof playPayload> | null>(null)
-  const mountedRef = useRef(true)
 
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      playerRef.current?.stop()
-      playerRef.current = null
-    }
-  }, [])
+  const { playing: previewing, toggle: togglePreview } = useMusicPreview({
+    onStep: setActiveStep,
+    onStopped: () => setActiveStep(-1),
+  })
 
   const pushUndo = useCallback((prev: MusicScore) => {
     undoStack.current = [...undoStack.current.slice(-(MAX_UNDO - 1)), cloneScore(prev)]
@@ -90,28 +84,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
     playNotePreview(ctx, note)
   }, [])
 
-  const togglePreview = useCallback(async () => {
-    if (previewing) {
-      playerRef.current?.stop()
-      playerRef.current = null
-      setPreviewing(false)
-      setActiveStep(-1)
-      return
-    }
-    const ctx = getAudioContext()
-    if (ctx.state === "suspended") await ctx.resume()
-    const player = playPayload(ctx, serializeScore(score), (step) => {
-      if (mountedRef.current) setActiveStep(step)
-    })
-    playerRef.current = player
-    setPreviewing(true)
-    void player.done.then(() => {
-      if (!mountedRef.current) return
-      playerRef.current = null
-      setPreviewing(false)
-      setActiveStep(-1)
-    })
-  }, [previewing, score])
+  const onTogglePreview = useCallback(() => {
+    void togglePreview(() => serializeScore(score))
+  }, [score, togglePreview])
 
   return (
     <div className="space-y-3">
@@ -142,7 +117,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
           <button
             type="button"
             className={`btn btn-sm ${previewing ? "btn-secondary" : "btn-outline"}`}
-            onClick={() => void togglePreview()}
+            onClick={onTogglePreview}
             disabled={disabled}
           >
             <MusicPlayStopLabel playing={previewing} />

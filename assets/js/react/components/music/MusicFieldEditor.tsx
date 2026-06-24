@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback } from "react"
 import type { MusicScore } from "../../utils/musicScore"
 import { emptyScore, parseScore, scoreHasContent, serializeScore } from "../../utils/musicScore"
-import { getAudioContext, playPayload } from "../../utils/musicAudio"
 import BlobFieldEditor from "../fieldBlob/BlobFieldEditor"
 import MusicPlayStopLabel from "./MusicPlayStopLabel"
 import MusicSequencer from "./MusicSequencer"
 import { BlobFieldType } from "../../utils/blobFieldType"
 import { isBlobFieldRef } from "../../utils/blobFieldValue"
+import { useMusicPreview } from "../../hooks/useMusicPreview"
 
 export { isBlobFieldRef as isMusicFieldRef }
 
@@ -27,38 +27,15 @@ export default function MusicFieldEditor({
   value,
   onValue,
 }: MusicFieldEditorProps) {
-  const [previewing, setPreviewing] = useState(false)
-  const playerRef = useRef<ReturnType<typeof playPayload> | null>(null)
-  const mountedRef = useRef(true)
+  const { playing: previewing, toggle } = useMusicPreview()
 
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      playerRef.current?.stop()
-      playerRef.current = null
-    }
-  }, [])
-
-  const togglePreview = useCallback(async (score: MusicScore) => {
-    if (!scoreHasContent(score)) return
-    if (previewing) {
-      playerRef.current?.stop()
-      playerRef.current = null
-      setPreviewing(false)
-      return
-    }
-    const ctx = getAudioContext()
-    if (ctx.state === "suspended") await ctx.resume()
-    const player = playPayload(ctx, serializeScore(score))
-    playerRef.current = player
-    setPreviewing(true)
-    void player.done.then(() => {
-      if (!mountedRef.current) return
-      playerRef.current = null
-      setPreviewing(false)
-    })
-  }, [previewing])
+  const togglePreview = useCallback(
+    async (score: MusicScore) => {
+      if (!scoreHasContent(score)) return
+      await toggle(() => serializeScore(score))
+    },
+    [toggle]
+  )
 
   return (
     <BlobFieldEditor<MusicScore>

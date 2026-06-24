@@ -178,6 +178,10 @@ export function usePinWorkflow({
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
+  const workflowUI = useMemo(
+    () => deriveWorkflowUI({ modal, placement, draft, isDesktop }),
+    [modal, placement, addLocation, editLocation, pinType, isDesktop]
+  )
   const {
     pendingLocation,
     pendingPinType,
@@ -188,7 +192,7 @@ export function usePinWorkflow({
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,
-  } = deriveWorkflowUI({ modal, placement, draft, isDesktop })
+  } = workflowUI
 
   return {
     csrfToken,
