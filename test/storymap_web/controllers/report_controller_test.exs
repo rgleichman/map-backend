@@ -60,5 +60,34 @@ defmodule StorymapWeb.ReportControllerTest do
       conn = post(conn, ~p"/api/reports", report: attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
+
+    test "returns 422 for invalid subject_type", %{conn: conn, pin: pin} do
+      attrs = Map.put(@report_attrs, :subject_id, pin.id) |> Map.put(:subject_type, "user")
+      conn = post(conn, ~p"/api/reports", report: attrs)
+
+      assert json_response(conn, 422)["errors"] == %{
+               "subject" => "Invalid subject_type or subject_id"
+             }
+    end
+
+    test "returns 422 for invalid subject_id", %{conn: conn} do
+      attrs = Map.put(@report_attrs, :subject_id, "not-a-number")
+      conn = post(conn, ~p"/api/reports", report: attrs)
+
+      assert json_response(conn, 422)["errors"] == %{
+               "subject" => "Invalid subject_type or subject_id"
+             }
+    end
+  end
+
+  describe "create without report param" do
+    setup %{conn: conn} do
+      {:ok, conn: put_req_header(conn, "accept", "application/json")}
+    end
+
+    test "returns 422 when report param is missing", %{conn: conn} do
+      conn = post(conn, ~p"/api/reports", %{})
+      assert json_response(conn, 422)["errors"]["detail"] == "Unprocessable Content"
+    end
   end
 end

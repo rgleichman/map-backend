@@ -206,6 +206,9 @@ defmodule Storymap.SubMaps do
       %Membership{status: :active} = m ->
         {:ok, m}
 
+      %Membership{status: :banned} ->
+        {:error, :banned}
+
       %Membership{} = m ->
         m
         |> Membership.changeset(%{"status" => "active"})

@@ -4,6 +4,8 @@ defmodule StorymapWeb.SubMapControllerTest do
   import Storymap.AccountsFixtures
   import Storymap.SubMapsFixtures
 
+  alias Storymap.SubMaps.Membership
+
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
@@ -100,6 +102,17 @@ defmodule StorymapWeb.SubMapControllerTest do
       assert body["community"] == %{"community_url" => "pin-api-test", "name" => sub_map.name}
     end
 
+    test "returns 422 when pin params are invalid", %{conn: conn, user: user} do
+      sub_map = sub_map_fixture(%{"community_url" => "pin-invalid"}, user)
+
+      conn =
+        post(conn, ~p"/api/sub_maps/#{sub_map.community_url}/pins", %{
+          pin: %{title: nil, latitude: nil, longitude: nil, pin_type: "other"}
+        })
+
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
     test "PATCH updates community settings for owner", %{conn: conn, user: user} do
       sub_map = sub_map_fixture(%{"community_url" => "patch-test", "name" => "Before"}, user)
 
@@ -124,6 +137,42 @@ defmodule StorymapWeb.SubMapControllerTest do
         })
 
       assert json_response(conn, 403)["errors"] != %{}
+    end
+  end
+
+  describe "PATCH /api/sub_maps/:community_url/pin_type_settings" do
+    setup :register_and_log_in_user
+
+    test "owner updates pin type settings", %{conn: conn, user: user} do
+      import Storymap.PinTypesFixtures
+
+      pin_type = custom_pin_type_fixture(%{}, user)
+      sub_map = sub_map_fixture(%{"community_url" => "pin-type-settings-ok"}, user)
+
+      conn =
+        patch(conn, ~p"/api/sub_maps/#{sub_map.community_url}/pin_type_settings", %{
+          pin_type_settings: %{
+            enabled_builtin_pin_types: ["other"],
+            enabled_custom_pin_types: [pin_type.slug]
+          }
+        })
+
+      data = json_response(conn, 200)["data"]
+      assert data["enabled_builtin_pin_types"] == ["other"]
+      assert data["enabled_custom_pin_types"] == [pin_type.slug]
+    end
+
+    test "forbids update for non-moderators", %{conn: conn, user: member} do
+      owner = user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "pin-type-settings-deny"}, owner)
+      {:ok, _} = Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: member}, sub_map)
+
+      conn =
+        patch(conn, ~p"/api/sub_maps/#{sub_map.community_url}/pin_type_settings", %{
+          pin_type_settings: %{enabled_builtin_pin_types: ["other"]}
+        })
+
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
   end
 
@@ -218,6 +267,23 @@ defmodule StorymapWeb.SubMapControllerTest do
 
       assert data == %{"role" => "member", "status" => "active"}
       assert Storymap.SubMaps.get_membership(sub_map.id, user.id)
+    end
+
+    test "forbids join when user is banned", %{conn: conn, user: user} do
+      owner = user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "join-banned"}, owner)
+
+      %Membership{}
+      |> Membership.changeset(%{
+        "sub_map_id" => sub_map.id,
+        "user_id" => user.id,
+        "role" => "member",
+        "status" => "banned"
+      })
+      |> Storymap.Repo.insert!()
+
+      conn = post(conn, ~p"/api/sub_maps/#{sub_map.community_url}/memberships")
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
     test "requires authentication", _context do
@@ -355,6 +421,58 @@ defmodule StorymapWeb.SubMapControllerTest do
       body = json_response(conn, 200)["data"]
       assert body["id"] == pin.id
       assert body["status"] == "rejected"
+    end
+
+    test "returns 404 when pin is missing", %{conn: conn, user: owner} do
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "reject-missing"},
+          owner
+        )
+
+      pin_id = 999_999_999
+
+      conn =
+        post(
+          log_in_user(conn, owner),
+          ~p"/api/sub_maps/#{sub_map.community_url}/pins/#{pin_id}/reject"
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Not Found"
+    end
+
+    test "forbids reject for non-moderators", %{conn: conn, user: member} do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "reject-deny"},
+          owner
+        )
+
+      contributor = user_fixture()
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, _} = Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: member}, sub_map)
+
+      conn =
+        post(
+          log_in_user(conn, member),
+          ~p"/api/sub_maps/#{sub_map.community_url}/pins/#{pin.id}/reject"
+        )
+
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
   end
 end

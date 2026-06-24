@@ -10,6 +10,22 @@ defmodule Storymap.Pins.AuthorizerTest do
   alias Storymap.Repo
   alias Storymap.SubMaps
 
+  describe "authorize_create_in_sub_map/3" do
+    test "forbids muted user in sub-map" do
+      owner = user_fixture()
+      muted = muted_user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "auth-muted-create"},
+          owner
+        )
+
+      refute Authorizer.authorize_create_in_sub_map(muted, sub_map, nil) == :ok
+      assert {:error, :forbidden} = Authorizer.authorize_create_in_sub_map(muted, sub_map, nil)
+    end
+  end
+
   describe "authorize_show/3" do
     test "allows world-visible approved pin for anonymous viewer" do
       import Storymap.PinsFixtures
@@ -152,6 +168,185 @@ defmodule Storymap.Pins.AuthorizerTest do
 
       pin = Repo.preload(pin, :sub_map)
       assert :ok = Authorizer.authorize_show(admin, pin, sub_map: sub_map)
+    end
+
+    test "forbids rejected pin for non-moderator member" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-rejected"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, rejected} = SubMaps.reject_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(rejected, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, contributor.id)
+
+      assert {:error, :not_found} =
+               Authorizer.authorize_show(contributor, pin,
+                 sub_map: sub_map,
+                 membership: membership
+               )
+    end
+
+    test "allows rejected pin for community mod" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-rejected-mod"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, rejected} = SubMaps.reject_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(rejected, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, owner.id)
+
+      assert :ok = Authorizer.authorize_show(owner, pin, sub_map: sub_map, membership: membership)
+    end
+
+    test "forbids archived pin for non-moderator member" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "show-archived"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Archived Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
+
+      archived =
+        Repo.update!(Ecto.Changeset.change(approved, status: :archived))
+        |> Repo.preload(:sub_map)
+
+      membership = SubMaps.get_membership(sub_map.id, contributor.id)
+
+      assert {:error, :not_found} =
+               Authorizer.authorize_show(contributor, archived,
+                 sub_map: sub_map,
+                 membership: membership
+               )
+    end
+
+    test "allows archived pin for community mod" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "show-archived-mod"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Archived Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
+
+      archived =
+        Repo.update!(Ecto.Changeset.change(approved, status: :archived))
+        |> Repo.preload(:sub_map)
+
+      membership = SubMaps.get_membership(sub_map.id, owner.id)
+
+      assert :ok =
+               Authorizer.authorize_show(owner, archived,
+                 sub_map: sub_map,
+                 membership: membership
+               )
+    end
+  end
+
+  describe "authorize_update/3 world vs sub-map routing" do
+    test "routes world pins to Pins.Policy" do
+      import Storymap.PinsFixtures
+
+      owner = user_fixture()
+      other = user_fixture()
+      pin = pin_fixture(%{}, owner)
+
+      assert :ok = Authorizer.authorize_update(owner, pin, [])
+      assert {:error, :forbidden} = Authorizer.authorize_update(other, pin, [])
+    end
+
+    test "routes sub-map pins to sub-map policy" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "auth-route-update"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(approved, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, contributor.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert {:error, :forbidden} = Authorizer.authorize_update(contributor, pin, opts)
     end
   end
 
@@ -323,6 +518,108 @@ defmodule Storymap.Pins.AuthorizerTest do
 
       assert :ok = Authorizer.authorize_update(owner, pin, opts)
     end
+
+    test "forbids muted owner editing sub-map pin" do
+      owner = user_fixture()
+      muted = muted_user_fixture(owner)
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "auth-muted-update"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      pin = Repo.preload(pin, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, owner.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert {:error, :forbidden} = Authorizer.authorize_update(muted, pin, opts)
+    end
+  end
+
+  describe "can_edit_in_json?/3" do
+    test "returns false when update is forbidden" do
+      owner = user_fixture()
+      other = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "auth-json-edit"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(approved, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, other.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      refute Authorizer.can_edit_in_json?(other, pin, opts)
+    end
+
+    test "returns true when update is allowed" do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "auth-json-ok"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      pin = Repo.preload(pin, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, owner.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert Authorizer.can_edit_in_json?(owner, pin, opts)
+    end
+  end
+
+  describe "authorize_delete/3 world vs sub-map routing" do
+    test "routes world pins to Pins.Policy" do
+      import Storymap.PinsFixtures
+
+      owner = user_fixture()
+      other = user_fixture()
+      pin = pin_fixture(%{}, owner)
+
+      assert :ok = Authorizer.authorize_delete(owner, pin, [])
+      assert {:error, :forbidden} = Authorizer.authorize_delete(other, pin, [])
+    end
   end
 
   describe "authorize_delete/3 for sub-map pins" do
@@ -354,6 +651,35 @@ defmodule Storymap.Pins.AuthorizerTest do
       opts = [sub_map: sub_map, membership: membership]
 
       assert :ok = Authorizer.authorize_delete(contributor, pin, opts)
+    end
+
+    test "forbids muted owner deleting sub-map pin" do
+      owner = user_fixture()
+      muted = muted_user_fixture(owner)
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "auth-muted-delete"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      pin = Repo.preload(pin, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, owner.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert {:error, :forbidden} = Authorizer.authorize_delete(muted, pin, opts)
     end
   end
 end

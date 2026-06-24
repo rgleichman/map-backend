@@ -17,6 +17,46 @@ defmodule Storymap.SubMaps.PolicyTest do
     %Membership{role: role, status: :active}
   end
 
+  describe "can_view?/3" do
+    test "allows public and unlisted visibility" do
+      assert Policy.can_view?(sub_map(%{visibility: :public}), user(), membership())
+      assert Policy.can_view?(sub_map(%{visibility: :unlisted}), user(), membership())
+    end
+
+    test "forbids private visibility" do
+      sm = sub_map(%{visibility: :private})
+      refute Policy.can_view?(sm, user(), membership())
+      refute Policy.can_view?(sm, user(), membership(:owner))
+      refute Policy.can_view?(sm, nil, nil)
+    end
+  end
+
+  describe "can_post?/3" do
+    test "forbids banned membership in members_only community" do
+      sm = sub_map(%{contribution_mode: :members_only})
+      banned = %Membership{role: :member, status: :banned}
+      refute Policy.can_post?(user(), sm, banned)
+    end
+
+    test "allows site admin to post in members_only without membership" do
+      sm = sub_map(%{contribution_mode: :members_only})
+      assert Policy.can_post?(user(1), sm, nil)
+    end
+  end
+
+  describe "can_moderate?/3" do
+    test "returns false for regular member without admin level" do
+      sm = sub_map(%{})
+      refute Policy.can_moderate?(user(), sm, membership())
+    end
+  end
+
+  describe "promotion_default_visible?/1" do
+    test "never promotion default is not visible" do
+      refute Policy.promotion_default_visible?(sub_map(%{promote_to_world_default: :never}))
+    end
+  end
+
   describe "can_set_visible_on_world?/3" do
     test "never forbids everyone" do
       sm = sub_map(%{promote_to_world_default: :never, contribution_mode: :open})
