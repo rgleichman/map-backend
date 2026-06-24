@@ -6,12 +6,12 @@ defmodule Storymap.Pins do
   import Ecto.Changeset, only: [add_error: 3, get_field: 2]
   import Ecto.Query, only: [from: 2]
   alias Storymap.Repo
-  alias Storymap.Pins.{BlobFieldType, Pin, PinFieldBlob, Query}
+  alias Storymap.Pins.{BlobFieldType, Pin, PinFieldBlob, Query, Visibility}
   alias Storymap.PinTypes
   alias Storymap.PinTypes.{CustomPinType, Validator}
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.SubMaps
-  alias Storymap.SubMaps.{PinTypeSettings, Policy, SubMap}
+  alias Storymap.SubMaps.{PinTypeSettings, SubMap}
   alias Storymap.Types
 
   @blob_field_types BlobFieldType.values()
@@ -97,7 +97,7 @@ defmodule Storymap.Pins do
     attrs =
       attrs
       |> stringify_keys()
-      |> then(&maybe_sanitize_visible_on_world(&1, sub_map, pin, user, membership))
+      |> then(&Visibility.sanitize_attrs_visible_on_world_map(&1, sub_map, pin, user, membership))
 
     tags = Map.get(attrs, "tags", [])
 
@@ -407,21 +407,4 @@ defmodule Storymap.Pins do
       {k, v} -> {k, v}
     end)
   end
-
-  defp maybe_sanitize_visible_on_world(attrs, %SubMap{} = sub_map, %Pin{} = pin, user, membership) do
-    case Map.get(attrs, "visible_on_world_map") do
-      v when is_boolean(v) ->
-        visible =
-          if Policy.can_set_visible_on_world?(sub_map, user, membership),
-            do: v,
-            else: pin.visible_on_world_map
-
-        Map.put(attrs, "visible_on_world_map", visible)
-
-      _ ->
-        attrs
-    end
-  end
-
-  defp maybe_sanitize_visible_on_world(attrs, _, _, _, _), do: attrs
 end

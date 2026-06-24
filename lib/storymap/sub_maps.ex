@@ -6,7 +6,7 @@ defmodule Storymap.SubMaps do
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.Pins
-  alias Storymap.Pins.{Authorizer, Pin, Query}
+  alias Storymap.Pins.{Authorizer, Pin, Query, Visibility}
   alias Storymap.Repo
   alias Storymap.SubMaps.{CommunityTag, Membership, PinTypeSettings, Policy, SubMap}
   alias Storymap.Types
@@ -300,16 +300,7 @@ defmodule Storymap.SubMaps do
     status =
       if sub_map.contribution_mode == :approval_required, do: "pending", else: "approved"
 
-    visible =
-      case attrs["visible_on_world_map"] do
-        v when is_boolean(v) ->
-          if Policy.can_set_visible_on_world?(sub_map, user, membership),
-            do: v,
-            else: Policy.promotion_default_visible?(sub_map)
-
-        _ ->
-          Policy.promotion_default_visible?(sub_map)
-      end
+    visible = Visibility.initial_visible_on_world_map(attrs, sub_map, user, membership)
 
     tags =
       attrs

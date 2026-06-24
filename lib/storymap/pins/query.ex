@@ -1,6 +1,10 @@
 defmodule Storymap.Pins.Query do
   @moduledoc """
   Composable queries for pins (world map vs sub-map scopes).
+
+  `world_visible_pin?/1` is the canonical predicate for whether an approved pin
+  appears on the world map. Broadcasts and authorization delegate to it via
+  `Storymap.Pins.Visibility`.
   """
   import Ecto.Query
   alias Storymap.Pins.Pin

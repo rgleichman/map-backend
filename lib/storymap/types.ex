@@ -1,5 +1,16 @@
 defmodule Storymap.Types do
-  @moduledoc false
+  @moduledoc """
+  Shared result types for Storymap contexts.
+
+  ## Auth error atoms
+
+  - `{:error, :unauthorized}` — no authenticated user in scope (missing session).
+  - `{:error, :forbidden}` — user is authenticated but the action is denied
+    (muted, ownership, or policy).
+
+  Admin-only contexts may return `:unauthorized` when the scope user lacks admin
+  privileges.
+  """
 
   @type forbidden :: {:error, :forbidden}
   @type unauthorized :: {:error, :unauthorized}

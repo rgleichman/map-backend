@@ -1,9 +1,12 @@
 defmodule Storymap.Pins.Authorizer do
   @moduledoc """
-  Composes pin-level and sub-map-level authorization.
+  API authorization for pins: composes `Storymap.Pins.Policy` (world-map rules)
+  with `Storymap.SubMaps.Policy` (community membership and moderation).
+
+  Controllers should call this module, not `Pins.Policy` directly.
   """
   alias Storymap.Accounts.User
-  alias Storymap.Pins.{Pin, Policy, Query}
+  alias Storymap.Pins.{Pin, Policy, Visibility}
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
   alias Storymap.SubMaps.Policy, as: SubMapPolicy
@@ -29,51 +32,19 @@ defmodule Storymap.Pins.Authorizer do
 
   @spec authorize_update(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
   def authorize_update(%User{} = user, %Pin{} = pin, opts \\ []) do
-    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
-    membership = Keyword.get(opts, :membership)
-
-    cond do
-      Policy.muted?(user) ->
-        {:error, :forbidden}
-
-      site_pin_moderator?(user) ->
-        :ok
-
-      sub_map && SubMapPolicy.can_moderate?(user, sub_map, membership) ->
-        :ok
-
-      is_nil(pin.sub_map_id) && pin.user_id == user.id ->
-        :ok
-
-      pin.sub_map_id && pin.user_id == user.id &&
-          owner_can_edit_sub_map_pin?(sub_map, pin) ->
-        :ok
-
-      true ->
-        {:error, :forbidden}
+    if is_nil(pin.sub_map_id) do
+      Policy.authorize_update(user, pin)
+    else
+      authorize_sub_map_update(user, pin, opts)
     end
   end
 
   @spec authorize_delete(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
   def authorize_delete(%User{} = user, %Pin{} = pin, opts \\ []) do
-    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
-    membership = Keyword.get(opts, :membership)
-
-    cond do
-      Policy.muted?(user) ->
-        {:error, :forbidden}
-
-      site_pin_moderator?(user) ->
-        :ok
-
-      sub_map && SubMapPolicy.can_moderate?(user, sub_map, membership) ->
-        :ok
-
-      pin.user_id == user.id ->
-        :ok
-
-      true ->
-        {:error, :forbidden}
+    if is_nil(pin.sub_map_id) do
+      Policy.authorize_delete(user, pin)
+    else
+      authorize_sub_map_delete(user, pin, opts)
     end
   end
 
@@ -83,7 +54,7 @@ defmodule Storymap.Pins.Authorizer do
     membership = Keyword.get(opts, :membership)
 
     cond do
-      Query.world_visible_pin?(pin) ->
+      Visibility.world_visible?(pin) ->
         :ok
 
       match?(%User{}, user) && site_pin_moderator?(user) ->
@@ -107,6 +78,58 @@ defmodule Storymap.Pins.Authorizer do
     end
   end
 
+  @spec authorize_sub_map_update(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
+  defp authorize_sub_map_update(%User{} = user, %Pin{} = pin, opts) do
+    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
+    membership = Keyword.get(opts, :membership)
+
+    cond do
+      Policy.muted?(user) ->
+        {:error, :forbidden}
+
+      site_pin_moderator?(user) ->
+        :ok
+
+      sub_map && SubMapPolicy.can_moderate?(user, sub_map, membership) ->
+        :ok
+
+      pin.user_id == user.id && owner_can_edit_sub_map_pin?(sub_map, pin) ->
+        :ok
+
+      true ->
+        {:error, :forbidden}
+    end
+  end
+
+  @spec authorize_sub_map_delete(User.t(), Pin.t(), keyword()) :: Types.authorize_result()
+  defp authorize_sub_map_delete(%User{} = user, %Pin{} = pin, opts) do
+    sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
+    membership = Keyword.get(opts, :membership)
+
+    cond do
+      Policy.muted?(user) ->
+        {:error, :forbidden}
+
+      site_pin_moderator?(user) ->
+        :ok
+
+      sub_map && SubMapPolicy.can_moderate?(user, sub_map, membership) ->
+        :ok
+
+      pin.user_id == user.id ->
+        :ok
+
+      true ->
+        {:error, :forbidden}
+    end
+  end
+
+  @spec sub_map_pin_status_visible?(
+          User.t() | nil,
+          Pin.t(),
+          SubMap.t() | nil,
+          Membership.t() | nil
+        ) :: boolean()
   defp sub_map_pin_status_visible?(_user, %Pin{status: :approved}, _sub_map, _membership),
     do: true
 
@@ -126,11 +149,13 @@ defmodule Storymap.Pins.Authorizer do
 
   defp sub_map_pin_status_visible?(_, _, _, _), do: false
 
+  @spec site_pin_moderator?(User.t()) :: boolean()
   defp site_pin_moderator?(%User{admin_level: level}) when is_integer(level) and level >= 1,
     do: true
 
   defp site_pin_moderator?(_), do: false
 
+  @spec owner_can_edit_sub_map_pin?(SubMap.t() | nil, Pin.t()) :: boolean()
   defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: :approval_required}, %Pin{
          status: :pending
        }),

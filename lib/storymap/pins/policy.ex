@@ -1,9 +1,13 @@
 defmodule Storymap.Pins.Policy do
   @moduledoc """
-  Authorization rules for pin create, update, and delete.
+  Site-level authorization for world-map pins and catalog helpers.
 
-  Used by `StorymapWeb.PinController`, `StorymapWeb.PinLive.Index`, and
-  `StorymapWeb.PinJSON` so ownership and admin checks stay in one place.
+  - `authorize_create/1`, `authorize_update/2`, and `authorize_delete/2` apply to
+    pins without a sub-map (`sub_map_id` is nil). API controllers call
+    `Storymap.Pins.Authorizer` instead, which delegates world-map mutations here
+    and adds sub-map rules.
+  - `catalog_admin?/1` and `owner_or_admin?/2` are used by the pin catalog LiveView
+    and JSON views.
   """
 
   alias Storymap.Accounts.Policy, as: AccountsPolicy
