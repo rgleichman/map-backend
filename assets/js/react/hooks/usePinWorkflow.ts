@@ -1,31 +1,11 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import * as api from "../api/client"
+import { deriveWorkflowUI } from "../pinWorkflow/deriveWorkflowUI"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
+import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import type { CustomPinType, Pin, PinType, SubMap } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import { invalidateBlobPayloadCache } from "../utils/blobPayloadCache"
-import type { BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
-
-async function uploadBlobDrafts(
-  csrfToken: string | undefined,
-  pin: Pin,
-  drafts: Record<string, BlobFieldDraftEntry>
-): Promise<Pin> {
-  let updated = pin
-  for (const [fieldKey, { type, payload }] of Object.entries(drafts)) {
-    const refValue = await api.upsertFieldBlobAndGetRef(csrfToken, updated.id, type, fieldKey, payload)
-    if (refValue !== undefined) {
-      invalidateBlobPayloadCache(updated.id, type, fieldKey)
-      updated = {
-        ...updated,
-        custom_data: { ...(updated.custom_data ?? {}), [fieldKey]: refValue },
-      }
-    }
-  }
-  return updated
-}
 
 type Params = {
   userId?: number
@@ -198,36 +178,17 @@ export function usePinWorkflow({
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
-  const pendingLocation = useMemo(() => {
-    if (placement) return { lat: placement.lat, lng: placement.lng }
-    if (modal?.mode === "select-type") return { lat: modal.lat, lng: modal.lng }
-    if (modal?.mode === "add") return addLocation ?? { lat: modal.lat, lng: modal.lng }
-    if (modal?.mode === "edit") return editLocation ?? { lat: modal.pin.latitude, lng: modal.pin.longitude }
-    return null
-  }, [placement, modal, addLocation, editLocation])
-
-  const pendingPinType: PinType | null =
-    pendingLocation == null
-      ? null
-      : placement?.intent === "edit"
-        ? placement.pin.pin_type
-        : modal?.mode === "select-type"
-          ? null
-          : modal?.mode === "add"
-            ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE)
-            : modal?.mode === "edit"
-              ? modal.pin.pin_type
-              : DEFAULT_BUILTIN_PIN_TYPE
-
-  const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
-
-  const showPlacementOverlay = placement !== null
-  const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
-  const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
-
-  const pinModalLat = modal?.mode === "add" ? (addLocation?.lat ?? modal.lat) : modal?.mode === "edit" ? (editLocation?.lat ?? modal.pin.latitude) : 0
-  const pinModalLng = modal?.mode === "add" ? (addLocation?.lng ?? modal.lng) : modal?.mode === "edit" ? (editLocation?.lng ?? modal.pin.longitude) : 0
-  const locationAlreadySetFromPlacement = !isDesktop && modal?.mode === "add" && addLocation !== null
+  const {
+    pendingLocation,
+    pendingPinType,
+    editingPinId,
+    showPlacementOverlay,
+    showEditForm,
+    showAddForm,
+    pinModalLat,
+    pinModalLng,
+    locationAlreadySetFromPlacement,
+  } = deriveWorkflowUI({ modal, placement, draft, isDesktop })
 
   return {
     csrfToken,
