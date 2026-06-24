@@ -61,6 +61,46 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
 
       assert json_response(conn, 403)["errors"] != %{}
     end
+
+    test "updates blob via PUT", %{conn: conn, user: user} do
+      pin = music_pin_fixture(user)
+
+      post(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+        music_field: %{payload: @payload, format: "music/v1", version: 1}
+      )
+
+      conn =
+        put(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+          music_field: %{payload: "tempo=140", format: "music/v1", version: 2}
+        )
+
+      assert json_response(conn, 200)["data"]["custom_data"]["song"]["ref"]
+
+      conn = get(conn, ~p"/api/pins/#{pin.id}/music_fields/song")
+      assert json_response(conn, 200)["data"]["payload"] == "tempo=140"
+    end
+
+    test "rejects blob upsert on non-custom pin type", %{conn: conn, user: user} do
+      pin = pin_fixture(%{"pin_type" => "one_time"}, user)
+
+      conn =
+        post(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+          music_field: %{payload: @payload, format: "music/v1", version: 1}
+        )
+
+      assert json_response(conn, 422)["errors"]["field_key"] != []
+    end
+
+    test "forbids deleting required music field", %{conn: conn, user: user} do
+      pin = required_music_pin_fixture(user)
+
+      post(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+        music_field: %{payload: @payload, format: "music/v1", version: 1}
+      )
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/music_fields/song")
+      assert json_response(conn, 422)["errors"]["field_key"] != []
+    end
   end
 
   describe "show authorization" do
@@ -167,6 +207,40 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
                 ]
               },
               %{"key" => "song", "label" => "Song", "type" => "music"}
+            ]
+          }
+        },
+        user
+      )
+
+    pin_fixture(
+      %{
+        "pin_type" => "custom:#{pin_type.slug}",
+        "custom_data" => %{"status" => "working"}
+      },
+      user
+    )
+  end
+
+  defp required_music_pin_fixture(user) do
+    import Storymap.PinTypesFixtures
+
+    pin_type =
+      custom_pin_type_fixture(
+        %{
+          "schema" => %{
+            "fields" => [
+              %{
+                "key" => "status",
+                "label" => "Status",
+                "type" => "select",
+                "required" => true,
+                "options" => [
+                  %{"value" => "working", "label" => "Working"},
+                  %{"value" => "broken", "label" => "Broken"}
+                ]
+              },
+              %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
             ]
           }
         },

@@ -83,4 +83,129 @@ defmodule Storymap.ContentReportsTest do
 
     assert ContentReports.unresolved_count(scope) == 1
   end
+
+  test "create_report returns invalid_subject for bad subject_type" do
+    pin = pin_fixture()
+
+    assert {:error, :invalid_subject} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "user",
+                 "subject_id" => pin.id,
+                 "category" => "spam"
+               },
+               nil
+             )
+  end
+
+  test "create_report returns invalid_subject for malformed subject_id" do
+    assert {:error, :invalid_subject} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin",
+                 "subject_id" => "not-an-id",
+                 "category" => "spam"
+               },
+               nil
+             )
+  end
+
+  test "create_report returns invalid_subject when subject missing" do
+    assert {:error, :invalid_subject} =
+             ContentReports.create_report(%{"category" => "spam"}, nil)
+  end
+
+  test "list_reports_for_admin returns empty for non-admin" do
+    user = user_fixture()
+    scope = Storymap.Accounts.Scope.for_user(user)
+    pin = pin_fixture()
+
+    {:ok, _} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert ContentReports.list_reports_for_admin(scope) == []
+    assert ContentReports.unresolved_count(scope) == 0
+  end
+
+  test "list_reports_for_admin returns reports for admin" do
+    scope = admin_scope()
+    pin = pin_fixture()
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert [listed] = ContentReports.list_reports_for_admin(scope)
+    assert listed.id == report.id
+  end
+
+  test "resolve_report returns not_found for missing id" do
+    scope = admin_scope()
+    assert {:error, :not_found} = ContentReports.resolve_report(scope, 9_999_999_999)
+  end
+
+  test "resolve_report returns noop when already resolved" do
+    scope = admin_scope()
+    pin = pin_fixture()
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert {:ok, _} = ContentReports.resolve_report(scope, report.id)
+    assert {:ok, :noop} = ContentReports.resolve_report(scope, report.id)
+  end
+
+  test "resolve_report unauthorized for non-admin" do
+    user = user_fixture()
+    scope = Storymap.Accounts.Scope.for_user(user)
+    pin = pin_fixture()
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert {:error, :unauthorized} = ContentReports.resolve_report(scope, report.id)
+  end
+
+  test "unresolve_report returns not_found for missing id" do
+    scope = admin_scope()
+    assert {:error, :not_found} = ContentReports.unresolve_report(scope, 9_999_999_999)
+  end
+
+  test "unresolve_report returns noop when already unresolved" do
+    scope = admin_scope()
+    pin = pin_fixture()
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert {:ok, :noop} = ContentReports.unresolve_report(scope, report.id)
+  end
+
+  test "unresolve_report unauthorized for non-admin" do
+    user = user_fixture()
+    scope = Storymap.Accounts.Scope.for_user(user)
+    pin = pin_fixture()
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    assert {:error, :unauthorized} = ContentReports.unresolve_report(scope, report.id)
+  end
 end

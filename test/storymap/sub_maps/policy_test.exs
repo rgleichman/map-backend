@@ -42,6 +42,12 @@ defmodule Storymap.SubMaps.PolicyTest do
       sm = sub_map(%{contribution_mode: :members_only})
       assert Policy.can_post?(user(1), sm, nil)
     end
+
+    test "forbids muted user even with active membership" do
+      sm = sub_map(%{contribution_mode: :open})
+      muted = %User{id: 2, admin_level: 0, muted_at: DateTime.utc_now()}
+      refute Policy.can_post?(muted, sm, membership())
+    end
   end
 
   describe "can_moderate?/3" do
@@ -54,6 +60,10 @@ defmodule Storymap.SubMaps.PolicyTest do
   describe "promotion_default_visible?/1" do
     test "never promotion default is not visible" do
       refute Policy.promotion_default_visible?(sub_map(%{promote_to_world_default: :never}))
+    end
+
+    test "always promotion default is visible" do
+      assert Policy.promotion_default_visible?(sub_map(%{promote_to_world_default: :always}))
     end
   end
 
@@ -82,6 +92,10 @@ defmodule Storymap.SubMaps.PolicyTest do
       refute Policy.can_set_visible_on_world?(sm, user(), membership())
       assert Policy.can_set_visible_on_world?(sm, user(), membership(:owner))
       assert Policy.can_set_visible_on_world?(sm, user(), membership(:moderator))
+    end
+
+    test "returns false for non-sub-map" do
+      refute Policy.can_set_visible_on_world?(%{}, user(), membership())
     end
   end
 end

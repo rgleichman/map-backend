@@ -47,5 +47,12 @@ defmodule Storymap.TagsTest do
     test "returns an empty list for an empty input" do
       assert {:ok, []} = Tags.get_or_create_tags_by_names([])
     end
+
+    test "returns error when a name in the batch is invalid" do
+      assert {:ok, _} = Tags.get_or_create_tags_by_names(["valid"])
+
+      assert {:error, %Ecto.Changeset{}} =
+               Tags.get_or_create_tags_by_names(["valid", ""])
+    end
   end
 end

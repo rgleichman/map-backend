@@ -553,4 +553,133 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
     assert "Cost must be a number" in errors_on(changeset).custom_data
   end
+
+  describe "field type happy paths and atom-key schemas" do
+    defp validate(pin_type, custom_data) do
+      %Pin{}
+      |> Pin.changeset(%{
+        "title" => "Arcade",
+        "latitude" => 30.0,
+        "longitude" => -97.0,
+        "pin_type" => "custom:#{pin_type.slug}",
+        "custom_data" => custom_data,
+        "user_id" => 1
+      })
+      |> Validator.validate_custom_data(pin_type)
+    end
+
+    test "accepts atom-key schema field types" do
+      pin_type = %Storymap.PinTypes.CustomPinType{
+        slug: "atom-fields",
+        schema: %{
+          fields: [
+            %{key: "note", label: "Note", type: "text"},
+            %{key: "bio", label: "Bio", type: "textarea"},
+            %{key: "link", label: "Link", type: "url"},
+            %{key: "cost", label: "Cost", type: "number"},
+            %{key: "open", label: "Open", type: "boolean"},
+            %{
+              key: "status",
+              label: "Status",
+              type: "select",
+              options: [%{value: "a", label: "A"}]
+            },
+            %{key: "tags", label: "Tags", type: "list"},
+            %{key: "song", label: "Song", type: "music"}
+          ]
+        }
+      }
+
+      changeset =
+        validate(pin_type, %{
+          "note" => "hello",
+          "bio" => "longer text",
+          "link" => "https://example.com",
+          "cost" => 5,
+          "open" => true,
+          "status" => "a",
+          "tags" => ["one"],
+          "song" => 42
+        })
+
+      assert changeset.valid?
+
+      assert get_field(changeset, :custom_data) == %{
+               "note" => "hello",
+               "bio" => "longer text",
+               "link" => "https://example.com",
+               "cost" => 5,
+               "open" => true,
+               "status" => "a",
+               "tags" => ["one"],
+               "song" => 42
+             }
+    end
+
+    test "rejects non-text for text fields" do
+      pin_type = %Storymap.PinTypes.CustomPinType{
+        slug: "text-only",
+        schema: %{fields: [%{key: "note", label: "Note", type: "text"}]}
+      }
+
+      changeset = validate(pin_type, %{"note" => 123})
+      assert "Note must be text" in errors_on(changeset).custom_data
+    end
+
+    test "rejects list that is not a list" do
+      pin_type =
+        custom_pin_type_fixture(%{
+          "schema" => %{"fields" => [%{"key" => "tags", "label" => "Tags", "type" => "list"}]}
+        })
+
+      changeset = validate(pin_type, %{"tags" => "not-a-list"})
+      assert "Tags must be a list" in errors_on(changeset).custom_data
+    end
+
+    test "accepts drawing ref map with atom ref key" do
+      pin_type = %Storymap.PinTypes.CustomPinType{
+        slug: "drawing-ref",
+        schema: %{fields: [%{key: "sketch", label: "Sketch", type: "drawing"}]}
+      }
+
+      changeset = validate(pin_type, %{"sketch" => %{ref: 7}})
+      assert changeset.valid?
+      assert get_field(changeset, :custom_data) == %{"sketch" => %{ref: 7}}
+    end
+
+    test "rejects unknown field type" do
+      pin_type = %Storymap.PinTypes.CustomPinType{
+        slug: "bad-type",
+        schema: %{fields: [%{key: "x", label: "X", type: "widget"}]}
+      }
+
+      changeset = validate(pin_type, %{"x" => "y"})
+      assert "X has invalid type" in errors_on(changeset).custom_data
+    end
+
+    test "strips unknown keys from custom_data" do
+      pin_type =
+        custom_pin_type_fixture(%{
+          "schema" => %{"fields" => [%{"key" => "note", "label" => "Note", "type" => "text"}]}
+        })
+
+      changeset = validate(pin_type, %{"note" => "ok", "extra" => "drop me"})
+      assert changeset.valid?
+      assert get_field(changeset, :custom_data) == %{"note" => "ok"}
+    end
+
+    test "treats empty string as missing required field" do
+      pin_type =
+        custom_pin_type_fixture(%{
+          "schema" => %{
+            "fields" => [
+              %{"key" => "note", "label" => "Note", "type" => "text", "required" => true}
+            ]
+          }
+        })
+
+      changeset = validate(pin_type, %{"note" => ""})
+      assert "missing required fields: Note" in errors_on(changeset).custom_data
+    end
+  end
 end

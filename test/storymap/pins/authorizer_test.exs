@@ -681,5 +681,45 @@ defmodule Storymap.Pins.AuthorizerTest do
 
       assert {:error, :forbidden} = Authorizer.authorize_delete(muted, pin, opts)
     end
+
+    test "forbids non-owner non-mod deleting another user's pin" do
+      owner = user_fixture()
+      other = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "open", "community_url" => "auth-delete-deny"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      pin = Repo.preload(pin, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, other.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert {:error, :forbidden} = Authorizer.authorize_delete(other, pin, opts)
+    end
+  end
+
+  describe "can_edit_in_json?/3 with default opts" do
+    test "returns true for world pin owner without opts" do
+      import Storymap.PinsFixtures
+
+      owner = user_fixture()
+      pin = pin_fixture(%{}, owner)
+
+      assert Authorizer.can_edit_in_json?(owner, pin)
+    end
   end
 end

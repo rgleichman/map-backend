@@ -72,6 +72,39 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
       blob = json_response(conn, 200)["data"]
       assert blob["payload"] == @payload
     end
+
+    test "updates blob via PUT", %{conn: conn, user: user} do
+      pin = drawing_pin_fixture(user)
+
+      post(conn, ~p"/api/pins/#{pin.id}/drawing_fields/sketch",
+        payload: @payload,
+        format: "drawing/v1",
+        version: 1
+      )
+
+      updated = ~s({"version":2,"width":128,"height":128,"strokes":[]})
+
+      conn =
+        put(conn, ~p"/api/pins/#{pin.id}/drawing_fields/sketch",
+          payload: updated,
+          format: "drawing/v1",
+          version: 2
+        )
+
+      assert json_response(conn, 200)["data"]["custom_data"]["sketch"]["ref"]
+
+      conn = get(conn, ~p"/api/pins/#{pin.id}/drawing_fields/sketch")
+      assert json_response(conn, 200)["data"]["payload"] == updated
+    end
+
+    test "rejects blob upsert on non-custom pin type", %{conn: conn, user: user} do
+      pin = pin_fixture(%{"pin_type" => "one_time"}, user)
+
+      conn =
+        post(conn, ~p"/api/pins/#{pin.id}/drawing_fields/sketch", payload: @payload)
+
+      assert json_response(conn, 422)["errors"]["field_key"] != []
+    end
   end
 
   describe "show authorization" do
