@@ -3,6 +3,7 @@ defmodule StorymapWeb.PinBroadcast do
   Broadcasts pin events to world and sub-map Phoenix channels.
   """
   alias Storymap.Pins.Pin
+  alias Storymap.Pins.Query
   alias Storymap.Pins.Visibility
   alias Storymap.Repo
   alias StorymapWeb.Endpoint
@@ -12,7 +13,7 @@ defmodule StorymapWeb.PinBroadcast do
 
   @spec broadcast_pin_event(Pin.t(), pin_event()) :: :ok
   def broadcast_pin_event(%Pin{} = pin, event) when event in [:created, :updated, :deleted] do
-    pin = Repo.preload(pin, [:tags, :sub_map])
+    pin = Repo.preload(pin, Query.list_preloads(), force: true)
 
     if pin.sub_map_id && pin.sub_map do
       topic = submap_topic(pin.sub_map.community_url)

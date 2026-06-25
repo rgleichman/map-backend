@@ -122,18 +122,20 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const onPopupOpen = useCallback((pinId: number) => {
     legendCloseRef.current?.close()
+    setInitialPinId(pinId)
     const path = window.location.pathname || "/map"
     window.history.replaceState(null, "", `${path}?pin=${pinId}`)
-  }, [])
+  }, [setInitialPinId])
 
   const onPopupClose = useCallback(() => {
     requestAnimationFrame(() => {
       if (document.querySelector(".maplibregl-popup") === null) {
+        setInitialPinId(null)
         const path = window.location.pathname || "/map"
         window.history.replaceState(null, "", path)
       }
     })
-  }, [])
+  }, [setInitialPinId])
 
   const toggleMapPinTypeFilter = useCallback((pinType: PinType) => {
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))

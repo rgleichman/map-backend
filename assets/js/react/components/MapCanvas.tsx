@@ -695,6 +695,9 @@ export default function MapCanvas({
     const pinChanged = initialPinId !== focusedPinIdRef.current
     if (!focusRequested && !pinChanged) return
 
+    // Do not hijack an open popup when pins refresh from remote marker_updated events.
+    if (!focusRequested && openPopupRef.current != null) return
+
     if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
     const pin = pins.find((p) => p.id === initialPinId)
     if (!pin) return
