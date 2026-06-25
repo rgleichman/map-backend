@@ -9,6 +9,7 @@ import { validateCustomFields } from "../utils/customFieldValue"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import { buildPinTimeFields } from "./buildPinPayload"
 import type { DraftState, ModalState } from "./types"
+import { linkedPinAddErrorMessage, MAX_EXPLICIT_LINKED_PINS } from "../utils/linkedPinValidation"
 
 export type SavePinValidationError =
   | { kind: "time"; message: string }
@@ -25,7 +26,7 @@ export function validateAndBuildSavePayload(
   showPromoteToWorld: boolean,
   catalog: CustomPinType[] = []
 ): SavePinResult | SavePinValidationError {
-  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const effectiveType: PinType = modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type
   const isCustom = isCustomPinType(effectiveType)
   const isTimeOnly = isTimeOnlyBuiltinPinType(effectiveType)
@@ -55,6 +56,14 @@ export function validateAndBuildSavePayload(
     }
   }
 
+  if (linkedPinIds.length > MAX_EXPLICIT_LINKED_PINS) {
+    return { kind: "form", message: linkedPinAddErrorMessage("max_links") }
+  }
+
+  if (modal.mode === "edit" && linkedPinIds.includes(modal.pin.id)) {
+    return { kind: "form", message: linkedPinAddErrorMessage("self") }
+  }
+
   if (modal.mode === "add") {
     const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
     if (!pinType) {
@@ -71,6 +80,7 @@ export function validateAndBuildSavePayload(
       latitude: loc.lat,
       longitude: loc.lng,
       tags,
+      linked_pin_ids: linkedPinIds,
       ...(isCustom ? { custom_data: cleanedCustomData } : buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule)),
       ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
     }
@@ -87,6 +97,7 @@ export function validateAndBuildSavePayload(
     title,
     description,
     tags,
+    linked_pin_ids: linkedPinIds,
     ...(isCustom ? { custom_data: cleanedCustomData } : buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule)),
     latitude: lat,
     longitude: lng,

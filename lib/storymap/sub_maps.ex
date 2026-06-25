@@ -243,6 +243,7 @@ defmodule Storymap.SubMaps do
       end
 
     Repo.all(query)
+    |> Repo.preload(Storymap.Pins.Query.list_preloads())
   end
 
   @spec pending_pins(SubMap.t()) :: [Pin.t()]

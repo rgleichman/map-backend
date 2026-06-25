@@ -85,7 +85,7 @@ export function buildPinFeatureSets(
   const dimmed: PinPointFeature[] = []
   for (const pin of pinList) {
     const feature = toPinFeature(pin, catalog)
-    if (pinMatchesFilter(pin, filterState, catalog)) matching.push(feature)
+    if (pinMatchesFilter(pin, filterState, catalog, pinList)) matching.push(feature)
     else dimmed.push(feature)
   }
   return { matching, dimmed }

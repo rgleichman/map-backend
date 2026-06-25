@@ -18,6 +18,7 @@ function minimalDraft(overrides: Partial<DraftState> = {}): DraftState {
     scheduleTimezone: "",
     open24_7: true,
     visibleOnWorldMap: true,
+    linkedPinIds: [],
     addLocation: null,
     editLocation: null,
     ...overrides,

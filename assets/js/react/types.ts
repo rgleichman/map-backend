@@ -48,6 +48,13 @@ export type PinCommunity = {
   name: string
 }
 
+/** Metadata about a pin reference edge (not the target pin). */
+export type PinLink = {
+  pin_id: number
+  /** Absent or null = explicit picker link; set = parsed from this field. */
+  source_field?: string | null
+}
+
 export type Pin = {
   id: number
   title: string
@@ -66,6 +73,7 @@ export type Pin = {
   end_time?: string // ISO string
   schedule_rrule?: string // iCal RRULE for recurring schedule
   schedule_timezone?: string // IANA timezone for schedule
+  linked_pins?: PinLink[]
 }
 
 export type NewPin = {
@@ -86,6 +94,7 @@ export type NewPin = {
   /** IANA timezone for schedule. */
   schedule_timezone?: string
   visible_on_world_map?: boolean
+  linked_pin_ids?: number[]
 }
 
 export type UpdatePin = {
@@ -100,6 +109,7 @@ export type UpdatePin = {
   latitude?: number
   longitude?: number
   visible_on_world_map?: boolean
+  linked_pin_ids?: number[]
 }
 
 export type SubMap = {

@@ -5,6 +5,7 @@ import type {
   MembershipStatus,
   NewPin,
   Pin,
+  PinLink,
   SubMap,
   UpdatePin,
 } from "../types"
@@ -26,6 +27,10 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
     throw new Error(`HTTP ${res.status}: ${text}`)
   }
   return res
+}
+
+export function getPinBacklinks(id: number): Promise<{ data: PinLink[] }> {
+  return jsonFetch(`/api/pins/${id}/backlinks`)
 }
 
 export function getPinTypes(): Promise<{ data: CustomPinType[] }> {

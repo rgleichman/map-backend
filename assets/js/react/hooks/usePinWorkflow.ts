@@ -4,6 +4,7 @@ import { deriveWorkflowUI } from "../pinWorkflow/deriveWorkflowUI"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
 import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
+import { parseApiErrorMessage } from "../utils/apiErrors"
 import type { CustomPinType, Pin, PinType, SubMap } from "../types"
 import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
 
@@ -38,7 +39,7 @@ export function usePinWorkflow({
 }: Params) {
   const [state, dispatch] = useReducer(pinWorkflowReducer, initialPinWorkflowState)
   const { modal, placement, draft, timeError, formError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const [saving, setSaving] = useState(false)
 
   const modalRef = useRef(modal)
@@ -169,8 +170,17 @@ export function usePinWorkflow({
         dispatch({ type: "after_edit_saved" })
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Save failed. Please try again."
-      setApiError(message)
+      const raw = err instanceof Error ? err.message : ""
+      const linkedPinMessage = parseApiErrorMessage(raw, "linked_pin_ids")
+      const message =
+        linkedPinMessage ??
+        parseApiErrorMessage(raw) ??
+        (raw || "Save failed. Please try again.")
+      if (linkedPinMessage) {
+        dispatch({ type: "set_form_error", formError: message })
+      } else {
+        setApiError(message)
+      }
     } finally {
       setSaving(false)
     }
@@ -231,6 +241,8 @@ export function usePinWorkflow({
     open24_7,
     visibleOnWorldMap,
     customData,
+    linkedPinIds,
+    pins,
   }
 }
 

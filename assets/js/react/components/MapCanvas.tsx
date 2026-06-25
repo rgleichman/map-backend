@@ -626,6 +626,7 @@ export default function MapCanvas({
       <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
         <PopupContent
           pin={pin}
+          pins={pins}
           csrfToken={csrfToken}
           communityUrl={communityUrl}
           onSelectCommunity={onSelectCommunity}

@@ -4,10 +4,11 @@ defmodule StorymapWeb.PinJSON do
   """
   alias Storymap.Pins.Pin
   alias Storymap.Pins.Authorizer
+  alias Storymap.Pins.PinReference
   alias Storymap.SubMaps.SubMap
 
   # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner (computed).
-  @pin_data_keys Pin.public_json_fields() ++ [:tags, :community, :is_owner]
+  @pin_data_keys Pin.public_json_fields() ++ [:tags, :community, :is_owner, :linked_pins]
 
   # Serialize UTC datetime as "YYYY-MM-DDTHH:mm:ss" (no Z) so the wire format signals "local".
   defp datetime_to_iso_local(%DateTime{} = dt) do
@@ -34,25 +35,29 @@ defmodule StorymapWeb.PinJSON do
     %{data: data(pin)}
   end
 
+  @spec backlinks(map()) :: map()
+  def backlinks(%{backlinks: backlinks}) do
+    %{data: Enum.map(backlinks, &backlink_data/1)}
+  end
+
   @doc """
   Renders pin data for public (unauthenticated) responses.
   Does not include user_id or is_owner to prevent user enumeration.
   """
   @spec data(Pin.t()) :: map()
   def data(%Pin{} = pin) do
-    base =
-      Pin.public_json_fields()
-      |> Enum.map(fn
-        :start_time -> {:start_time, pin.start_time && datetime_to_iso_local(pin.start_time)}
-        :end_time -> {:end_time, pin.end_time && datetime_to_iso_local(pin.end_time)}
-        :status -> {:status, to_string(pin.status)}
-        key -> {key, Map.get(pin, key)}
-      end)
-      |> Map.new()
-      |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
-      |> put_community(pin)
-
-    Map.take(base, @pin_data_keys -- [:is_owner])
+    Pin.public_json_fields()
+    |> Enum.map(fn
+      :start_time -> {:start_time, pin.start_time && datetime_to_iso_local(pin.start_time)}
+      :end_time -> {:end_time, pin.end_time && datetime_to_iso_local(pin.end_time)}
+      :status -> {:status, to_string(pin.status)}
+      key -> {key, Map.get(pin, key)}
+    end)
+    |> Map.new()
+    |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
+    |> put_community(pin)
+    |> Map.put(:linked_pins, linked_pins_data(pin))
+    |> Map.take(@pin_data_keys -- [:is_owner])
   end
 
   defp put_community(map, %Pin{sub_map: %SubMap{community_url: url, name: name}}) do
@@ -71,6 +76,31 @@ defmodule StorymapWeb.PinJSON do
     |> Map.put(:is_owner, is_owner)
     |> Map.take(@pin_data_keys)
   end
+
+  defp pin_link_data(%PinReference{target_pin_id: target_id, source_field: field}) do
+    %{
+      pin_id: target_id,
+      source_field: field
+    }
+  end
+
+  defp backlink_data(%PinReference{source_pin_id: source_id, source_field: field}) do
+    %{
+      pin_id: source_id,
+      source_field: field
+    }
+  end
+
+  defp linked_pins_data(%Pin{outgoing_references: refs}) when is_list(refs) do
+    refs
+    |> Enum.sort_by(fn
+      %{kind: :explicit, position: pos} when is_integer(pos) -> {0, pos}
+      _ -> {1, 0}
+    end)
+    |> Enum.map(&pin_link_data/1)
+  end
+
+  defp linked_pins_data(_), do: []
 
   defp authorizer_opts(assigns) do
     [

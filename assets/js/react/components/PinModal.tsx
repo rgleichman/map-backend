@@ -1,7 +1,8 @@
 import React, { useEffect, useId, useState } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import CustomPinFields from "./CustomPinFields"
-import type { PinType } from "../types"
+import RelatedPinsEditor from "./RelatedPinsEditor"
+import type { Pin, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
@@ -34,6 +35,10 @@ type Props = {
   showPromoteToWorld?: boolean
   promoteToWorld?: boolean
   setPromoteToWorld?: (v: boolean) => void
+  pins: Pin[]
+  linkedPinIds?: number[]
+  onAddLinkedPin?: (pinId: number) => void
+  onRemoveLinkedPin?: (pinId: number) => void
   latitude: number
   longitude: number
   onStartPickOnMap: () => void
@@ -57,6 +62,10 @@ export default function PinModal({
   title, setTitle,
   description, setDescription,
   tags, setTags,
+  pins = [],
+  linkedPinIds = [],
+  onAddLinkedPin,
+  onRemoveLinkedPin,
   startTime, setStartTime,
   endTime, setEndTime,
   scheduleRrule, setScheduleRrule,
@@ -236,6 +245,13 @@ export default function PinModal({
           ))}
         </div>
       </div>
+      <RelatedPinsEditor
+        pins={pins}
+        linkedPinIds={linkedPinIds}
+        currentPinId={pinId ?? undefined}
+        onAddLinkedPin={onAddLinkedPin}
+        onRemoveLinkedPin={onRemoveLinkedPin}
+      />
       {showPromoteToWorld && setPromoteToWorld && (
         <div className="mb-4">
           <label htmlFor={promoteWorldId} className="flex cursor-pointer items-start gap-2">

@@ -29,8 +29,6 @@ defmodule StorymapWeb.PinController do
 
     with :ok <- Authorizer.authorize_create(user),
          {:ok, %Pin{} = pin} <- Pins.create_pin(pin_params, user.id) do
-      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
-
       _ =
         AdminActivity.record_event("pin_created", user.id, %{
           "pin_id" => pin.id,
@@ -48,7 +46,7 @@ defmodule StorymapWeb.PinController do
 
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
+    pin = Pins.get_pin!(id)
     user = get_current_user(conn)
     sub_map = pin.sub_map
     membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
@@ -64,21 +62,35 @@ defmodule StorymapWeb.PinController do
     end
   end
 
+  @spec backlinks(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def backlinks(conn, %{"id" => id}) do
+    pin = Pins.get_pin!(id)
+    user = get_current_user(conn)
+    sub_map = pin.sub_map
+    membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
+    opts = [sub_map: sub_map, membership: membership]
+
+    with :ok <- Authorizer.authorize_show(user, pin, opts) do
+      backlinks = Pins.list_backlinks(pin.id)
+
+      conn
+      |> put_view(json: StorymapWeb.PinJSON)
+      |> render(:backlinks, backlinks: backlinks)
+    end
+  end
+
   @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"id" => id, "pin" => pin_params}) do
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
+    pin = Pins.get_pin!(id)
     current_user = conn.assigns.current_scope.user
     sub_map = pin.sub_map
     membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
     opts = [sub_map: sub_map, membership: membership, user: current_user]
 
     with :ok <- Authorizer.authorize_update(current_user, pin, opts) do
-      pin = Storymap.Repo.preload(pin, :tags)
       before_pin = pin
 
       with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
-        pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
-
         _ =
           AdminActivity.record_event(
             "pin_updated",

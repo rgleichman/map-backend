@@ -47,6 +47,7 @@ defmodule StorymapWeb.Router do
 
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
+    get "/pins/:id/backlinks", PinController, :backlinks
     get "/pins/:id", PinController, :show
 
     get "/pins/:id/music_fields/:field_key", PinFieldBlobController, :show,

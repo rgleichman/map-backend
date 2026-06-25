@@ -4,9 +4,19 @@ defmodule Storymap.Pins do
   """
 
   import Ecto.Changeset, only: [add_error: 3, get_field: 2]
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
   alias Storymap.Repo
-  alias Storymap.Pins.{BlobFieldType, Pin, PinFieldBlob, Query, Visibility}
+
+  alias Storymap.Pins.{
+    BlobFieldType,
+    Pin,
+    PinFieldBlob,
+    PinReference,
+    Query,
+    References,
+    Visibility
+  }
+
   alias Storymap.PinTypes
   alias Storymap.PinTypes.{CustomPinType, Validator}
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
@@ -27,6 +37,7 @@ defmodule Storymap.Pins do
   def list_pins do
     Query.world_pins()
     |> Repo.all()
+    |> Repo.preload(Query.list_preloads())
   end
 
   @spec list_pins_by_user(integer()) :: [Pin.t()]
@@ -36,14 +47,18 @@ defmodule Storymap.Pins do
   end
 
   @spec get_pin!(integer()) :: Pin.t()
-  def get_pin!(id), do: Repo.get!(Pin, id) |> Repo.preload(:tags)
+  def get_pin!(id), do: Repo.get!(Pin, id) |> preload_pin_associations()
 
   @spec get_pin(integer()) :: Pin.t() | nil
   def get_pin(id) when is_integer(id) do
     case Repo.get(Pin, id) do
       nil -> nil
-      %Pin{} = pin -> Repo.preload(pin, [:tags, :sub_map])
+      %Pin{} = pin -> preload_pin_associations(pin)
     end
+  end
+
+  defp preload_pin_associations(%Pin{} = pin) do
+    Repo.preload(pin, Query.list_preloads(), force: true)
   end
 
   @doc """
@@ -76,12 +91,21 @@ defmodule Storymap.Pins do
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
-        %Pin{}
-        |> Pin.changeset(attrs_with_user)
-        |> maybe_validate_custom_pin_data()
-        |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
-        |> Ecto.Changeset.put_assoc(:tags, tag_structs)
-        |> Repo.insert()
+        Repo.transaction(fn ->
+          with {:ok, pin} <-
+                 %Pin{}
+                 |> Pin.changeset(attrs_with_user)
+                 |> maybe_validate_custom_pin_data()
+                 |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
+                 |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+                 |> Repo.insert(),
+               {:ok, pin} <- References.sync(pin, attrs_with_user) do
+            preload_pin_associations(pin)
+          else
+            {:error, %Ecto.Changeset{} = changeset} -> Repo.rollback(changeset)
+          end
+        end)
+        |> normalize_transaction_result()
 
       {:error, changeset} ->
         {:error, changeset}
@@ -103,12 +127,21 @@ defmodule Storymap.Pins do
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
-        pin
-        |> Pin.changeset(attrs)
-        |> maybe_validate_custom_pin_data()
-        |> maybe_validate_sub_map_rules(sub_map, attrs)
-        |> Ecto.Changeset.put_assoc(:tags, tag_structs)
-        |> Repo.update()
+        Repo.transaction(fn ->
+          with {:ok, pin} <-
+                 pin
+                 |> Pin.changeset(attrs)
+                 |> maybe_validate_custom_pin_data()
+                 |> maybe_validate_sub_map_rules(sub_map, attrs)
+                 |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+                 |> Repo.update(),
+               {:ok, pin} <- References.sync(pin, attrs) do
+            preload_pin_associations(pin)
+          else
+            {:error, %Ecto.Changeset{} = changeset} -> Repo.rollback(changeset)
+          end
+        end)
+        |> normalize_transaction_result()
 
       {:error, changeset} ->
         {:error, changeset}
@@ -407,4 +440,23 @@ defmodule Storymap.Pins do
       {k, v} -> {k, v}
     end)
   end
+
+  @doc """
+  Lists backlinks (incoming references) for a pin.
+  """
+  @spec list_backlinks(integer()) :: [PinReference.t()]
+  def list_backlinks(target_pin_id) when is_integer(target_pin_id) do
+    from(r in PinReference,
+      where: r.target_pin_id == ^target_pin_id,
+      order_by: [asc: r.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  defp normalize_transaction_result({:ok, pin}), do: {:ok, pin}
+
+  defp normalize_transaction_result({:error, %Ecto.Changeset{} = changeset}),
+    do: {:error, changeset}
+
+  defp normalize_transaction_result({:error, reason}), do: {:error, reason}
 end

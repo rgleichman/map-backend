@@ -1,5 +1,6 @@
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly } from "../utils/datetime"
 import { BuiltinPinType, isCustomPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
+import { explicitLinkedPinIds } from "../utils/pinLinks"
 import type { DraftState, PinWorkflowAction, PinWorkflowState } from "./types"
 
 export const makeDefaultDraft = (): DraftState => {
@@ -17,6 +18,7 @@ export const makeDefaultDraft = (): DraftState => {
     scheduleTimezone: "",
     open24_7: true,
     visibleOnWorldMap: false,
+    linkedPinIds: [],
     addLocation: null,
     editLocation: null,
   }
@@ -121,6 +123,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
             : state.draft.open24_7,
           visibleOnWorldMap: action.pin.visible_on_world_map ?? false,
           customData: action.pin.custom_data ?? {},
+          linkedPinIds: explicitLinkedPinIds(action.pin),
           editLocation: null,
         },
       }
@@ -152,6 +155,23 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
       return { ...state, draft: { ...state.draft, visibleOnWorldMap: action.visibleOnWorldMap } }
     case "set_custom_data":
       return { ...state, draft: { ...state.draft, customData: action.customData } }
+    case "add_linked_pin":
+      if (state.draft.linkedPinIds.includes(action.pinId)) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          linkedPinIds: [...state.draft.linkedPinIds, action.pinId],
+        },
+      }
+    case "remove_linked_pin":
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          linkedPinIds: state.draft.linkedPinIds.filter((id) => id !== action.pinId),
+        },
+      }
     case "set_time_error":
       return { ...state, timeError: action.timeError }
     case "clear_time_error":

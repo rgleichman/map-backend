@@ -1,6 +1,6 @@
 import React from "react"
 import PinModal from "./PinModal"
-import type { PinType } from "../types"
+import type { Pin, PinType } from "../types"
 import type { PinWorkflowAction } from "../pinWorkflow/types"
 
 type Props = {
@@ -20,6 +20,8 @@ type Props = {
   open24_7: boolean
   visibleOnWorldMap: boolean
   customData: Record<string, unknown>
+  linkedPinIds: number[]
+  pins: Pin[]
   showPromoteToWorld: boolean
   latitude: number
   longitude: number
@@ -49,6 +51,8 @@ export default function PinComposer({
   open24_7,
   visibleOnWorldMap,
   customData,
+  linkedPinIds,
+  pins,
   showPromoteToWorld,
   latitude,
   longitude,
@@ -88,6 +92,10 @@ export default function PinComposer({
       setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
       customData={customData}
       setCustomData={(customData) => dispatch({ type: "set_custom_data", customData })}
+      linkedPinIds={linkedPinIds}
+      pins={pins}
+      onAddLinkedPin={(pinId) => dispatch({ type: "add_linked_pin", pinId })}
+      onRemoveLinkedPin={(pinId) => dispatch({ type: "remove_linked_pin", pinId })}
       latitude={latitude}
       longitude={longitude}
       onStartPickOnMap={onStartPickOnMap}

@@ -4,7 +4,7 @@ import type { Pin } from "../../types"
 import * as datetime from "../../utils/datetime"
 
 function filterPins(pins: Pin[], filter: FilterState) {
-  return pins.filter((p) => pinMatchesFilter(p, filter))
+  return pins.filter((p) => pinMatchesFilter(p, filter, undefined, pins))
 }
 
 vi.mock("../../utils/datetime", async (importOriginal) => {
@@ -243,6 +243,17 @@ describe("pinMatchesQuery", () => {
     const pin = minimalPin({ title: "Anything" })
     expect(pinMatchesQuery(pin, "")).toBe(true)
     expect(pinMatchesQuery(pin, "   ")).toBe(true)
+  })
+
+  it("matches linked pin titles when allPins is provided", () => {
+    const linked = minimalPin({ id: 2, title: "Secret Garden" })
+    const pin = minimalPin({
+      id: 1,
+      title: "Main spot",
+      linked_pins: [{ pin_id: 2, source_field: null }],
+    })
+    expect(pinMatchesQuery(pin, "garden", undefined, [pin, linked])).toBe(true)
+    expect(pinMatchesQuery(pin, "garden")).toBe(false)
   })
 })
 

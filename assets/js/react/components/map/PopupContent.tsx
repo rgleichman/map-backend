@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from "react"
-import type { Pin } from "../../types"
+import React, { useEffect, useMemo, useState } from "react"
+import { getPinBacklinks } from "../../api/client"
+import type { Pin, PinLink } from "../../types"
 import LinkifiedText from "../LinkifiedText"
+import PinLinkChips from "../PinLinkChips"
 import { CustomFieldDisplay, PinIdProvider } from "../CustomPinFields"
 import { isCustomFieldEmpty } from "../../utils/customFieldValue"
 import { usePinTypes } from "../../context/PinTypesContext"
@@ -13,6 +15,7 @@ const popupContentClasses = "text-sm text-base-content"
 
 type Props = {
   pin: Pin
+  pins: Pin[]
   csrfToken?: string
   /** Current community map slug, if any (undefined = world map). */
   communityUrl?: string
@@ -20,7 +23,7 @@ type Props = {
   onNavigateToPin?: (pinId: number) => void
 }
 
-export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
+export default function PopupContent({ pin, pins, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
   const { catalog } = usePinTypes()
   const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
   const customFields = schemaFields(customType)
@@ -31,6 +34,26 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
   )
   const [reportOpen, setReportOpen] = useState(false)
   const [doneMessage, setDoneMessage] = useState<string | null>(null)
+  const [backlinks, setBacklinks] = useState<PinLink[] | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setBacklinks(null)
+
+    getPinBacklinks(pin.id)
+      .then(({ data }) => {
+        if (!cancelled) setBacklinks(data)
+      })
+      .catch(() => {
+        if (!cancelled) setBacklinks([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [pin.id])
+
+  const relatedLinks = pin.linked_pins ?? []
 
   const displayTags = useMemo(
     () =>
@@ -118,6 +141,18 @@ export default function PopupContent({ pin, csrfToken, communityUrl, onSelectCom
           ))}
         </div>
       )}
+      {relatedLinks.length > 0 ? (
+        <div className="my-2">
+          <p className={`${popupContentClasses} font-semibold mb-1`}>Related pins</p>
+          <PinLinkChips links={relatedLinks} pins={pins} onNavigate={onNavigateToPin} />
+        </div>
+      ) : null}
+      {backlinks && backlinks.length > 0 ? (
+        <div className="my-2">
+          <p className={`${popupContentClasses} font-semibold mb-1`}>Linked from</p>
+          <PinLinkChips links={backlinks} pins={pins} onNavigate={onNavigateToPin} showSourceHint={false} />
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-2 items-center">
         <a
           href={openInMapsUrl}

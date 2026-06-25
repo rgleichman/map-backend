@@ -28,6 +28,7 @@ export type DraftState = {
   scheduleTimezone: string
   open24_7: boolean
   visibleOnWorldMap: boolean
+  linkedPinIds: number[]
   addLocation: { lat: number; lng: number } | null
   editLocation: { lat: number; lng: number } | null
 }
@@ -69,22 +70,10 @@ export type PinWorkflowAction =
   | { type: "set_open_24_7"; open24_7: boolean }
   | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
   | { type: "set_custom_data"; customData: Record<string, unknown> }
+  | { type: "add_linked_pin"; pinId: number }
+  | { type: "remove_linked_pin"; pinId: number }
   | { type: "set_time_error"; timeError: string }
   | { type: "clear_time_error" }
   | { type: "set_form_error"; formError: string }
   | { type: "clear_form_error" }
   | { type: "clear_draft_locations" }
-
-export type PinDraftAction = Extract<
-  PinWorkflowAction,
-  | { type: "set_title" }
-  | { type: "set_description" }
-  | { type: "set_tags" }
-  | { type: "set_start_time" }
-  | { type: "set_end_time" }
-  | { type: "set_schedule_rrule" }
-  | { type: "set_schedule_timezone" }
-  | { type: "set_open_24_7" }
-  | { type: "set_visible_on_world_map" }
-  | { type: "set_custom_data" }
->

@@ -41,6 +41,8 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     open24_7,
     visibleOnWorldMap,
     customData,
+    linkedPinIds,
+    pins,
   } = workflow
 
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
@@ -57,6 +59,8 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     open24_7,
     visibleOnWorldMap,
     customData,
+    linkedPinIds,
+    pins,
     showPromoteToWorld,
     latitude: pinModalLat,
     longitude: pinModalLng,

@@ -421,6 +421,140 @@ defmodule StorymapWeb.PinControllerTest do
     end
   end
 
+  describe "pin linking" do
+    setup :register_and_log_in_user
+
+    test "round-trips explicit linked_pin_ids", %{conn: conn, user: user} do
+      target = pin_fixture(%{"title" => "Target Pin"}, user)
+      source = pin_fixture(%{"title" => "Source Pin"}, user)
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "linked_pin_ids" => [target.id]
+          }
+        )
+
+      data = json_response(conn, 200)["data"]
+      assert [%{"pin_id" => target_id, "source_field" => nil}] = data["linked_pins"]
+      assert target_id == target.id
+    end
+
+    test "extracts text reference from description on save", %{conn: conn, user: user} do
+      target = pin_fixture(%{"title" => "Linked Target"}, user)
+      source = pin_fixture(%{"title" => "Source"}, user)
+      origin = Storymap.Pins.ReferenceParser.default_origin()
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "description" => "See #{origin}/map?pin=#{target.id}",
+            "linked_pin_ids" => []
+          }
+        )
+
+      data = json_response(conn, 200)["data"]
+
+      assert Enum.any?(data["linked_pins"], fn link ->
+               link["pin_id"] == target.id and link["source_field"] == "description"
+             end)
+    end
+
+    test "returns backlinks for target pin", %{conn: conn, user: user} do
+      target = pin_fixture(%{"title" => "Backlink Target"}, user)
+      source = pin_fixture(%{"title" => "Backlink Source"}, user)
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "linked_pin_ids" => [target.id]
+          }
+        )
+
+      assert json_response(conn, 200)
+
+      conn = get(conn, ~p"/api/pins/#{target.id}/backlinks")
+      data = json_response(conn, 200)["data"]
+
+      assert [%{"pin_id" => source_id, "source_field" => nil}] = data
+      assert source_id == source.id
+    end
+
+    test "rejects self-link", %{conn: conn, user: user} do
+      pin = pin_fixture(%{}, user)
+
+      conn =
+        put(conn, ~p"/api/pins/#{pin.id}",
+          pin: %{
+            "title" => pin.title,
+            "linked_pin_ids" => [pin.id]
+          }
+        )
+
+      assert json_response(conn, 422)["errors"]["linked_pin_ids"] != []
+    end
+
+    test "rejects link to pending pin", %{conn: conn, user: user} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "link-pending"},
+          owner
+        )
+
+      {:ok, pending} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      source = pin_fixture(%{}, user)
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "linked_pin_ids" => [pending.id]
+          }
+        )
+
+      assert json_response(conn, 422)["errors"]["linked_pin_ids"] != []
+    end
+
+    test "dedupes explicit and text refs to same target", %{conn: conn, user: user} do
+      target = pin_fixture(%{"title" => "Dedup Target"}, user)
+      source = pin_fixture(%{"title" => "Dedup Source"}, user)
+      origin = Storymap.Pins.ReferenceParser.default_origin()
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "description" => "See #{origin}/map?pin=#{target.id}",
+            "linked_pin_ids" => [target.id]
+          }
+        )
+
+      data = json_response(conn, 200)["data"]
+      target_links = Enum.filter(data["linked_pins"], &(&1["pin_id"] == target.id))
+      assert length(target_links) == 1
+      assert hd(target_links)["source_field"] == nil
+    end
+  end
+
   defp create_pin(%{conn: conn, user: user}) do
     pin = pin_fixture(%{}, user)
     %{conn: conn, pin: pin}

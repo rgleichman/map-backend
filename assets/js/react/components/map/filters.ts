@@ -154,14 +154,21 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
   return isRecurrenceDayForParts(nowParts, rruleStr, ianaTimezone)
 }
 
-/** True if the pin matches a case-insensitive substring query on title, description, tags, or custom fields. */
-export function pinMatchesQuery(p: Pin, query: string, catalog?: CustomPinType[]): boolean {
+/** True if the pin matches a case-insensitive substring query on title, description, tags, custom fields, or linked pin titles. */
+export function pinMatchesQuery(p: Pin, query: string, catalog?: CustomPinType[], allPins?: Pin[]): boolean {
   const q = query.trim().toLowerCase()
   if (q === "") return true
   if (p.title.toLowerCase().includes(q)) return true
   if (p.description?.toLowerCase().includes(q)) return true
   if (p.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
   if (pinCustomFieldsMatchQuery(p, query, catalog)) return true
+  if (allPins && p.linked_pins?.length) {
+    const byId = new Map(allPins.map((pin) => [pin.id, pin]))
+    for (const link of p.linked_pins) {
+      const linked = byId.get(link.pin_id)
+      if (linked?.title.toLowerCase().includes(q)) return true
+    }
+  }
   return false
 }
 
@@ -187,7 +194,12 @@ export function pinMapGeoJsonSyncPart(p: Pin): string {
 }
 
 /** True if the pin passes the current tag, time, pin-type, and query filter rules. */
-export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPinType[]): boolean {
+export function pinMatchesFilter(
+  p: Pin,
+  filter: FilterState,
+  catalog?: CustomPinType[],
+  allPins?: Pin[]
+): boolean {
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {
     return false
   }
@@ -196,7 +208,7 @@ export function pinMatchesFilter(p: Pin, filter: FilterState, catalog?: CustomPi
     return false
   }
 
-  if (!pinMatchesQuery(p, filter.query, catalog)) {
+  if (!pinMatchesQuery(p, filter.query, catalog, allPins)) {
     return false
   }
 
