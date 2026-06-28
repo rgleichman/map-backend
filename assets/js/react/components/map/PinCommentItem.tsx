@@ -1,7 +1,9 @@
 import React, { useState } from "react"
 import type { PinComment } from "../../types"
 import { isCommentAuthor } from "../../utils/pinComment"
+import { ReportSubjectType } from "../../utils/reportSubjectType"
 import LinkifiedText from "../LinkifiedText"
+import ContentReportDialog from "./ContentReportDialog"
 
 type Props = {
   comment: PinComment
@@ -36,6 +38,7 @@ export default function PinCommentItem({
   depth = 0,
   userId,
   userMuted = false,
+  csrfToken,
   onNavigateToPin,
   onReply,
   onUpdate,
@@ -48,6 +51,8 @@ export default function PinCommentItem({
   const [editBody, setEditBody] = useState(comment.body)
   const [submitting, setSubmitting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState<string | null>(null)
 
   const isAuthor = isCommentAuthor(comment, userId)
   const canInteract = Boolean(userId) && !userMuted && !comment.deleted
@@ -182,8 +187,28 @@ export default function PinCommentItem({
               Delete
             </button>
           ) : null}
+          <button
+            type="button"
+            className="text-xs font-medium text-base-content/70 hover:underline bg-transparent border-none cursor-pointer p-0"
+            onClick={() => setReportOpen(true)}
+          >
+            Report
+          </button>
         </div>
       ) : null}
+
+      <ContentReportDialog
+        subjectType={ReportSubjectType.PinComment}
+        subjectId={comment.id}
+        title="Report this comment"
+        detailsPlaceholder="What is wrong with this comment?"
+        csrfToken={csrfToken}
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        onSuccess={(message) => setReportSuccess(message)}
+      />
+
+      {reportSuccess ? <p className="mt-1 text-xs text-success">{reportSuccess}</p> : null}
 
       {replyOpen ? (
         <div className="mt-2 space-y-2">
@@ -228,6 +253,7 @@ export default function PinCommentItem({
           depth={1}
           userId={userId}
           userMuted={userMuted}
+          csrfToken={csrfToken}
           onNavigateToPin={onNavigateToPin}
           onReply={onReply}
           onUpdate={onUpdate}

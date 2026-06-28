@@ -51,6 +51,34 @@ defmodule StorymapWeb.ReportControllerTest do
       assert json_response(conn, 404)
     end
 
+    test "creates report for pin_comment", %{conn: conn, pin: pin} do
+      comment = pin_comment_fixture(%{"body" => "Bad comment"}, pin)
+
+      attrs =
+        @report_attrs
+        |> Map.put(:subject_type, "pin_comment")
+        |> Map.put(:subject_id, comment.id)
+        |> Map.put(:category, "spam")
+
+      conn = post(conn, ~p"/api/reports", report: attrs)
+      assert %{"id" => id, "category" => "spam"} = json_response(conn, 201)["data"]
+      assert is_integer(id)
+
+      report = Storymap.Repo.get!(Storymap.ContentReports.ContentReport, id)
+      assert report.subject_type == "pin_comment"
+      assert report.subject_id == comment.id
+    end
+
+    test "returns 404 when pin_comment missing", %{conn: conn} do
+      attrs =
+        @report_attrs
+        |> Map.put(:subject_type, "pin_comment")
+        |> Map.put(:subject_id, 99_999_999)
+
+      conn = post(conn, ~p"/api/reports", report: attrs)
+      assert json_response(conn, 404)
+    end
+
     test "returns 422 for invalid category", %{conn: conn, pin: pin} do
       attrs =
         @report_attrs

@@ -2,6 +2,7 @@ defmodule StorymapWeb.Admin.EventView do
   @moduledoc false
   use StorymapWeb, :html
 
+  alias Storymap.ContentReports
   alias Storymap.Pins
 
   def pin_event?(type) when is_binary(type), do: String.starts_with?(type, "pin_")
@@ -220,6 +221,16 @@ defmodule StorymapWeb.Admin.EventView do
   def content_reported_summary(assigns) do
     ~H"""
     <div class="mt-3 space-y-2 text-sm">
+      <%= if comment_id = @metadata["comment_id"] do %>
+        <div class="text-xs opacity-80 font-mono">Comment #{comment_id}</div>
+      <% end %>
+      <%= if body = @metadata["comment_body"] do %>
+        <%= if is_binary(body) and body != "" do %>
+          <div class="text-sm whitespace-pre-wrap break-words rounded-lg bg-base-200/60 p-2">
+            {body}
+          </div>
+        <% end %>
+      <% end %>
       <%= if pin_id = @metadata["pin_id"] do %>
         <div>
           <.link
@@ -252,12 +263,14 @@ defmodule StorymapWeb.Admin.EventView do
 
   def report_card(assigns) do
     resolved? = not is_nil(assigns.report.resolved_at)
-    pin_id = if assigns.report.subject_type == "pin", do: assigns.report.subject_id, else: nil
+    pin_id = ContentReports.report_pin_id(assigns.report)
+    comment_report? = assigns.report.subject_type == "pin_comment"
 
     assigns =
       assigns
       |> assign(:resolved?, resolved?)
       |> assign(:pin_id, pin_id)
+      |> assign(:comment_report?, comment_report?)
 
     ~H"""
     <div class={[
@@ -284,6 +297,9 @@ defmodule StorymapWeb.Admin.EventView do
               <span class="truncate">Reporter {@report.reporter_user_id}</span>
             <% end %>
             <span class="hidden sm:inline opacity-50">·</span>
+            <%= if @comment_report? do %>
+              <span class="badge badge-ghost badge-xs shrink-0">Comment #{@report.subject_id}</span>
+            <% end %>
             <%= if @pin_id do %>
               <span class="hidden sm:inline opacity-50">·</span>
               <span class="font-mono text-xs truncate">Pin {@pin_id}</span>

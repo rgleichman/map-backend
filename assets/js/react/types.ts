@@ -150,10 +150,12 @@ export type SubMap = {
   membership?: { role: MembershipRole; status: MembershipStatus } | null
 }
 
+export type ReportSubjectType = "pin" | "pin_comment"
+
 export type ReportCategory = "inaccurate" | "abusive_or_hateful" | "spam" | "other"
 
 export type ContentReportPayload = {
-  subject_type: "pin"
+  subject_type: ReportSubjectType
   subject_id: number
   category: ReportCategory
   details?: string

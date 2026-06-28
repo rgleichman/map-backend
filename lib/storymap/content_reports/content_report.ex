@@ -4,12 +4,15 @@ defmodule Storymap.ContentReports.ContentReport do
   import Ecto.Changeset
 
   @categories [:inaccurate, :abusive_or_hateful, :spam, :other]
+  @subject_types ["pin", "pin_comment"]
 
   @type category :: :inaccurate | :abusive_or_hateful | :spam | :other
+  # Wire values: "pin", "pin_comment" (see `subject_types/0`)
+  @type subject_type :: String.t()
 
   @type t :: %__MODULE__{
           id: integer() | nil,
-          subject_type: String.t() | nil,
+          subject_type: subject_type() | nil,
           subject_id: integer() | nil,
           subject_label: String.t() | nil,
           category: category() | nil,
@@ -38,14 +41,21 @@ defmodule Storymap.ContentReports.ContentReport do
   @spec categories() :: [category()]
   def categories, do: @categories
 
-  @spec create_changeset(map(), keyword()) :: Ecto.Changeset.t()
+  @spec subject_types() :: [String.t()]
+  def subject_types, do: @subject_types
+
+  @type create_attrs :: %{
+          optional(String.t()) => String.t() | integer() | nil
+        }
+
+  @spec create_changeset(create_attrs() | map(), keyword()) :: Ecto.Changeset.t()
   def create_changeset(attrs, opts \\ []) do
     reporter_user_id = Keyword.get(opts, :reporter_user_id)
 
     %__MODULE__{}
     |> cast(attrs, [:subject_type, :subject_id, :subject_label, :category, :details, :sub_map_id])
     |> validate_required([:subject_type, :subject_id, :category])
-    |> validate_inclusion(:subject_type, ["pin"])
+    |> validate_inclusion(:subject_type, ["pin", "pin_comment"])
     |> validate_number(:subject_id, greater_than: 0)
     |> validate_length(:details, max: 2000)
     |> maybe_put_reporter(reporter_user_id)

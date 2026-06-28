@@ -9,6 +9,32 @@ defmodule StorymapWeb.AdminLive.ReportsTest do
   alias Storymap.ContentReports
   alias Storymap.Repo
 
+  test "pin_comment report card shows comment badge and view pin link", %{conn: conn} do
+    admin = user_fixture() |> then(&Repo.update!(Ecto.Changeset.change(&1, admin_level: 10)))
+    pin = pin_fixture(%{"latitude" => 47.6, "longitude" => -122.33, "title" => "Commented venue"})
+    comment = pin_comment_fixture(%{"body" => "Spam text"}, pin)
+
+    {:ok, report} =
+      ContentReports.create_report(
+        %{
+          "subject_type" => "pin_comment",
+          "subject_id" => comment.id,
+          "category" => "spam"
+        },
+        nil
+      )
+
+    conn = log_in_user(conn, admin)
+    {:ok, view, html} = live(conn, ~p"/admin/reports")
+
+    row = "#reports-#{report.id}"
+    assert has_element?(view, row)
+    assert html =~ "Comment ##{comment.id}"
+    assert html =~ "Spam text"
+    assert html =~ "View pin"
+    assert html =~ "Pin #{pin.id}"
+  end
+
   test "mark resolved toggles row and unresolved badge text", %{conn: conn} do
     admin = user_fixture() |> then(&Repo.update!(Ecto.Changeset.change(&1, admin_level: 10)))
     pin = pin_fixture(%{"latitude" => 47.6, "longitude" => -122.33, "title" => "Reported venue"})

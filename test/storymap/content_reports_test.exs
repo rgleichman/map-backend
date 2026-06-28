@@ -9,6 +9,7 @@ defmodule Storymap.ContentReportsTest do
   alias Storymap.AdminActivity.Event
   alias Storymap.ContentReports
   alias Storymap.ContentReports.ContentReport
+  alias Storymap.Pins.Comments
   alias Storymap.Repo
 
   defp admin_scope do
@@ -47,6 +48,144 @@ defmodule Storymap.ContentReportsTest do
 
     assert event.metadata["report_id"] == report.id
     assert event.metadata["pin_id"] == pin.id
+  end
+
+  test "create_report for pin_comment inserts report and activity metadata" do
+    pin = pin_fixture(%{"latitude" => 45.52, "longitude" => -122.67, "title" => "Commented pin"})
+    comment = pin_comment_fixture(%{"body" => "Offensive reply"}, pin)
+
+    assert {:ok, %ContentReport{} = report} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin_comment",
+                 "subject_id" => comment.id,
+                 "category" => "abusive_or_hateful"
+               },
+               nil
+             )
+
+    assert report.subject_type == "pin_comment"
+    assert report.subject_id == comment.id
+    assert report.subject_label == "Comment on «Commented pin»"
+    assert report.details == "Offensive reply"
+    assert report.sub_map_id == pin.sub_map_id
+
+    event =
+      Repo.one!(
+        from(e in Event,
+          where: e.type == "content_reported",
+          order_by: [desc: e.id],
+          limit: 1
+        )
+      )
+
+    assert event.metadata["report_id"] == report.id
+    assert event.metadata["comment_id"] == comment.id
+    assert event.metadata["comment_body"] == "Offensive reply"
+    assert event.metadata["pin_id"] == pin.id
+  end
+
+  test "create_report for pin_comment merges reporter details with comment body" do
+    pin = pin_fixture(%{"title" => "Venue"})
+    comment = pin_comment_fixture(%{"body" => "Bad take"}, pin)
+
+    assert {:ok, %ContentReport{} = report} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin_comment",
+                 "subject_id" => comment.id,
+                 "category" => "spam",
+                 "details" => "Also misleading"
+               },
+               nil
+             )
+
+    assert report.details == "Bad take\n\n---\n\nAlso misleading"
+  end
+
+  test "create_report for pin_comment preserves reporter notes when comment body is long" do
+    pin = pin_fixture(%{"title" => "Venue"})
+    long_comment = String.duplicate("c", 2000)
+    comment = pin_comment_fixture(%{"body" => long_comment}, pin)
+    reporter_notes = String.duplicate("n", 200)
+
+    assert {:ok, %ContentReport{} = report} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin_comment",
+                 "subject_id" => comment.id,
+                 "category" => "spam",
+                 "details" => reporter_notes
+               },
+               nil
+             )
+
+    assert String.length(report.details) == 2000
+    assert String.ends_with?(report.details, reporter_notes)
+    assert report.details =~ "\n\n---\n\n"
+    refute String.ends_with?(report.details, long_comment)
+  end
+
+  test "build_comment_report_details/2 preserves reporter notes and truncates comment" do
+    comment = String.duplicate("a", 2000)
+    notes = String.duplicate("b", 100)
+
+    details = ContentReports.build_comment_report_details(comment, notes)
+
+    assert String.length(details) == 2000
+    assert String.ends_with?(details, notes)
+    assert details =~ "\n\n---\n\n"
+  end
+
+  test "build_comment_report_details/2 returns full comment when no reporter notes" do
+    comment = String.duplicate("z", 1500)
+    assert ContentReports.build_comment_report_details(comment, nil) == comment
+  end
+
+  test "create_report returns not_found for missing or deleted comment" do
+    pin = pin_fixture()
+    comment = pin_comment_fixture(%{}, pin)
+    {:ok, deleted} = Comments.delete_comment(comment)
+
+    assert {:error, :not_found} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin_comment",
+                 "subject_id" => 9_999_999_999,
+                 "category" => "spam"
+               },
+               nil
+             )
+
+    assert {:error, :not_found} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin_comment",
+                 "subject_id" => deleted.id,
+                 "category" => "spam"
+               },
+               nil
+             )
+  end
+
+  test "report_pin_id resolves pin from pin and pin_comment reports" do
+    pin = pin_fixture(%{"title" => "Target pin"})
+    comment = pin_comment_fixture(%{}, pin)
+
+    {:ok, pin_report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin", "subject_id" => pin.id, "category" => "other"},
+        nil
+      )
+
+    {:ok, comment_report} =
+      ContentReports.create_report(
+        %{"subject_type" => "pin_comment", "subject_id" => comment.id, "category" => "other"},
+        nil
+      )
+
+    assert ContentReports.report_pin_id(pin_report) == pin.id
+    assert ContentReports.report_pin_id(comment_report) == pin.id
   end
 
   test "create_report returns not_found for missing pin" do
