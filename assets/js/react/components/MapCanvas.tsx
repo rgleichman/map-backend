@@ -74,6 +74,8 @@ type Props = {
   filter: FilterState
   setFilter: Dispatch<SetStateAction<FilterState>>
   csrfToken?: string
+  userId?: number
+  userMuted?: boolean
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
@@ -97,6 +99,8 @@ export default function MapCanvas({
   filter,
   setFilter,
   csrfToken,
+  userId,
+  userMuted,
   communityUrl,
   onSelectCommunity,
   onNavigateToPin,
@@ -628,6 +632,8 @@ export default function MapCanvas({
           pin={pin}
           pins={pins}
           csrfToken={csrfToken}
+          userId={userId}
+          userMuted={userMuted}
           communityUrl={communityUrl}
           onSelectCommunity={onSelectCommunity}
           onNavigateToPin={onNavigateToPin}
@@ -684,7 +690,7 @@ export default function MapCanvas({
     } else {
       closeOpenPopup()
     }
-  }, [pins, mapReady, csrfToken, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
+  }, [pins, mapReady, csrfToken, userId, userMuted, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
 
   // Deep-link / repeat navigation to a specific pin.
   useEffect(() => {

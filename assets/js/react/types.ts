@@ -76,6 +76,23 @@ export type Pin = {
   linked_pins?: PinLink[]
 }
 
+export type PinCommentAuthor = {
+  id: number
+}
+
+export type PinComment = {
+  id: number
+  pin_id: number
+  parent_id: number | null
+  body: string
+  deleted: boolean
+  author: PinCommentAuthor | null
+  is_author: boolean
+  inserted_at: string
+  updated_at: string
+  replies?: PinComment[]
+}
+
 export type NewPin = {
   title: string
   pin_type: PinType

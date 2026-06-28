@@ -1,6 +1,12 @@
 import React, { useEffect, useRef } from "react"
 
-export default function LoginRequiredModal({ onClose }: { onClose: () => void }) {
+export default function LoginRequiredModal({
+  onClose,
+  message = "You must be logged in to add new locations to the map.",
+}: {
+  onClose: () => void
+  message?: string
+}) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -21,7 +27,7 @@ export default function LoginRequiredModal({ onClose }: { onClose: () => void })
     >
       <div className="pin-modal-content rounded-lg min-w-[300px] shadow-xl p-6 bg-base-100 text-base-content border border-base-300 overscroll-contain">
         <h2 id="login-required-title" className="text-lg font-semibold mb-4">Login Required</h2>
-        <p className="mb-6">You must be logged in to add new locations to the map.</p>
+        <p className="mb-6">{message}</p>
         <div className="flex gap-2 justify-end">
           <button type="button" ref={closeButtonRef} onClick={onClose} className="btn">Close</button>
         </div>

@@ -209,6 +209,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   filter={filter}
                   setFilter={setFilter}
                   csrfToken={csrfToken}
+                  userId={userId}
+                  userMuted={userMuted}
                   communityUrl={communityUrl}
                   onSelectCommunity={onSelectCommunity}
                   onNavigateToPin={handleNavigateToPin}

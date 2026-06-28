@@ -280,6 +280,84 @@ defmodule Storymap.AccountsTest do
     end
   end
 
+  describe "delete_user/1" do
+    import Storymap.PinTypesFixtures
+    import Storymap.PinsFixtures
+
+    alias Storymap.Pins
+    alias Storymap.Pins.{Comments, Pin, PinFieldBlob}
+    alias Storymap.Repo
+
+    test "deletes the user's pins and field blobs (music, drawing)" do
+      user = user_fixture()
+
+      pin_type =
+        custom_pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{
+                  "key" => "status",
+                  "label" => "Status",
+                  "type" => "select",
+                  "required" => true,
+                  "options" => [
+                    %{"value" => "working", "label" => "Working"},
+                    %{"value" => "broken", "label" => "Broken"}
+                  ]
+                },
+                %{"key" => "song", "label" => "Song", "type" => "music"},
+                %{"key" => "sketch", "label" => "Sketch", "type" => "drawing"}
+              ]
+            }
+          },
+          user
+        )
+
+      pin =
+        pin_fixture(
+          %{
+            "pin_type" => "custom:#{pin_type.slug}",
+            "custom_data" => %{"status" => "working"}
+          },
+          user
+        )
+
+      {:ok, %{pin: pin, blob: music_blob}} =
+        Pins.upsert_field_blob(pin, "song", :music, %{
+          "payload" => "tempo=120",
+          "format" => "music/v1",
+          "version" => 1
+        })
+
+      {:ok, %{blob: drawing_blob}} =
+        Pins.upsert_field_blob(pin, "sketch", :drawing, %{
+          "payload" => ~s({"version":1,"width":256,"height":256,"strokes":[]}),
+          "format" => "drawing/v1",
+          "version" => 1
+        })
+
+      assert {:ok, %User{id: user_id}} = Accounts.delete_user(user)
+      refute Accounts.get_user(user_id)
+      refute Repo.get(Pin, pin.id)
+      refute Repo.get(PinFieldBlob, music_blob.id)
+      refute Repo.get(PinFieldBlob, drawing_blob.id)
+    end
+
+    test "deletes the user's pins and comments on other pins" do
+      owner = user_fixture()
+      commenter = user_fixture()
+      pin = pin_fixture(%{}, owner)
+      comment = pin_comment_fixture(%{"body" => "On someone else's pin"}, pin, commenter)
+
+      assert {:ok, %User{id: commenter_id}} = Accounts.delete_user(commenter)
+      refute Accounts.get_user(commenter_id)
+      refute Repo.get(Storymap.Pins.PinComment, comment.id)
+      assert %{} = Repo.get(Storymap.Pins.Pin, pin.id)
+      assert Comments.list_for_pin(pin.id) == []
+    end
+  end
+
   describe "deliver_login_instructions/3" do
     setup do
       %{user: unconfirmed_user_fixture()}

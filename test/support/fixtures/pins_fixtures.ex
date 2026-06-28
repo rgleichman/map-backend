@@ -35,4 +35,30 @@ defmodule Storymap.PinsFixtures do
 
     pin
   end
+
+  @doc """
+  Generate a comment on a pin. Pass pin and user, or attrs with pin_id/user_id.
+  """
+  def pin_comment_fixture(attrs \\ %{}, pin \\ nil, user \\ nil) do
+    pin = pin || pin_fixture()
+    user = user || user_fixture()
+
+    attrs =
+      attrs
+      |> Enum.into(%{})
+      |> Map.new(fn
+        {k, v} when is_atom(k) -> {to_string(k), v}
+        {k, v} -> {k, v}
+      end)
+
+    body = Map.get(attrs, "body", "Test comment")
+
+    {:ok, comment} =
+      Storymap.Pins.Comments.create_comment(pin, user, %{
+        "body" => body,
+        "parent_id" => Map.get(attrs, "parent_id")
+      })
+
+    comment
+  end
 end

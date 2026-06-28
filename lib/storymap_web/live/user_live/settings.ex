@@ -51,7 +51,7 @@ defmodule StorymapWeb.UserLive.Settings do
           <.icon name="hero-exclamation-triangle" class="w-10 h-10 text-error mb-4" />
           <h2 class="text-xl font-bold text-error mb-2">Delete Account?</h2>
           <p class="text-center mb-6 text-base-content/80">
-            Are you sure you want to delete your account? This will delete all the pins you have created and cannot be undone.
+            Are you sure you want to delete your account? This will delete all the pins and comments you have created and cannot be undone.
           </p>
           <div class="flex gap-4 w-full justify-center">
             <.button

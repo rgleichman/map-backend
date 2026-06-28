@@ -48,6 +48,7 @@ defmodule StorymapWeb.Router do
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
     get "/pins/:id/backlinks", PinController, :backlinks
+    get "/pins/:pin_id/comments", PinCommentController, :index
     get "/pins/:id", PinController, :show
 
     get "/pins/:id/music_fields/:field_key", PinFieldBlobController, :show,
@@ -92,6 +93,9 @@ defmodule StorymapWeb.Router do
 
     # Authenticated write operations
     post "/pins", PinController, :create
+    post "/pins/:pin_id/comments", PinCommentController, :create
+    patch "/pins/:pin_id/comments/:id", PinCommentController, :update
+    delete "/pins/:pin_id/comments/:id", PinCommentController, :delete
     put "/pins/:id", PinController, :update
     patch "/pins/:id", PinController, :update
     delete "/pins/:id", PinController, :delete

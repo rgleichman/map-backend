@@ -10,6 +10,7 @@ import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/cu
 import { communityUrlFromTag } from "../../utils/pinMapUrl"
 import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 import PinReportDialog from "./PinReportDialog"
+import PinComments from "./PinComments"
 
 const popupContentClasses = "text-sm text-base-content"
 
@@ -17,13 +18,15 @@ type Props = {
   pin: Pin
   pins: Pin[]
   csrfToken?: string
+  userId?: number
+  userMuted?: boolean
   /** Current community map slug, if any (undefined = world map). */
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
 }
 
-export default function PopupContent({ pin, pins, csrfToken, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
+export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
   const { catalog } = usePinTypes()
   const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
   const customFields = schemaFields(customType)
@@ -209,6 +212,15 @@ export default function PopupContent({ pin, pins, csrfToken, communityUrl, onSel
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         onSuccess={setDoneMessage}
+      />
+
+      <PinComments
+        pinId={pin.id}
+        communityUrl={communityUrl}
+        userId={userId}
+        userMuted={userMuted}
+        csrfToken={csrfToken}
+        onNavigateToPin={onNavigateToPin}
       />
     </div>
   )

@@ -5,6 +5,7 @@ import type {
   MembershipStatus,
   NewPin,
   Pin,
+  PinComment,
   PinLink,
   SubMap,
   UpdatePin,
@@ -31,6 +32,67 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 
 export function getPinBacklinks(id: number): Promise<{ data: PinLink[] }> {
   return jsonFetch(`/api/pins/${id}/backlinks`)
+}
+
+export function getPinComments(
+  pinId: number,
+  opts?: { limit?: number; afterId?: number }
+): Promise<{ data: PinComment[] }> {
+  const params = new URLSearchParams()
+  if (opts?.limit != null) params.set("limit", String(opts.limit))
+  if (opts?.afterId != null) params.set("after_id", String(opts.afterId))
+  const qs = params.toString()
+  return jsonFetch(`/api/pins/${pinId}/comments${qs ? `?${qs}` : ""}`)
+}
+
+export function createPinComment(
+  csrf: string | undefined,
+  pinId: number,
+  body: string,
+  parentId?: number | null
+): Promise<{ data: PinComment }> {
+  const comment: { body: string; parent_id?: number } = { body }
+  if (parentId != null) comment.parent_id = parentId
+  return jsonFetch(`/api/pins/${pinId}/comments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    body: JSON.stringify({ comment }),
+    credentials: "same-origin",
+  })
+}
+
+export function updatePinComment(
+  csrf: string | undefined,
+  pinId: number,
+  commentId: number,
+  body: string
+): Promise<{ data: PinComment }> {
+  return jsonFetch(`/api/pins/${pinId}/comments/${commentId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    body: JSON.stringify({ comment: { body } }),
+    credentials: "same-origin",
+  })
+}
+
+export function deletePinComment(
+  csrf: string | undefined,
+  pinId: number,
+  commentId: number
+): Promise<{ data: PinComment }> {
+  return jsonFetch(`/api/pins/${pinId}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
 }
 
 export function getPinTypes(): Promise<{ data: CustomPinType[] }> {

@@ -80,6 +80,7 @@ defmodule Storymap.Pins.Pin do
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     has_many :outgoing_references, Storymap.Pins.PinReference, foreign_key: :source_pin_id
+    has_many :comments, Storymap.Pins.PinComment
 
     timestamps(type: :utc_datetime)
   end
