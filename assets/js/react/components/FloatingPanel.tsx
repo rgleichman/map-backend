@@ -24,7 +24,7 @@ type Props = {
   /** When true, panel is always visible on sm+ and trigger is hidden on desktop (PinTypeLegend style). */
   alwaysVisibleOnDesktop?: boolean
   /** Position of trigger and panel. Default bottom-left. */
-  position?: "bottom-left" | "top-left" | "top-right"
+  position?: "bottom-left" | "top-left" | "top-right" | "inline"
   /** Optional ref to open the panel from outside (e.g. when user clicks a tag in a popup). */
   openRef?: React.RefObject<{ open(): void } | null>
   /** Optional ref so parent can close the panel (e.g. when a pin is clicked). */
@@ -94,24 +94,29 @@ export default function FloatingPanel({
   const triggerHiddenWhenExpanded = alwaysVisibleOnDesktop
   const isTopLeft = position === "top-left"
   const isTopRight = position === "top-right"
+  const isInline = position === "inline"
   const top = topOffset ?? mapShellOverlayTop()
-  const triggerStyle = isTopLeft
-    ? { top: top, left: safeLeft }
-    : isTopRight
-      ? { top: top, right: safeRight }
-      : { bottom: safeBottom, left: safeLeft }
-  const panelStyle = isTopLeft
-    ? { top: top, left: safeLeft }
-    : isTopRight
-      ? { top: top, right: safeRight }
-      : { bottom: safeBottom, left: safeLeft }
+  const triggerStyle = isInline
+    ? undefined
+    : isTopLeft
+      ? { top: top, left: safeLeft }
+      : isTopRight
+        ? { top: top, right: safeRight }
+        : { bottom: safeBottom, left: safeLeft }
+  const panelStyle = isInline
+    ? undefined
+    : isTopLeft
+      ? { top: top, left: safeLeft }
+      : isTopRight
+        ? { top: top, right: safeRight }
+        : { bottom: safeBottom, left: safeLeft }
 
   return (
     <>
       {renderTrigger && showTrigger && renderCustomTrigger && (
         <div
           className={[
-            "absolute z-10 pointer-events-none",
+            isInline ? "relative z-10 pointer-events-none" : "absolute z-10 pointer-events-none",
             alwaysVisibleOnDesktop && "sm:hidden",
             (triggerHiddenWhenExpanded || expanded) && "hidden"
           ]
@@ -144,6 +149,7 @@ export default function FloatingPanel({
         id={panelId}
         className={[
           elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
+          isInline && "top-full right-0 mt-2",
           compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
           expanded ? "block" : "hidden",
           alwaysVisibleOnDesktop && "sm:block"

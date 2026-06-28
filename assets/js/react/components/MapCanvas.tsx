@@ -1,7 +1,8 @@
 import React, { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
-import type { Pin, PinType } from "../types"
+import type { Pin, PinLink, PinType } from "../types"
+import { getPinBacklinks } from "../api/client"
 import { BUILTIN_PIN_TYPES, DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import {
   createPinTypeMarkerElement,
@@ -27,8 +28,19 @@ import {
   pinIconLayout,
   pinLabelsVisibleFilter,
 } from "./map/mapPinFeatures"
+import {
+  buildPinLinkGeoJson,
+  buildPinLinkSyncKey,
+  PIN_LINKS_LAYER_ID,
+  PIN_LINKS_SOURCE_ID,
+  readShowConnectionsPreference,
+  resolveOtherPinIdFromLink,
+  writeShowConnectionsPreference,
+  pinLinkLinePaint,
+} from "./map/pinLinkFeatures"
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
+import PinConnectionsToggle from "./PinConnectionsToggle"
 import PinSearch from "./PinSearch"
 import { mapShellTopLeftPinSearchTop, mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
@@ -138,6 +150,9 @@ export default function MapCanvas({
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
   const [mapInitError, setMapInitError] = useState<string | null>(null)
+  const [showConnections, setShowConnections] = useState(() => readShowConnectionsPreference())
+  const [openPopupPinId, setOpenPopupPinId] = useState<number | null>(null)
+  const [focusedBacklinks, setFocusedBacklinks] = useState<PinLink[] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [placeSearchActive, setPlaceSearchActive] = useState(false)
   const [pinSearchActive, setPinSearchActive] = useState(false)
@@ -152,7 +167,16 @@ export default function MapCanvas({
     clearPointerCursor: () => void
   } | null>(null)
   const lastPinGeoJsonSyncKeyRef = useRef<string>("")
+  const lastPinLinkSyncKeyRef = useRef<string>("")
   const syncPinGeoJsonRef = useRef<() => void>(() => { })
+  const pinLinkLayerAddedRef = useRef(false)
+  const pinLinkLayerHandlersRef = useRef<{
+    handlePinLinkClick: (e: maplibregl.MapLayerMouseEvent) => void
+    setPointerCursor: () => void
+    clearPointerCursor: () => void
+  } | null>(null)
+  const onNavigateToPinRef = useRef(onNavigateToPin)
+  onNavigateToPinRef.current = onNavigateToPin
   const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
   const customImageVisualKeysRef = useRef<Map<string, string>>(new Map())
   const filterRef = useRef(filter)
@@ -166,12 +190,33 @@ export default function MapCanvas({
     () => buildPinGeoJsonSyncKey(pinsForMap, filter, catalog),
     [pinsForMap, filter, catalog],
   )
+  const pinLinkBuildParams = useMemo(
+    () => ({
+      pins: pinsForMap,
+      filter,
+      catalog,
+      focusPinId: openPopupPinId,
+      backlinks: focusedBacklinks,
+      showConnections,
+    }),
+    [pinsForMap, filter, catalog, openPopupPinId, focusedBacklinks, showConnections],
+  )
+  const pinLinkBuildResult = useMemo(
+    () => buildPinLinkGeoJson(pinLinkBuildParams),
+    [pinLinkBuildParams],
+  )
+  const pinLinkSyncKey = useMemo(
+    () => buildPinLinkSyncKey(pinLinkBuildParams),
+    [pinLinkBuildParams],
+  )
 
   function closeOpenPopup(): void {
     const popup = openPopupRef.current
     const root = popupRootRef.current
     openPopupRef.current = null
     openPopupPinIdRef.current = null
+    setOpenPopupPinId(null)
+    setFocusedBacklinks(null)
     popupRootRef.current = null
     root?.unmount()
     popup?.remove()
@@ -204,9 +249,49 @@ export default function MapCanvas({
   syncPinGeoJsonRef.current = syncPinGeoJsonToMap
 
   useEffect(() => {
+    if (!mapReady || !pinLinkLayerAddedRef.current) return
+    const map = mapRef.current
+    if (!map) return
+    if (pinLinkSyncKey === lastPinLinkSyncKeyRef.current) return
+    lastPinLinkSyncKeyRef.current = pinLinkSyncKey
+      ; (map.getSource(PIN_LINKS_SOURCE_ID) as maplibregl.GeoJSONSource).setData(
+        pinLinkBuildResult.featureCollection,
+      )
+  }, [pinLinkSyncKey, pinLinkBuildResult, mapReady])
+
+  useEffect(() => {
+    if (!showConnections || openPopupPinId == null) {
+      setFocusedBacklinks(null)
+      return
+    }
+    let cancelled = false
+    setFocusedBacklinks(null)
+    getPinBacklinks(openPopupPinId)
+      .then(({ data }) => {
+        if (!cancelled) setFocusedBacklinks(data)
+      })
+      .catch(() => {
+        if (!cancelled) setFocusedBacklinks([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showConnections, openPopupPinId])
+
+  const handleConnectionsToggle = () => {
+    setShowConnections((prev) => {
+      const next = !prev
+      writeShowConnectionsPreference(next)
+      return next
+    })
+  }
+
+  useEffect(() => {
     focusedPinIdRef.current = null
     lastPinFocusSeqRef.current = 0
     lastPinGeoJsonSyncKeyRef.current = ""
+    lastPinLinkSyncKeyRef.current = ""
+    setFocusedBacklinks(null)
     closeOpenPopup()
   }, [mapScopeKey])
 
@@ -303,9 +388,9 @@ export default function MapCanvas({
         const hasVisiblePopup = document.querySelector(".maplibregl-popup") !== null
         if (hasVisiblePopup) return
 
-        // Ignore clicks on pins / clusters (handled by layer click handlers)
+        // Ignore clicks on pins / clusters / link lines (handled by layer click handlers)
         const hit = map.queryRenderedFeatures(e.point, {
-          layers: [...PIN_INTERACTIVE_LAYER_IDS],
+          layers: [...PIN_INTERACTIVE_LAYER_IDS, PIN_LINKS_LAYER_ID],
         })
         if (hit.length > 0) return
 
@@ -332,6 +417,17 @@ export default function MapCanvas({
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
           })
+          map.addSource(PIN_LINKS_SOURCE_ID, {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          })
+          map.addLayer({
+            id: PIN_LINKS_LAYER_ID,
+            type: "line",
+            source: PIN_LINKS_SOURCE_ID,
+            paint: pinLinkLinePaint,
+          })
+          pinLinkLayerAddedRef.current = true
           map.addLayer({
             id: "pin-icons-dimmed-layer",
             type: "symbol",
@@ -426,6 +522,23 @@ export default function MapCanvas({
             void expandClusterAtPoint(map, e.point, source)
           }
 
+          const handlePinLinkClick = (e: maplibregl.MapLayerMouseEvent) => {
+            const feature = e.features?.[0]
+            if (!feature?.properties) return
+            const sourcePinId = Number(feature.properties.source_pin_id)
+            const targetPinId = Number(feature.properties.target_pin_id)
+            const otherPinId = resolveOtherPinIdFromLink(
+              sourcePinId,
+              targetPinId,
+              openPopupPinIdRef.current,
+            )
+            const pin = pinsByIdRef.current.get(otherPinId)
+            if (!pin) return
+            onNavigateToPinRef.current?.(otherPinId)
+            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
+            openPinPopup(map, pin)
+          }
+
           const setPointerCursor = () => {
             map.getCanvas().style.cursor = "pointer"
           }
@@ -436,6 +549,12 @@ export default function MapCanvas({
           pinLayerHandlersRef.current = {
             handlePinIconClick,
             handleClusterClick,
+            setPointerCursor,
+            clearPointerCursor,
+          }
+
+          pinLinkLayerHandlersRef.current = {
+            handlePinLinkClick,
             setPointerCursor,
             clearPointerCursor,
           }
@@ -452,6 +571,9 @@ export default function MapCanvas({
           map.on("mouseleave", "pin-clusters-layer", clearPointerCursor)
           map.on("mouseenter", "pin-cluster-count-layer", setPointerCursor)
           map.on("mouseleave", "pin-cluster-count-layer", clearPointerCursor)
+          map.on("click", PIN_LINKS_LAYER_ID, handlePinLinkClick)
+          map.on("mouseenter", PIN_LINKS_LAYER_ID, setPointerCursor)
+          map.on("mouseleave", PIN_LINKS_LAYER_ID, clearPointerCursor)
 
           pinLayersAddedRef.current = true
           syncPinGeoJsonRef.current()
@@ -475,7 +597,9 @@ export default function MapCanvas({
     return () => {
       isMounted = false
       pinLayersAddedRef.current = false
+      pinLinkLayerAddedRef.current = false
       lastPinGeoJsonSyncKeyRef.current = ""
+      lastPinLinkSyncKeyRef.current = ""
       initialGeolocateTriggeredRef.current = false
       const map = mapRef.current
       const handler = mapMouseDownHandlerRef.current
@@ -498,6 +622,13 @@ export default function MapCanvas({
         map.off("mouseenter", "pin-cluster-count-layer", pinHandlers.setPointerCursor)
         map.off("mouseleave", "pin-cluster-count-layer", pinHandlers.clearPointerCursor)
         pinLayerHandlersRef.current = null
+      }
+      const pinLinkHandlers = pinLinkLayerHandlersRef.current
+      if (map && pinLinkHandlers) {
+        map.off("click", PIN_LINKS_LAYER_ID, pinLinkHandlers.handlePinLinkClick)
+        map.off("mouseenter", PIN_LINKS_LAYER_ID, pinLinkHandlers.setPointerCursor)
+        map.off("mouseleave", PIN_LINKS_LAYER_ID, pinLinkHandlers.clearPointerCursor)
+        pinLinkLayerHandlersRef.current = null
       }
       closeOpenPopup()
       pendingMarkerRef.current?.remove()
@@ -661,11 +792,14 @@ export default function MapCanvas({
       .addTo(map)
     openPopupRef.current = popup
     openPopupPinIdRef.current = pin.id
+    setOpenPopupPinId(pin.id)
     popupRootRef.current = root
     popup.on("close", () => {
       if (openPopupRef.current === popup) {
         openPopupRef.current = null
         openPopupPinIdRef.current = null
+        setOpenPopupPinId(null)
+        setFocusedBacklinks(null)
         popupRootRef.current = null
         root.unmount()
         onPopupCloseRef.current?.()
@@ -774,14 +908,27 @@ export default function MapCanvas({
         </div>
       )}
       {mapReady && !drawerOpen && (
-        <div className={overlaySearchActive ? "max-sm:hidden" : "contents"}>
+        <div
+          className={[
+            "absolute right-2 z-10 flex flex-col items-end gap-2",
+            overlaySearchActive && "max-sm:hidden",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={{ top: mapShellTopRightOverlayTop() }}
+        >
+          <PinConnectionsToggle
+            pressed={showConnections}
+            onToggle={handleConnectionsToggle}
+            globalCapped={showConnections && pinLinkBuildResult.globalCapped}
+          />
           <MapFilters
             pins={pins}
             filter={filter}
             setFilter={setFilter}
             openRef={filterPanelOpenRef}
-            position="top-right"
-            panelTopOffset={mapShellTopRightOverlayTop()}
+            position="inline"
+            panelTopOffset="0"
           />
         </div>
       )}

@@ -110,7 +110,7 @@ type Props = {
   openRef?: React.RefObject<{ open(): void } | null>
   /** Top offset for trigger and panel (map CSS space). */
   panelTopOffset?: string
-  position?: "top-left" | "top-right"
+  position?: "top-left" | "top-right" | "inline"
 }
 
 export default function MapFilters({
@@ -152,6 +152,7 @@ export default function MapFilters({
             "flex flex-col items-end gap-2 min-w-0 w-full sm:max-w-[min(100vw-2rem,22rem)]",
             filterChips.length === 0 && "justify-end",
             position === "top-right" && "sm:ml-auto",
+            position === "inline" && "sm:ml-auto w-full",
             "pointer-events-none"
           ]
             .filter(Boolean)
