@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getMapChannel } from "../../map_socket"
 import * as api from "../api/client"
 import type { PinComment } from "../types"
+import { mergeComment } from "../utils/pinComment"
 
 type CommentAddedPayload = { pin_id: number; comment: PinComment }
 type CommentUpdatedPayload = { pin_id: number; comment: PinComment }
@@ -22,7 +23,7 @@ function upsertTopLevel(comments: PinComment[], comment: PinComment): PinComment
   const idx = comments.findIndex((c) => c.id === comment.id)
   if (idx >= 0) {
     const next = [...comments]
-    next[idx] = { ...comments[idx], ...comment, replies: comments[idx].replies }
+    next[idx] = { ...mergeComment(comments[idx], comment), replies: comments[idx].replies }
     return next
   }
   return [...comments, { ...comment, replies: comment.replies ?? [] }].sort(
@@ -37,7 +38,7 @@ function addReply(comments: PinComment[], reply: PinComment): PinComment[] {
     if (replies.some((r) => r.id === reply.id)) {
       return {
         ...c,
-        replies: replies.map((r) => (r.id === reply.id ? { ...r, ...reply } : r)),
+        replies: replies.map((r) => (r.id === reply.id ? mergeComment(r, reply) : r)),
       }
     }
     return { ...c, replies: [...replies, reply].sort((a, b) => a.id - b.id) }

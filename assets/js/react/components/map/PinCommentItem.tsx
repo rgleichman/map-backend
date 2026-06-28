@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import type { PinComment } from "../../types"
+import { isCommentAuthor } from "../../utils/pinComment"
 import LinkifiedText from "../LinkifiedText"
 
 type Props = {
@@ -15,8 +16,8 @@ type Props = {
   onLoginRequired: () => void
 }
 
-function authorLabel(comment: PinComment): string {
-  return comment.is_author ? "You" : "Member"
+function authorLabel(comment: PinComment, userId?: number): string {
+  return isCommentAuthor(comment, userId) ? "You" : "Member"
 }
 
 function formatTimestamp(iso: string): string {
@@ -48,10 +49,11 @@ export default function PinCommentItem({
   const [submitting, setSubmitting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
+  const isAuthor = isCommentAuthor(comment, userId)
   const canInteract = Boolean(userId) && !userMuted && !comment.deleted
   const canReply = canInteract && depth === 0
-  const canEdit = canInteract && comment.is_author
-  const canDelete = canInteract && comment.is_author
+  const canEdit = canInteract && isAuthor
+  const canDelete = canInteract && isAuthor
 
   const runAction = async (fn: () => Promise<void>) => {
     setActionError(null)
@@ -91,7 +93,7 @@ export default function PinCommentItem({
   return (
     <div className={depth > 0 ? "ml-4 mt-2 border-l-2 border-base-300 pl-3" : "mt-3"}>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-sm font-semibold text-base-content">{authorLabel(comment)}</span>
+        <span className="text-sm font-semibold text-base-content">{authorLabel(comment, userId)}</span>
         <time className="text-xs text-base-content/60" dateTime={comment.inserted_at}>
           {formatTimestamp(comment.inserted_at)}
         </time>
