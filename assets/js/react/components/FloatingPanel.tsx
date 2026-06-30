@@ -39,6 +39,8 @@ type Props = {
   compact?: boolean
   /** When true, panel starts expanded (e.g. on desktop). */
   defaultExpanded?: boolean
+  /** Cap panel height (e.g. to avoid overlapping map overlays). Enables flex column layout. */
+  maxHeight?: string
 }
 
 export default function FloatingPanel({
@@ -58,7 +60,8 @@ export default function FloatingPanel({
   topOffset,
   elevated = false,
   compact = false,
-  defaultExpanded = false
+  defaultExpanded = false,
+  maxHeight,
 }: Props) {
   const panelId = useId()
   const [expanded, setExpanded] = useState(defaultExpanded)
@@ -104,12 +107,15 @@ export default function FloatingPanel({
         ? { top: top, right: safeRight }
         : { bottom: safeBottom, left: safeLeft }
   const panelStyle = isInline
-    ? undefined
-    : isTopLeft
-      ? { top: top, left: safeLeft }
-      : isTopRight
-        ? { top: top, right: safeRight }
-        : { bottom: safeBottom, left: safeLeft }
+    ? maxHeight ? { maxHeight } : undefined
+    : {
+        ...(isTopLeft
+          ? { top: top, left: safeLeft }
+          : isTopRight
+            ? { top: top, right: safeRight }
+            : { bottom: safeBottom, left: safeLeft }),
+        ...(maxHeight ? { maxHeight } : {}),
+      }
 
   return (
     <>
@@ -151,6 +157,7 @@ export default function FloatingPanel({
           elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
           isInline && "top-full right-0 mt-2",
           compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
+          maxHeight && "flex flex-col overflow-hidden",
           expanded ? "block" : "hidden",
           alwaysVisibleOnDesktop && "sm:block"
         ].filter(Boolean).join(" ")}
@@ -159,7 +166,7 @@ export default function FloatingPanel({
         {renderPanelHeader ? (
           renderPanelHeader(close)
         ) : (
-          <div className={["flex flex-wrap items-center justify-between gap-2", compact ? "mb-2" : "mb-3"].filter(Boolean).join(" ")}>
+          <div className={["flex flex-wrap items-center justify-between gap-2", compact ? "mb-2" : "mb-3", maxHeight && "shrink-0"].filter(Boolean).join(" ")}>
             <h3 className={["font-semibold text-base-content shrink-0", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
             <div className="flex items-center gap-1 shrink-0 ml-auto">
               {headerActions}

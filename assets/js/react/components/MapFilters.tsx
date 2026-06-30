@@ -4,7 +4,7 @@ import PinTypeIcon from "./PinTypeIcon"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
 import { listFilterPinTypes } from "../utils/customPinTypes"
-import PinTypeListRow from "./PinTypeListRow"
+import PinTypePickerList from "./PinTypePickerList"
 import {
   CLEARED_FILTER,
   clearFilterDimension,
@@ -262,17 +262,13 @@ export default function MapFilters({
 
         <section>
           <p className={sectionTitle}>Pin type</p>
-          <div className="flex flex-col gap-1.5">
-            {filterPinTypes.map((pinType) => (
-              <PinTypeListRow
-                key={pinType}
-                pinType={pinType}
-                catalog={catalog}
-                selected={filter.pinType === pinType}
-                onClick={() => togglePinType(pinType)}
-              />
-            ))}
-          </div>
+          <PinTypePickerList
+            pinTypes={filterPinTypes}
+            catalog={catalog}
+            selectedPinType={filter.pinType}
+            onTogglePinType={togglePinType}
+            compact
+          />
         </section>
       </div>
     </FloatingPanel>

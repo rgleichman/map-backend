@@ -54,6 +54,20 @@ export function mapShellTopLeftPinSearchTop(): string {
   return `calc(${MAP_SHELL_OVERLAY_TOP} + ${MAPLIBRE_PLACE_SEARCH_RESERVE})`
 }
 
+/** Pin search input height (matches PinSearch min-h-10). */
+export const PIN_SEARCH_INPUT_HEIGHT = "2.5rem"
+
+/** Gap below pin search before the pin type legend may begin. */
+export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
+
+/**
+ * Max height for the bottom-left pin type legend so it stays below the
+ * top-left place + pin search stack.
+ */
+export function mapShellPinTypeLegendMaxHeight(): string {
+  return `calc(100% - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
+}
+
 /**
  * Form vs overlay: inputs that affect pin save (title, tags, community options, etc.)
  * belong in PinModal / PinComposer — not in floating MapShell overlays. Overlays are for

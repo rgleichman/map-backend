@@ -2,7 +2,8 @@ import React from "react"
 import type { PinType } from "../types"
 import { useIsDesktop } from "../hooks/useMediaQuery"
 import { usePinTypes } from "../context/PinTypesContext"
-import PinTypeListRow from "./PinTypeListRow"
+import { mapShellPinTypeLegendMaxHeight } from "../utils/siteLayout"
+import PinTypePickerList from "./PinTypePickerList"
 import FloatingPanel from "./FloatingPanel"
 
 type Props = {
@@ -26,22 +27,17 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
       closeRef={closeRef}
       compact
       defaultExpanded={isDesktop}
+      maxHeight={mapShellPinTypeLegendMaxHeight()}
     >
-      <div className="space-y-1">
-        {selectableTypes.map((pinType) => (
-          <PinTypeListRow
-            key={pinType}
-            pinType={pinType}
-            catalog={catalog}
-            selected={selectedPinType === pinType}
-            onClick={() => onTogglePinType?.(pinType)}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-base-content/80 mt-3 italic">
-        Different colors show different pin types.
-      </p>
-      <a href="/pin-types" className="btn btn-sm btn-outline w-full mt-2">
+      <PinTypePickerList
+        className="flex-1 min-h-0 overflow-y-auto"
+        pinTypes={selectableTypes}
+        catalog={catalog}
+        selectedPinType={selectedPinType}
+        onTogglePinType={(pinType) => onTogglePinType?.(pinType)}
+        compact
+      />
+      <a href="/pin-types" className="btn btn-sm btn-outline w-full mt-1.5 shrink-0">
         Add or Edit pin types
       </a>
     </FloatingPanel>

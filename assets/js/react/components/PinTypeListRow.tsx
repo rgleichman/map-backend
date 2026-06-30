@@ -8,9 +8,16 @@ type Props = {
   catalog: CustomPinType[]
   selected?: boolean
   onClick?: () => void
+  compact?: boolean
 }
 
-export default function PinTypeListRow({ pinType, catalog, selected = false, onClick }: Props) {
+export default function PinTypeListRow({
+  pinType,
+  catalog,
+  selected = false,
+  onClick,
+  compact = false,
+}: Props) {
   const config = resolvePinTypeConfig(pinType, catalog)
 
   return (
@@ -19,14 +26,20 @@ export default function PinTypeListRow({ pinType, catalog, selected = false, onC
       aria-pressed={selected}
       onClick={onClick}
       className={[
-        "flex w-full items-center gap-2.5 text-left text-sm rounded-xl transition min-h-[44px] py-2 px-2.5",
+        "flex w-full items-center text-left transition",
+        compact
+          ? "gap-2 text-xs rounded-lg min-h-0 py-1 px-2"
+          : "gap-2.5 text-sm rounded-xl min-h-[44px] py-2 px-2.5",
         selected
           ? "bg-primary text-primary-content"
           : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80",
       ].join(" ")}
     >
       <span
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+        className={[
+          "rounded-full flex items-center justify-center shrink-0",
+          compact ? "w-6 h-6" : "w-8 h-8",
+        ].join(" ")}
         aria-hidden
         style={{
           backgroundColor: config.color,
@@ -34,7 +47,7 @@ export default function PinTypeListRow({ pinType, catalog, selected = false, onC
           color: config.textColor,
         }}
       >
-        <PinTypeIcon pinType={pinType} size={20} catalog={catalog} />
+        <PinTypeIcon pinType={pinType} size={compact ? 16 : 20} catalog={catalog} />
       </span>
       <span className="font-medium">{config.label}</span>
     </button>
