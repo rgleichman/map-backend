@@ -116,7 +116,6 @@ defmodule StorymapWeb.Layouts do
       |> assign(:admin_active?, String.starts_with?(path, "/admin/users"))
       |> assign(:admin_activity_active?, String.starts_with?(path, "/admin/activity"))
       |> assign(:admin_reports_active?, String.starts_with?(path, "/admin/reports"))
-      |> assign(:register_active?, path == "/users/register")
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
       |> assign(:about_active?, path == "/about")
       |> assign(:vision_active?, path == "/vision")
@@ -379,33 +378,11 @@ defmodule StorymapWeb.Layouts do
       <li>
         <%= if @variant == "desktop" do %>
           <.link
-            href={~p"/users/register"}
-            class={nav_btn_classes(@register_active?)}
-            aria-current={if(@register_active?, do: "page")}
-          >
-            Register
-          </.link>
-        <% else %>
-          <.link
-            href={~p"/users/register"}
-            class={[
-              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
-              @register_active? && "bg-base-300 font-medium"
-            ]}
-            aria-current={if(@register_active?, do: "page")}
-          >
-            Register
-          </.link>
-        <% end %>
-      </li>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link
             href={~p"/users/log-in"}
             class={nav_btn_classes(@login_active?)}
             aria-current={if(@login_active?, do: "page")}
           >
-            Log in
+            Sign in
           </.link>
         <% else %>
           <.link
@@ -416,7 +393,7 @@ defmodule StorymapWeb.Layouts do
             ]}
             aria-current={if(@login_active?, do: "page")}
           >
-            Log in
+            Sign in
           </.link>
         <% end %>
       </li>

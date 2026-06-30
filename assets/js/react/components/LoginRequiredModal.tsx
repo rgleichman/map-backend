@@ -7,10 +7,10 @@ export default function LoginRequiredModal({
   onClose: () => void
   message?: string
 }) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const signInRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
-    closeButtonRef.current?.focus()
+    signInRef.current?.focus()
   }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -29,7 +29,12 @@ export default function LoginRequiredModal({
         <h2 id="login-required-title" className="text-lg font-semibold mb-4">Login Required</h2>
         <p className="mb-6">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button type="button" ref={closeButtonRef} onClick={onClose} className="btn">Close</button>
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            Close
+          </button>
+          <a ref={signInRef} href="/users/log-in" className="btn btn-primary">
+            Sign in
+          </a>
         </div>
       </div>
     </div>

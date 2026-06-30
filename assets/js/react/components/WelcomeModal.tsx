@@ -85,8 +85,7 @@ export default function WelcomeModal({ onClose }: Props) {
             <ul className="list-disc pl-5 space-y-1">
               <li>Click and drag to interact with the map.</li>
               <li>
-                Create an account via <span className="font-medium">Register</span> in the top right to be
-                able to create pins.
+                Use <span className="font-medium">Sign in</span> in the top right to create an account so you can create pins.
               </li>
               <li>Use the Address Bar in the map top-left to search for an address or location.</li>
               <li>
@@ -110,10 +109,8 @@ export default function WelcomeModal({ onClose }: Props) {
                 <span className="font-medium">Party Mode:</span> Try it yourself!
               </li>
               <li>
-                <span className="font-medium">Register:</span> To create an account.
-              </li>
-              <li>
-                <span className="font-medium">Log In:</span> To get back into your account.
+                <span className="font-medium">Sign in:</span> Create an account or return to yours (same
+                form).
               </li>
               <li>
                 <span className="font-medium">Light/Dark Mode:</span> Toggle the map between match system

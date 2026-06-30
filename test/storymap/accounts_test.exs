@@ -358,6 +358,47 @@ defmodule Storymap.AccountsTest do
     end
   end
 
+  describe "deliver_login_or_register_instructions/2" do
+    test "sends login token for existing user" do
+      user = unconfirmed_user_fixture()
+      email = registered_email(user)
+
+      token =
+        extract_user_token(fn url ->
+          Accounts.deliver_login_or_register_instructions(email, url)
+        end)
+
+      {:ok, token} = Base.url_decode64(token, padding: false)
+      assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
+      assert user_token.user_id == user.id
+      assert user_token.context == "login"
+    end
+
+    test "registers new user and sends login token" do
+      email = unique_user_email()
+
+      token =
+        extract_user_token(fn url ->
+          Accounts.deliver_login_or_register_instructions(email, url)
+        end)
+
+      user = Accounts.get_user_by_email(email)
+      assert user
+
+      {:ok, token} = Base.url_decode64(token, padding: false)
+      assert user_token = Repo.get_by(UserToken, token: :crypto.hash(:sha256, token))
+      assert user_token.user_id == user.id
+      assert user_token.context == "login"
+    end
+
+    test "returns changeset error for invalid email" do
+      assert {:error, changeset} =
+               Accounts.deliver_login_or_register_instructions("not an email", fn _ -> "" end)
+
+      assert "must have the @ sign and no spaces" in errors_on(changeset).email
+    end
+  end
+
   describe "deliver_login_instructions/3" do
     setup do
       %{user: unconfirmed_user_fixture()}

@@ -263,6 +263,57 @@ defmodule Storymap.Accounts do
   end
 
   @doc """
+  Delivers magic link login instructions, registering the user first if the email is new.
+  """
+  @spec deliver_login_or_register_instructions(String.t(), (String.t() -> String.t())) ::
+          {:ok, term()} | {:error, Ecto.Changeset.t()}
+  def deliver_login_or_register_instructions(email, magic_link_url_fun)
+      when is_binary(email) and is_function(magic_link_url_fun, 1) do
+    case get_user_by_email(email) do
+      %User{} = user ->
+        deliver_login_instructions(user, email, magic_link_url_fun)
+
+      nil ->
+        case register_user(%{"email" => email}) do
+          {:ok, user} ->
+            deliver_login_instructions(user, email, magic_link_url_fun)
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            if email_taken?(changeset) do
+              case get_user_by_email(email) do
+                %User{} = user -> deliver_login_instructions(user, email, magic_link_url_fun)
+                nil -> {:error, changeset}
+              end
+            else
+              {:error, changeset}
+            end
+        end
+    end
+  end
+
+  @doc """
+  Delivers magic link login instructions for sudo reauthentication.
+
+  Never registers a new user. Unknown emails return `{:ok, :skipped}` without
+  sending mail, matching the pre-merge login flow.
+  """
+  @spec deliver_reauth_login_instructions(String.t(), (String.t() -> String.t())) ::
+          {:ok, term()} | {:error, Ecto.Changeset.t()}
+  def deliver_reauth_login_instructions(email, magic_link_url_fun)
+      when is_binary(email) and is_function(magic_link_url_fun, 1) do
+    case validate_login_email(email) do
+      {:ok, _} ->
+        case get_user_by_email(email) do
+          %User{} = user -> deliver_login_instructions(user, email, magic_link_url_fun)
+          nil -> {:ok, :skipped}
+        end
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  @doc """
   Delivers the magic link login instructions to the given user.
   """
   @spec deliver_login_instructions(User.t(), String.t(), (String.t() -> String.t())) ::
@@ -329,6 +380,22 @@ defmodule Storymap.Accounts do
       |> Repo.delete_all()
 
       Repo.delete(user)
+    end)
+  end
+
+  defp validate_login_email(email) do
+    %User{}
+    |> change_user_email(%{"email" => email}, validate_unique: false)
+    |> case do
+      %{valid?: true} -> {:ok, email}
+      changeset -> {:error, changeset}
+    end
+  end
+
+  defp email_taken?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {:email, {"has already been taken", _}} -> true
+      _ -> false
     end)
   end
 end

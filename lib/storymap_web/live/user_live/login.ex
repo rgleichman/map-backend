@@ -3,6 +3,8 @@ defmodule StorymapWeb.UserLive.Login do
 
   alias Storymap.Accounts
 
+  @success_flash "Email sent. Please check your inbox for a link to log in or create an account."
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -10,17 +12,12 @@ defmodule StorymapWeb.UserLive.Login do
       <div class="mx-auto max-w-sm space-y-4">
         <div class="text-center">
           <.header>
-            <p>Log in</p>
-            <:subtitle>
-              <%= if @current_scope do %>
-                You need to reauthenticate to perform sensitive actions on your account.
-              <% else %>
-                Don't have an account? <.link
-                  navigate={~p"/users/register"}
-                  class="font-semibold text-brand hover:underline"
-                  phx-no-format
-                >Sign up</.link> for an account now.
-              <% end %>
+            <p>Sign in or create an account</p>
+            <:subtitle :if={@current_scope}>
+              You need to reauthenticate to perform sensitive actions on your account.
+            </:subtitle>
+            <:subtitle :if={is_nil(@current_scope)}>
+              Enter your email and we'll send you a link to create an account if you are new, or log in if you are returning. Happy Planting!
             </:subtitle>
           </.header>
         </div>
@@ -51,12 +48,16 @@ defmodule StorymapWeb.UserLive.Login do
             required
             phx-mounted={JS.focus()}
           />
+          <p class="text-sm text-warning mb-3 flex gap-2 items-start">
+            <.icon name="hero-exclamation-triangle" class="size-5 shrink-0 mt-0.5" />
+            <span>
+              Please remember your email. We store addresses securely and cannot recover your account if you forget it.
+            </span>
+          </p>
           <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
+            Continue with email <span aria-hidden="true">→</span>
           </.button>
         </.form>
-
-        <div class="divider">or</div>
       </div>
     </Layouts.app>
     """
@@ -73,22 +74,35 @@ defmodule StorymapWeb.UserLive.Login do
 
   @impl true
   def handle_event("submit_magic", %{"user" => %{"email" => email}}, socket) do
-    if user = Accounts.get_user_by_email(email) do
-      Accounts.deliver_login_instructions(
-        user,
-        email,
-        &url(~p"/users/log-in/#{&1}")
-      )
+    url_fun = &url(~p"/users/log-in/#{&1}")
+
+    result =
+      if reauthenticating?(socket) do
+        Accounts.deliver_reauth_login_instructions(email, url_fun)
+      else
+        Accounts.deliver_login_or_register_instructions(email, url_fun)
+      end
+
+    case result do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, @success_flash)
+         |> put_flash(:email, email)
+         |> push_navigate(to: ~p"/users/log-in")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign_form(socket, Map.put(changeset, :action, :insert))}
     end
-
-    info =
-      "If your email is in our system, you will receive instructions for logging in shortly."
-
-    {:noreply,
-     socket
-     |> put_flash(:info, info)
-     |> push_navigate(to: ~p"/users/log-in")}
   end
+
+  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
+    form = to_form(changeset, as: "user")
+    assign(socket, form: form)
+  end
+
+  defp reauthenticating?(%{assigns: %{current_scope: %{user: %Accounts.User{}}}}), do: true
+  defp reauthenticating?(_), do: false
 
   defp local_mail_adapter? do
     Application.get_env(:storymap, Storymap.Mailer)[:adapter] == Swoosh.Adapters.Local

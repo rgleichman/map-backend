@@ -29,7 +29,7 @@ defmodule StorymapWeb.UserLive.ConfirmationTest do
 
       {:ok, _lv, html} = live(conn, ~p"/users/log-in/#{token}")
       refute html =~ "Confirm my account"
-      assert html =~ "Log in"
+      assert html =~ "Keep me logged in on this device"
     end
 
     test "confirms the given token once", %{conn: conn, unconfirmed_user: user} do

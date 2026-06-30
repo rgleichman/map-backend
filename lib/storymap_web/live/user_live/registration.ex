@@ -1,41 +1,12 @@
 defmodule StorymapWeb.UserLive.Registration do
   use StorymapWeb, :live_view
 
-  alias Storymap.Accounts
-  alias Storymap.Accounts.User
-
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="mx-auto max-w-sm">
-        <div class="text-center">
-          <.header>
-            Register for an account
-            <:subtitle>
-              Already registered?
-              <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
-                Log in
-              </.link>
-              to your account now.
-            </:subtitle>
-          </.header>
-        </div>
-
-        <.form for={@form} id="registration_form" phx-submit="save" phx-change="validate">
-          <.input
-            field={@form[:email]}
-            type="email"
-            label="Email"
-            autocomplete="username"
-            required
-            phx-mounted={JS.focus()}
-          />
-
-          <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
-            Create an account
-          </.button>
-        </.form>
+        <p class="text-center text-base-content/70">Redirecting…</p>
       </div>
     </Layouts.app>
     """
@@ -48,45 +19,6 @@ defmodule StorymapWeb.UserLive.Registration do
   end
 
   def mount(_params, _session, socket) do
-    changeset = Accounts.change_user_email(%User{}, %{}, validate_unique: false)
-
-    {:ok, assign_form(socket, changeset), temporary_assigns: [form: nil]}
-  end
-
-  @impl true
-  def handle_event("save", %{"user" => user_params}, socket) do
-    case Accounts.register_user(user_params) do
-      {:ok, user} ->
-        email = user_params["email"]
-
-        {:ok, _} =
-          Accounts.deliver_login_instructions(
-            user,
-            email,
-            &url(~p"/users/log-in/#{&1}")
-          )
-
-        {:noreply,
-         socket
-         |> put_flash(
-           :info,
-           "Check your email to confirm your account."
-         )
-         |> put_flash(:email, email)
-         |> push_navigate(to: ~p"/users/log-in")}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
-    end
-  end
-
-  def handle_event("validate", %{"user" => user_params}, socket) do
-    changeset = Accounts.change_user_email(%User{}, user_params, validate_unique: false)
-    {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
-  end
-
-  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    form = to_form(changeset, as: "user")
-    assign(socket, form: form)
+    {:ok, redirect(socket, to: ~p"/users/log-in")}
   end
 end
