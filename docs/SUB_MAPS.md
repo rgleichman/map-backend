@@ -176,6 +176,10 @@ Pins created in a community automatically receive a reserved tag `community:<com
 
 ^Join tracked for member count; not required to view in `open` mode.
 
+**Clarification:** Contribution mode does **not** affect who can view a sub-map or its approved pins.
+All sub-maps are publicly viewable (subject only to `visibility: public | unlisted`). `members_only`
+means **only active members may create pins**, not that viewing requires membership.
+
 ### World promotion policy
 
 | `promote_to_world_default` | On create | User override |
