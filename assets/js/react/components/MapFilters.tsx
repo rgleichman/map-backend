@@ -14,6 +14,7 @@ import {
   type FilterState
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
+import HeartIcon from "./HeartIcon"
 import { mapShellOverlayTop } from "../utils/siteLayout"
 
 function deriveTags(pins: Pin[]): string[] {
@@ -85,6 +86,14 @@ function ActiveFilterChips({
                 <PinTypeIcon pinType={chipPinType} size={14} catalog={catalog} />
               </span>
             )}
+            {dimension === "hearted" && (
+              <span
+                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-error/15 text-error"
+                aria-hidden
+              >
+                <HeartIcon filled size={14} />
+              </span>
+            )}
             <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
             <button
               type="button"
@@ -111,6 +120,10 @@ type Props = {
   /** Top offset for trigger and panel (map CSS space). */
   panelTopOffset?: string
   position?: "top-left" | "top-right" | "inline"
+  /** When true, show the saved-pins filter section (logged-in users). */
+  showSavedFilter?: boolean
+  pinHeartsLoading?: boolean
+  savedFilterEmptyOnMap?: boolean
 }
 
 export default function MapFilters({
@@ -119,13 +132,20 @@ export default function MapFilters({
   setFilter,
   openRef,
   panelTopOffset = mapShellOverlayTop(),
-  position = "top-left"
+  position = "top-left",
+  showSavedFilter = false,
+  pinHeartsLoading = false,
+  savedFilterEmptyOnMap = false,
 }: Props) {
   const { catalog } = usePinTypes()
   const tags = deriveTags(pins)
   const filterPinTypes = listFilterPinTypes(pins)
   const hasActiveFilter =
-    filter.tag !== null || filter.time !== null || filter.pinType !== null || filter.query.trim() !== ""
+    filter.tag !== null ||
+    filter.time !== null ||
+    filter.pinType !== null ||
+    filter.query.trim() !== "" ||
+    filter.heartedOnly
   const filterChips = listActiveFilterChips(filter, catalog)
   const filtersSummary =
     filterChips.length > 0 ? filterChips.map((c) => c.label).join("; ") : "Map filters"
@@ -146,6 +166,7 @@ export default function MapFilters({
       topOffset={panelTopOffset}
       elevated
       compact={false}
+      panelClassName="sm:min-w-xs"
       renderCustomTrigger={({ open, expanded, panelId }) => (
         <div
           className={[
@@ -217,6 +238,38 @@ export default function MapFilters({
     >
       <div className="space-y-5 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5 -mr-0.5">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/50">Add or change</p>
+
+        {showSavedFilter && (
+          <section>
+            <p className={sectionTitle}>Saved</p>
+            <button
+              type="button"
+              aria-pressed={filter.heartedOnly}
+              disabled={pinHeartsLoading}
+              onClick={() => setFilter((f) => ({ ...f, heartedOnly: !f.heartedOnly }))}
+              className={[
+                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
+                filter.heartedOnly
+                  ? "bg-primary text-primary-content"
+                  : "bg-base-200 text-base-content hover:bg-base-300",
+                pinHeartsLoading && "opacity-60 cursor-not-allowed",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <HeartIcon filled={filter.heartedOnly} size={14} />
+              Saved pins only
+            </button>
+            {savedFilterEmptyOnMap && (
+              <p className="text-sm text-base-content/60 mt-2">
+                No saved pins on this map —{" "}
+                <a href="/saved" className="link link-primary">
+                  view all
+                </a>
+              </p>
+            )}
+          </section>
+        )}
 
         <section>
           <p className={sectionTitle}>Time</p>

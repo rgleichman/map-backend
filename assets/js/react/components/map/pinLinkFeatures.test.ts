@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { CustomPinType, Pin } from "../../types"
-import { CLEARED_FILTER, DEFAULT_FILTER } from "./filters"
+import { CLEARED_FILTER, createPinFilterMatcher, buildMapFilterSyncKey } from "./filters"
 import {
   buildPinLinkGeoJson,
   undirectedEdgeKey,
@@ -28,11 +28,11 @@ describe("undirectedEdgeKey", () => {
 
 describe("buildPinLinkGeoJson", () => {
   const baseParams = {
-    filter: CLEARED_FILTER,
     catalog: [] as CustomPinType[],
     focusPinId: null as number | null,
     backlinks: null as null,
     showConnections: true,
+    filterSyncKey: buildMapFilterSyncKey(CLEARED_FILTER),
   }
 
   it("builds a line between two pins with linked_pins", () => {
@@ -44,7 +44,11 @@ describe("buildPinLinkGeoJson", () => {
     })
     const b = minimalPin({ id: 2, latitude: 51.51, longitude: -0.11 })
 
-    const { featureCollection } = buildPinLinkGeoJson({ ...baseParams, pins: [a, b] })
+    const { featureCollection } = buildPinLinkGeoJson({
+      ...baseParams,
+      pins: [a, b],
+      pinMatches: createPinFilterMatcher([a, b], CLEARED_FILTER, []),
+    })
 
     expect(featureCollection.features).toHaveLength(1)
     const feature = featureCollection.features[0]
@@ -64,11 +68,15 @@ describe("buildPinLinkGeoJson", () => {
       linked_pins: [{ pin_id: 99, source_field: null }],
     })
 
-    const { featureCollection } = buildPinLinkGeoJson({ ...baseParams, pins: [a] })
+    const { featureCollection } = buildPinLinkGeoJson({
+      ...baseParams,
+      pins: [a],
+      pinMatches: createPinFilterMatcher([a], CLEARED_FILTER, []),
+    })
     expect(featureCollection.features).toHaveLength(0)
   })
 
-  it("respects pinMatchesFilter on both endpoints in global mode", () => {
+  it("respects pinMatches on both endpoints in global mode", () => {
     const oneTime = minimalPin({
       id: 1,
       pin_type: "one_time",
@@ -80,7 +88,8 @@ describe("buildPinLinkGeoJson", () => {
     const { featureCollection } = buildPinLinkGeoJson({
       ...baseParams,
       pins: [oneTime, scheduled],
-      filter,
+      pinMatches: createPinFilterMatcher([oneTime, scheduled], filter, []),
+      filterSyncKey: buildMapFilterSyncKey(filter),
     })
 
     expect(featureCollection.features).toHaveLength(0)
@@ -104,9 +113,9 @@ describe("buildPinLinkGeoJson", () => {
     const { featureCollection } = buildPinLinkGeoJson({
       ...baseParams,
       pins: [focus, source],
-      filter,
       focusPinId: 1,
       backlinks: [{ pin_id: 2, source_field: "description" }],
+      filterSyncKey: buildMapFilterSyncKey(filter),
     })
 
     expect(featureCollection.features).toHaveLength(1)
@@ -124,7 +133,11 @@ describe("buildPinLinkGeoJson", () => {
       linked_pins: [{ pin_id: 1, source_field: "description" }],
     })
 
-    const { featureCollection } = buildPinLinkGeoJson({ ...baseParams, pins: [a, b] })
+    const { featureCollection } = buildPinLinkGeoJson({
+      ...baseParams,
+      pins: [a, b],
+      pinMatches: createPinFilterMatcher([a, b], CLEARED_FILTER, []),
+    })
     expect(featureCollection.features).toHaveLength(1)
   })
 
@@ -135,7 +148,11 @@ describe("buildPinLinkGeoJson", () => {
     })
     const b = minimalPin({ id: 2 })
 
-    const { featureCollection } = buildPinLinkGeoJson({ ...baseParams, pins: [a, b] })
+    const { featureCollection } = buildPinLinkGeoJson({
+      ...baseParams,
+      pins: [a, b],
+      pinMatches: createPinFilterMatcher([a, b], CLEARED_FILTER, []),
+    })
     expect(featureCollection.features).toHaveLength(1)
   })
 
@@ -153,7 +170,11 @@ describe("buildPinLinkGeoJson", () => {
     }
     pins.push(minimalPin({ id: 86, latitude: 86, longitude: 86 }))
 
-    const result = buildPinLinkGeoJson({ ...baseParams, pins })
+    const result = buildPinLinkGeoJson({
+      ...baseParams,
+      pins,
+      pinMatches: createPinFilterMatcher(pins, CLEARED_FILTER, []),
+    })
     expect(result.globalCapped).toBe(true)
     expect(result.featureCollection.features).toHaveLength(0)
   })

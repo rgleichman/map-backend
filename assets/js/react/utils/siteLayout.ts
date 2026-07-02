@@ -65,7 +65,7 @@ export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
  * top-left place + pin search stack.
  */
 export function mapShellPinTypeLegendMaxHeight(): string {
-  return `calc(100% - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
+  return `calc(100% - ${MAP_SHELL_OVERLAY_BOTTOM} - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
 }
 
 /**

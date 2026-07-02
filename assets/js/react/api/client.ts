@@ -34,6 +34,34 @@ export function getPinBacklinks(id: number): Promise<{ data: PinLink[] }> {
   return jsonFetch(`/api/pins/${id}/backlinks`)
 }
 
+export function getMyPinHeartIds(): Promise<{ data: number[] }> {
+  return jsonFetch("/api/me/pin_hearts", { credentials: "same-origin" })
+}
+
+export function getMyHeartedPins(): Promise<{ data: Pin[] }> {
+  return jsonFetch("/api/me/pin_hearts/pins", { credentials: "same-origin" })
+}
+
+export async function heartPin(csrf: string | undefined, pinId: number): Promise<void> {
+  await fetchRequest(`/api/pins/${pinId}/heart`, {
+    method: "POST",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
+export async function unheartPin(csrf: string | undefined, pinId: number): Promise<void> {
+  await fetchRequest(`/api/pins/${pinId}/heart`, {
+    method: "DELETE",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
 export function getPinComments(
   pinId: number,
   opts?: { limit?: number; afterId?: number }

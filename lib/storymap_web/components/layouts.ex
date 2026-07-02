@@ -113,6 +113,8 @@ defmodule StorymapWeb.Layouts do
       |> assign(:github_issues_new_url, @github_issues_new)
       |> assign(:privacy_active?, path == "/privacy-policy")
       |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
+      |> assign(:saved_active?, path == "/saved")
+      |> assign(:user_profile_active?, user_profile_active?(path, assigns.current_scope))
       |> assign(:admin_active?, String.starts_with?(path, "/admin/users"))
       |> assign(:admin_activity_active?, String.starts_with?(path, "/admin/activity"))
       |> assign(:admin_reports_active?, String.starts_with?(path, "/admin/reports"))
@@ -282,11 +284,18 @@ defmodule StorymapWeb.Layouts do
             tabindex="0"
             class="dropdown-content menu bg-base-200 rounded-box z-[60] w-56 p-2 shadow-lg border border-base-300"
           >
-            <li
-              class="menu-title max-w-[13rem] truncate text-xs font-normal normal-case opacity-80"
-              title={"User ##{@current_scope.user.id}"}
-            >
-              User #{@current_scope.user.id}
+            <li>
+              <.link
+                navigate={~p"/user/#{@current_scope.user.id}"}
+                class={[
+                  "rounded-lg text-xs font-normal normal-case max-w-[13rem] truncate",
+                  @user_profile_active? && "active"
+                ]}
+                aria-current={if(@user_profile_active?, do: "page")}
+                title={"User ##{@current_scope.user.id}"}
+              >
+                User #{@current_scope.user.id}
+              </.link>
             </li>
             <%= if Storymap.Admin.admin?(@current_scope.user) do %>
               <li>
@@ -310,6 +319,15 @@ defmodule StorymapWeb.Layouts do
             <% end %>
             <li>
               <.link
+                href={~p"/saved"}
+                class={["rounded-lg", @saved_active? && "active"]}
+                aria-current={if(@saved_active?, do: "page")}
+              >
+                Saved
+              </.link>
+            </li>
+            <li>
+              <.link
                 href={~p"/users/settings"}
                 class={["rounded-lg", @settings_active? && "active"]}
                 aria-current={if(@settings_active?, do: "page")}
@@ -326,9 +344,16 @@ defmodule StorymapWeb.Layouts do
         </li>
       <% else %>
         <li>
-          <span class="block px-4 py-2 text-sm font-medium text-base-content/70 border-t border-base-300 mt-2">
+          <.link
+            navigate={~p"/user/#{@current_scope.user.id}"}
+            class={[
+              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300 text-sm font-medium text-base-content/70 border-t border-base-300 mt-2",
+              @user_profile_active? && "bg-base-300 font-medium"
+            ]}
+            aria-current={if(@user_profile_active?, do: "page")}
+          >
             User #{@current_scope.user.id}
-          </span>
+          </.link>
         </li>
         <.admin_nav_live_render
           :if={@conn && @current_scope && Storymap.Admin.admin?(@current_scope.user)}
@@ -352,6 +377,18 @@ defmodule StorymapWeb.Layouts do
             </.link>
           </li>
         <% end %>
+        <li>
+          <.link
+            href={~p"/saved"}
+            class={[
+              "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
+              @saved_active? && "bg-base-300 font-medium"
+            ]}
+            aria-current={if(@saved_active?, do: "page")}
+          >
+            Saved
+          </.link>
+        </li>
         <li>
           <.link
             href={~p"/users/settings"}
@@ -556,6 +593,9 @@ defmodule StorymapWeb.Layouts do
   defp nav_btn_classes(active?) do
     ["btn", "btn-ghost", if(active?, do: "btn-active")]
   end
+
+  defp user_profile_active?(path, %{user: %{id: id}}), do: path == "/user/#{id}"
+  defp user_profile_active?(_, _), do: false
 
   attr :conn, :map, required: true
   attr :current_scope, :map, required: true

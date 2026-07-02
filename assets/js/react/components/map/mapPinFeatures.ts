@@ -1,7 +1,7 @@
 import type maplibregl from "maplibre-gl"
 import type { CustomPinType, Pin, PinType } from "../../types"
 import { getPinTypeMarkerImageId, resolvePinTypeConfig } from "../../utils/pinTypeIcons"
-import { pinMapGeoJsonSyncPart, pinMatchesFilter, type FilterState } from "./filters"
+import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
 
 export type PinFeatureProperties = {
   pin_id: number
@@ -78,14 +78,14 @@ export function toPinFeature(pin: Pin, catalog: CustomPinType[]): PinPointFeatur
 
 export function buildPinFeatureSets(
   pinList: Pin[],
-  filterState: FilterState,
+  pinMatches: PinFilterMatcher,
   catalog: CustomPinType[],
 ): PinFeatureSets {
   const matching: PinPointFeature[] = []
   const dimmed: PinPointFeature[] = []
   for (const pin of pinList) {
     const feature = toPinFeature(pin, catalog)
-    if (pinMatchesFilter(pin, filterState, catalog, pinList)) matching.push(feature)
+    if (pinMatches(pin)) matching.push(feature)
     else dimmed.push(feature)
   }
   return { matching, dimmed }
@@ -94,12 +94,12 @@ export function buildPinFeatureSets(
 /** Stable key so we skip redundant GeoJSON setData when nothing map-visible changed. */
 export function buildPinGeoJsonSyncKey(
   pins: Pin[],
-  filterState: FilterState,
+  filterSyncKey: string,
   catalog: CustomPinType[],
 ): string {
   const pinParts = pins.map(pinMapGeoJsonSyncPart)
   const catalogParts = catalog.map(
     (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
   )
-  return `${pinParts.join("|")}::${JSON.stringify(filterState)}::${catalogParts.join("|")}`
+  return `${pinParts.join("|")}::${filterSyncKey}::${catalogParts.join("|")}`
 }

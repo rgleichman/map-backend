@@ -61,4 +61,12 @@ defmodule Storymap.PinsFixtures do
 
     comment
   end
+
+  @doc """
+  Heart a pin for a user.
+  """
+  def pin_heart_fixture(user, pin) do
+    {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
+    :ok
+  end
 end

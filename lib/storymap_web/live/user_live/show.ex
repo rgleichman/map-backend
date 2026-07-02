@@ -2,6 +2,9 @@ defmodule StorymapWeb.UserLive.Show do
   use StorymapWeb, :live_view
 
   alias Storymap.Accounts
+  alias Storymap.Pins.Hearts
+
+  @profile_saved_preview_limit 5
 
   @impl true
   def mount(%{"user_id" => user_id}, _session, socket) do
@@ -14,10 +17,40 @@ defmodule StorymapWeb.UserLive.Show do
           confirmed_at: user.confirmed_at
         }
 
-        {:ok, assign(socket, user: safe_user_data, not_found: false)}
+        own_profile? = own_profile?(socket, user.id)
+
+        {saved_pins_preview, saved_pins_count} =
+          if own_profile? do
+            preview = Hearts.list_pins(user, limit: @profile_saved_preview_limit)
+            {preview, Hearts.count_pins(user)}
+          else
+            {[], 0}
+          end
+
+        {:ok,
+         assign(socket,
+           user: safe_user_data,
+           not_found: false,
+           own_profile?: own_profile?,
+           saved_pins_preview: saved_pins_preview,
+           saved_pins_count: saved_pins_count
+         )}
 
       :error ->
-        {:ok, assign(socket, not_found: true)}
+        {:ok,
+         assign(socket,
+           not_found: true,
+           own_profile?: false,
+           saved_pins_preview: [],
+           saved_pins_count: 0
+         )}
+    end
+  end
+
+  defp own_profile?(socket, profile_user_id) do
+    case socket.assigns[:current_scope] do
+      %{user: %{id: id}} -> id == profile_user_id
+      _ -> false
     end
   end
 

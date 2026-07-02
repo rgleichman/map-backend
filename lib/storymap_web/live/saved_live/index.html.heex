@@ -1,0 +1,43 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-2xl mx-auto mt-8 px-4 pb-12">
+    <.header>
+      Saved pins
+      <:subtitle>
+        Pins you have saved. Only you can see this list.
+      </:subtitle>
+    </.header>
+
+    <%= if @saved_pins == [] do %>
+      <div class="mt-8 rounded-xl border border-base-300 bg-base-100 p-8 text-center">
+        <p class="text-base-content/80">You have not saved any pins yet.</p>
+        <p class="mt-2 text-sm text-base-content/60">
+          Open a pin on the map and tap the heart to save it here.
+        </p>
+        <.link navigate={~p"/"} class="btn btn-primary btn-sm mt-6">
+          Go to map
+        </.link>
+      </div>
+    <% else %>
+      <ul class="mt-6 divide-y divide-base-300 rounded-xl border border-base-300 bg-base-100 overflow-hidden">
+        <%= for pin <- @saved_pins do %>
+          <li id={"saved-pin-#{pin.id}"}>
+            <.link
+              href={Pins.map_path_for_pin(pin)}
+              class="block p-4 hover:bg-base-200/50 transition-colors"
+            >
+              <div class="min-w-0">
+                <h2 class="font-semibold text-base-content truncate">{pin.title}</h2>
+                <%= if pin.sub_map do %>
+                  <p class="text-sm text-base-content/70 mt-0.5">{pin.sub_map.name}</p>
+                <% end %>
+                <%= if pin.description && pin.description != "" do %>
+                  <p class="text-sm text-base-content/80 mt-1 line-clamp-2">{pin.description}</p>
+                <% end %>
+              </div>
+            </.link>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</Layouts.app>

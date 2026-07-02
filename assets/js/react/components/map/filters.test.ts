@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { isTodayRecurrenceDay, pinMapGeoJsonSyncPart, pinMatchesFilter, pinMatchesQuery, type FilterState } from "./filters"
+import {
+  filterPins,
+  isTodayRecurrenceDay,
+  pinMapGeoJsonSyncPart,
+  pinMatchesFilter,
+  pinMatchesQuery,
+  type FilterState,
+} from "./filters"
 import type { Pin } from "../../types"
 import * as datetime from "../../utils/datetime"
-
-function filterPins(pins: Pin[], filter: FilterState) {
-  return pins.filter((p) => pinMatchesFilter(p, filter, undefined, pins))
-}
 
 vi.mock("../../utils/datetime", async (importOriginal) => {
   const actual = await importOriginal<typeof datetime>()
@@ -57,7 +60,7 @@ describe("filterPins by pin type", () => {
   it("shows only the selected type", () => {
     const one = minimalPin({ id: 1, pin_type: "one_time" })
     const sched = minimalPin({ id: 2, pin_type: "scheduled" })
-    const result = filterPins([one, sched], { tag: null, time: null, pinType: "scheduled", query: "" })
+    const result = filterPins([one, sched], { tag: null, time: null, pinType: "scheduled", query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe(2)
   })
@@ -82,7 +85,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: `${baseDate}T11:00:00`,
       end_time: `${baseDate}T12:00:00`,
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 
@@ -93,7 +96,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: `${baseDate}T12:30:00`,
       end_time: `${baseDate}T13:00:00`,
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(0)
   })
 
@@ -104,7 +107,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: `${baseDate}T09:00:00`,
       end_time: `${baseDate}T11:00:00`,
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 
@@ -115,7 +118,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: `${baseDate}T08:00:00`,
       end_time: `${baseDate}T09:00:00`,
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(0)
   })
 
@@ -131,7 +134,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2025-02-08T01:00:00",
       end_time: "2025-02-08T02:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 
@@ -143,7 +146,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2000-01-01T11:00:00",
       end_time: "2000-01-01T12:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 
@@ -155,7 +158,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2000-01-01T13:00:00",
       end_time: "2000-01-01T14:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(0)
   })
 
@@ -172,7 +175,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2000-01-01T01:00:00",
       end_time: "2000-01-01T02:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 
@@ -189,7 +192,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2000-01-01T03:00:00",
       end_time: "2000-01-01T04:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(0)
   })
 
@@ -208,7 +211,7 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
       start_time: "2000-01-01T00:10:00",
       end_time: "2000-01-01T01:00:00",
     })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
     expect(result).toHaveLength(1)
   })
 })
@@ -277,16 +280,49 @@ describe("filterPins with query bypasses time filter", () => {
       start_time: `${baseDate}T08:00:00`,
       end_time: `${baseDate}T09:00:00`,
     })
-    const withoutQuery = filterPins([pin], { tag: null, time: "now", pinType: null, query: "" })
-    const withQuery = filterPins([pin], { tag: null, time: "now", pinType: null, query: "club" })
+    const withoutQuery = filterPins([pin], { tag: null, time: "now", pinType: null, query: "", heartedOnly: false })
+    const withQuery = filterPins([pin], { tag: null, time: "now", pinType: null, query: "club", heartedOnly: false })
     expect(withoutQuery).toHaveLength(0)
     expect(withQuery).toHaveLength(1)
   })
 
   it("excludes pins that do not match query", () => {
     const pin = minimalPin({ title: "Coffee Shop" })
-    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "pizza" })
+    const result = filterPins([pin], { tag: null, time: "now", pinType: null, query: "pizza", heartedOnly: false })
     expect(result).toHaveLength(0)
+  })
+})
+
+describe("filterPins with heartedOnly", () => {
+  it("shows only saved pins when heartedOnly is true", () => {
+    const saved = minimalPin({ id: 1, title: "Saved" })
+    const other = minimalPin({ id: 2, title: "Other" })
+    const hearted = new Set([1])
+    const result = filterPins(
+      [saved, other],
+      { tag: null, time: "now", pinType: null, query: "", heartedOnly: true },
+      [],
+      hearted,
+    )
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(1)
+  })
+
+  it("includes closed pins when heartedOnly is true", () => {
+    vi.mocked(datetime.getNowInTimezone).mockReturnValue(NOW_PARTS)
+    const pin = minimalPin({
+      id: 1,
+      schedule_timezone: "UTC",
+      start_time: "2025-02-07T08:00:00",
+      end_time: "2025-02-07T09:00:00",
+    })
+    const result = filterPins(
+      [pin],
+      { tag: null, time: "now", pinType: null, query: "", heartedOnly: true },
+      [],
+      new Set([1]),
+    )
+    expect(result).toHaveLength(1)
   })
 })
 

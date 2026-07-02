@@ -11,7 +11,7 @@ import {
 } from "../utils/pinTypeIcons"
 import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
 import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
-import { CLEARED_FILTER, type FilterState } from "./map/filters"
+import { CLEARED_FILTER, buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
 import {
   expandClusterAtPoint,
   MATCHING_SOURCE_ID,
@@ -43,6 +43,7 @@ import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import PinSearch from "./PinSearch"
 import { mapShellTopLeftPinSearchTop, mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import type { ToggleHeartResult } from "../hooks/usePinHearts"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -91,6 +92,10 @@ type Props = {
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
+  heartedPinIds?: ReadonlySet<number>
+  isPinHearted?: (pinId: number) => boolean
+  onTogglePinHeart?: (pinId: number) => Promise<ToggleHeartResult>
+  pinHeartsLoading?: boolean
 }
 
 export default function MapCanvas({
@@ -116,6 +121,10 @@ export default function MapCanvas({
   communityUrl,
   onSelectCommunity,
   onNavigateToPin,
+  heartedPinIds = new Set(),
+  isPinHearted,
+  onTogglePinHeart,
+  pinHeartsLoading = false,
 }: Props) {
   const { catalog, enabledBuiltins } = usePinTypes()
   const catalogRef = useRef(catalog)
@@ -179,27 +188,42 @@ export default function MapCanvas({
   onNavigateToPinRef.current = onNavigateToPin
   const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
   const customImageVisualKeysRef = useRef<Map<string, string>>(new Map())
-  const filterRef = useRef(filter)
-  filterRef.current = filter
+  const isPinHeartedRef = useRef(isPinHearted)
+  isPinHeartedRef.current = isPinHearted
+  const onTogglePinHeartRef = useRef(onTogglePinHeart)
+  onTogglePinHeartRef.current = onTogglePinHeart
 
   const pinsForMap =
     editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
   const pinsForMapRef = useRef<Pin[]>(pinsForMap)
   pinsForMapRef.current = pinsForMap
+  const pinFilterMatcher = useMemo(
+    () => createPinFilterMatcher(pinsForMap, filter, catalog, heartedPinIds),
+    [pinsForMap, filter, catalog, heartedPinIds],
+  )
+  const pinFilterMatcherRef = useRef(pinFilterMatcher)
+  pinFilterMatcherRef.current = pinFilterMatcher
+  const filterSyncKey = useMemo(
+    () => buildMapFilterSyncKey(filter, heartedPinIds),
+    [filter, heartedPinIds],
+  )
+  const filterSyncKeyRef = useRef(filterSyncKey)
+  filterSyncKeyRef.current = filterSyncKey
   const pinGeoJsonSyncKey = useMemo(
-    () => buildPinGeoJsonSyncKey(pinsForMap, filter, catalog),
-    [pinsForMap, filter, catalog],
+    () => buildPinGeoJsonSyncKey(pinsForMap, filterSyncKey, catalog),
+    [pinsForMap, filterSyncKey, catalog],
   )
   const pinLinkBuildParams = useMemo(
     () => ({
       pins: pinsForMap,
-      filter,
       catalog,
       focusPinId: openPopupPinId,
       backlinks: focusedBacklinks,
       showConnections,
+      pinMatches: pinFilterMatcher,
+      filterSyncKey,
     }),
-    [pinsForMap, filter, catalog, openPopupPinId, focusedBacklinks, showConnections],
+    [pinsForMap, catalog, openPopupPinId, focusedBacklinks, showConnections, pinFilterMatcher, filterSyncKey],
   )
   const pinLinkBuildResult = useMemo(
     () => buildPinLinkGeoJson(pinLinkBuildParams),
@@ -227,15 +251,14 @@ export default function MapCanvas({
     if (!map || !pinLayersAddedRef.current) return
 
     const pins = pinsForMapRef.current
-    const filterState = filterRef.current
     const catalogSnapshot = catalogRef.current
-    const syncKey = buildPinGeoJsonSyncKey(pins, filterState, catalogSnapshot)
+    const syncKey = buildPinGeoJsonSyncKey(pins, filterSyncKeyRef.current, catalogSnapshot)
     if (syncKey === lastPinGeoJsonSyncKeyRef.current) return
 
     lastPinGeoJsonSyncKeyRef.current = syncKey
     pinsByIdRef.current = new Map(pins.map((p) => [p.id, p]))
 
-    const featureSets = buildPinFeatureSets(pins, filterState, catalogSnapshot)
+    const featureSets = buildPinFeatureSets(pins, pinFilterMatcherRef.current, catalogSnapshot)
       ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
         features: featureSets.matching,
@@ -756,6 +779,11 @@ export default function MapCanvas({
     }
   }, [mapReady])
 
+  const savedFilterEmptyOnMap =
+    filter.heartedOnly &&
+    heartedPinIds.size > 0 &&
+    !pinsForMap.some((p) => heartedPinIds.has(p.id))
+
   function renderPopupContent(pin: Pin) {
     return (
       <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
@@ -768,6 +796,12 @@ export default function MapCanvas({
           communityUrl={communityUrl}
           onSelectCommunity={onSelectCommunity}
           onNavigateToPin={onNavigateToPin}
+          hearted={isPinHeartedRef.current?.(pin.id) ?? false}
+          onToggleHeart={
+            onTogglePinHeartRef.current
+              ? () => onTogglePinHeartRef.current!(pin.id)
+              : undefined
+          }
         />
       </PinTypesProvider>
     )
@@ -824,7 +858,7 @@ export default function MapCanvas({
     } else {
       closeOpenPopup()
     }
-  }, [pins, mapReady, csrfToken, userId, userMuted, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin])
+  }, [pins, mapReady, csrfToken, userId, userMuted, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin, heartedPinIds, isPinHearted, onTogglePinHeart])
 
   // Deep-link / repeat navigation to a specific pin.
   useEffect(() => {
@@ -929,6 +963,9 @@ export default function MapCanvas({
             openRef={filterPanelOpenRef}
             position="inline"
             panelTopOffset="0"
+            showSavedFilter={userId != null}
+            pinHeartsLoading={pinHeartsLoading}
+            savedFilterEmptyOnMap={savedFilterEmptyOnMap}
           />
         </div>
       )}
@@ -939,6 +976,7 @@ export default function MapCanvas({
           setFilter={setFilter}
           topOffset={mapShellTopLeftPinSearchTop()}
           onFocusChange={setPinSearchActive}
+          pinMatches={pinFilterMatcher}
           onSelectPin={(pin) => {
             const map = mapRef.current
             if (!map) return

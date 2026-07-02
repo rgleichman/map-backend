@@ -3,7 +3,7 @@ import type { Pin } from "../types"
 import { useIsDesktop } from "../hooks/useMediaQuery"
 import { usePinTypes } from "../context/PinTypesContext"
 import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
-import type { FilterState } from "./map/filters"
+import type { FilterState, PinFilterMatcher } from "./map/filters"
 import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
 
@@ -29,6 +29,7 @@ type Props = {
   onSelectPin: (pin: Pin) => void
   topOffset: string
   onFocusChange?: (active: boolean) => void
+  pinMatches?: PinFilterMatcher
 }
 
 export default function PinSearch({
@@ -38,6 +39,7 @@ export default function PinSearch({
   onSelectPin,
   topOffset,
   onFocusChange,
+  pinMatches,
 }: Props) {
   const isDesktop = useIsDesktop()
   const { catalog } = usePinTypes()
@@ -59,8 +61,8 @@ export default function PinSearch({
   }, [inputValue, setFilter])
 
   const suggestions = useMemo(
-    () => searchPinSuggestions(pins, inputValue, catalog),
-    [pins, inputValue, catalog]
+    () => searchPinSuggestions(pins, inputValue, catalog, { pinMatches }),
+    [pins, inputValue, catalog, pinMatches]
   )
 
   const showList = focused && inputValue.trim() !== "" && suggestions.length > 0

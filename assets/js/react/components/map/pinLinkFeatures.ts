@@ -1,6 +1,6 @@
 import type { LineLayerSpecification } from "maplibre-gl"
 import type { CustomPinType, Pin, PinLink } from "../../types"
-import { pinMapGeoJsonSyncPart, pinMatchesFilter, type FilterState } from "./filters"
+import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
 
 export const PIN_LINKS_SOURCE_ID = "pin-links"
 export const PIN_LINKS_LAYER_ID = "pin-links-layer"
@@ -29,11 +29,13 @@ export type PinLinkFeatureCollection = {
 
 export type BuildPinLinkGeoJsonParams = {
   pins: Pin[]
-  filter: FilterState
   catalog: CustomPinType[]
   focusPinId: number | null
   backlinks: PinLink[] | null
   showConnections: boolean
+  /** When set, global mode only draws edges between pins that pass the map filter. */
+  pinMatches?: PinFilterMatcher
+  filterSyncKey: string
 }
 
 export type PinLinkGeoJsonResult = {
@@ -80,11 +82,7 @@ type RawEdge = {
   explicit: boolean
 }
 
-function collectGlobalEdges(
-  pins: Pin[],
-  filter: FilterState,
-  catalog: CustomPinType[],
-): RawEdge[] {
+function collectGlobalEdges(pins: Pin[], pinMatches: PinFilterMatcher): RawEdge[] {
   const pinsById = new Map(pins.map((p) => [p.id, p]))
   const edges: RawEdge[] = []
   const seen = new Set<string>()
@@ -93,8 +91,8 @@ function collectGlobalEdges(
     for (const link of pin.linked_pins ?? []) {
       const target = pinsById.get(link.pin_id)
       if (!target) continue
-      if (!pinMatchesFilter(pin, filter, catalog, pins)) continue
-      if (!pinMatchesFilter(target, filter, catalog, pins)) continue
+      if (!pinMatches(pin)) continue
+      if (!pinMatches(target)) continue
 
       const key = undirectedEdgeKey(pin.id, target.id)
       if (seen.has(key)) continue
@@ -108,8 +106,6 @@ function collectGlobalEdges(
 
 function collectFocusEdges(
   pins: Pin[],
-  _filter: FilterState,
-  _catalog: CustomPinType[],
   focusPinId: number,
   backlinks: PinLink[] | null,
 ): RawEdge[] {
@@ -177,7 +173,7 @@ function edgesToFeatures(
 }
 
 export function buildPinLinkGeoJson(params: BuildPinLinkGeoJsonParams): PinLinkGeoJsonResult {
-  const { pins, filter, catalog, focusPinId, backlinks, showConnections } = params
+  const { pins, catalog, focusPinId, backlinks, showConnections, pinMatches } = params
 
   if (!showConnections) {
     return emptyResult()
@@ -187,9 +183,10 @@ export function buildPinLinkGeoJson(params: BuildPinLinkGeoJsonParams): PinLinkG
   let edges: RawEdge[]
 
   if (focusPinId != null) {
-    edges = collectFocusEdges(pins, filter, catalog, focusPinId, backlinks)
+    edges = collectFocusEdges(pins, focusPinId, backlinks)
   } else {
-    edges = collectGlobalEdges(pins, filter, catalog)
+    if (!pinMatches) return emptyResult()
+    edges = collectGlobalEdges(pins, pinMatches)
     if (edges.length > PIN_LINKS_GLOBAL_MAX) {
       return emptyResult(true)
     }
@@ -223,7 +220,7 @@ export function buildPinLinkSyncKey(params: BuildPinLinkGeoJsonParams): string {
     params.showConnections ? "1" : "0",
     String(params.focusPinId ?? ""),
     backlinkParts,
-    JSON.stringify(params.filter),
+    params.filterSyncKey,
     pinParts.join("|"),
     linkParts.join("|"),
     catalogParts.join("|"),

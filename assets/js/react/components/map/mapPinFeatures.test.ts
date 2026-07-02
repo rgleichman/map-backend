@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { CustomPinType, Pin } from "../../types"
-import { CLEARED_FILTER, DEFAULT_FILTER } from "./filters"
+import { CLEARED_FILTER, DEFAULT_FILTER, createPinFilterMatcher, buildMapFilterSyncKey } from "./filters"
 import {
   buildPinFeatureSets,
   buildPinGeoJsonSyncKey,
@@ -68,7 +68,8 @@ describe("buildPinFeatureSets", () => {
 
   it("splits pins into matching and dimmed by filter", () => {
     const filter = { ...CLEARED_FILTER, pinType: "scheduled" as const }
-    const { matching, dimmed } = buildPinFeatureSets([oneTime, scheduled], filter, [])
+    const pinMatches = createPinFilterMatcher([oneTime, scheduled], filter, [])
+    const { matching, dimmed } = buildPinFeatureSets([oneTime, scheduled], pinMatches, [])
 
     expect(matching).toHaveLength(1)
     expect(matching[0].properties.pin_id).toBe(2)
@@ -80,26 +81,28 @@ describe("buildPinFeatureSets", () => {
 describe("buildPinGeoJsonSyncKey", () => {
   const pin = minimalPin({ id: 1, title: "A", latitude: 1, longitude: 2 })
   const catalog: CustomPinType[] = []
+  const clearedKey = buildMapFilterSyncKey(CLEARED_FILTER)
+  const defaultKey = buildMapFilterSyncKey(DEFAULT_FILTER)
 
   it("is stable when inputs are unchanged", () => {
-    const key1 = buildPinGeoJsonSyncKey([pin], DEFAULT_FILTER, catalog)
-    const key2 = buildPinGeoJsonSyncKey([pin], DEFAULT_FILTER, catalog)
+    const key1 = buildPinGeoJsonSyncKey([pin], defaultKey, catalog)
+    const key2 = buildPinGeoJsonSyncKey([pin], defaultKey, catalog)
     expect(key1).toBe(key2)
   })
 
   it("changes when pins change", () => {
-    const key1 = buildPinGeoJsonSyncKey([pin], CLEARED_FILTER, catalog)
+    const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, catalog)
     const key2 = buildPinGeoJsonSyncKey(
       [minimalPin({ id: 2, title: "B", latitude: 3, longitude: 4 })],
-      CLEARED_FILTER,
+      clearedKey,
       catalog,
     )
     expect(key1).not.toBe(key2)
   })
 
   it("changes when filter changes", () => {
-    const key1 = buildPinGeoJsonSyncKey([pin], CLEARED_FILTER, catalog)
-    const key2 = buildPinGeoJsonSyncKey([pin], DEFAULT_FILTER, catalog)
+    const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, catalog)
+    const key2 = buildPinGeoJsonSyncKey([pin], defaultKey, catalog)
     expect(key1).not.toBe(key2)
   })
 
@@ -115,11 +118,11 @@ describe("buildPinGeoJsonSyncKey", () => {
       pin_type: "custom:cafe",
       enabled: true,
     }
-    const key1 = buildPinGeoJsonSyncKey([pin], CLEARED_FILTER, [])
-    const key2 = buildPinGeoJsonSyncKey([pin], CLEARED_FILTER, [customType])
+    const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, [])
+    const key2 = buildPinGeoJsonSyncKey([pin], clearedKey, [customType])
     const key3 = buildPinGeoJsonSyncKey(
       [pin],
-      CLEARED_FILTER,
+      clearedKey,
       [{ ...customType, marker_color: "#445566" }],
     )
     expect(key1).not.toBe(key2)

@@ -24,17 +24,31 @@ export type FilterState = {
   pinType: PinType | null
   /** Case-insensitive substring match on title, description, and tags. */
   query: string
+  /** When true, only pins the user has saved are shown. */
+  heartedOnly: boolean
 }
 
 /** Map opens with this (open now selected). */
-export const DEFAULT_FILTER: FilterState = { tag: null, time: TIME_FILTER_NOW, pinType: null, query: "" }
+export const DEFAULT_FILTER: FilterState = {
+  tag: null,
+  time: TIME_FILTER_NOW,
+  pinType: null,
+  query: "",
+  heartedOnly: false,
+}
 /** Clear all = show all pins (no tag, no time filter, all pin types). */
-export const CLEARED_FILTER: FilterState = { tag: null, time: null, pinType: null, query: "" }
+export const CLEARED_FILTER: FilterState = {
+  tag: null,
+  time: null,
+  pinType: null,
+  query: "",
+  heartedOnly: false,
+}
 
 /** Label shown on filter chips and in the time section. */
 export const TIME_FILTER_LABEL = "Open now or within 2 hours"
 
-export type FilterDimension = "time" | "tag" | "pinType" | "query"
+export type FilterDimension = "time" | "tag" | "pinType" | "query" | "hearted"
 
 export function clearFilterDimension(filter: FilterState, dim: FilterDimension): FilterState {
   switch (dim) {
@@ -46,6 +60,8 @@ export function clearFilterDimension(filter: FilterState, dim: FilterDimension):
       return { ...filter, pinType: null }
     case "query":
       return { ...filter, query: "" }
+    case "hearted":
+      return { ...filter, heartedOnly: false }
   }
 }
 
@@ -71,6 +87,9 @@ export function listActiveFilterChips(filter: FilterState, catalog: CustomPinTyp
       label: getPinTypeLabel(filter.pinType, catalog),
       pinType: filter.pinType
     })
+  }
+  if (filter.heartedOnly) {
+    chips.push({ dimension: "hearted", label: "Saved pins" })
   }
   const q = filter.query.trim()
   if (q !== "") {
@@ -193,13 +212,18 @@ export function pinMapGeoJsonSyncPart(p: Pin): string {
   })
 }
 
-/** True if the pin passes the current tag, time, pin-type, and query filter rules. */
+/** True if the pin passes the current tag, time, pin-type, query, and saved filter rules. */
 export function pinMatchesFilter(
   p: Pin,
   filter: FilterState,
   catalog?: CustomPinType[],
-  allPins?: Pin[]
+  allPins?: Pin[],
+  heartedPinIds?: ReadonlySet<number>,
 ): boolean {
+  if (filter.heartedOnly && !heartedPinIds?.has(p.id)) {
+    return false
+  }
+
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {
     return false
   }
@@ -214,6 +238,9 @@ export function pinMatchesFilter(
 
   // Text search is for discovery — skip "open now" while a query is active.
   if (filter.query.trim() !== "") return true
+
+  // Saved filter shows bookmarks regardless of schedule.
+  if (filter.heartedOnly) return true
 
   if (filter.time !== TIME_FILTER_NOW) return true
 
@@ -258,4 +285,38 @@ export function pinMatchesFilter(
     )
   }
   return true
+}
+
+export type PinFilterMatcher = (pin: Pin) => boolean
+
+/** Resolve map filter once; pass the matcher to pin/link layers and search. */
+export function createPinFilterMatcher(
+  pins: Pin[],
+  filter: FilterState,
+  catalog: CustomPinType[] = [],
+  heartedPinIds?: ReadonlySet<number>,
+): PinFilterMatcher {
+  return (pin) => pinMatchesFilter(pin, filter, catalog, pins, heartedPinIds)
+}
+
+export function filterPins(
+  pins: Pin[],
+  filter: FilterState,
+  catalog: CustomPinType[] = [],
+  heartedPinIds?: ReadonlySet<number>,
+): Pin[] {
+  const matches = createPinFilterMatcher(pins, filter, catalog, heartedPinIds)
+  return pins.filter(matches)
+}
+
+/** Stable key for filter + saved-pin membership (used in map GeoJSON sync keys). */
+export function buildMapFilterSyncKey(
+  filter: FilterState,
+  heartedPinIds?: ReadonlySet<number>,
+): string {
+  const heartPart =
+    filter.heartedOnly && heartedPinIds
+      ? [...heartedPinIds].sort((a, b) => a - b).join(",")
+      : ""
+  return `${JSON.stringify(filter)}::${heartPart}`
 }

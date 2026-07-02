@@ -10,6 +10,7 @@ import ErrorToast from "./components/ErrorToast"
 import { SubMapProvider } from "./context/SubMapContext"
 import { PinTypesProvider } from "./context/PinTypesContext"
 import { usePinWorkflow } from "./hooks/usePinWorkflow"
+import { usePinHearts } from "./hooks/usePinHearts"
 import { useIsDesktop } from "./hooks/useMediaQuery"
 import { useMapScope } from "./hooks/useMapScope"
 import { useMapData } from "./hooks/useMapData"
@@ -69,6 +70,20 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     resolvingPinIdsRef,
     initialPinId,
   })
+
+  const { heartedPinIds, isHearted, toggleHeart, loading: pinHeartsLoading } = usePinHearts(userId, csrfToken)
+
+  const handleTogglePinHeart = useCallback(
+    async (pinId: number) => {
+      try {
+        return await toggleHeart(pinId)
+      } catch {
+        setApiError("Could not update saved pin.")
+        return { needsLogin: false as const }
+      }
+    },
+    [toggleHeart, setApiError],
+  )
 
   const workflow = usePinWorkflow({
     userId,
@@ -214,6 +229,10 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   communityUrl={communityUrl}
                   onSelectCommunity={onSelectCommunity}
                   onNavigateToPin={handleNavigateToPin}
+                  heartedPinIds={heartedPinIds}
+                  isPinHearted={isHearted}
+                  onTogglePinHeart={handleTogglePinHeart}
+                  pinHeartsLoading={pinHeartsLoading}
                 />
                 <PinTypeLegend
                   closeRef={legendCloseRef}

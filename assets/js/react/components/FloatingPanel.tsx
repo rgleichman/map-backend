@@ -41,6 +41,8 @@ type Props = {
   defaultExpanded?: boolean
   /** Cap panel height (e.g. to avoid overlapping map overlays). Enables flex column layout. */
   maxHeight?: string
+  /** Extra classes on the panel container (e.g. stable min-width on desktop). */
+  panelClassName?: string
 }
 
 export default function FloatingPanel({
@@ -62,6 +64,7 @@ export default function FloatingPanel({
   compact = false,
   defaultExpanded = false,
   maxHeight,
+  panelClassName,
 }: Props) {
   const panelId = useId()
   const [expanded, setExpanded] = useState(defaultExpanded)
@@ -157,9 +160,13 @@ export default function FloatingPanel({
           elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
           isInline && "top-full right-0 mt-2",
           compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
-          maxHeight && "flex flex-col overflow-hidden",
-          expanded ? "block" : "hidden",
-          alwaysVisibleOnDesktop && "sm:block"
+          expanded
+            ? maxHeight
+              ? "flex flex-col overflow-hidden"
+              : "block"
+            : "hidden",
+          alwaysVisibleOnDesktop && "sm:block",
+          panelClassName,
         ].filter(Boolean).join(" ")}
         style={panelStyle}
       >

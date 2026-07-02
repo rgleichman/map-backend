@@ -11,6 +11,8 @@ import { communityUrlFromTag } from "../../utils/pinMapUrl"
 import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 import PinReportDialog from "./PinReportDialog"
 import PinComments from "./PinComments"
+import PinHeartButton from "./PinHeartButton"
+import type { ToggleHeartResult } from "../../hooks/usePinHearts"
 
 const popupContentClasses = "text-sm text-base-content"
 
@@ -24,9 +26,11 @@ type Props = {
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
+  hearted?: boolean
+  onToggleHeart?: () => Promise<ToggleHeartResult>
 }
 
-export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, communityUrl, onSelectCommunity, onNavigateToPin }: Props) {
+export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, communityUrl, onSelectCommunity, onNavigateToPin, hearted = false, onToggleHeart }: Props) {
   const { catalog } = usePinTypes()
   const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
   const customFields = schemaFields(customType)
@@ -173,6 +177,13 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         >
           Copy link
         </button>
+        {onToggleHeart && (
+          <PinHeartButton
+            hearted={hearted}
+            disabled={userMuted}
+            onToggle={onToggleHeart}
+          />
+        )}
         <button
           type="button"
           className="rounded px-2 py-1.5 border-none cursor-pointer font-semibold bg-base-300 text-base-content hover:opacity-90"

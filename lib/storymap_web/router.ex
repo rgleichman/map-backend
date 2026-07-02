@@ -133,6 +133,21 @@ defmodule StorymapWeb.Router do
     delete "/sub_maps/:community_url/memberships/me", SubMapController, :leave
     post "/sub_maps/:community_url/pins/:id/approve", SubMapController, :approve_pin
     post "/sub_maps/:community_url/pins/:id/reject", SubMapController, :reject_pin
+
+    post "/pins/:id/heart", PinHeartController, :create
+    delete "/pins/:id/heart", PinHeartController, :delete
+  end
+
+  scope "/api", StorymapWeb do
+    pipe_through [
+      :api,
+      :fetch_session,
+      :fetch_current_scope_for_user,
+      :require_authenticated_user
+    ]
+
+    get "/me/pin_hearts", Me.PinHeartController, :index
+    get "/me/pin_hearts/pins", Me.PinHeartController, :pins
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -161,6 +176,7 @@ defmodule StorymapWeb.Router do
       on_mount: [{StorymapWeb.UserAuth, :require_authenticated}] do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+      live "/saved", SavedLive.Index, :index
       live "/m/new", SubMapLive.New, :new
       live "/m/:community_url/settings", SubMapLive.Settings, :edit
       live "/m/:community_url/admin", SubMapLive.Admin, :index
