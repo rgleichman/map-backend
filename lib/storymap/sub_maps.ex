@@ -301,8 +301,14 @@ defmodule Storymap.SubMaps do
   defp prepare_pin_attrs(%SubMap{} = sub_map, attrs, membership, user) do
     attrs = stringify_keys(attrs)
 
+    can_moderate? = Policy.can_moderate?(user, sub_map, membership)
+
     status =
-      if sub_map.contribution_mode == :approval_required, do: "pending", else: "approved"
+      cond do
+        sub_map.contribution_mode != :approval_required -> "approved"
+        can_moderate? -> "approved"
+        true -> "pending"
+      end
 
     visible = Visibility.initial_visible_on_world_map(attrs, sub_map, user, membership)
 

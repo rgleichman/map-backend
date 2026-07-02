@@ -75,6 +75,32 @@ defmodule Storymap.SubMapsTest do
     refute pin.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
   end
 
+  test "approval_required approves pins created by sub-map moderators/owners" do
+    owner = user_fixture()
+
+    sub_map =
+      sub_map_fixture(
+        %{"contribution_mode" => "approval_required", "community_url" => "approve-owner"},
+        owner
+      )
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: owner},
+        sub_map,
+        %{
+          "title" => "Owner Spot",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    assert pin.status == :approved
+    assert [] == SubMaps.pending_pins(sub_map)
+    assert pin.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
+  end
+
   test "approve_pin/3 makes pin visible in community list" do
     owner = user_fixture()
     contributor = user_fixture()
