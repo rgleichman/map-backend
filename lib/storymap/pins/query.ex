@@ -54,6 +54,27 @@ defmodule Storymap.Pins.Query do
     )
   end
 
+  @doc """
+  Whether a sub-map pin event may be broadcast on the public `map:submap:*` channel.
+
+  Matches `sub_map_pins/2` (approved only).
+  """
+  @spec sub_map_public_broadcast_visible?(Pin.t()) :: boolean()
+  def sub_map_public_broadcast_visible?(%Pin{status: :approved}), do: true
+  def sub_map_public_broadcast_visible?(_), do: false
+
+  @doc """
+  Whether a sub-map pin event may be broadcast on the moderator `map:submap:*:mod` channel.
+
+  Matches `sub_map_pins_for_mod/2` (approved and pending).
+  """
+  @spec sub_map_mod_broadcast_visible?(Pin.t()) :: boolean()
+  def sub_map_mod_broadcast_visible?(%Pin{status: status})
+      when status in [:approved, :pending],
+      do: true
+
+  def sub_map_mod_broadcast_visible?(_), do: false
+
   @spec pending_pins(integer(), Ecto.Query.t()) :: Ecto.Query.t()
   def pending_pins(sub_map_id, query \\ base()) do
     from(p in query,

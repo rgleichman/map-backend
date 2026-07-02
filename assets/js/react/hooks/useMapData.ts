@@ -101,6 +101,7 @@ export function useMapData({
     onUpsertPin: updateOrAddPin,
     onDeletePinId: (pinId) => setPins((prev) => prev.filter((p) => p.id !== pinId)),
     communityUrl,
+    canModerate: subMap?.can_moderate === true,
   })
 
   return {

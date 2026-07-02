@@ -13,7 +13,27 @@ function topicForCommunityUrl(communityUrl) {
   return communityUrl ? `map:submap:${communityUrl}` : "map:world"
 }
 
-let activeChannel = null
+function modTopicForCommunityUrl(communityUrl) {
+  return communityUrl ? `${topicForCommunityUrl(communityUrl)}:mod` : null
+}
+
+let activePublicChannel = null
+let activeModChannel = null
+
+function joinChannel(topic) {
+  const channel = socket.channel(topic, {})
+  channel
+    .join()
+    .receive("ok", () => { })
+    .receive("error", () => { })
+  return channel
+}
+
+function leaveChannel(channel) {
+  if (channel) {
+    channel.leave()
+  }
+}
 
 /**
  * Join (or return) the map channel for the given community.
@@ -28,19 +48,34 @@ export function getMapChannel(communityUrl) {
 
   const topic = topicForCommunityUrl(resolved)
 
-  if (activeChannel && activeChannel.topic === topic) {
-    return activeChannel
+  if (activePublicChannel && activePublicChannel.topic === topic) {
+    return activePublicChannel
   }
 
-  if (activeChannel) {
-    activeChannel.leave()
+  leaveChannel(activePublicChannel)
+  activePublicChannel = joinChannel(topic)
+  return activePublicChannel
+}
+
+/**
+ * Join the moderator-only sub-map channel (pending + approved pins).
+ * Returns null on the world map or when communityUrl is missing.
+ */
+export function getModMapChannel(communityUrl) {
+  if (!communityUrl) return null
+
+  const topic = modTopicForCommunityUrl(communityUrl)
+
+  if (activeModChannel && activeModChannel.topic === topic) {
+    return activeModChannel
   }
 
-  activeChannel = socket.channel(topic, {})
-  activeChannel
-    .join()
-    .receive("ok", () => { })
-    .receive("error", () => { })
+  leaveChannel(activeModChannel)
+  activeModChannel = joinChannel(topic)
+  return activeModChannel
+}
 
-  return activeChannel
+export function leaveModMapChannel() {
+  leaveChannel(activeModChannel)
+  activeModChannel = null
 }
