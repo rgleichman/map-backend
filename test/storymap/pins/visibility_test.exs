@@ -17,7 +17,8 @@ defmodule Storymap.Pins.VisibilityTest do
 
     test "false for pending world pin" do
       owner = user_fixture()
-      pin = pin_fixture(%{"status" => "pending"}, owner)
+      pin = pin_fixture(%{}, owner)
+      pin = Repo.update!(Ecto.Changeset.change(pin, %{status: :pending}))
       refute Visibility.world_visible?(pin)
     end
 

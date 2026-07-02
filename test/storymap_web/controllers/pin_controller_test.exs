@@ -319,6 +319,33 @@ defmodule StorymapWeb.PinControllerTest do
       assert data["pin_type"] == "custom:#{pin_type.slug}"
       assert data["custom_data"]["status"] == "working"
     end
+
+    test "ignores sub_map_id, status, and visible_on_world_map on world create", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "attack-target"}, owner)
+
+      conn =
+        post(conn, ~p"/api/pins",
+          pin:
+            Map.merge(@create_attrs, %{
+              sub_map_id: sub_map.id,
+              status: "pending",
+              visible_on_world_map: false
+            })
+        )
+
+      data = json_response(conn, 201)["data"]
+      assert data["status"] == "approved"
+      assert data["visible_on_world_map"] == true
+      refute Map.has_key?(data, "community")
+
+      pin = Storymap.Pins.get_pin!(data["id"])
+      assert is_nil(pin.sub_map_id)
+      assert pin.status == :approved
+      assert pin.visible_on_world_map == true
+    end
   end
 
   describe "update pin" do
@@ -384,6 +411,89 @@ defmodule StorymapWeb.PinControllerTest do
 
       conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
       assert json_response(conn, 403)["errors"] != %{}
+    end
+  end
+
+  describe "pin mass-assignment regression" do
+    setup :register_and_log_in_user
+
+    test "pin owner cannot self-approve pending sub-map pin via update", %{conn: conn, user: user} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "mass-assign-status"},
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: user},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      assert pin.status == :pending
+
+      conn =
+        put(conn, ~p"/api/pins/#{pin.id}",
+          pin: %{
+            "title" => "Still pending",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other",
+            "status" => "approved"
+          }
+        )
+
+      assert json_response(conn, 200)["data"]["status"] == "pending"
+      assert Storymap.Pins.get_pin!(pin.id).status == :pending
+    end
+
+    test "pin owner cannot move pin between sub-maps via update", %{conn: conn, user: user} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      sub_map_a = sub_map_fixture(%{"community_url" => "mass-assign-a"}, owner)
+      sub_map_b = sub_map_fixture(%{"community_url" => "mass-assign-b"}, owner)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: user},
+          sub_map_a,
+          %{
+            "title" => "Pinned A",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      assert pin.sub_map_id == sub_map_a.id
+
+      conn =
+        put(conn, ~p"/api/pins/#{pin.id}",
+          pin: %{
+            "title" => "Try move",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other",
+            "sub_map_id" => sub_map_b.id
+          }
+        )
+
+      data = json_response(conn, 200)["data"]
+      assert data["community"]["community_url"] == sub_map_a.community_url
+
+      pin = Storymap.Pins.get_pin!(pin.id)
+      assert pin.sub_map_id == sub_map_a.id
     end
   end
 

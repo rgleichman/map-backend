@@ -55,7 +55,9 @@ defmodule Storymap.Pins.CommentsTest do
     end
 
     test "rejects comments on non-approved pins" do
-      pin = pin_fixture(%{"status" => "pending"})
+      pin = pin_fixture()
+      pin = Storymap.Repo.update!(Ecto.Changeset.change(pin, %{status: :pending}))
+
       user = user_fixture()
 
       assert {:error, %Ecto.Changeset{} = changeset} =

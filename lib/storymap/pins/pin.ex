@@ -90,6 +90,10 @@ defmodule Storymap.Pins.Pin do
   def changeset(pin, attrs) do
     changeset =
       pin
+      # SECURITY INVARIANT:
+      # Do not cast privileged fields (e.g. :status, :sub_map_id, :visible_on_world_map) from
+      # client input. Those are set in context-level workflows (world vs sub-map create),
+      # moderation endpoints, and the visibility sanitizer.
       |> cast(attrs, [
         :title,
         :latitude,
@@ -100,10 +104,8 @@ defmodule Storymap.Pins.Pin do
         :end_time,
         :pin_type,
         :schedule_rrule,
-        :custom_data,
-        :sub_map_id,
-        :status,
-        :visible_on_world_map
+        :schedule_timezone,
+        :custom_data
       ])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_pin_type()

@@ -95,6 +95,7 @@ defmodule Storymap.Pins do
           with {:ok, pin} <-
                  %Pin{}
                  |> Pin.changeset(attrs_with_user)
+                 |> maybe_put_privileged_create_fields(sub_map, attrs_with_user)
                  |> maybe_validate_custom_pin_data()
                  |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
@@ -131,6 +132,7 @@ defmodule Storymap.Pins do
           with {:ok, pin} <-
                  pin
                  |> Pin.changeset(attrs)
+                 |> maybe_put_visible_on_world_map(attrs)
                  |> maybe_validate_custom_pin_data()
                  |> maybe_validate_sub_map_rules(sub_map, attrs)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
@@ -349,8 +351,6 @@ defmodule Storymap.Pins do
     validate_world_pin_type_allowed(changeset, attrs)
   end
 
-  defp maybe_validate_sub_map_rules(changeset, _, _), do: changeset
-
   defp maybe_validate_custom_pin_data(changeset) do
     case get_field(changeset, :pin_type) do
       "custom:" <> _slug ->
@@ -439,6 +439,59 @@ defmodule Storymap.Pins do
       {k, v} when is_atom(k) -> {to_string(k), v}
       {k, v} -> {k, v}
     end)
+  end
+
+  defp maybe_put_privileged_create_fields(changeset, %SubMap{} = sub_map, attrs) do
+    status =
+      case Map.get(attrs, "status") do
+        v when is_binary(v) -> v
+        v when is_atom(v) -> to_string(v)
+        _ -> nil
+      end
+
+    visible =
+      case Map.get(attrs, "visible_on_world_map") do
+        v when is_boolean(v) -> v
+        _ -> nil
+      end
+
+    changeset
+    |> Ecto.Changeset.put_change(:sub_map_id, sub_map.id)
+    |> maybe_put_status(status)
+    |> maybe_put_boolean(:visible_on_world_map, visible)
+  end
+
+  defp maybe_put_privileged_create_fields(changeset, nil, _attrs) do
+    changeset
+    |> Ecto.Changeset.put_change(:sub_map_id, nil)
+    |> Ecto.Changeset.put_change(:status, :approved)
+    |> Ecto.Changeset.put_change(:visible_on_world_map, true)
+  end
+
+  defp maybe_put_visible_on_world_map(changeset, attrs) do
+    case Map.get(attrs, "visible_on_world_map") do
+      v when is_boolean(v) -> Ecto.Changeset.put_change(changeset, :visible_on_world_map, v)
+      _ -> changeset
+    end
+  end
+
+  defp maybe_put_status(changeset, nil), do: changeset
+
+  defp maybe_put_status(changeset, value) when is_binary(value) do
+    case status_atom(value) do
+      nil -> changeset
+      status -> Ecto.Changeset.put_change(changeset, :status, status)
+    end
+  end
+
+  defp status_atom(value) when is_binary(value) do
+    Enum.find(Pin.statuses(), fn status -> to_string(status) == value end)
+  end
+
+  defp maybe_put_boolean(changeset, _field, nil), do: changeset
+
+  defp maybe_put_boolean(changeset, field, value) when is_boolean(value) do
+    Ecto.Changeset.put_change(changeset, field, value)
   end
 
   @doc """
