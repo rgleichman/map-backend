@@ -22,6 +22,8 @@ defmodule StorymapWeb.PinCommentController do
         conn
         |> put_view(json: StorymapWeb.PinCommentJSON)
         |> render(:index, comments: comments, current_user: user)
+      else
+        {:error, :not_found} = err -> err
       end
     else
       _ -> {:error, :not_found}
@@ -44,6 +46,10 @@ defmodule StorymapWeb.PinCommentController do
         |> put_status(:created)
         |> put_view(json: StorymapWeb.PinCommentJSON)
         |> render(:show, comment: comment, current_user: user)
+      else
+        {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+        {:error, :forbidden} = err -> err
+        {:error, :not_found} = err -> err
       end
     else
       _ -> {:error, :not_found}
