@@ -46,101 +46,117 @@ defmodule StorymapWeb.PinController do
 
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
-    pin = Pins.get_pin!(id)
-    user = get_current_user(conn)
-    sub_map = pin.sub_map
-    membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
-    opts = [sub_map: sub_map, membership: membership]
+    with {pin_id, ""} <- Integer.parse(id),
+         %Pin{} = pin <- Pins.get_pin(pin_id) do
+      user = get_current_user(conn)
+      sub_map = pin.sub_map
+      membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
+      opts = [sub_map: sub_map, membership: membership]
 
-    with :ok <- Authorizer.authorize_show(user, pin, opts) do
-      render(conn, :show,
-        pin: pin,
-        current_user: user,
-        sub_map: sub_map,
-        membership: membership
-      )
+      with :ok <- Authorizer.authorize_show(user, pin, opts) do
+        render(conn, :show,
+          pin: pin,
+          current_user: user,
+          sub_map: sub_map,
+          membership: membership
+        )
+      end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec backlinks(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def backlinks(conn, %{"id" => id}) do
-    pin = Pins.get_pin!(id)
-    user = get_current_user(conn)
-    sub_map = pin.sub_map
-    membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
-    opts = [sub_map: sub_map, membership: membership]
+    with {pin_id, ""} <- Integer.parse(id),
+         %Pin{} = pin <- Pins.get_pin(pin_id) do
+      user = get_current_user(conn)
+      sub_map = pin.sub_map
+      membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
+      opts = [sub_map: sub_map, membership: membership]
 
-    with :ok <- Authorizer.authorize_show(user, pin, opts) do
-      backlinks = Pins.list_backlinks(pin.id)
+      with :ok <- Authorizer.authorize_show(user, pin, opts) do
+        backlinks = Pins.list_backlinks(pin.id)
 
-      conn
-      |> put_view(json: StorymapWeb.PinJSON)
-      |> render(:backlinks, backlinks: backlinks)
+        conn
+        |> put_view(json: StorymapWeb.PinJSON)
+        |> render(:backlinks, backlinks: backlinks)
+      end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"id" => id, "pin" => pin_params}) do
-    pin = Pins.get_pin!(id)
-    current_user = conn.assigns.current_scope.user
-    sub_map = pin.sub_map
-    membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
-    opts = [sub_map: sub_map, membership: membership, user: current_user]
+    with {pin_id, ""} <- Integer.parse(id),
+         %Pin{} = pin <- Pins.get_pin(pin_id) do
+      current_user = conn.assigns.current_scope.user
+      sub_map = pin.sub_map
+      membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
+      opts = [sub_map: sub_map, membership: membership, user: current_user]
 
-    with :ok <- Authorizer.authorize_update(current_user, pin, opts) do
-      before_pin = pin
+      with :ok <- Authorizer.authorize_update(current_user, pin, opts) do
+        before_pin = pin
 
-      with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
-        _ =
-          AdminActivity.record_event(
-            "pin_updated",
-            current_user.id,
-            %{
-              "pin_id" => pin.id,
-              "title" => pin.title,
-              "diff" => PinDiff.diff(before_pin, pin)
-            },
-            sub_map_id: pin.sub_map_id
+        with {:ok, %Pin{} = pin} <- Pins.update_pin(pin, pin_params, opts) do
+          _ =
+            AdminActivity.record_event(
+              "pin_updated",
+              current_user.id,
+              %{
+                "pin_id" => pin.id,
+                "title" => pin.title,
+                "diff" => PinDiff.diff(before_pin, pin)
+              },
+              sub_map_id: pin.sub_map_id
+            )
+
+          PinBroadcast.broadcast_pin_event(pin, :updated)
+
+          render(conn, :show,
+            pin: pin,
+            current_user: current_user,
+            sub_map: sub_map,
+            membership: membership
           )
-
-        PinBroadcast.broadcast_pin_event(pin, :updated)
-
-        render(conn, :show,
-          pin: pin,
-          current_user: current_user,
-          sub_map: sub_map,
-          membership: membership
-        )
+        end
       end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id}) do
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
-    current_user = conn.assigns.current_scope.user
-    sub_map = pin.sub_map
-    membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
-    opts = [sub_map: sub_map, membership: membership]
-
-    with :ok <- Authorizer.authorize_delete(current_user, pin, opts) do
+    with {pin_id, ""} <- Integer.parse(id),
+         %Pin{} = pin <- Pins.get_pin(pin_id) do
       pin = Storymap.Repo.preload(pin, :sub_map)
-      pin_id = pin.id
-      pin_title = pin.title
+      current_user = conn.assigns.current_scope.user
+      sub_map = pin.sub_map
+      membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
+      opts = [sub_map: sub_map, membership: membership]
 
-      with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
-        _ =
-          AdminActivity.record_event(
-            "pin_deleted",
-            current_user.id,
-            %{"pin_id" => pin_id, "title" => pin_title},
-            sub_map_id: pin.sub_map_id
-          )
+      with :ok <- Authorizer.authorize_delete(current_user, pin, opts) do
+        pin_id = pin.id
+        pin_title = pin.title
 
-        PinBroadcast.broadcast_pin_event(pin, :deleted)
+        with {:ok, %Pin{}} <- Pins.delete_pin(pin) do
+          _ =
+            AdminActivity.record_event(
+              "pin_deleted",
+              current_user.id,
+              %{"pin_id" => pin_id, "title" => pin_title},
+              sub_map_id: pin.sub_map_id
+            )
 
-        send_resp(conn, :no_content, "")
+          PinBroadcast.broadcast_pin_event(pin, :deleted)
+
+          send_resp(conn, :no_content, "")
+        end
       end
+    else
+      _ -> {:error, :not_found}
     end
   end
 end

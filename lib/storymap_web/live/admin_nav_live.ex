@@ -10,7 +10,12 @@ defmodule StorymapWeb.AdminNavLive do
 
   @impl true
   def mount(_params, session, socket) do
-    current_path = session["current_path"] || "/"
+    current_path =
+      case session["current_path"] do
+        path when is_binary(path) -> path
+        nil -> "/"
+        other -> to_string(other)
+      end
 
     if connected?(socket) do
       AdminPubSub.subscribe()

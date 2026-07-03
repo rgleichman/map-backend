@@ -117,19 +117,30 @@ defmodule StorymapWeb.UserLive.Settings do
   def handle_event("confirm_delete_account", _params, socket) do
     user = socket.assigns.current_scope.user
 
-    case Storymap.Accounts.delete_user(user) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> assign(:show_delete_modal, false)
-         |> Phoenix.LiveView.redirect(to: "/")
-         |> put_flash(:info, "Your account has been deleted.")}
+    if Accounts.sudo_mode?(user) do
+      case Storymap.Accounts.delete_user(user) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> assign(:show_delete_modal, false)
+           |> Phoenix.LiveView.redirect(to: "/")
+           |> put_flash(:info, "Your account has been deleted.")}
 
-      {:error, _reason} ->
-        {:noreply,
-         socket
-         |> assign(:show_delete_modal, false)
-         |> put_flash(:error, "There was a problem deleting your account. Please try again.")}
+        {:error, _reason} ->
+          {:noreply,
+           socket
+           |> assign(:show_delete_modal, false)
+           |> put_flash(:error, "There was a problem deleting your account. Please try again.")}
+      end
+    else
+      {:noreply,
+       socket
+       |> assign(:show_delete_modal, false)
+       |> put_flash(
+         :error,
+         "For security, please log in to your account again before deleting."
+       )
+       |> push_navigate(to: ~p"/users/settings")}
     end
   end
 

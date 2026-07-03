@@ -45,7 +45,16 @@ defmodule Storymap.Pins.Hearts do
 
   @spec list_pins(User.t(), keyword()) :: [Pin.t()]
   def list_pins(%User{} = viewer, opts \\ []) do
-    user_id = Keyword.get(opts, :for_user_id, viewer.id)
+    user_id =
+      case Keyword.fetch(opts, :for_user_id) do
+        {:ok, id} when id != viewer.id ->
+          raise ArgumentError,
+                "Hearts.list_pins/2 does not allow :for_user_id other than viewer.id"
+
+        _ ->
+          viewer.id
+      end
+
     limit = Keyword.get(opts, :limit)
 
     hearts =

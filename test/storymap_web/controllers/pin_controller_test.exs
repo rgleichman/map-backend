@@ -504,9 +504,8 @@ defmodule StorymapWeb.PinControllerTest do
       conn = delete(conn, ~p"/api/pins/#{pin}")
       assert response(conn, 204)
 
-      assert_error_sent 404, fn ->
-        get(conn, ~p"/api/pins/#{pin}")
-      end
+      conn = get(conn, ~p"/api/pins/#{pin}")
+      assert json_response(conn, 404)["errors"] != %{}
     end
 
     test "allows admin to delete any pin", %{conn: conn} do

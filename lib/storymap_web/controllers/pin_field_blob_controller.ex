@@ -14,48 +14,60 @@ defmodule StorymapWeb.PinFieldBlobController do
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id, "field_key" => field_key}) do
     type = blob_type(conn)
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     user = get_current_user(conn)
-    opts = pin_auth_opts(pin, user)
 
-    with :ok <- Authorizer.authorize_show(user, pin, opts) do
-      case Pins.get_field_blob(pin.id, field_key, type) do
-        nil ->
-          {:error, :not_found}
+    with {pin_id, ""} <- Integer.parse(id),
+         pin when not is_nil(pin) <- Pins.get_pin(pin_id) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      opts = pin_auth_opts(pin, user)
 
-        blob ->
-          render(conn, :show, blob: blob)
+      with :ok <- Authorizer.authorize_show(user, pin, opts) do
+        case Pins.get_field_blob(pin.id, field_key, type) do
+          nil ->
+            {:error, :not_found}
+
+          blob ->
+            render(conn, :show, blob: blob)
+        end
       end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"id" => id, "field_key" => field_key} = params) do
     type = blob_type(conn)
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
-    {sub_map, membership} = sub_map_and_membership(pin, current_user)
-    opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-    with :ok <- Authorizer.authorize_update(current_user, pin, opts),
-         {:ok, %{pin: pin}} <-
-           Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
-      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+    with {pin_id, ""} <- Integer.parse(id),
+         pin when not is_nil(pin) <- Pins.get_pin(pin_id) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      {sub_map, membership} = sub_map_and_membership(pin, current_user)
+      opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-      conn
-      |> put_view(StorymapWeb.PinJSON)
-      |> render(:show,
-        pin: pin,
-        current_user: current_user,
-        sub_map: sub_map,
-        membership: membership
-      )
+      with :ok <- Authorizer.authorize_update(current_user, pin, opts),
+           {:ok, %{pin: pin}} <-
+             Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
+        pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+
+        conn
+        |> put_view(StorymapWeb.PinJSON)
+        |> render(:show,
+          pin: pin,
+          current_user: current_user,
+          sub_map: sub_map,
+          membership: membership
+        )
+      else
+        {:error, :invalid_blob_field} ->
+          invalid_blob_field(conn, type)
+
+        other ->
+          other
+      end
     else
-      {:error, :invalid_blob_field} ->
-        invalid_blob_field(conn, type)
-
-      other ->
-        other
+      _ -> {:error, :not_found}
     end
   end
 
@@ -65,32 +77,38 @@ defmodule StorymapWeb.PinFieldBlobController do
   @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id, "field_key" => field_key}) do
     type = blob_type(conn)
-    pin = Pins.get_pin!(id) |> Storymap.Repo.preload(:sub_map)
     current_user = conn.assigns.current_scope.user
-    {sub_map, membership} = sub_map_and_membership(pin, current_user)
-    opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-    with :ok <- Authorizer.authorize_update(current_user, pin, opts),
-         {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
-      pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+    with {pin_id, ""} <- Integer.parse(id),
+         pin when not is_nil(pin) <- Pins.get_pin(pin_id) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      {sub_map, membership} = sub_map_and_membership(pin, current_user)
+      opts = pin_auth_opts(pin, current_user) ++ [user: current_user]
 
-      conn
-      |> put_view(StorymapWeb.PinJSON)
-      |> render(:show,
-        pin: pin,
-        current_user: current_user,
-        sub_map: sub_map,
-        membership: membership
-      )
+      with :ok <- Authorizer.authorize_update(current_user, pin, opts),
+           {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
+        pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+
+        conn
+        |> put_view(StorymapWeb.PinJSON)
+        |> render(:show,
+          pin: pin,
+          current_user: current_user,
+          sub_map: sub_map,
+          membership: membership
+        )
+      else
+        {:error, :invalid_blob_field} ->
+          invalid_blob_field(conn, type)
+
+        {:error, :required_blob_field} ->
+          required_blob_field(conn)
+
+        other ->
+          other
+      end
     else
-      {:error, :invalid_blob_field} ->
-        invalid_blob_field(conn, type)
-
-      {:error, :required_blob_field} ->
-        required_blob_field(conn)
-
-      other ->
-        other
+      _ -> {:error, :not_found}
     end
   end
 

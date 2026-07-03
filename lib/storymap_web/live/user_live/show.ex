@@ -2,7 +2,7 @@ defmodule StorymapWeb.UserLive.Show do
   use StorymapWeb, :live_view
 
   alias Storymap.Accounts
-  alias Storymap.Pins.Hearts
+  alias Storymap.Pins.{HeartAuthorizer, Hearts}
 
   @profile_saved_preview_limit 5
 
@@ -13,16 +13,21 @@ defmodule StorymapWeb.UserLive.Show do
         # Only assign fields that are actually rendered in the template
         # This prevents potential exposure of sensitive data (like email) in LiveView state
         safe_user_data = %{
-          id: user.id,
-          confirmed_at: user.confirmed_at
+          id: user.id
         }
 
         own_profile? = own_profile?(socket, user.id)
 
         {saved_pins_preview, saved_pins_count} =
           if own_profile? do
-            preview = Hearts.list_pins(user, limit: @profile_saved_preview_limit)
-            {preview, Hearts.count_pins(user)}
+            case HeartAuthorizer.authorize_list(user) do
+              :ok ->
+                preview = Hearts.list_pins(user, limit: @profile_saved_preview_limit)
+                {preview, Hearts.count_pins(user)}
+
+              {:error, :forbidden} ->
+                {[], 0}
+            end
           else
             {[], 0}
           end

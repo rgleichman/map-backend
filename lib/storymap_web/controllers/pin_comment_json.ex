@@ -25,7 +25,7 @@ defmodule StorymapWeb.PinCommentJSON do
       parent_id: comment.parent_id,
       body: comment_body(comment),
       deleted: PinComment.deleted?(comment),
-      author: author_data(comment),
+      author: author_data(comment, current_user),
       is_author: author?(comment, current_user),
       inserted_at: datetime_to_iso_local(comment.inserted_at),
       updated_at: datetime_to_iso_local(comment.updated_at)
@@ -45,7 +45,7 @@ defmodule StorymapWeb.PinCommentJSON do
       parent_id: comment.parent_id,
       body: comment_body(comment),
       deleted: PinComment.deleted?(comment),
-      author: author_data(comment),
+      author: author_data(comment, current_user),
       is_author: author?(comment, current_user),
       inserted_at: datetime_to_iso_local(comment.inserted_at),
       updated_at: datetime_to_iso_local(comment.updated_at)
@@ -55,10 +55,15 @@ defmodule StorymapWeb.PinCommentJSON do
   defp comment_body(%PinComment{deleted_at: %DateTime{}}), do: ""
   defp comment_body(%PinComment{body: body}), do: body || ""
 
-  defp author_data(%PinComment{user_id: user_id}) when is_integer(user_id), do: %{id: user_id}
-  defp author_data(_), do: nil
+  # Privacy: only include numeric user_id for the current user's own comments.
+  defp author_data(%PinComment{user_id: user_id} = comment, current_user)
+       when is_integer(user_id) do
+    if author?(comment, current_user), do: %{id: user_id}, else: nil
+  end
 
-  defp author?(%PinComment{user_id: user_id}, %User{id: user_id}), do: true
+  defp author_data(_, _), do: nil
+
+  defp author?(%PinComment{user_id: user_id}, %{id: user_id}), do: true
   defp author?(_, _), do: false
 
   defp datetime_to_iso_local(%DateTime{} = dt) do

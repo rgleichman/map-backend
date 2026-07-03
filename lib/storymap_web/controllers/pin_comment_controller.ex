@@ -10,75 +10,95 @@ defmodule StorymapWeb.PinCommentController do
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, %{"pin_id" => pin_id} = params) do
-    pin = Pins.get_pin!(pin_id)
     user = current_user(conn)
-    opts = authorizer_opts(conn, pin)
 
-    with :ok <- CommentAuthorizer.authorize_list(user, pin, opts) do
-      comments = Comments.list_for_pin(pin.id, list_opts(params))
+    with {id, ""} <- Integer.parse(pin_id),
+         %Pin{} = pin <- Pins.get_pin(id) do
+      opts = authorizer_opts(conn, pin)
 
-      conn
-      |> put_view(json: StorymapWeb.PinCommentJSON)
-      |> render(:index, comments: comments, current_user: user)
+      with :ok <- CommentAuthorizer.authorize_list(user, pin, opts) do
+        comments = Comments.list_for_pin(pin.id, list_opts(params))
+
+        conn
+        |> put_view(json: StorymapWeb.PinCommentJSON)
+        |> render(:index, comments: comments, current_user: user)
+      end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"pin_id" => pin_id, "comment" => comment_params}) do
-    pin = Pins.get_pin!(pin_id) |> Storymap.Repo.preload(:sub_map)
-    user = conn.assigns.current_scope.user
-    opts = authorizer_opts(conn, pin)
+    with {id, ""} <- Integer.parse(pin_id),
+         %Pin{} = pin <- Pins.get_pin(id) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      user = conn.assigns.current_scope.user
+      opts = authorizer_opts(conn, pin)
 
-    with :ok <- CommentAuthorizer.authorize_create(user, pin, opts),
-         {:ok, comment} <- Comments.create_comment(pin, user, comment_params) do
-      CommentBroadcast.broadcast_comment_event(pin, comment, :created)
+      with :ok <- CommentAuthorizer.authorize_create(user, pin, opts),
+           {:ok, comment} <- Comments.create_comment(pin, user, comment_params) do
+        CommentBroadcast.broadcast_comment_event(pin, comment, :created)
 
-      conn
-      |> put_status(:created)
-      |> put_view(json: StorymapWeb.PinCommentJSON)
-      |> render(:show, comment: comment, current_user: user)
+        conn
+        |> put_status(:created)
+        |> put_view(json: StorymapWeb.PinCommentJSON)
+        |> render(:show, comment: comment, current_user: user)
+      end
+    else
+      _ -> {:error, :not_found}
     end
   end
 
   @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"pin_id" => pin_id, "id" => id, "comment" => comment_params}) do
-    pin = Pins.get_pin!(pin_id) |> Storymap.Repo.preload(:sub_map)
-    comment = Comments.get_comment!(id)
-    user = conn.assigns.current_scope.user
-    opts = authorizer_opts(conn, pin)
+    with {pin_int, ""} <- Integer.parse(pin_id),
+         %Pin{} = pin <- Pins.get_pin(pin_int) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      comment = Comments.get_comment!(id)
+      user = conn.assigns.current_scope.user
+      opts = authorizer_opts(conn, pin)
 
-    with true <- comment.pin_id == pin.id,
-         :ok <- CommentAuthorizer.authorize_update(user, comment, opts),
-         {:ok, comment} <- Comments.update_comment(comment, comment_params) do
-      CommentBroadcast.broadcast_comment_event(pin, comment, :updated)
+      with true <- comment.pin_id == pin.id,
+           :ok <- CommentAuthorizer.authorize_update(user, comment, opts),
+           {:ok, comment} <- Comments.update_comment(comment, comment_params) do
+        CommentBroadcast.broadcast_comment_event(pin, comment, :updated)
 
-      conn
-      |> put_view(json: StorymapWeb.PinCommentJSON)
-      |> render(:show, comment: comment, current_user: user)
+        conn
+        |> put_view(json: StorymapWeb.PinCommentJSON)
+        |> render(:show, comment: comment, current_user: user)
+      else
+        false -> {:error, :not_found}
+        {:error, :forbidden} = err -> err
+      end
     else
-      false -> {:error, :not_found}
-      {:error, :forbidden} = err -> err
+      _ -> {:error, :not_found}
     end
   end
 
   @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"pin_id" => pin_id, "id" => id}) do
-    pin = Pins.get_pin!(pin_id) |> Storymap.Repo.preload(:sub_map)
-    comment = Comments.get_comment!(id)
-    user = conn.assigns.current_scope.user
-    opts = authorizer_opts(conn, pin)
+    with {pin_int, ""} <- Integer.parse(pin_id),
+         %Pin{} = pin <- Pins.get_pin(pin_int) do
+      pin = Storymap.Repo.preload(pin, :sub_map)
+      comment = Comments.get_comment!(id)
+      user = conn.assigns.current_scope.user
+      opts = authorizer_opts(conn, pin)
 
-    with true <- comment.pin_id == pin.id,
-         :ok <- CommentAuthorizer.authorize_delete(user, pin, comment, opts),
-         {:ok, comment} <- Comments.delete_comment(comment) do
-      CommentBroadcast.broadcast_comment_event(pin, comment, :deleted)
+      with true <- comment.pin_id == pin.id,
+           :ok <- CommentAuthorizer.authorize_delete(user, pin, comment, opts),
+           {:ok, comment} <- Comments.delete_comment(comment) do
+        CommentBroadcast.broadcast_comment_event(pin, comment, :deleted)
 
-      conn
-      |> put_view(json: StorymapWeb.PinCommentJSON)
-      |> render(:show, comment: comment, current_user: user)
+        conn
+        |> put_view(json: StorymapWeb.PinCommentJSON)
+        |> render(:show, comment: comment, current_user: user)
+      else
+        false -> {:error, :not_found}
+        {:error, :forbidden} = err -> err
+      end
     else
-      false -> {:error, :not_found}
-      {:error, :forbidden} = err -> err
+      _ -> {:error, :not_found}
     end
   end
 

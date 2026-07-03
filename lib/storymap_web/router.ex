@@ -11,7 +11,22 @@ defmodule StorymapWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {StorymapWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; " <>
+          "base-uri 'self'; " <>
+          "form-action 'self'; " <>
+          "frame-ancestors 'self'; " <>
+          "img-src 'self' data: https:; " <>
+          "media-src 'self' data: blob:; " <>
+          "worker-src 'self' blob:; " <>
+          "font-src 'self' data: https://fonts.gstatic.com; " <>
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " <>
+          "script-src 'self' 'unsafe-inline'; " <>
+          "connect-src 'self' https: wss: ws:"
+    }
+
     plug :fetch_current_scope_for_user
   end
 
@@ -31,6 +46,14 @@ defmodule StorymapWeb.Router do
     plug StorymapWeb.Plugs.RateLimit, limit: 60, window_sec: 60, format: :json
   end
 
+  pipeline :rate_limit_api_reads do
+    plug StorymapWeb.Plugs.RateLimit, limit: 300, window_sec: 60, format: :json
+  end
+
+  pipeline :rate_limit_api_tiles do
+    plug StorymapWeb.Plugs.RateLimit, limit: 1200, window_sec: 60, format: :json
+  end
+
   scope "/", StorymapWeb do
     pipe_through :browser
 
@@ -43,7 +66,7 @@ defmodule StorymapWeb.Router do
   end
 
   scope "/api", StorymapWeb do
-    pipe_through [:api, :fetch_session, :fetch_current_scope_for_user]
+    pipe_through [:api, :rate_limit_api_reads, :fetch_session, :fetch_current_scope_for_user]
 
     # Public read operations (with optional authentication for user_id inclusion)
     get "/pins", PinController, :index
@@ -62,6 +85,11 @@ defmodule StorymapWeb.Router do
     get "/sub_maps", SubMapController, :index
     get "/sub_maps/:community_url", SubMapController, :show
     get "/sub_maps/:community_url/pins", SubMapController, :pins
+  end
+
+  scope "/api", StorymapWeb do
+    pipe_through [:api, :rate_limit_api_tiles, :fetch_session, :fetch_current_scope_for_user]
+
     get "/map/style", MapController, :style
     get "/map/tiles.json", MapController, :tiles_json
     get "/tiles/:layer/:z/:x/:y", MapController, :tile
@@ -194,8 +222,6 @@ defmodule StorymapWeb.Router do
       live "/admin/activity", AdminLive.Activity, :index
       live "/admin/reports", AdminLive.Reports, :index
     end
-
-    post "/users/update-password", UserSessionController, :update_password
   end
 
   scope "/", StorymapWeb do

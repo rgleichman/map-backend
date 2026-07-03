@@ -9,12 +9,6 @@
   <% else %>
     <div class="max-w-xl mx-auto mt-12 p-8 bg-base-100 rounded-lg shadow border border-base-300">
       <h1 class="text-2xl font-bold mb-4 text-base-content">User {@user.id}</h1>
-      <div class="mb-2">
-        <span class="font-semibold text-base-content">Confirmed at:</span>
-        <span class="text-base-content/80">
-          {@user.confirmed_at || "Not confirmed"}
-        </span>
-      </div>
 
       <%= if @own_profile? do %>
         <div class="mt-8 pt-6 border-t border-base-300">

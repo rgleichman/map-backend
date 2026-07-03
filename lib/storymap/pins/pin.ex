@@ -109,6 +109,7 @@ defmodule Storymap.Pins.Pin do
       ])
       |> validate_required([:title, :latitude, :longitude, :pin_type])
       |> validate_pin_type()
+      |> validate_icon_url()
       |> validate_length(:description, max: 5000)
       |> put_default_custom_data()
 
@@ -207,5 +208,16 @@ defmodule Storymap.Pins.Pin do
       nil -> put_change(changeset, :custom_data, %{})
       _ -> changeset
     end
+  end
+
+  defp validate_icon_url(changeset) do
+    validate_change(changeset, :icon_url, fn :icon_url, url ->
+      cond do
+        is_nil(url) -> []
+        is_binary(url) and String.trim(url) == "" -> []
+        Storymap.URL.safe_url?(url) -> []
+        true -> [icon_url: "is not a safe URL"]
+      end
+    end)
   end
 end
