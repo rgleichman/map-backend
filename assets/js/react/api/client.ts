@@ -11,12 +11,17 @@ import type {
   UpdatePin,
 } from "../types"
 import { BLOB_FIELD_API_SEGMENT, BlobFieldType } from "../utils/blobFieldType"
+import { errorMessageFromResponse } from "../utils/apiErrors"
+
+async function readErrorMessage(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "")
+  return errorMessageFromResponse(res.status, text)
+}
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
   if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`HTTP ${res.status}: ${text}`)
+    throw new Error(await readErrorMessage(res))
   }
   return res.json() as Promise<T>
 }
@@ -24,8 +29,7 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
 async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(url, init)
   if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`HTTP ${res.status}: ${text}`)
+    throw new Error(await readErrorMessage(res))
   }
   return res
 }

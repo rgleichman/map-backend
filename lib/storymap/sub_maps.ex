@@ -3,6 +3,7 @@ defmodule Storymap.SubMaps do
   Sub-maps (communities): CRUD, memberships, and moderation.
   """
   import Ecto.Query
+  alias Storymap.Accounts.Policy, as: AccountsPolicy
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.Pins
@@ -202,6 +203,14 @@ defmodule Storymap.SubMaps do
 
   @spec join(Scope.t(), SubMap.t()) :: Types.ecto_result(Membership.t())
   def join(%Scope{user: %User{} = user}, %SubMap{} = sub_map) do
+    if AccountsPolicy.muted?(user) do
+      {:error, :forbidden}
+    else
+      do_join(user, sub_map)
+    end
+  end
+
+  defp do_join(%User{} = user, %SubMap{} = sub_map) do
     case get_membership(sub_map.id, user.id) do
       %Membership{status: :active} = m ->
         {:ok, m}

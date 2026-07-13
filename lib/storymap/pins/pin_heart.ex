@@ -20,8 +20,8 @@ defmodule Storymap.Pins.PinHeart do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(%__MODULE__{} = heart, attrs) do
     heart
-    |> cast(attrs, [:user_id, :pin_id])
-    |> validate_required([:user_id, :pin_id])
+    |> cast(attrs, [:pin_id])
+    |> validate_required([:pin_id])
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:pin_id)
     |> unique_constraint([:user_id, :pin_id])

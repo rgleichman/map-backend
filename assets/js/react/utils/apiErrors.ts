@@ -29,3 +29,30 @@ export function parseApiErrorMessage(httpErrorText: string, field?: string): str
 
   return null
 }
+
+function genericApiErrorMessage(status: number): string {
+  switch (status) {
+    case 401:
+      return "Please sign in to continue."
+    case 403:
+      return "You don't have permission to do that."
+    case 404:
+      return "Not found."
+    case 422:
+      return "Please check your input and try again."
+    case 429:
+      return "Too many requests. Please wait and try again."
+    default:
+      return "Something went wrong. Please try again."
+  }
+}
+
+/** User-facing message for a failed fetch; preserves field errors on 422 only. */
+export function errorMessageFromResponse(status: number, body: string): string {
+  if (status === 422) {
+    const fieldError = parseApiErrorMessage(body)
+    if (fieldError) return fieldError
+  }
+
+  return genericApiErrorMessage(status)
+}

@@ -4,7 +4,7 @@ defmodule Storymap.Pins.HeartsTest do
   import Storymap.AccountsFixtures
   import Storymap.PinsFixtures
 
-  alias Storymap.Pins.Hearts
+  alias Storymap.Pins.{Hearts, PinHeart}
 
   describe "heart/2 and unheart/2" do
     test "heart is idempotent" do
@@ -29,6 +29,19 @@ defmodule Storymap.Pins.HeartsTest do
       user = user_fixture()
       pin = pin_fixture(%{}, user)
       assert :ok = Hearts.unheart(user, pin)
+    end
+
+    test "changeset ignores user_id in attrs" do
+      user = user_fixture()
+      other = user_fixture()
+      pin = pin_fixture(%{}, user)
+
+      assert {:ok, heart} = Hearts.heart(user, pin)
+      assert heart.user_id == user.id
+
+      refute PinHeart.changeset(%PinHeart{}, %{pin_id: pin.id, user_id: other.id}).changes[
+               :user_id
+             ]
     end
   end
 

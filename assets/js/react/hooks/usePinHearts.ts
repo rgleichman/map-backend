@@ -6,6 +6,7 @@ export type ToggleHeartResult = { needsLogin: true } | { needsLogin: false }
 export function usePinHearts(userId?: number, csrfToken?: string) {
   const [heartedPinIds, setHeartedPinIds] = useState<ReadonlySet<number>>(new Set())
   const [loading, setLoading] = useState(Boolean(userId))
+  const [loadError, setLoadError] = useState<string | null>(null)
   const heartedPinIdsRef = useRef(heartedPinIds)
   heartedPinIdsRef.current = heartedPinIds
 
@@ -13,19 +14,24 @@ export function usePinHearts(userId?: number, csrfToken?: string) {
     if (!userId) {
       setHeartedPinIds(new Set())
       setLoading(false)
+      setLoadError(null)
       return
     }
 
     let cancelled = false
     setLoading(true)
+    setLoadError(null)
 
     api
       .getMyPinHeartIds()
       .then(({ data }) => {
         if (!cancelled) setHeartedPinIds(new Set(data))
       })
-      .catch(() => {
-        if (!cancelled) setHeartedPinIds(new Set())
+      .catch((e) => {
+        if (!cancelled) {
+          setHeartedPinIds(new Set())
+          setLoadError(e instanceof Error ? e.message : "Could not load saved pins.")
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -68,5 +74,5 @@ export function usePinHearts(userId?: number, csrfToken?: string) {
     [userId, csrfToken],
   )
 
-  return { heartedPinIds, isHearted, toggleHeart, loading }
+  return { heartedPinIds, isHearted, toggleHeart, loading, loadError }
 }

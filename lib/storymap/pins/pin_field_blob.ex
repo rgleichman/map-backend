@@ -41,12 +41,24 @@ defmodule Storymap.Pins.PinFieldBlob do
     |> validate_required([:pin_id, :field_key, :type, :format, :version, :payload])
     |> validate_length(:field_key, max: 64)
     |> validate_length(:format, max: 32)
+    |> validate_format_for_type()
     |> validate_number(:version, greater_than_or_equal_to: 1)
     |> validate_payload_size()
     |> unique_constraint([:pin_id, :field_key, :type],
       name: :pin_field_blobs_pin_field_type_index
     )
     |> foreign_key_constraint(:pin_id)
+  end
+
+  defp validate_format_for_type(changeset) do
+    type = Ecto.Changeset.get_field(changeset, :type)
+    format = Ecto.Changeset.get_field(changeset, :format)
+
+    if type && format && BlobFieldType.valid_format?(type, format) do
+      changeset
+    else
+      Ecto.Changeset.add_error(changeset, :format, "is invalid")
+    end
   end
 
   defp validate_payload_size(changeset) do

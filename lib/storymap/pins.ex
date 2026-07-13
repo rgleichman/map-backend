@@ -182,9 +182,7 @@ defmodule Storymap.Pins do
   def upsert_field_blob(%Pin{} = pin, field_key, type, attrs)
       when is_binary(field_key) and type in @blob_field_types and is_map(attrs) do
     with :ok <- validate_blob_field_key(pin, field_key, type) do
-      format =
-        Map.get(attrs, "format") || Map.get(attrs, :format) || BlobFieldType.default_format(type)
-
+      format = BlobFieldType.default_format(type)
       version = Map.get(attrs, "version") || Map.get(attrs, :version) || 1
       payload = Map.get(attrs, "payload") || Map.get(attrs, :payload)
 

@@ -643,6 +643,50 @@ defmodule StorymapWeb.PinControllerTest do
       assert json_response(conn, 422)["errors"]["linked_pin_ids"] != []
     end
 
+    test "rejects link to approved sub-map pin that is not world visible", %{
+      conn: conn,
+      user: user
+    } do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "contribution_mode" => "open",
+            "community_url" => "link-hidden",
+            "promote_to_world_default" => "never"
+          },
+          owner
+        )
+
+      {:ok, hidden_target} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Hidden target",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other",
+            "visible_on_world_map" => false
+          }
+        )
+
+      source = pin_fixture(%{}, user)
+
+      conn =
+        put(conn, ~p"/api/pins/#{source.id}",
+          pin: %{
+            "title" => source.title,
+            "linked_pin_ids" => [hidden_target.id]
+          }
+        )
+
+      assert json_response(conn, 422)["errors"]["linked_pin_ids"] != []
+    end
+
     test "dedupes explicit and text refs to same target", %{conn: conn, user: user} do
       target = pin_fixture(%{"title" => "Dedup Target"}, user)
       source = pin_fixture(%{"title" => "Dedup Source"}, user)

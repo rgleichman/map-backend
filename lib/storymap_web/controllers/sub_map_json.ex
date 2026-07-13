@@ -22,11 +22,7 @@ defmodule StorymapWeb.SubMapJSON do
       data:
         data(sub_map)
         |> Map.merge(viewer_fields(user, membership, assigns))
-        |> Map.merge(%{
-          pin_count: counts.pin_count,
-          member_count: counts.member_count,
-          pending_count: counts.pending_count
-        })
+        |> Map.merge(count_fields(counts, assigns))
     }
   end
 
@@ -77,5 +73,18 @@ defmodule StorymapWeb.SubMapJSON do
 
   defp membership_data(%Membership{} = m) do
     %{role: to_string(m.role), status: to_string(m.status)}
+  end
+
+  defp count_fields(counts, assigns) do
+    base = %{
+      pin_count: counts.pin_count,
+      member_count: counts.member_count
+    }
+
+    if Map.get(assigns, :can_moderate, false) do
+      Map.put(base, :pending_count, counts.pending_count)
+    else
+      base
+    end
   end
 end

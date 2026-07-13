@@ -55,7 +55,6 @@ describe("createPinTypeMarkerSVG", () => {
         schema: { fields: [] },
         pin_type: "custom:example",
         enabled: true,
-        created_by_user_id: 1,
         inserted_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       } as any,

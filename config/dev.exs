@@ -16,6 +16,9 @@ config :storymap, Storymap.Repo,
 # Server-side MapTiler tile cache (proxy + disk cache); disabled in prod
 config :storymap, :tile_cache_enabled, true
 
+# LiveReload injects inline scripts; keep CSP relaxed in dev.
+config :storymap, :csp_strict_scripts, false
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

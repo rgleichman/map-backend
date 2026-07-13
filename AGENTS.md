@@ -44,6 +44,7 @@ The application should work for both **desktop** and **cross-platform mobile web
   - You cannot reference an external vendor'd script `src` or link `href` in the layouts
   - You must import the vendor deps into app.js and app.css to use them
   - **Never write inline <script>custom js</script> tags within templates**
+- **Content Security Policy (`connect-src`):** New browser `fetch`/WebSocket hosts (map tiles, geocoding, third-party APIs) must be added to `@connect_hosts` in `lib/storymap_web/plugs/content_security_policy.ex` and covered in `test/storymap_web/plugs/content_security_policy_test.exs`; verify in the browser after changing.
 
 ### React + TypeScript Guidelines
 

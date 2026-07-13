@@ -19,12 +19,14 @@ defmodule StorymapWeb.Plugs.RateLimit do
     limit = Keyword.get(opts, :limit, 20)
     window_sec = Keyword.get(opts, :window_sec, 60)
     format = Keyword.get(opts, :format, :json)
-    %{limit: limit, window_sec: window_sec, format: format}
+    bucket = Keyword.fetch!(opts, :bucket)
+
+    %{limit: limit, window_sec: window_sec, format: format, bucket: bucket}
   end
 
-  def call(conn, %{limit: limit, window_sec: window_sec, format: format}) do
+  def call(conn, %{limit: limit, window_sec: window_sec, format: format, bucket: bucket}) do
     if enabled?() do
-      key = key(conn)
+      key = key(conn, bucket)
 
       case check(key, limit, window_sec) do
         :allow -> conn
@@ -106,8 +108,16 @@ defmodule StorymapWeb.Plugs.RateLimit do
     Application.get_env(:storymap, __MODULE__, [])[:enabled] != false
   end
 
-  defp key(conn) do
-    conn.remote_ip |> :inet.ntoa() |> to_string()
+  defp key(conn, bucket) when is_binary(bucket) do
+    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+
+    subject =
+      case conn.assigns[:current_scope] do
+        %{user: %{id: id}} -> "user:#{id}"
+        _ -> "ip:#{ip}"
+      end
+
+    "rate_limit:#{bucket}:#{subject}"
   end
 
   defp ensure_table! do

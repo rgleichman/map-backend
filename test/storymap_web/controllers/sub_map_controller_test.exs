@@ -45,6 +45,39 @@ defmodule StorymapWeb.SubMapControllerTest do
       assert is_list(data["available_custom_pin_types"])
       refute Map.has_key?(data, "enabled_custom_slugs")
     end
+
+    test "omits pending_count for anonymous viewers", %{conn: conn} do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"community_url" => "pending-count-hide", "contribution_mode" => "approval_required"},
+          owner
+        )
+
+      conn = get(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
+      data = json_response(conn, 200)["data"]
+
+      refute Map.has_key?(data, "pending_count")
+    end
+
+    test "includes pending_count for moderators", %{conn: conn} do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"community_url" => "pending-count-mod", "contribution_mode" => "approval_required"},
+          owner
+        )
+
+      conn =
+        conn
+        |> log_in_user(owner)
+        |> get(~p"/api/sub_maps/#{sub_map.community_url}")
+
+      data = json_response(conn, 200)["data"]
+      assert Map.has_key?(data, "pending_count")
+    end
   end
 
   describe "POST /api/sub_maps" do

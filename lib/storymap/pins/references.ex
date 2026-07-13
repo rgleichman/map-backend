@@ -8,7 +8,7 @@ defmodule Storymap.Pins.References do
   alias Storymap.PinTypes
   alias Storymap.PinTypes.CustomPinType
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
-  alias Storymap.Pins.{Pin, PinReference, ReferenceParser}
+  alias Storymap.Pins.{Pin, PinReference, ReferenceParser, Visibility}
   alias Storymap.Repo
   alias Storymap.Types
 
@@ -21,7 +21,7 @@ defmodule Storymap.Pins.References do
     text_refs = extract_text_references(pin)
     rows = build_reference_rows(source_id, explicit_ids, text_refs)
 
-    with :ok <- validate_reference_rows(source_id, rows) do
+    with :ok <- validate_reference_rows(pin, rows) do
       _ =
         from(r in PinReference, where: r.source_pin_id == ^source_id)
         |> Repo.delete_all()
@@ -140,7 +140,7 @@ defmodule Storymap.Pins.References do
 
   defp custom_text_field_refs(_pin, _origin), do: []
 
-  defp validate_reference_rows(source_pin_id, rows) do
+  defp validate_reference_rows(%Pin{id: source_pin_id} = source_pin, rows) do
     explicit_count = Enum.count(rows, &(&1.kind == :explicit))
     target_ids = Enum.map(rows, & &1.target_pin_id)
 
@@ -152,25 +152,22 @@ defmodule Storymap.Pins.References do
         {:error, reference_error("cannot link a pin to itself")}
 
       true ->
-        validate_reference_targets(target_ids)
+        validate_reference_targets(target_ids, source_pin)
     end
   end
 
-  defp validate_reference_targets([]), do: :ok
+  defp validate_reference_targets([], _source_pin), do: :ok
 
-  defp validate_reference_targets(target_ids) do
-    approved_ids =
-      from(p in Pin,
-        where: p.id in ^target_ids and p.status == ^:approved,
-        select: p.id
-      )
+  defp validate_reference_targets(target_ids, %Pin{} = source_pin) do
+    targets =
+      from(p in Pin, where: p.id in ^target_ids)
       |> Repo.all()
-      |> MapSet.new()
+      |> Map.new(&{&1.id, &1})
 
     missing =
       target_ids
       |> Enum.uniq()
-      |> Enum.reject(&MapSet.member?(approved_ids, &1))
+      |> Enum.reject(&linkable_target?(source_pin, Map.get(targets, &1)))
 
     if missing == [] do
       :ok
@@ -178,6 +175,17 @@ defmodule Storymap.Pins.References do
       {:error, reference_error("invalid or unavailable pin link")}
     end
   end
+
+  defp linkable_target?(_source, nil), do: false
+
+  defp linkable_target?(%Pin{} = source, %Pin{status: :approved} = target) do
+    Visibility.world_visible?(target) or same_sub_map?(source, target)
+  end
+
+  defp linkable_target?(_, _), do: false
+
+  defp same_sub_map?(%Pin{sub_map_id: sid}, %Pin{sub_map_id: sid}) when not is_nil(sid), do: true
+  defp same_sub_map?(_, _), do: false
 
   defp reference_error(message) do
     %Pin{}

@@ -25,7 +25,6 @@ defmodule StorymapWeb.PinTypeJSON do
       schema: pin_type.schema || %{},
       pin_type: CustomPinType.pin_type_value(pin_type),
       enabled: pin_type.enabled,
-      created_by_user_id: pin_type.created_by_user_id,
       inserted_at: pin_type.inserted_at,
       updated_at: pin_type.updated_at
     }

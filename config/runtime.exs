@@ -42,7 +42,7 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :storymap, Storymap.Repo,
-    # ssl: true,
+    ssl: System.get_env("DATABASE_SSL") in ~w(true 1 required),
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     # For machines with several cores, consider starting multiple pools of `pool_size`
@@ -88,6 +88,7 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
+    force_ssl: [hsts: true, rewrite_on: [:x_forwarded_proto]],
     secret_key_base: secret_key_base
 
   # ## SSL Support

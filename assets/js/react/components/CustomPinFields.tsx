@@ -9,6 +9,7 @@ import { fetchBlobPayload } from "../utils/blobPayloadCache"
 import { useMusicPreview } from "../hooks/useMusicPreview"
 import { BlobFieldType, isBlobFieldType } from "../utils/blobFieldType"
 import { CustomFieldPrimitiveType, isCustomFieldPrimitiveType } from "../utils/customFieldPrimitiveType"
+import { isSafeUrl, normalizeUrl } from "../utils/linkify"
 import {
   formatCustomFieldValue,
   isCustomFieldEmpty,
@@ -100,13 +101,7 @@ function renderField(
       )
     case CustomFieldPrimitiveType.Url:
       return (
-        <input
-          type="url"
-          className="input input-bordered w-full"
-          placeholder="https://"
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => onValue(e.target.value)}
-        />
+        <UrlFieldInput value={value} onValue={onValue} />
       )
     case CustomFieldPrimitiveType.List: {
       const items = Array.isArray(value) ? value.map(String) : [""]
@@ -190,6 +185,44 @@ function renderField(
 }
 
 
+function UrlFieldInput({
+  value,
+  onValue,
+}: {
+  value: unknown
+  onValue: (v: unknown) => void
+}) {
+  const [error, setError] = useState<string | null>(null)
+  const text = typeof value === "string" ? value : ""
+
+  const validate = (raw: string) => {
+    const trimmed = raw.trim()
+    if (trimmed === "") {
+      setError(null)
+      return
+    }
+    const candidate = normalizeUrl(trimmed)
+    setError(isSafeUrl(candidate) ? null : "Enter a safe http(s) or mailto link.")
+  }
+
+  return (
+    <div className="space-y-1">
+      <input
+        type="url"
+        className={`input input-bordered w-full${error ? " input-error" : ""}`}
+        placeholder="https://"
+        value={text}
+        onChange={(e) => {
+          onValue(e.target.value)
+          if (error) validate(e.target.value)
+        }}
+        onBlur={(e) => validate(e.target.value)}
+      />
+      {error ? <p className="text-xs text-error">{error}</p> : null}
+    </div>
+  )
+}
+
 type CustomFieldDisplayProps = {
   field: CustomFieldSchema
   value: unknown
@@ -210,9 +243,14 @@ export function CustomFieldDisplay({ field, value, className }: CustomFieldDispl
   }
 
   if (field.type === CustomFieldPrimitiveType.Url && typeof value === "string") {
+    const href = normalizeUrl(value)
+    if (!isSafeUrl(href)) {
+      return <span className={`break-all ${className ?? ""}`.trim()}>{value}</span>
+    }
+
     return (
       <a
-        href={value}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         className={`link link-primary break-all ${className ?? ""}`.trim()}

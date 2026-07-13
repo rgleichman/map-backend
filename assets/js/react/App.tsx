@@ -71,7 +71,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     initialPinId,
   })
 
-  const { heartedPinIds, isHearted, toggleHeart, loading: pinHeartsLoading } = usePinHearts(userId, csrfToken)
+  const { heartedPinIds, isHearted, toggleHeart, loading: pinHeartsLoading, loadError: pinHeartsLoadError } =
+    usePinHearts(userId, csrfToken)
 
   const handleTogglePinHeart = useCallback(
     async (pinId: number) => {
@@ -272,6 +273,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
           {timeError && <ErrorToast message={timeError} prefix="⏰ " />}
           {formError && <ErrorToast message={formError} />}
           {apiError && <ErrorToast message={apiError} />}
+          {pinHeartsLoadError && <ErrorToast message={pinHeartsLoadError} />}
         </div>
       </SubMapProvider>
     </PinTypesProvider>

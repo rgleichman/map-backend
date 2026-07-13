@@ -23,6 +23,8 @@ config :storymap, StorymapWeb.Endpoint,
   secret_key_base: "TppzKSXpZSsh5GdBdX0X2lru+J3PjR9ImBHCuJZjImcTKtcymx0qoVXdneSEageu",
   server: false
 
+config :storymap, :csp_strict_scripts, false
+
 # In test we don't send emails
 config :storymap, Storymap.Mailer, adapter: Swoosh.Adapters.Test
 

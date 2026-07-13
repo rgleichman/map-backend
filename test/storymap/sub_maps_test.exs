@@ -294,4 +294,16 @@ defmodule Storymap.SubMapsTest do
     assert {:error, :forbidden} =
              SubMaps.approve_pin(%Scope{user: muted_owner}, sub_map, pin.id)
   end
+
+  test "join/2 forbidden when user is muted" do
+    user = muted_user_fixture()
+
+    {:ok, sub_map} =
+      SubMaps.create_sub_map(%Scope{user: user_fixture()}, %{
+        "name" => "Joinable",
+        "community_url" => "muted-join"
+      })
+
+    assert {:error, :forbidden} = SubMaps.join(%Scope{user: user}, sub_map)
+  end
 end

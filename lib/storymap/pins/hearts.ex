@@ -18,7 +18,8 @@ defmodule Storymap.Pins.Hearts do
 
       nil ->
         %PinHeart{}
-        |> PinHeart.changeset(%{user_id: user_id, pin_id: pin_id})
+        |> PinHeart.changeset(%{pin_id: pin_id})
+        |> Ecto.Changeset.put_change(:user_id, user_id)
         |> Repo.insert()
     end
   end
