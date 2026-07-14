@@ -28,6 +28,8 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       html = html_response(conn, 200)
       assert html =~ ~s(data-footer-path="/help")
       assert html =~ "Help"
+      assert html =~ ~s(data-desktop-footer)
+      assert html =~ "--map-pin-legend-max-width"
     end
 
     test "GET /m includes create community action", %{conn: conn} do

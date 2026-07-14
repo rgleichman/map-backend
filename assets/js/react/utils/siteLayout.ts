@@ -31,8 +31,27 @@ export const MAP_SHELL_OVERLAY_TOP = "0.5rem"
 /** Bottom inset for floating panels inside the map viewport (safe-area aware). */
 export const MAP_SHELL_OVERLAY_BOTTOM = "max(1rem, env(safe-area-inset-bottom))"
 
+/** CSS var set by app.js from the desktop footer height on md+; 0 below md. */
+export const MAP_DESKTOP_FOOTER_RESERVE_CSS_VAR = "--map-desktop-footer-reserve"
+
 export function mapShellOverlayTop(): string {
   return MAP_SHELL_OVERLAY_TOP
+}
+
+/**
+ * Bottom inset for map-shell overlays that must clear the desktop floating footer.
+ * Below md, --map-desktop-footer-reserve is 0 so this matches MAP_SHELL_OVERLAY_BOTTOM.
+ */
+export function mapShellOverlayBottomAboveFooter(): string {
+  return `calc(var(${MAP_DESKTOP_FOOTER_RESERVE_CSS_VAR}, 0px) + ${MAP_SHELL_OVERLAY_BOTTOM})`
+}
+
+/**
+ * Bottom offset for viewport-fixed UI on the map page (e.g. help button).
+ * Matches Tailwind bottom-3 (0.75rem) when footer reserve is 0.
+ */
+export function mapPageFixedBottom(): string {
+  return `calc(var(${MAP_DESKTOP_FOOTER_RESERVE_CSS_VAR}, 0px) + max(0.75rem, env(safe-area-inset-bottom)))`
 }
 
 /**
@@ -62,10 +81,10 @@ export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
 
 /**
  * Max height for the bottom-left pin type legend so it stays below the
- * top-left place + pin search stack.
+ * top-left place + pin search stack (and above the desktop footer reserve).
  */
 export function mapShellPinTypeLegendMaxHeight(): string {
-  return `calc(100% - ${MAP_SHELL_OVERLAY_BOTTOM} - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
+  return `calc(100% - ${mapShellOverlayBottomAboveFooter()} - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
 }
 
 /**
@@ -78,4 +97,9 @@ export function mapShellPinTypeLegendMaxHeight(): string {
  * - 30: site footer links, React ? help button
  * - 40: side panel, placement bar
  * - 50+: modals
+ *
+ * Bottom layout tokens (CSS vars in app.css, measured in app.js):
+ * - --map-desktop-footer-reserve: footer band height on md+
+ * - --map-help-button-reserve: right margin so MapLibre attribution clears the ? button
+ * - --map-pin-legend-*: footer left padding so links clear the legend column on map pages
  */

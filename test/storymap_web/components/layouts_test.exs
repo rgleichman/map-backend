@@ -1,5 +1,5 @@
 defmodule StorymapWeb.LayoutsTest do
-  use ExUnit.Case, async: true
+  use StorymapWeb.ConnCase, async: true
 
   alias StorymapWeb.Layouts
 
@@ -29,6 +29,21 @@ defmodule StorymapWeb.LayoutsTest do
 
       assert Layouts.full_viewport_map_path?("/m/foo/map") ==
                Layouts.map_full_bleed_path?("/m/foo/map")
+    end
+  end
+
+  describe "desktop_floating_footer_links/1" do
+    test "map pages reserve left padding for the pin legend column", %{conn: conn} do
+      html = html_response(get(conn, ~p"/"), 200)
+      assert html =~ ~s(data-desktop-footer)
+      assert html =~ "--map-pin-legend-max-width"
+      assert html =~ "--map-pin-legend-inset"
+    end
+
+    test "non-map pages do not reserve pin legend padding", %{conn: conn} do
+      html = html_response(get(conn, ~p"/about"), 200)
+      assert html =~ ~s(data-desktop-footer)
+      refute html =~ "--map-pin-legend-max-width"
     end
   end
 end

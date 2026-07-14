@@ -197,6 +197,49 @@ if (document.readyState === "loading") {
 window.addEventListener("phx:page-loading-stop", initFooterNavActive)
 window.addEventListener("map:route-change", initFooterNavActive)
 
+// Measure desktop floating footer height so map overlays (pin legend, help button)
+// can clear it via --map-desktop-footer-reserve (0 below md).
+const FOOTER_RESERVE_VAR = "--map-desktop-footer-reserve"
+const DESKTOP_FOOTER_MQ = "(min-width: 768px)"
+
+const setDesktopFooterReserve = (px) => {
+  document.documentElement.style.setProperty(FOOTER_RESERVE_VAR, `${px}px`)
+}
+
+const updateDesktopFooterReserve = () => {
+  const footer = document.querySelector("[data-desktop-footer]")
+  const isDesktop = window.matchMedia(DESKTOP_FOOTER_MQ).matches
+  if (!footer || !isDesktop) {
+    setDesktopFooterReserve(0)
+    return
+  }
+  setDesktopFooterReserve(Math.ceil(footer.getBoundingClientRect().height))
+}
+
+let desktopFooterObserver = null
+
+const initDesktopFooterReserve = () => {
+  updateDesktopFooterReserve()
+  const footer = document.querySelector("[data-desktop-footer]")
+  if (desktopFooterObserver) {
+    desktopFooterObserver.disconnect()
+    desktopFooterObserver = null
+  }
+  if (!footer || typeof ResizeObserver === "undefined") return
+  desktopFooterObserver = new ResizeObserver(() => updateDesktopFooterReserve())
+  desktopFooterObserver.observe(footer)
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDesktopFooterReserve)
+} else {
+  initDesktopFooterReserve()
+}
+
+window.addEventListener("phx:page-loading-stop", initDesktopFooterReserve)
+window.addEventListener("map:route-change", initDesktopFooterReserve)
+window.matchMedia(DESKTOP_FOOTER_MQ).addEventListener("change", updateDesktopFooterReserve)
+
 // Close drawer when clicking drawer-close elements
 const initDrawerClose = () => {
   document.querySelectorAll(".drawer-close").forEach(element => {

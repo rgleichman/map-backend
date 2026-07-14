@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useState } from "react"
-import { MAP_SHELL_OVERLAY_BOTTOM, mapShellOverlayTop } from "../utils/siteLayout"
+import { mapShellOverlayBottomAboveFooter, mapShellOverlayTop } from "../utils/siteLayout"
 
-const safeBottom = MAP_SHELL_OVERLAY_BOTTOM
+const safeBottom = mapShellOverlayBottomAboveFooter()
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
 const safeRight = "max(1rem, env(safe-area-inset-right))"
 
@@ -112,13 +112,13 @@ export default function FloatingPanel({
   const panelStyle = isInline
     ? maxHeight ? { maxHeight } : undefined
     : {
-        ...(isTopLeft
-          ? { top: top, left: safeLeft }
-          : isTopRight
-            ? { top: top, right: safeRight }
-            : { bottom: safeBottom, left: safeLeft }),
-        ...(maxHeight ? { maxHeight } : {}),
-      }
+      ...(isTopLeft
+        ? { top: top, left: safeLeft }
+        : isTopRight
+          ? { top: top, right: safeRight }
+          : { bottom: safeBottom, left: safeLeft }),
+      ...(maxHeight ? { maxHeight } : {}),
+    }
 
   return (
     <>

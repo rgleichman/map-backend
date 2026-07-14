@@ -17,6 +17,7 @@ import { useMapData } from "./hooks/useMapData"
 import type { PinType } from "./types"
 import type { PinWorkflowAction } from "./pinWorkflow/types"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
+import { mapPageFixedBottom } from "./utils/siteLayout"
 import * as api from "./api/client"
 import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
@@ -263,7 +264,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
             onClick={openWelcome}
             aria-label="Open help"
             title="Help"
-            className="fixed right-3 bottom-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+            className="fixed right-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+            style={{ bottom: mapPageFixedBottom() }}
           >
             ?
           </button>

@@ -452,6 +452,7 @@ defmodule StorymapWeb.Layouts do
       |> assign(:about_active?, assigns.current_path == "/about")
       |> assign(:vision_active?, assigns.current_path == "/vision")
       |> assign(:help_active?, assigns.current_path == "/help")
+      |> assign(:map_page?, map_full_bleed_path?(assigns.current_path))
 
     footer_link_base =
       "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
@@ -466,7 +467,14 @@ defmodule StorymapWeb.Layouts do
 
     ~H"""
     <%!-- z-30: below map React overlays (placement bar, side panel) at z-40 --%>
-    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden pb-5 md:flex md:justify-center">
+    <div
+      data-desktop-footer
+      class={[
+        "pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden pb-5 md:flex md:justify-center",
+        @map_page? &&
+          "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
+      ]}
+    >
       <nav
         class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 sm:gap-4"
         aria-label="Site links"

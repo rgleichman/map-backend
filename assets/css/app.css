@@ -196,6 +196,18 @@
 /* Shared with Phoenix root nav (layouts/root.html.heex) and React map overlays. */
 :root {
   --site-header-height: 3.5rem;
+  /* Pin legend column: FloatingPanel compact max-w-[240px] + left inset */
+  --map-pin-legend-max-width: 15rem;
+  --map-pin-legend-inset: 1rem;
+  /* Set by app.js from desktop footer height on md+; 0 below md */
+  --map-desktop-footer-reserve: 0px;
+  /* right-3 + btn-circle btn-sm + gap — clears MapLibre attribution */
+  --map-help-button-reserve: 2.75rem;
+}
+
+/* Keep MapLibre attribution left of the fixed help (?) button */
+.maplibregl-ctrl-bottom-right {
+  margin-right: var(--map-help-button-reserve);
 }
 
 /* Global height constraints to prevent scrollbar overflow */
