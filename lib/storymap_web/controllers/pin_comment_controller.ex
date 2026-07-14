@@ -2,8 +2,7 @@ defmodule StorymapWeb.PinCommentController do
   use StorymapWeb, :controller
 
   alias Storymap.Pins
-  alias Storymap.Pins.{CommentAuthorizer, Comments, Pin}
-  alias Storymap.SubMaps
+  alias Storymap.Pins.{AuthorizerOpts, CommentAuthorizer, Comments, Pin}
   alias StorymapWeb.CommentBroadcast
 
   action_fallback StorymapWeb.FallbackController
@@ -116,15 +115,7 @@ defmodule StorymapWeb.PinCommentController do
   end
 
   defp authorizer_opts(conn, %Pin{} = pin) do
-    user = current_user(conn)
-    sub_map = pin.sub_map
-
-    membership =
-      if sub_map && user,
-        do: SubMaps.get_membership(sub_map.id, user.id),
-        else: nil
-
-    [sub_map: sub_map, membership: membership]
+    AuthorizerOpts.for_pin(current_user(conn), pin)
   end
 
   defp list_opts(params) do

@@ -42,10 +42,6 @@ export function getMyPinHeartIds(): Promise<{ data: number[] }> {
   return jsonFetch("/api/me/pin_hearts", { credentials: "same-origin" })
 }
 
-export function getMyHeartedPins(): Promise<{ data: Pin[] }> {
-  return jsonFetch("/api/me/pin_hearts/pins", { credentials: "same-origin" })
-}
-
 export async function heartPin(csrf: string | undefined, pinId: number): Promise<void> {
   await fetchRequest(`/api/pins/${pinId}/heart`, {
     method: "POST",

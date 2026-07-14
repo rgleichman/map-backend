@@ -12,7 +12,7 @@ import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../
 import PinReportDialog from "./PinReportDialog"
 import PinComments from "./PinComments"
 import PinHeartButton from "./PinHeartButton"
-import type { ToggleHeartResult } from "../../hooks/usePinHearts"
+import type { ToggleHeartResult } from "../../types"
 
 const popupContentClasses = "text-sm text-base-content"
 

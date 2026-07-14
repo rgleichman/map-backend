@@ -43,7 +43,7 @@ import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import PinSearch from "./PinSearch"
 import { mapShellTopLeftPinSearchTop, mapShellTopRightOverlayTop } from "../utils/siteLayout"
-import type { ToggleHeartResult } from "../hooks/usePinHearts"
+import type { ToggleHeartResult } from "../types"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {

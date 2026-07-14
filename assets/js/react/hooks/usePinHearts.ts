@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as api from "../api/client"
-
-export type ToggleHeartResult = { needsLogin: true } | { needsLogin: false }
+import type { ToggleHeartResult } from "../types"
 
 export function usePinHearts(userId?: number, csrfToken?: string) {
   const [heartedPinIds, setHeartedPinIds] = useState<ReadonlySet<number>>(new Set())

@@ -2,9 +2,9 @@ defmodule Storymap.Pins.HeartAuthorizer do
   @moduledoc """
   API authorization for pin hearts (private saves).
   """
+  alias Storymap.Accounts.Policy, as: AccountsPolicy
   alias Storymap.Accounts.User
-  alias Storymap.Pins.{Authorizer, Pin, Policy}
-  alias Storymap.SubMaps
+  alias Storymap.Pins.{Authorizer, AuthorizerOpts, Pin}
   alias Storymap.Types
 
   @spec authorize_heart(User.t(), Pin.t(), keyword()) ::
@@ -20,22 +20,11 @@ defmodule Storymap.Pins.HeartAuthorizer do
   end
 
   @spec authorize_list(User.t()) :: Types.authorize_result()
-  def authorize_list(%User{} = user) do
-    if Policy.muted?(user), do: {:error, :forbidden}, else: :ok
-  end
+  def authorize_list(%User{} = user), do: AccountsPolicy.authorize_write?(user)
 
   @spec authorize_unheart(User.t()) :: Types.authorize_result()
   def authorize_unheart(%User{} = user), do: authorize_list(user)
 
   @spec authorizer_opts(User.t() | nil, Pin.t()) :: keyword()
-  def authorizer_opts(user, %Pin{} = pin) do
-    sub_map = pin.sub_map
-
-    membership =
-      if sub_map && user,
-        do: SubMaps.get_membership(sub_map.id, user.id),
-        else: nil
-
-    [sub_map: sub_map, membership: membership]
-  end
+  def authorizer_opts(user, %Pin{} = pin), do: AuthorizerOpts.for_pin(user, pin)
 end

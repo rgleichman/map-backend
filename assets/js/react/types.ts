@@ -160,3 +160,5 @@ export type ContentReportPayload = {
   category: ReportCategory
   details?: string
 }
+
+export type ToggleHeartResult = { needsLogin: true } | { needsLogin: false }

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import LoginRequiredModal from "../LoginRequiredModal"
 import HeartIcon from "../HeartIcon"
-import type { ToggleHeartResult } from "../../hooks/usePinHearts"
+import type { ToggleHeartResult } from "../../types"
 
 type Props = {
   hearted: boolean

@@ -20,7 +20,7 @@ defmodule Storymap.Pins.HeartsTest do
       user = user_fixture()
       pin = pin_fixture(%{}, user)
 
-      {:ok, _} = Hearts.heart(user, pin)
+      pin_heart_fixture(user, pin)
       assert :ok = Hearts.unheart(user, pin)
       refute Hearts.hearted?(user, pin)
     end
@@ -51,8 +51,8 @@ defmodule Storymap.Pins.HeartsTest do
       pin1 = pin_fixture(%{"title" => "First"}, user)
       pin2 = pin_fixture(%{"title" => "Second"}, user)
 
-      {:ok, _} = Hearts.heart(user, pin1)
-      {:ok, _} = Hearts.heart(user, pin2)
+      pin_heart_fixture(user, pin1)
+      pin_heart_fixture(user, pin2)
 
       titles = user |> Hearts.list_pins() |> Enum.map(& &1.title)
       assert MapSet.new(titles) == MapSet.new(["First", "Second"])
@@ -63,8 +63,8 @@ defmodule Storymap.Pins.HeartsTest do
       pin1 = pin_fixture(%{}, user)
       pin2 = pin_fixture(%{}, user)
 
-      {:ok, _} = Hearts.heart(user, pin1)
-      {:ok, _} = Hearts.heart(user, pin2)
+      pin_heart_fixture(user, pin1)
+      pin_heart_fixture(user, pin2)
 
       assert length(Hearts.list_pins(user, limit: 1)) == 1
     end
@@ -89,7 +89,7 @@ defmodule Storymap.Pins.HeartsTest do
         )
 
       pin = Storymap.Repo.update!(Ecto.Changeset.change(pin, status: :rejected))
-      {:ok, _} = Hearts.heart(user, pin)
+      pin_heart_fixture(user, pin)
 
       assert Hearts.list_pins(user) == []
       assert Hearts.list_pin_ids(user) == []
