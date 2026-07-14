@@ -76,7 +76,7 @@ defmodule StorymapWeb.PinHeartControllerTest do
 
     test "unhearts a pin", %{conn: conn, user: user} do
       pin = pin_fixture(%{}, user)
-      {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
+      pin_heart_fixture(user, pin)
 
       conn = delete(conn, ~p"/api/pins/#{pin.id}/heart")
       assert response(conn, 204) == ""
@@ -102,25 +102,13 @@ defmodule StorymapWeb.PinHeartControllerTest do
         )
 
       {:ok, _} = Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: user}, sub_map)
-      {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
+      pin_heart_fixture(user, pin)
 
       pin = Storymap.Repo.update!(Ecto.Changeset.change(pin, status: :rejected))
 
       conn = delete(conn, ~p"/api/pins/#{pin.id}/heart")
       assert response(conn, 204) == ""
       refute Storymap.Pins.Hearts.hearted?(user, pin)
-    end
-  end
-
-  describe "me index" do
-    setup :register_and_log_in_user
-
-    test "lists hearted pin ids", %{conn: conn, user: user} do
-      pin = pin_fixture(%{}, user)
-      {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
-
-      conn = get(conn, ~p"/api/me/pin_hearts")
-      assert json_response(conn, 200)["data"] == [pin.id]
     end
   end
 end

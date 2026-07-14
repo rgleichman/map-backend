@@ -10,7 +10,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
     conn = log_in_user(conn, user)
 
     pin = pin_fixture(%{"title" => "Saved cafe"}, user)
-    {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
+    pin_heart_fixture(user, pin)
 
     {:ok, view, _html} = live(conn, ~p"/user/#{user.id}")
     assert has_element?(view, "h2", "Saved pins")
@@ -25,7 +25,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
     conn = log_in_user(conn, viewer)
 
     pin = pin_fixture(%{"title" => "Secret save"}, other)
-    {:ok, _} = Storymap.Pins.Hearts.heart(other, pin)
+    pin_heart_fixture(other, pin)
 
     {:ok, _view, html} = live(conn, ~p"/user/#{other.id}")
     refute html =~ "Saved pins"
@@ -39,5 +39,19 @@ defmodule StorymapWeb.UserLive.ShowTest do
     {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
     assert html =~ "You have not saved any pins yet"
     refute has_element?(view, "a", "See all")
+  end
+
+  test "muted user sees empty saved section on own profile", %{conn: conn} do
+    user = user_fixture()
+    pin = pin_fixture(%{"title" => "Saved before mute"}, user)
+    pin_heart_fixture(user, pin)
+    user = muted_user_fixture(user)
+    conn = log_in_user(conn, user)
+
+    {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
+    assert has_element?(view, "h2", "Saved pins")
+    assert html =~ "You have not saved any pins yet"
+    refute has_element?(view, "a", "See all")
+    refute html =~ "Saved before mute"
   end
 end

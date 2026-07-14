@@ -14,7 +14,7 @@ defmodule StorymapWeb.SavedLive.IndexTest do
 
   test "lists saved pins", %{conn: conn, user: user} do
     pin = pin_fixture(%{"title" => "My favorite spot"}, user)
-    {:ok, _} = Storymap.Pins.Hearts.heart(user, pin)
+    pin_heart_fixture(user, pin)
 
     {:ok, view, _html} = live(conn, ~p"/saved")
 
@@ -28,5 +28,17 @@ defmodule StorymapWeb.SavedLive.IndexTest do
   test "requires authentication", %{conn: conn} do
     conn = recycle(conn) |> delete_req_header("authorization")
     assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, ~p"/saved")
+  end
+
+  test "redirects muted user", %{conn: conn, user: user} do
+    import Storymap.AccountsFixtures
+
+    pin = pin_fixture(%{"title" => "Saved before mute"}, user)
+    pin_heart_fixture(user, pin)
+    user = muted_user_fixture(user)
+    conn = log_in_user(conn, user)
+
+    assert {:error, {:live_redirect, %{to: "/", flash: flash}}} = live(conn, ~p"/saved")
+    assert %{"error" => "Your account is muted."} = flash
   end
 end
