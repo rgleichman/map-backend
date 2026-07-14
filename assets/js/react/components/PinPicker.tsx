@@ -11,9 +11,8 @@ import {
 } from "../hooks/useComboboxNavigation"
 import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
 import { parsePinIdFromMapUrlInput, resolvePinForLink } from "../utils/resolvePinForLink"
-import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
-import PinTypeIcon from "./PinTypeIcon"
+import PinSuggestionOption from "./PinSuggestionOption"
 
 type Props = {
   pins: Pin[]
@@ -164,18 +163,7 @@ export default function PinPicker({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => selectPin(pin)}
               >
-                <PinTypeIcon pinType={pin.pin_type} size={18} catalog={catalog} className="shrink-0 mt-0.5" />
-                <span className="min-w-0 flex-1">
-                  <span className="font-medium line-clamp-1">{pin.title}</span>
-                  {pin.community ? (
-                    <span className="mt-0.5 block text-xs text-base-content/70">{pin.community.name}</span>
-                  ) : null}
-                  {excerpt ? (
-                    <span className="mt-0.5 block text-xs text-base-content/70 line-clamp-1">
-                      <HighlightedExcerpt excerpt={excerpt} />
-                    </span>
-                  ) : null}
-                </span>
+                <PinSuggestionOption pin={pin} catalog={catalog} excerpt={excerpt} showCommunity />
               </li>
             )
           })}

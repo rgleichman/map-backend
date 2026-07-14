@@ -3,7 +3,7 @@ import type { Pin, PinLink } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { useResolvedPins } from "../hooks/useResolvedPins"
 import { sourceFieldHint } from "../utils/pinLinkDisplay"
-import PinTypeIcon from "./PinTypeIcon"
+import PinTypeBadge from "./PinTypeBadge"
 
 type Props = {
   links: PinLink[]
@@ -33,10 +33,10 @@ export default function PinLinkChips({ links, pins, onNavigate, onRemove, showSo
         return (
           <span
             key={`${link.pin_id}-${link.source_field ?? "explicit"}`}
-            className="inline-flex items-center gap-1 rounded-full bg-base-200 px-2 py-1 text-sm text-base-content"
+            className="inline-flex items-center gap-1.5 rounded-full bg-base-200 px-2 py-1 text-sm text-base-content"
             title={hint ?? undefined}
           >
-            <PinTypeIcon pinType={pinType} size={14} catalog={catalog} className="shrink-0" />
+            <PinTypeBadge pinType={pinType} catalog={catalog} />
             <button
               type="button"
               className="font-medium hover:underline border-none bg-transparent cursor-pointer p-0 text-inherit"

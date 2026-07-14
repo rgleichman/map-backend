@@ -1,7 +1,7 @@
 import React from "react"
 import type { CustomPinType, PinType } from "../types"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
-import PinTypeIcon from "./PinTypeIcon"
+import PinTypeBadge from "./PinTypeBadge"
 
 type Props = {
   pinType: PinType
@@ -35,20 +35,7 @@ export default function PinTypeListRow({
           : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80",
       ].join(" ")}
     >
-      <span
-        className={[
-          "rounded-full flex items-center justify-center shrink-0",
-          compact ? "w-6 h-6" : "w-8 h-8",
-        ].join(" ")}
-        aria-hidden
-        style={{
-          backgroundColor: config.color,
-          border: `2px solid ${config.borderColor}`,
-          color: config.textColor,
-        }}
-      >
-        <PinTypeIcon pinType={pinType} size={compact ? 16 : 20} catalog={catalog} />
-      </span>
+      <PinTypeBadge pinType={pinType} catalog={catalog} size={compact ? "sm" : "md"} />
       <span className="font-medium">{config.label}</span>
     </button>
   )

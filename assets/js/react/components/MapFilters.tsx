@@ -1,8 +1,7 @@
 import React from "react"
 import type { Pin, PinType } from "../types"
-import PinTypeIcon from "./PinTypeIcon"
-import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
+import PinTypeBadge from "./PinTypeBadge"
 import { listFilterPinTypes } from "../utils/customPinTypes"
 import PinTypePickerList from "./PinTypePickerList"
 import {
@@ -65,25 +64,12 @@ function ActiveFilterChips({
   return (
     <div className={["flex flex-wrap gap-1.5 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
       {chips.map(({ dimension, label, pinType: chipPinType }) => {
-        const pinCfg = chipPinType != null ? resolvePinTypeConfig(chipPinType, catalog) : null
         return (
           <span
             key={dimension}
             className="flex min-w-0 max-w-full items-center gap-1 min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5 pointer-events-auto"
           >
-            {pinCfg != null && chipPinType != null && (
-              <span
-                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                aria-hidden
-                style={{
-                  backgroundColor: pinCfg.color,
-                  border: `2px solid ${pinCfg.borderColor}`,
-                  color: pinCfg.textColor
-                }}
-              >
-                <PinTypeIcon pinType={chipPinType} size={14} catalog={catalog} />
-              </span>
-            )}
+            {chipPinType != null && <PinTypeBadge pinType={chipPinType} catalog={catalog} />}
             {dimension === "hearted" && (
               <span
                 className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-error/15 text-error"

@@ -11,8 +11,8 @@ import {
 import { usePinTypes } from "../context/PinTypesContext"
 import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
 import type { FilterState, PinFilterMatcher } from "./map/filters"
-import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
+import PinSuggestionOption from "./PinSuggestionOption"
 
 const DEBOUNCE_MS = 150
 
@@ -160,16 +160,11 @@ export default function PinSearch({
                   id={comboboxOptionId(listboxId, index)}
                   role="option"
                   aria-selected={index === highlightIndex}
-                  className={comboboxOptionClassName(index === highlightIndex)}
+                  className={comboboxOptionClassName(index === highlightIndex, "flex items-start gap-2")}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => selectPin(pin)}
                 >
-                  <span className="font-medium line-clamp-1">{pin.title}</span>
-                  {excerpt && (
-                    <span className="mt-0.5 block text-xs text-base-content/70 line-clamp-1">
-                      <HighlightedExcerpt excerpt={excerpt} />
-                    </span>
-                  )}
+                  <PinSuggestionOption pin={pin} catalog={catalog} excerpt={excerpt} />
                 </li>
               )
             })}
