@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getMapChannel } from "../../map_socket"
 import * as api from "../api/client"
 import type { PinComment } from "../types"
-import { mergeComment } from "../utils/pinComment"
+import {
+  applyCommentDeleted,
+  applyCommentUpsert,
+  commentCount,
+} from "../utils/pinComment"
 
 type CommentAddedPayload = { pin_id: number; comment: PinComment }
 type CommentUpdatedPayload = { pin_id: number; comment: PinComment }
@@ -15,79 +19,12 @@ type Params = {
   enabled?: boolean
 }
 
-function commentCount(comments: PinComment[]): number {
-  return comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0)
-}
-
-function upsertTopLevel(comments: PinComment[], comment: PinComment): PinComment[] {
-  const idx = comments.findIndex((c) => c.id === comment.id)
-  if (idx >= 0) {
-    const next = [...comments]
-    next[idx] = { ...mergeComment(comments[idx], comment), replies: comments[idx].replies }
-    return next
-  }
-  return [...comments, { ...comment, replies: comment.replies ?? [] }].sort(
-    (a, b) => a.id - b.id
-  )
-}
-
-function addReply(comments: PinComment[], reply: PinComment): PinComment[] {
-  return comments.map((c) => {
-    if (c.id !== reply.parent_id) return c
-    const replies = c.replies ?? []
-    if (replies.some((r) => r.id === reply.id)) {
-      return {
-        ...c,
-        replies: replies.map((r) => (r.id === reply.id ? mergeComment(r, reply) : r)),
-      }
-    }
-    return { ...c, replies: [...replies, reply].sort((a, b) => a.id - b.id) }
-  })
-}
-
-function applyCommentUpsert(comments: PinComment[], comment: PinComment): PinComment[] {
-  if (comment.parent_id == null) return upsertTopLevel(comments, comment)
-  return addReply(comments, comment)
-}
-
-function applyCommentDeleted(
-  comments: PinComment[],
-  commentId: number,
-  parentId: number | null
-): PinComment[] {
-  if (parentId == null) {
-    return comments.map((c) =>
-      c.id === commentId ? { ...c, body: "", deleted: true } : c
-    )
-  }
-  return comments.map((c) => ({
-    ...c,
-    replies: (c.replies ?? []).map((r) =>
-      r.id === commentId ? { ...r, body: "", deleted: true } : r
-    ),
-  }))
-}
-
 export function usePinComments({ pinId, communityUrl, csrfToken, enabled = true }: Params) {
   const [comments, setComments] = useState<PinComment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pinIdRef = useRef(pinId)
   pinIdRef.current = pinId
-
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const { data } = await api.getPinComments(pinId)
-      setComments(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load comments.")
-      setComments([])
-    } finally {
-      setLoading(false)
-    }
-  }, [pinId])
 
   useEffect(() => {
     if (!enabled) return
@@ -179,7 +116,6 @@ export function usePinComments({ pinId, communityUrl, csrfToken, enabled = true 
     commentCount: commentCount(comments),
     loading,
     error,
-    refresh,
     createComment,
     updateComment,
     deleteComment,

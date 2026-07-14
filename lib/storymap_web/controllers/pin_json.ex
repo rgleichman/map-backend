@@ -6,16 +6,10 @@ defmodule StorymapWeb.PinJSON do
   alias Storymap.Pins.Authorizer
   alias Storymap.Pins.PinReference
   alias Storymap.SubMaps.SubMap
+  alias StorymapWeb.JSON.DateTime, as: JSONDateTime
 
   # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner (computed).
   @pin_data_keys Pin.public_json_fields() ++ [:tags, :community, :is_owner, :linked_pins]
-
-  # Serialize UTC datetime as "YYYY-MM-DDTHH:mm:ss" (no Z) so the wire format signals "local".
-  defp datetime_to_iso_local(%DateTime{} = dt) do
-    pad = fn n -> String.pad_leading(Integer.to_string(n), 2, "0") end
-
-    "#{dt.year}-#{pad.(dt.month)}-#{pad.(dt.day)}T#{pad.(dt.hour)}:#{pad.(dt.minute)}:#{pad.(dt.second)}"
-  end
 
   @spec index(map()) :: map()
   def index(%{pins: pins, current_user: %{} = current_user} = assigns) do
@@ -48,8 +42,8 @@ defmodule StorymapWeb.PinJSON do
   def data(%Pin{} = pin) do
     Pin.public_json_fields()
     |> Enum.map(fn
-      :start_time -> {:start_time, pin.start_time && datetime_to_iso_local(pin.start_time)}
-      :end_time -> {:end_time, pin.end_time && datetime_to_iso_local(pin.end_time)}
+      :start_time -> {:start_time, pin.start_time && JSONDateTime.to_iso_local(pin.start_time)}
+      :end_time -> {:end_time, pin.end_time && JSONDateTime.to_iso_local(pin.end_time)}
       :status -> {:status, to_string(pin.status)}
       key -> {key, Map.get(pin, key)}
     end)

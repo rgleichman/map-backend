@@ -1,9 +1,8 @@
 defmodule StorymapWeb.SubMapController do
   use StorymapWeb, :controller
 
-  alias Storymap.Accounts.Scope
   alias Storymap.SubMaps
-  alias StorymapWeb.{PinBroadcast, PinJSON, Plugs.LoadSubMap}
+  alias StorymapWeb.{ConnAuth, PinBroadcast, PinJSON, Plugs.LoadSubMap}
 
   action_fallback StorymapWeb.FallbackController
 
@@ -23,7 +22,7 @@ defmodule StorymapWeb.SubMapController do
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, params) do
     sub_maps = SubMaps.list_public(q: params["q"], sort: params["sort"])
-    render(conn, :index, sub_maps: sub_maps, current_user: current_user(conn))
+    render(conn, :index, sub_maps: sub_maps, current_user: ConnAuth.current_user(conn))
   end
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -77,7 +76,7 @@ defmodule StorymapWeb.SubMapController do
   @spec pins(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def pins(conn, _params) do
     sub_map = conn.assigns.sub_map
-    user = current_user(conn)
+    user = ConnAuth.current_user(conn)
     membership = conn.assigns.sub_map_membership
     pins = SubMaps.list_pins(sub_map, user, membership)
 
@@ -193,17 +192,10 @@ defmodule StorymapWeb.SubMapController do
 
     render(conn, :show,
       sub_map: sub_map,
-      current_user: current_user(conn),
+      current_user: ConnAuth.current_user(conn),
       membership: conn.assigns.sub_map_membership,
       can_moderate: conn.assigns.can_moderate_sub_map,
       counts: SubMaps.counts(sub_map)
     )
-  end
-
-  defp current_user(conn) do
-    case conn.assigns[:current_scope] do
-      %Scope{user: user} -> user
-      _ -> nil
-    end
   end
 end

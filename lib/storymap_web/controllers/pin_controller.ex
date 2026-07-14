@@ -3,24 +3,17 @@ defmodule StorymapWeb.PinController do
 
   alias Storymap.AdminActivity
   alias Storymap.Pins
-  alias Storymap.Pins.{Authorizer, Pin, PinDiff}
-  alias Storymap.SubMaps
+  alias Storymap.Pins.{Authorizer, AuthorizerOpts, Pin, PinDiff}
+  alias StorymapWeb.ConnAuth
   alias StorymapWeb.PinBroadcast
 
   action_fallback StorymapWeb.FallbackController
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
-    current_user = get_current_user(conn)
+    current_user = ConnAuth.current_user(conn)
     pins = Pins.list_pins()
     render(conn, :index, pins: pins, current_user: current_user)
-  end
-
-  defp get_current_user(conn) do
-    case conn.assigns[:current_scope] do
-      %{user: %{} = user} -> user
-      _ -> nil
-    end
   end
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -48,17 +41,15 @@ defmodule StorymapWeb.PinController do
   def show(conn, %{"id" => id}) do
     with {pin_id, ""} <- Integer.parse(id),
          %Pin{} = pin <- Pins.get_pin(pin_id) do
-      user = get_current_user(conn)
-      sub_map = pin.sub_map
-      membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
-      opts = [sub_map: sub_map, membership: membership]
+      user = ConnAuth.current_user(conn)
+      opts = AuthorizerOpts.for_pin(user, pin)
 
       with :ok <- Authorizer.authorize_show(user, pin, opts) do
         render(conn, :show,
           pin: pin,
           current_user: user,
-          sub_map: sub_map,
-          membership: membership
+          sub_map: opts[:sub_map],
+          membership: opts[:membership]
         )
       end
     else
@@ -70,10 +61,8 @@ defmodule StorymapWeb.PinController do
   def backlinks(conn, %{"id" => id}) do
     with {pin_id, ""} <- Integer.parse(id),
          %Pin{} = pin <- Pins.get_pin(pin_id) do
-      user = get_current_user(conn)
-      sub_map = pin.sub_map
-      membership = if sub_map && user, do: SubMaps.get_membership(sub_map.id, user.id), else: nil
-      opts = [sub_map: sub_map, membership: membership]
+      user = ConnAuth.current_user(conn)
+      opts = AuthorizerOpts.for_pin(user, pin)
 
       with :ok <- Authorizer.authorize_show(user, pin, opts) do
         backlinks = Pins.list_backlinks(pin.id)
@@ -92,9 +81,7 @@ defmodule StorymapWeb.PinController do
     with {pin_id, ""} <- Integer.parse(id),
          %Pin{} = pin <- Pins.get_pin(pin_id) do
       current_user = conn.assigns.current_scope.user
-      sub_map = pin.sub_map
-      membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
-      opts = [sub_map: sub_map, membership: membership, user: current_user]
+      opts = Keyword.put(AuthorizerOpts.for_pin(current_user, pin), :user, current_user)
 
       with :ok <- Authorizer.authorize_update(current_user, pin, opts) do
         before_pin = pin
@@ -117,8 +104,8 @@ defmodule StorymapWeb.PinController do
           render(conn, :show,
             pin: pin,
             current_user: current_user,
-            sub_map: sub_map,
-            membership: membership
+            sub_map: opts[:sub_map],
+            membership: opts[:membership]
           )
         end
       end
@@ -131,11 +118,8 @@ defmodule StorymapWeb.PinController do
   def delete(conn, %{"id" => id}) do
     with {pin_id, ""} <- Integer.parse(id),
          %Pin{} = pin <- Pins.get_pin(pin_id) do
-      pin = Storymap.Repo.preload(pin, :sub_map)
       current_user = conn.assigns.current_scope.user
-      sub_map = pin.sub_map
-      membership = sub_map && SubMaps.get_membership(sub_map.id, current_user.id)
-      opts = [sub_map: sub_map, membership: membership]
+      opts = AuthorizerOpts.for_pin(current_user, pin)
 
       with :ok <- Authorizer.authorize_delete(current_user, pin, opts) do
         pin_id = pin.id

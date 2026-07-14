@@ -10,7 +10,6 @@ defmodule StorymapWeb.PinHeartController do
   def create(conn, %{"id" => id}) do
     with {pin_id, ""} <- Integer.parse(id),
          pin when not is_nil(pin) <- Pins.get_pin(pin_id) do
-      pin = Storymap.Repo.preload(pin, :sub_map)
       user = conn.assigns.current_scope.user
       opts = HeartAuthorizer.authorizer_opts(user, pin)
 

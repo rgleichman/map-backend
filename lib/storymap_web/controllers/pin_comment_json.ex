@@ -4,6 +4,7 @@ defmodule StorymapWeb.PinCommentJSON do
   """
   alias Storymap.Accounts.User
   alias Storymap.Pins.PinComment
+  alias StorymapWeb.JSON.DateTime, as: JSONDateTime
 
   @spec index(map()) :: map()
   def index(%{comments: comments} = assigns) do
@@ -19,26 +20,16 @@ defmodule StorymapWeb.PinCommentJSON do
 
   @spec comment_data(PinComment.t(), User.t() | nil) :: map()
   def comment_data(%PinComment{} = comment, current_user) do
-    base = %{
-      id: comment.id,
-      pin_id: comment.pin_id,
-      parent_id: comment.parent_id,
-      body: comment_body(comment),
-      deleted: PinComment.deleted?(comment),
-      author: author_data(comment, current_user),
-      is_author: author?(comment, current_user),
-      inserted_at: datetime_to_iso_local(comment.inserted_at),
-      updated_at: datetime_to_iso_local(comment.updated_at)
-    }
+    base = comment_fields(comment, current_user)
 
     if is_nil(comment.parent_id) do
-      Map.put(base, :replies, Enum.map(comment.replies || [], &reply_data(&1, current_user)))
+      Map.put(base, :replies, Enum.map(comment.replies || [], &comment_fields(&1, current_user)))
     else
       base
     end
   end
 
-  defp reply_data(%PinComment{} = comment, current_user) do
+  defp comment_fields(%PinComment{} = comment, current_user) do
     %{
       id: comment.id,
       pin_id: comment.pin_id,
@@ -47,8 +38,8 @@ defmodule StorymapWeb.PinCommentJSON do
       deleted: PinComment.deleted?(comment),
       author: author_data(comment, current_user),
       is_author: author?(comment, current_user),
-      inserted_at: datetime_to_iso_local(comment.inserted_at),
-      updated_at: datetime_to_iso_local(comment.updated_at)
+      inserted_at: JSONDateTime.to_iso_local(comment.inserted_at),
+      updated_at: JSONDateTime.to_iso_local(comment.updated_at)
     }
   end
 
@@ -65,12 +56,4 @@ defmodule StorymapWeb.PinCommentJSON do
 
   defp author?(%PinComment{user_id: user_id}, %{id: user_id}), do: true
   defp author?(_, _), do: false
-
-  defp datetime_to_iso_local(%DateTime{} = dt) do
-    pad = fn n -> String.pad_leading(Integer.to_string(n), 2, "0") end
-
-    "#{dt.year}-#{pad.(dt.month)}-#{pad.(dt.day)}T#{pad.(dt.hour)}:#{pad.(dt.minute)}:#{pad.(dt.second)}"
-  end
-
-  defp datetime_to_iso_local(_), do: nil
 end

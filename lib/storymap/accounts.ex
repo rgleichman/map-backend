@@ -356,23 +356,12 @@ defmodule Storymap.Accounts do
   end
 
   @doc """
-  Deletes a user, their pins, pin comments, and session tokens.
-
-  ## Examples
-
-      iex> delete_user(user)
-      {:ok, %User{}}
-
-      iex> delete_user(user)
-      {:error, reason}
-
+  Deletes a user, their pins (and pin-owned comments via cascade), and session tokens.
+  Comments authored by the user on other pins are removed via the user FK cascade.
   """
   @spec delete_user(User.t()) :: Types.ecto_result(User.t())
   def delete_user(%User{} = user) do
     Repo.transact(fn ->
-      from(c in Storymap.Pins.PinComment, where: c.user_id == ^user.id)
-      |> Repo.delete_all()
-
       from(p in Storymap.Pins.Pin, where: p.user_id == ^user.id)
       |> Repo.delete_all()
 

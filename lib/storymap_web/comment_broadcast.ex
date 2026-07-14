@@ -4,8 +4,7 @@ defmodule StorymapWeb.CommentBroadcast do
   """
   alias Storymap.Pins.Pin
   alias Storymap.Pins.PinComment
-  alias Storymap.Pins.Visibility
-  alias StorymapWeb.Endpoint
+  alias StorymapWeb.MapChannelBroadcast
   alias StorymapWeb.PinCommentJSON
 
   @type comment_event :: :created | :updated | :deleted
@@ -13,20 +12,12 @@ defmodule StorymapWeb.CommentBroadcast do
   @spec broadcast_comment_event(Pin.t(), PinComment.t(), comment_event()) :: :ok
   def broadcast_comment_event(%Pin{} = pin, %PinComment{} = comment, event)
       when event in [:created, :updated, :deleted] do
-    if pin.sub_map_id && pin.sub_map do
-      topic = submap_topic(pin.sub_map.community_url)
-      Endpoint.broadcast(topic, event_name(event), event_payload(pin, comment, event))
-    end
-
-    if Visibility.world_visible?(pin) do
-      Endpoint.broadcast("map:world", event_name(event), event_payload(pin, comment, event))
-    end
-
-    :ok
+    MapChannelBroadcast.broadcast_for_pin(
+      pin,
+      event_name(event),
+      event_payload(pin, comment, event)
+    )
   end
-
-  @spec submap_topic(String.t()) :: String.t()
-  defp submap_topic(community_url), do: "map:submap:#{community_url}"
 
   @spec event_name(comment_event()) :: String.t()
   defp event_name(:created), do: "comment_added"

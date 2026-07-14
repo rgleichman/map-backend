@@ -4,12 +4,13 @@ defmodule StorymapWeb.PinCommentController do
   alias Storymap.Pins
   alias Storymap.Pins.{AuthorizerOpts, CommentAuthorizer, Comments, Pin}
   alias StorymapWeb.CommentBroadcast
+  alias StorymapWeb.ConnAuth
 
   action_fallback StorymapWeb.FallbackController
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, %{"pin_id" => pin_id} = params) do
-    user = current_user(conn)
+    user = ConnAuth.current_user(conn)
 
     with {id, ""} <- Integer.parse(pin_id),
          %Pin{} = pin <- Pins.get_pin(id) do
@@ -33,7 +34,6 @@ defmodule StorymapWeb.PinCommentController do
   def create(conn, %{"pin_id" => pin_id, "comment" => comment_params}) do
     with {id, ""} <- Integer.parse(pin_id),
          %Pin{} = pin <- Pins.get_pin(id) do
-      pin = Storymap.Repo.preload(pin, :sub_map)
       user = conn.assigns.current_scope.user
       opts = authorizer_opts(conn, pin)
 
@@ -59,7 +59,6 @@ defmodule StorymapWeb.PinCommentController do
   def update(conn, %{"pin_id" => pin_id, "id" => id, "comment" => comment_params}) do
     with {pin_int, ""} <- Integer.parse(pin_id),
          %Pin{} = pin <- Pins.get_pin(pin_int) do
-      pin = Storymap.Repo.preload(pin, :sub_map)
       comment = Comments.get_comment!(id)
       user = conn.assigns.current_scope.user
       opts = authorizer_opts(conn, pin)
@@ -85,7 +84,6 @@ defmodule StorymapWeb.PinCommentController do
   def delete(conn, %{"pin_id" => pin_id, "id" => id}) do
     with {pin_int, ""} <- Integer.parse(pin_id),
          %Pin{} = pin <- Pins.get_pin(pin_int) do
-      pin = Storymap.Repo.preload(pin, :sub_map)
       comment = Comments.get_comment!(id)
       user = conn.assigns.current_scope.user
       opts = authorizer_opts(conn, pin)
@@ -107,15 +105,8 @@ defmodule StorymapWeb.PinCommentController do
     end
   end
 
-  defp current_user(conn) do
-    case conn.assigns[:current_scope] do
-      %{user: %{} = user} -> user
-      _ -> nil
-    end
-  end
-
   defp authorizer_opts(conn, %Pin{} = pin) do
-    AuthorizerOpts.for_pin(current_user(conn), pin)
+    AuthorizerOpts.for_pin(ConnAuth.current_user(conn), pin)
   end
 
   defp list_opts(params) do

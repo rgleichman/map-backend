@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { usePinComments } from "../../hooks/usePinComments"
 import PinCommentItem from "./PinCommentItem"
+import CommentComposer from "./CommentComposer"
 import LoginRequiredModal from "../LoginRequiredModal"
 
 type Props = {
@@ -34,7 +35,7 @@ export default function PinComments({
     createComment,
     updateComment,
     deleteComment,
-  } = usePinComments({ pinId, communityUrl, csrfToken, enabled: true })
+  } = usePinComments({ pinId, communityUrl, csrfToken, enabled: open })
 
   const submitNew = async () => {
     const body = newBody.trim()
@@ -105,25 +106,17 @@ export default function PinComments({
           )}
 
           <div className="mt-3 space-y-2">
-            <textarea
+            <CommentComposer
               value={newBody}
-              onChange={(e) => setNewBody(e.target.value)}
+              onChange={setNewBody}
+              onSubmit={() => void submitNew()}
+              submitLabel="Post comment"
               placeholder={userId ? "Add a comment…" : "Log in to comment…"}
-              rows={2}
-              className="w-full rounded border border-base-300 bg-base-100 px-2 py-1.5 text-sm"
               disabled={submitting || userMuted}
               onFocus={() => {
                 if (!userId) setLoginOpen(true)
               }}
             />
-            <button
-              type="button"
-              className="rounded px-3 py-1.5 text-sm font-semibold bg-primary text-primary-content disabled:opacity-50"
-              onClick={() => void submitNew()}
-              disabled={submitting || newBody.trim() === "" || userMuted}
-            >
-              Post comment
-            </button>
             {userMuted ? (
               <p className="text-xs text-base-content/60">Your account cannot post comments.</p>
             ) : null}

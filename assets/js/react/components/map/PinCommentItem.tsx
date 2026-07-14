@@ -1,8 +1,10 @@
 import React, { useState } from "react"
 import type { PinComment } from "../../types"
 import { isCommentAuthor } from "../../utils/pinComment"
+import { formatCommentTimestamp } from "../../utils/popupFormatters"
 import { ReportSubjectType } from "../../utils/reportSubjectType"
 import LinkifiedText from "../LinkifiedText"
+import CommentComposer from "./CommentComposer"
 import ContentReportDialog from "./ContentReportDialog"
 
 type Props = {
@@ -20,17 +22,6 @@ type Props = {
 
 function authorLabel(comment: PinComment, userId?: number): string {
   return isCommentAuthor(comment, userId) ? "You" : "Member"
-}
-
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
 }
 
 export default function PinCommentItem({
@@ -100,43 +91,25 @@ export default function PinCommentItem({
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className="text-sm font-semibold text-base-content">{authorLabel(comment, userId)}</span>
         <time className="text-xs text-base-content/60" dateTime={comment.inserted_at}>
-          {formatTimestamp(comment.inserted_at)}
+          {formatCommentTimestamp(comment.inserted_at)}
         </time>
       </div>
 
       {comment.deleted ? (
         <p className="mt-1 text-sm italic text-base-content/50">[deleted]</p>
       ) : editing ? (
-        <div className="mt-1 space-y-2">
-          <textarea
-            value={editBody}
-            onChange={(e) => setEditBody(e.target.value)}
-            rows={2}
-            className="w-full rounded border border-base-300 bg-base-100 px-2 py-1.5 text-sm"
-            disabled={submitting}
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-sm font-medium bg-primary text-primary-content disabled:opacity-50"
-              onClick={submitEdit}
-              disabled={submitting || editBody.trim() === ""}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-sm bg-base-200"
-              onClick={() => {
-                setEditing(false)
-                setEditBody(comment.body)
-              }}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <CommentComposer
+          className="mt-1 space-y-2"
+          value={editBody}
+          onChange={setEditBody}
+          onSubmit={submitEdit}
+          submitLabel="Save"
+          disabled={submitting}
+          onCancel={() => {
+            setEditing(false)
+            setEditBody(comment.body)
+          }}
+        />
       ) : (
         <LinkifiedText
           className="mt-1 text-sm text-base-content/90 whitespace-pre-wrap break-words"
@@ -211,37 +184,19 @@ export default function PinCommentItem({
       {reportSuccess ? <p className="mt-1 text-xs text-success">{reportSuccess}</p> : null}
 
       {replyOpen ? (
-        <div className="mt-2 space-y-2">
-          <textarea
-            value={replyBody}
-            onChange={(e) => setReplyBody(e.target.value)}
-            placeholder="Write a reply…"
-            rows={2}
-            className="w-full rounded border border-base-300 bg-base-100 px-2 py-1.5 text-sm"
-            disabled={submitting}
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-sm font-medium bg-primary text-primary-content disabled:opacity-50"
-              onClick={submitReply}
-              disabled={submitting || replyBody.trim() === ""}
-            >
-              Reply
-            </button>
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-sm bg-base-200"
-              onClick={() => {
-                setReplyOpen(false)
-                setReplyBody("")
-              }}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <CommentComposer
+          className="mt-2 space-y-2"
+          value={replyBody}
+          onChange={setReplyBody}
+          onSubmit={submitReply}
+          submitLabel="Reply"
+          placeholder="Write a reply…"
+          disabled={submitting}
+          onCancel={() => {
+            setReplyOpen(false)
+            setReplyBody("")
+          }}
+        />
       ) : null}
 
       {actionError ? <p className="mt-1 text-xs text-error">{actionError}</p> : null}

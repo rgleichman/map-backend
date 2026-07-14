@@ -25,6 +25,18 @@ export function formatDateTime(iso?: string): string {
   }
 }
 
+/** Compact relative comment timestamp (month/day + time, no year). */
+export function formatCommentTimestamp(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
 export function buildOpenInMapsUrl(userAgent: string, pin: Pin): string {
   if (/iPhone|iPad|iPod/.test(userAgent)) {
     return `https://maps.apple.com/place?coordinate=${pin.latitude},${pin.longitude}&name=${encodeURIComponent(pin.title)}`
