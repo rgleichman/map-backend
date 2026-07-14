@@ -1,6 +1,5 @@
 import React from "react"
 import type { PinType } from "../types"
-import { useIsDesktop } from "../hooks/useMediaQuery"
 import { usePinTypes } from "../context/PinTypesContext"
 import { mapShellPinTypeLegendMaxHeight } from "../utils/siteLayout"
 import PinTypePickerList from "./PinTypePickerList"
@@ -15,7 +14,6 @@ type Props = {
 }
 
 export default function PinTypeLegend({ selectedPinType = null, onTogglePinType, closeRef }: Props) {
-  const isDesktop = useIsDesktop()
   const { catalog, selectableTypes } = usePinTypes()
 
   return (
@@ -26,7 +24,6 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
       closeAriaLabel="Close legend"
       closeRef={closeRef}
       compact
-      defaultExpanded={isDesktop}
       maxHeight={mapShellPinTypeLegendMaxHeight()}
     >
       <PinTypePickerList
