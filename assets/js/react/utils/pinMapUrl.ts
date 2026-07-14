@@ -1,10 +1,14 @@
 import type { Pin } from "../types"
 import { communityUrlFromPathname, normalizePathname } from "../mapRoute"
 
-const COMMUNITY_TAG_PREFIX = "community:"
+export const COMMUNITY_TAG_PREFIX = "community:"
+
+export function isCommunityTag(tag: string): boolean {
+  return tag.startsWith(COMMUNITY_TAG_PREFIX)
+}
 
 export function communityUrlFromTag(tag: string): string | null {
-  if (!tag.startsWith(COMMUNITY_TAG_PREFIX)) return null
+  if (!isCommunityTag(tag)) return null
   const url = tag.slice(COMMUNITY_TAG_PREFIX.length)
   return url || null
 }

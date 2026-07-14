@@ -1,13 +1,19 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import React, { useCallback, useId, useMemo, useRef, useState } from "react"
 import type { Pin } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
+import { useDebouncedValue } from "../hooks/useDebouncedValue"
+import {
+  COMBOBOX_LIST_CLASS,
+  comboboxActiveDescendant,
+  comboboxOptionClassName,
+  comboboxOptionId,
+  useComboboxNavigation,
+} from "../hooks/useComboboxNavigation"
 import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
 import { parsePinIdFromMapUrlInput, resolvePinForLink } from "../utils/resolvePinForLink"
 import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
 import PinTypeIcon from "./PinTypeIcon"
-
-const DEBOUNCE_MS = 150
 
 type Props = {
   pins: Pin[]
@@ -30,17 +36,19 @@ export default function PinPicker({
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState("")
-  const [debouncedQuery, setDebouncedQuery] = useState("")
-  const [highlightIndex, setHighlightIndex] = useState(-1)
-  const [focused, setFocused] = useState(false)
+  const debouncedQuery = useDebouncedValue(inputValue)
   const [resolving, setResolving] = useState(false)
+  const {
+    highlightIndex,
+    resetHighlight,
+    focused,
+    close,
+    handleFocus,
+    handleBlur,
+    handleListKeyDown,
+  } = useComboboxNavigation(inputRef)
 
   const excluded = useMemo(() => new Set(excludePinIds), [excludePinIds.join(",")])
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebouncedQuery(inputValue), DEBOUNCE_MS)
-    return () => window.clearTimeout(handle)
-  }, [inputValue])
 
   const pastedPinId = useMemo(() => parsePinIdFromMapUrlInput(inputValue), [inputValue])
 
@@ -53,18 +61,16 @@ export default function PinPicker({
 
   const clearInput = useCallback(() => {
     setInputValue("")
-    setDebouncedQuery("")
-    setHighlightIndex(-1)
-  }, [])
+    resetHighlight()
+  }, [resetHighlight])
 
   const selectPin = useCallback(
     (pin: Pin) => {
       onSelect(pin)
       clearInput()
-      setFocused(false)
-      inputRef.current?.blur()
+      close()
     },
-    [onSelect, clearInput]
+    [onSelect, clearInput, close],
   )
 
   const tryAddPinById = useCallback(
@@ -86,52 +92,8 @@ export default function PinPicker({
         setResolving(false)
       }
     },
-    [excluded, onError, pins, selectPin]
+    [excluded, onError, pins, selectPin],
   )
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      const urlPinId = parsePinIdFromMapUrlInput(inputValue)
-      if (urlPinId != null) {
-        e.preventDefault()
-        void tryAddPinById(urlPinId)
-        return
-      }
-    }
-
-    if (!showList || suggestions.length === 0) {
-      if (e.key === "Escape" && inputValue !== "") {
-        e.preventDefault()
-        clearInput()
-      }
-      return
-    }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault()
-        setHighlightIndex((i) => (i + 1) % suggestions.length)
-        break
-      case "ArrowUp":
-        e.preventDefault()
-        setHighlightIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1))
-        break
-      case "Enter":
-        e.preventDefault()
-        if (highlightIndex >= 0 && highlightIndex < suggestions.length) {
-          selectPin(suggestions[highlightIndex])
-        } else if (suggestions.length === 1) {
-          selectPin(suggestions[0])
-        }
-        break
-      case "Escape":
-        e.preventDefault()
-        setHighlightIndex(-1)
-        setFocused(false)
-        inputRef.current?.blur()
-        break
-    }
-  }
 
   return (
     <div className="relative">
@@ -147,26 +109,36 @@ export default function PinPicker({
         aria-controls={showList ? listboxId : undefined}
         aria-autocomplete="list"
         aria-busy={resolving}
-        aria-activedescendant={
-          showList && highlightIndex >= 0 ? `${listboxId}-option-${highlightIndex}` : undefined
-        }
+        aria-activedescendant={comboboxActiveDescendant(listboxId, showList, highlightIndex)}
         placeholder={placeholder}
         autoComplete="off"
         value={inputValue}
         disabled={resolving}
         onChange={(e) => {
           setInputValue(e.target.value)
-          setHighlightIndex(-1)
+          resetHighlight()
           onInputChange?.()
         }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          window.setTimeout(() => {
-            setFocused(false)
-            setHighlightIndex(-1)
-          }, 150)
+        onFocus={() => handleFocus()}
+        onBlur={() => handleBlur()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const urlPinId = parsePinIdFromMapUrlInput(inputValue)
+            if (urlPinId != null) {
+              e.preventDefault()
+              void tryAddPinById(urlPinId)
+              return
+            }
+          }
+          handleListKeyDown(e, {
+            showList,
+            suggestionCount: suggestions.length,
+            onSelectIndex: (index) => selectPin(suggestions[index]),
+            onClear: clearInput,
+            onClose: close,
+            inputValue,
+          })
         }}
-        onKeyDown={handleKeyDown}
         className="w-full min-h-10 rounded-lg text-sm px-3 py-2 border border-base-300 bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
       />
       {resolving ? (
@@ -179,25 +151,16 @@ export default function PinPicker({
         <p className="mt-1 text-sm text-base-content/60">No matching pins on this map.</p>
       ) : null}
       {showList && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg py-1"
-        >
+        <ul id={listboxId} role="listbox" className={`${COMBOBOX_LIST_CLASS} max-h-64`}>
           {suggestions.map((pin, index) => {
             const excerpt = pinSearchExcerpt(pin, debouncedQuery.trim(), catalog)
             return (
               <li
                 key={pin.id}
-                id={`${listboxId}-option-${index}`}
+                id={comboboxOptionId(listboxId, index)}
                 role="option"
                 aria-selected={index === highlightIndex}
-                className={[
-                  "px-3 py-2 cursor-pointer text-sm flex items-start gap-2",
-                  index === highlightIndex
-                    ? "bg-primary/15 text-base-content"
-                    : "text-base-content hover:bg-base-200/80",
-                ].join(" ")}
+                className={comboboxOptionClassName(index === highlightIndex, "flex items-start gap-2")}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => selectPin(pin)}
               >

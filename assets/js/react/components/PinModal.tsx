@@ -1,11 +1,13 @@
-import React, { useEffect, useId, useState } from "react"
+import React, { useEffect, useId, useMemo } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
 import CustomPinFields from "./CustomPinFields"
 import RelatedPinsEditor from "./RelatedPinsEditor"
+import TagCombobox from "./TagCombobox"
 import type { Pin, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
+import { deriveMapTags } from "../utils/tagSuggestions"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -87,7 +89,7 @@ export default function PinModal({
   const locationLabelId = `${uid}-pin-location-label`
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
-  const [tagInput, setTagInput] = useState("")
+  const availableTags = useMemo(() => deriveMapTags(pins), [pins])
   const isTimeOnly = isTimeOnlyBuiltinPinType(pinType)
   const isFoodBank = pinType === BuiltinPinType.FoodBank
   const isOther = pinType === BuiltinPinType.Other
@@ -95,12 +97,12 @@ export default function PinModal({
   const customType = isCustom ? findCustomPinType(pinType, catalog) : undefined
   const showTimeFields = !isOther && !isCustom && !(isFoodBank && open24_7)
 
-  const handleAddTag = () => {
-    const newTag = tagInput.trim()
-    if (newTag && !tags.includes(newTag)) {
-      setTags([...tags, newTag])
-    }
-    setTagInput("")
+  const handleAddTag = (newTag: string) => {
+    const trimmed = newTag.trim()
+    if (!trimmed) return
+    const lower = trimmed.toLowerCase()
+    if (tags.some((t) => t.toLowerCase() === lower)) return
+    setTags([...tags, trimmed])
   }
 
   const handleRemoveTag = (tag: string) => {
@@ -222,28 +224,25 @@ export default function PinModal({
       )}
       <div className="mb-4">
         <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
-        <div className="flex gap-2 mb-2">
-          <input
-            id="pin-tag-input"
-            name="tag"
-            type="text"
-            value={tagInput}
-            onChange={e => setTagInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddTag(); } }}
-            autoComplete="off"
-            className="px-2 py-1 rounded border flex-1"
-            placeholder="Add tag…"
-          />
-          <button type="button" onClick={handleAddTag} className="btn btn-sm btn-primary">Add</button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {tags.map(tag => (
-            <span key={tag} className="inline-flex items-center bg-base-200 text-base-content rounded px-2 py-1 text-sm">
-              {tag}
-              <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-red-500 hover:text-red-700" aria-label="Remove tag">×</button>
-            </span>
-          ))}
-        </div>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map(tag => (
+              <span key={tag} className="inline-flex items-center bg-base-200 text-base-content rounded px-2 py-1 text-sm">
+                {tag}
+                <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-red-500 hover:text-red-700" aria-label="Remove tag">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <TagCombobox
+          inputId="pin-tag-input"
+          availableTags={availableTags}
+          excludeTags={tags}
+          omitCommunityTags
+          allowCreate
+          onSelect={handleAddTag}
+          placeholder="Add tag…"
+        />
       </div>
       <RelatedPinsEditor
         pins={pins}

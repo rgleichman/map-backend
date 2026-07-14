@@ -15,11 +15,9 @@ import {
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
 import HeartIcon from "./HeartIcon"
+import TagCombobox from "./TagCombobox"
 import { mapShellOverlayTop } from "../utils/siteLayout"
-
-function deriveTags(pins: Pin[]): string[] {
-  return [...new Set(pins.flatMap((p) => p.tags ?? []))].sort()
-}
+import { deriveMapTags } from "../utils/tagSuggestions"
 
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
@@ -138,7 +136,7 @@ export default function MapFilters({
   savedFilterEmptyOnMap = false,
 }: Props) {
   const { catalog } = usePinTypes()
-  const tags = deriveTags(pins)
+  const tags = deriveMapTags(pins)
   const filterPinTypes = listFilterPinTypes(pins)
   const hasActiveFilter =
     filter.tag !== null ||
@@ -298,18 +296,12 @@ export default function MapFilters({
           {tags.length === 0 ? (
             <p className="text-sm text-base-content/55">No tags on the map yet.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setTag(filter.tag === tag ? null : tag)}
-                  className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.tag === tag ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
+            <TagCombobox
+              availableTags={tags}
+              selectedTag={filter.tag}
+              onSelect={(tag) => setTag(filter.tag === tag ? null : tag)}
+              placeholder="Search tags…"
+            />
           )}
         </section>
 

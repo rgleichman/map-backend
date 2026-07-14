@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { Pin } from "../types"
 import { useIsDesktop } from "../hooks/useMediaQuery"
+import {
+  COMBOBOX_LIST_CLASS,
+  comboboxActiveDescendant,
+  comboboxOptionClassName,
+  comboboxOptionId,
+  useComboboxNavigation,
+} from "../hooks/useComboboxNavigation"
 import { usePinTypes } from "../context/PinTypesContext"
 import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
 import type { FilterState, PinFilterMatcher } from "./map/filters"
@@ -46,8 +53,15 @@ export default function PinSearch({
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState(filter.query)
-  const [highlightIndex, setHighlightIndex] = useState(-1)
-  const [focused, setFocused] = useState(false)
+  const {
+    highlightIndex,
+    resetHighlight,
+    focused,
+    close,
+    handleFocus,
+    handleBlur,
+    handleListKeyDown,
+  } = useComboboxNavigation(inputRef)
 
   useEffect(() => {
     setInputValue(filter.query)
@@ -62,61 +76,29 @@ export default function PinSearch({
 
   const suggestions = useMemo(
     () => searchPinSuggestions(pins, inputValue, catalog, { pinMatches }),
-    [pins, inputValue, catalog, pinMatches]
+    [pins, inputValue, catalog, pinMatches],
   )
 
   const showList = focused && inputValue.trim() !== "" && suggestions.length > 0
   const isCompact = !focused && inputValue.trim() === ""
 
+  const clearQuery = useCallback(() => {
+    setInputValue("")
+    setFilter((f) => ({ ...f, query: "" }))
+    resetHighlight()
+  }, [setFilter, resetHighlight])
+
   const selectPin = useCallback(
     (pin: Pin) => {
       setInputValue(pin.title)
       setFilter((f) => ({ ...f, query: pin.title }))
-      setHighlightIndex(-1)
-      setFocused(false)
+      resetHighlight()
+      close()
       onFocusChange?.(false)
-      inputRef.current?.blur()
       onSelectPin(pin)
     },
-    [onSelectPin, onFocusChange, setFilter]
+    [onSelectPin, onFocusChange, setFilter, resetHighlight, close],
   )
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showList) {
-      if (e.key === "Escape" && inputValue !== "") {
-        e.preventDefault()
-        setInputValue("")
-        setFilter((f) => ({ ...f, query: "" }))
-      }
-      return
-    }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault()
-        setHighlightIndex((i) => (i + 1) % suggestions.length)
-        break
-      case "ArrowUp":
-        e.preventDefault()
-        setHighlightIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1))
-        break
-      case "Enter":
-        e.preventDefault()
-        if (highlightIndex >= 0 && highlightIndex < suggestions.length) {
-          selectPin(suggestions[highlightIndex])
-        } else if (suggestions.length === 1) {
-          selectPin(suggestions[0])
-        }
-        break
-      case "Escape":
-        e.preventDefault()
-        setHighlightIndex(-1)
-        setFocused(false)
-        onFocusChange?.(false)
-        inputRef.current?.blur()
-        break
-    }
-  }
 
   return (
     <div
@@ -139,30 +121,29 @@ export default function PinSearch({
           aria-expanded={showList}
           aria-controls={showList ? listboxId : undefined}
           aria-autocomplete="list"
-          aria-activedescendant={
-            showList && highlightIndex >= 0
-              ? `${listboxId}-option-${highlightIndex}`
-              : undefined
-          }
+          aria-activedescendant={comboboxActiveDescendant(listboxId, showList, highlightIndex)}
           placeholder="Search Pins"
           autoComplete="off"
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value)
-            setHighlightIndex(-1)
+            resetHighlight()
           }}
-          onFocus={() => {
-            setFocused(true)
-            onFocusChange?.(true)
-          }}
-          onBlur={() => {
-            window.setTimeout(() => {
-              setFocused(false)
-              onFocusChange?.(false)
-              setHighlightIndex(-1)
-            }, 150)
-          }}
-          onKeyDown={handleKeyDown}
+          onFocus={() => handleFocus(onFocusChange)}
+          onBlur={() => handleBlur(onFocusChange)}
+          onKeyDown={(e) =>
+            handleListKeyDown(e, {
+              showList,
+              suggestionCount: suggestions.length,
+              onSelectIndex: (index) => selectPin(suggestions[index]),
+              onClear: clearQuery,
+              onClose: () => {
+                close()
+                onFocusChange?.(false)
+              },
+              inputValue,
+            })
+          }
           className={[
             "w-full min-h-10 rounded-xl text-sm text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary/40",
             isCompact ? "px-2.5" : "px-3",
@@ -170,25 +151,16 @@ export default function PinSearch({
           ].join(" ")}
         />
         {showList && (
-          <ul
-            id={listboxId}
-            role="listbox"
-            className="absolute left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg py-1"
-          >
+          <ul id={listboxId} role="listbox" className={`${COMBOBOX_LIST_CLASS} max-h-64`}>
             {suggestions.map((pin, index) => {
               const excerpt = pinSearchExcerpt(pin, inputValue.trim(), catalog)
               return (
                 <li
                   key={pin.id}
-                  id={`${listboxId}-option-${index}`}
+                  id={comboboxOptionId(listboxId, index)}
                   role="option"
                   aria-selected={index === highlightIndex}
-                  className={[
-                    "px-3 py-2 cursor-pointer text-sm",
-                    index === highlightIndex
-                      ? "bg-primary/15 text-base-content"
-                      : "text-base-content hover:bg-base-200/80",
-                  ].join(" ")}
+                  className={comboboxOptionClassName(index === highlightIndex)}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => selectPin(pin)}
                 >
