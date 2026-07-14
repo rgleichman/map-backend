@@ -88,7 +88,6 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
-    force_ssl: [hsts: true, rewrite_on: [:x_forwarded_proto]],
     secret_key_base: secret_key_base
 
   # ## SSL Support
@@ -115,13 +114,9 @@ if config_env() == :prod do
   # "priv/ssl/server.key". For all supported SSL configuration
   # options, see https://hexdocs.pm/plug/Plug.SSL.html#configure/1
   #
-  # We also recommend setting `force_ssl` in your config/prod.exs,
-  # ensuring no data is ever sent via http, always redirecting to https:
-  #
-  #     config :storymap, StorymapWeb.Endpoint,
-  #       force_ssl: [hsts: true]
-  #
-  # Check `Plug.SSL` for all available options in `force_ssl`.
+  # `force_ssl` is set at compile time in config/prod.exs (Phoenix
+  # Endpoint reads it via Application.compile_env). Check `Plug.SSL`
+  # for all available options in `force_ssl`.
 
   # ## Configuring the mailer
   #
