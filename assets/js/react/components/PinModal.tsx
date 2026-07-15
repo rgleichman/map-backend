@@ -229,7 +229,7 @@ export default function PinModal({
             {tags.map(tag => (
               <span key={tag} className="inline-flex items-center bg-base-200 text-base-content rounded px-2 py-1 text-sm">
                 {tag}
-                <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-red-500 hover:text-red-700" aria-label="Remove tag">×</button>
+                <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-error hover:opacity-80" aria-label="Remove tag">×</button>
               </span>
             ))}
           </div>

@@ -50,7 +50,7 @@ export default function PinTypeListRow({
         {showDescription && (
           <span
             className={[
-              "font-normal opacity-90",
+              "font-normal",
               compact ? "text-[10px] leading-snug" : "text-xs leading-snug",
             ].join(" ")}
           >

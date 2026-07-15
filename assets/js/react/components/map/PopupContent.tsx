@@ -127,7 +127,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
           <button
             type="button"
             onClick={() => onSelectCommunity?.(pin.community!.community_url)}
-            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.95em] font-medium no-underline bg-primary/15 text-primary hover:bg-primary/25 border-none cursor-pointer"
+            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.95em] font-medium no-underline bg-primary/15 text-base-content hover:bg-primary/25 border-none cursor-pointer"
           >
             {pin.community.name}
           </button>

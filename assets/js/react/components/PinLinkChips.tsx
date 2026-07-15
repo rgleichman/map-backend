@@ -51,7 +51,7 @@ export default function PinLinkChips({ links, pins, onNavigate, onRemove, showSo
             {onRemove ? (
               <button
                 type="button"
-                className="ml-1 text-red-500 hover:text-red-700 border-none bg-transparent cursor-pointer"
+                className="ml-1 text-error hover:opacity-80 border-none bg-transparent cursor-pointer"
                 aria-label={`Remove link to ${title}`}
                 onClick={() => onRemove(link.pin_id)}
               >

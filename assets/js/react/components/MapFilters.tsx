@@ -72,7 +72,7 @@ function ActiveFilterChips({
             {chipPinType != null && <PinTypeBadge pinType={chipPinType} catalog={catalog} />}
             {dimension === "hearted" && (
               <span
-                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-error/15 text-error"
+                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-error/15 text-base-content"
                 aria-hidden
               >
                 <HeartIcon filled size={14} />
@@ -81,7 +81,7 @@ function ActiveFilterChips({
             <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
             <button
               type="button"
-              className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full text-base-content/70 hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity"
+              className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full text-base-content hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity"
               aria-label={`Remove filter: ${label}`}
               onClick={() => setFilter((f) => clearFilterDimension(f, dimension))}
             >
@@ -213,7 +213,7 @@ export default function MapFilters({
             <button
               type="button"
               onClick={close}
-              className="btn btn-ghost btn-sm btn-square min-h-9 min-w-9 text-base-content/70 hover:bg-base-200"
+              className="btn btn-ghost btn-sm btn-square min-h-9 min-w-9 text-base-content hover:bg-base-200"
               aria-label="Close filters"
             >
               <span className="text-lg leading-none">×</span>

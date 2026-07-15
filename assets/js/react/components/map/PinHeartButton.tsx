@@ -37,7 +37,7 @@ export default function PinHeartButton({ hearted, disabled = false, onToggle }: 
         className={[
           "inline-flex items-center gap-1.5 rounded px-2 py-1.5 border-none cursor-pointer font-semibold transition-colors",
           hearted
-            ? "bg-error/15 text-error hover:bg-error/25"
+            ? "bg-error/15 text-base-content hover:bg-error/25"
             : "bg-base-200 text-base-content hover:opacity-90",
           (busy || disabled) && "opacity-60 cursor-not-allowed",
         ]
