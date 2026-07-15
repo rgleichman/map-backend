@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { Pin } from "../types"
 import { useIsDesktop } from "../hooks/useMediaQuery"
+import { useDebouncedValue } from "../hooks/useDebouncedValue"
 import {
   COMBOBOX_LIST_CLASS,
   comboboxActiveDescendant,
@@ -20,6 +21,9 @@ import { mapShellOverlayTop } from "../utils/siteLayout"
 const FILTER_DEBOUNCE_MS = 150
 const PLACE_DEBOUNCE_MS = 500
 const COLLAPSE_LEAVE_MS = 150
+
+const SECTION_HEADER_CLASS =
+  "px-3 pt-2 pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50"
 
 const SEARCH_SHELL_CLASS =
   "min-h-10 rounded-xl text-sm text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg"
@@ -63,7 +67,7 @@ type Props = {
   pinMatches?: PinFilterMatcher
 }
 
-export default function PinSearch({
+export default function MapSearch({
   pins,
   filter,
   setFilter,
@@ -79,9 +83,13 @@ export default function PinSearch({
   const leaveTimerRef = useRef<number | null>(null)
   /** Last query we wrote into filter — ignore echo syncs so typing isn't overwritten. */
   const pushedQueryRef = useRef(filter.query)
+  /** Bumped to ignore in-flight place responses after clear/select. */
+  const placeRequestIdRef = useRef(0)
   const [inputValue, setInputValue] = useState(filter.query)
   const [hovered, setHovered] = useState(false)
   const [places, setPlaces] = useState<PlaceSuggestion[]>([])
+  const debouncedFilterQuery = useDebouncedValue(inputValue, FILTER_DEBOUNCE_MS)
+  const debouncedPlaceQuery = useDebouncedValue(inputValue, PLACE_DEBOUNCE_MS)
   const {
     highlightIndex,
     resetHighlight,
@@ -103,34 +111,31 @@ export default function PinSearch({
   }, [filter.query])
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
-      pushedQueryRef.current = inputValue
-      setFilter((f) => (f.query === inputValue ? f : { ...f, query: inputValue }))
-    }, FILTER_DEBOUNCE_MS)
-    return () => window.clearTimeout(handle)
-  }, [inputValue, setFilter])
+    pushedQueryRef.current = debouncedFilterQuery
+    setFilter((f) =>
+      f.query === debouncedFilterQuery ? f : { ...f, query: debouncedFilterQuery },
+    )
+  }, [debouncedFilterQuery, setFilter])
 
   useEffect(() => {
-    const q = inputValue.trim()
+    const q = debouncedPlaceQuery.trim()
     if (q === "") {
       setPlaces([])
       return
     }
+    const requestId = ++placeRequestIdRef.current
     const controller = new AbortController()
-    const handle = window.setTimeout(() => {
-      void searchPlaceSuggestions(q, { signal: controller.signal })
-        .then((results) => {
-          if (!controller.signal.aborted) setPlaces(results)
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) setPlaces([])
-        })
-    }, PLACE_DEBOUNCE_MS)
+    void searchPlaceSuggestions(q, { signal: controller.signal })
+      .then((results) => {
+        if (placeRequestIdRef.current === requestId) setPlaces(results)
+      })
+      .catch(() => {
+        if (placeRequestIdRef.current === requestId) setPlaces([])
+      })
     return () => {
-      window.clearTimeout(handle)
       controller.abort()
     }
-  }, [inputValue])
+  }, [debouncedPlaceQuery])
 
   const pinSuggestions = useMemo(
     () => searchPinSuggestions(pins, inputValue, catalog, { pinMatches }),
@@ -143,6 +148,7 @@ export default function PinSearch({
   )
 
   const showList = focused && hasQuery && options.length > 0
+  const queryTrimmed = inputValue.trim()
 
   const clearLeaveTimer = useCallback(() => {
     if (leaveTimerRef.current != null) {
@@ -167,6 +173,7 @@ export default function PinSearch({
   useEffect(() => () => clearLeaveTimer(), [clearLeaveTimer])
 
   const clearQuery = useCallback(() => {
+    placeRequestIdRef.current += 1
     pushedQueryRef.current = ""
     setInputValue("")
     setFilter((f) => ({ ...f, query: "" }))
@@ -176,9 +183,11 @@ export default function PinSearch({
 
   const selectPin = useCallback(
     (pin: Pin) => {
+      placeRequestIdRef.current += 1
       pushedQueryRef.current = pin.title
       setInputValue(pin.title)
       setFilter((f) => ({ ...f, query: pin.title }))
+      setPlaces([])
       resetHighlight()
       close()
       onFocusChange?.(false)
@@ -287,57 +296,55 @@ export default function PinSearch({
         {showList && (
           <ul id={listboxId} role="listbox" className={`${COMBOBOX_LIST_CLASS} max-h-72`}>
             {pinSuggestions.length > 0 && (
-              <li
-                role="presentation"
-                className="px-3 pt-2 pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50"
-              >
-                Pins
-              </li>
-            )}
-            {options.map((option, index) => {
-              if (option.kind === "pin") {
-                const excerpt = pinSearchExcerpt(option.pin, inputValue.trim(), catalog)
-                return (
-                  <li
-                    key={`pin-${option.pin.id}`}
-                    id={comboboxOptionId(listboxId, index)}
-                    role="option"
-                    aria-selected={index === highlightIndex}
-                    className={comboboxOptionClassName(index === highlightIndex, "flex items-start gap-2")}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => selectPin(option.pin)}
-                  >
-                    <PinSuggestionOption pin={option.pin} catalog={catalog} excerpt={excerpt} />
-                  </li>
-                )
-              }
-              const placeIndex = index - pinSuggestions.length
-              return (
-                <React.Fragment key={`place-wrap-${option.place.id}`}>
-                  {placeIndex === 0 && (
+              <>
+                <li role="presentation" className={SECTION_HEADER_CLASS}>
+                  Pins
+                </li>
+                {pinSuggestions.map((pin, i) => {
+                  const index = i
+                  const excerpt = pinSearchExcerpt(pin, queryTrimmed, catalog)
+                  return (
                     <li
-                      role="presentation"
-                      className="px-3 pt-2 pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50"
+                      key={`pin-${pin.id}`}
+                      id={comboboxOptionId(listboxId, index)}
+                      role="option"
+                      aria-selected={index === highlightIndex}
+                      className={comboboxOptionClassName(index === highlightIndex, "flex items-start gap-2")}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectPin(pin)}
                     >
-                      Places
+                      <PinSuggestionOption pin={pin} catalog={catalog} excerpt={excerpt} />
                     </li>
-                  )}
-                  <li
-                    id={comboboxOptionId(listboxId, index)}
-                    role="option"
-                    aria-selected={index === highlightIndex}
-                    className={comboboxOptionClassName(index === highlightIndex, "flex flex-col gap-0.5")}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => selectPlace(option.place)}
-                  >
-                    <span className="font-medium line-clamp-1">{option.place.name}</span>
-                    {option.place.label !== option.place.name ? (
-                      <span className="text-xs text-base-content/70 line-clamp-1">{option.place.label}</span>
-                    ) : null}
-                  </li>
-                </React.Fragment>
-              )
-            })}
+                  )
+                })}
+              </>
+            )}
+            {places.length > 0 && (
+              <>
+                <li role="presentation" className={SECTION_HEADER_CLASS}>
+                  Places
+                </li>
+                {places.map((place, i) => {
+                  const index = pinSuggestions.length + i
+                  return (
+                    <li
+                      key={`place-${place.id}`}
+                      id={comboboxOptionId(listboxId, index)}
+                      role="option"
+                      aria-selected={index === highlightIndex}
+                      className={comboboxOptionClassName(index === highlightIndex, "flex flex-col gap-0.5")}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectPlace(place)}
+                    >
+                      <span className="font-medium line-clamp-1">{place.name}</span>
+                      {place.label !== place.name ? (
+                        <span className="text-xs text-base-content/70 line-clamp-1">{place.label}</span>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </>
+            )}
           </ul>
         )}
       </div>

@@ -41,7 +41,7 @@ import {
 import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
-import PinSearch from "./PinSearch"
+import MapSearch from "./MapSearch"
 import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import type { ToggleHeartResult } from "../types"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
@@ -941,7 +941,7 @@ export default function MapCanvas({
         </div>
       )}
       {mapReady && !drawerOpen && (
-        <PinSearch
+        <MapSearch
           pins={pins}
           filter={filter}
           setFilter={setFilter}

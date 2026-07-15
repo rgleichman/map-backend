@@ -57,7 +57,7 @@ type ListKeyDownOptions = {
 
 /**
  * Shared highlight + keyboard + focus/blur behavior for combobox listboxes
- * (PinSearch, PinPicker, TagCombobox).
+ * (MapSearch, PinPicker, TagCombobox).
  */
 export function useComboboxNavigation(inputRef?: RefObject<HTMLInputElement | null>) {
   const [highlightIndex, setHighlightIndex] = useState(-1)

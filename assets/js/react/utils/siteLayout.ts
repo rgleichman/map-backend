@@ -64,8 +64,8 @@ export function mapShellTopRightOverlayTop(): string {
   return `calc(${MAP_SHELL_OVERLAY_TOP} + ${MAPLIBRE_GEOLOCATE_RESERVE})`
 }
 
-/** Unified map search input height (matches PinSearch min-h-10). */
-export const PIN_SEARCH_INPUT_HEIGHT = "2.5rem"
+/** Unified map search input height (matches MapSearch min-h-10). */
+export const MAP_SEARCH_INPUT_HEIGHT = "2.5rem"
 
 /** Gap below map search before the pin type legend may begin. */
 export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
@@ -75,7 +75,7 @@ export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
  * top-left search control (and above the desktop footer reserve).
  */
 export function mapShellPinTypeLegendMaxHeight(): string {
-  return `calc(100% - ${mapShellOverlayBottomAboveFooter()} - ${MAP_SHELL_OVERLAY_TOP} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
+  return `calc(100% - ${mapShellOverlayBottomAboveFooter()} - ${MAP_SHELL_OVERLAY_TOP} - ${MAP_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
 }
 
 /**
