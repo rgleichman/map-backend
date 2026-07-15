@@ -17,6 +17,11 @@ import HeartIcon from "./HeartIcon"
 import TagCombobox from "./TagCombobox"
 import { mapShellFiltersMaxHeight, mapShellOverlayTop } from "../utils/siteLayout"
 import { deriveMapTags } from "../utils/tagSuggestions"
+import {
+  MAP_OVERLAY_CONTROL_CLASS,
+  SECTION_LABEL_CLASS,
+  filterChipClass,
+} from "../utils/mapUiClasses"
 
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
@@ -140,7 +145,7 @@ export default function MapFilters({
   const togglePinType = (pinType: PinType) =>
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
 
-  const sectionTitle = "text-[11px] font-semibold uppercase tracking-wide text-base-content/50 mb-2"
+  const sectionTitle = `${SECTION_LABEL_CLASS} mb-2`
 
   return (
     <FloatingPanel
@@ -168,7 +173,7 @@ export default function MapFilters({
           <button
             type="button"
             onClick={open}
-            className="inline-flex shrink-0 items-center gap-1 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg hover:bg-base-200/90 dark:hover:bg-base-200/85 active:opacity-90 transition-colors pointer-events-auto"
+            className={`${MAP_OVERLAY_CONTROL_CLASS} pointer-events-auto`}
             aria-expanded={expanded}
             aria-controls={panelId}
             aria-label={`${filtersSummary}. Add or change filters.`}
@@ -189,7 +194,7 @@ export default function MapFilters({
       renderPanelHeader={(close) => (
         <div className="flex flex-wrap items-start gap-2 mb-4 pb-3 border-b border-base-300/60">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/50 mb-2">
+            <p className={`${SECTION_LABEL_CLASS} mb-2`}>
               Active filters
             </p>
             <ActiveFilterChips
@@ -231,12 +236,7 @@ export default function MapFilters({
                 type="button"
                 aria-pressed={filter.mineOnly}
                 onClick={() => setFilter((f) => ({ ...f, mineOnly: !f.mineOnly }))}
-                className={[
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
-                  filter.mineOnly
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-200 text-base-content hover:bg-base-300",
-                ].join(" ")}
+                className={filterChipClass(filter.mineOnly)}
               >
                 My pins
               </button>
@@ -245,15 +245,10 @@ export default function MapFilters({
                 aria-pressed={filter.heartedOnly}
                 disabled={pinHeartsLoading}
                 onClick={() => setFilter((f) => ({ ...f, heartedOnly: !f.heartedOnly }))}
-                className={[
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
-                  filter.heartedOnly
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-200 text-base-content hover:bg-base-300",
+                className={filterChipClass(
+                  filter.heartedOnly,
                   pinHeartsLoading && "opacity-60 cursor-not-allowed",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
+                )}
               >
                 <HeartIcon filled={filter.heartedOnly} size={14} />
                 Saved pins only
@@ -277,7 +272,7 @@ export default function MapFilters({
               type="button"
               aria-pressed={filter.time === TIME_FILTER_NOW}
               onClick={() => setTime(filter.time === TIME_FILTER_NOW ? null : TIME_FILTER_NOW)}
-              className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === TIME_FILTER_NOW ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+              className={filterChipClass(filter.time === TIME_FILTER_NOW)}
             >
               {TIME_FILTER_LABEL}
             </button>
@@ -285,7 +280,7 @@ export default function MapFilters({
               type="button"
               aria-pressed={filter.time === null}
               onClick={() => setTime(null)}
-              className={`px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0 ${filter.time === null ? "bg-primary text-primary-content" : "bg-base-200 text-base-content hover:bg-base-300"}`}
+              className={filterChipClass(filter.time === null)}
             >
               All times
             </button>
@@ -295,7 +290,7 @@ export default function MapFilters({
         <section>
           <p className={sectionTitle}>Tags</p>
           {tags.length === 0 ? (
-            <p className="text-sm text-base-content/55">No tags on the map yet.</p>
+            <p className="text-sm text-base-content/60">No tags on the map yet.</p>
           ) : (
             <TagCombobox
               availableTags={tags}

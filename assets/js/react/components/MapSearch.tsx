@@ -17,16 +17,13 @@ import PinSuggestionOption from "./PinSuggestionOption"
 import { searchPlaceSuggestions, type PlaceSuggestion } from "../utils/placeSearch"
 import { buildMapSearchOptions } from "../utils/mapSearchOptions"
 import { mapShellOverlayTop } from "../utils/siteLayout"
+import { MAP_SEARCH_SHELL_CLASS, SECTION_LABEL_CLASS } from "../utils/mapUiClasses"
 
 const FILTER_DEBOUNCE_MS = 150
 const PLACE_DEBOUNCE_MS = 500
 const COLLAPSE_LEAVE_MS = 150
 
-const SECTION_HEADER_CLASS =
-  "px-3 pt-2 pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50"
-
-const SEARCH_SHELL_CLASS =
-  "min-h-10 rounded-xl text-sm text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border border-base-300 shadow-lg"
+const SECTION_HEADER_CLASS = `px-3 pt-2 pb-1 ${SECTION_LABEL_CLASS}`
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -240,7 +237,7 @@ export default function MapSearch({
             type="button"
             aria-label="Search"
             className={[
-              SEARCH_SHELL_CLASS,
+              MAP_SEARCH_SHELL_CLASS,
               "flex w-10 items-center justify-center text-base-content/80 hover:text-base-content transition-colors",
             ].join(" ")}
             onClick={expandAndFocus}
@@ -288,7 +285,7 @@ export default function MapSearch({
               })
             }
             className={[
-              SEARCH_SHELL_CLASS,
+              MAP_SEARCH_SHELL_CLASS,
               "w-full pl-9 pr-3 py-2 placeholder:text-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary/40",
             ].join(" ")}
           />

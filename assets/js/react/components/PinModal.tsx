@@ -136,7 +136,7 @@ export default function PinModal({
         autoComplete="off"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full mb-4 px-3 py-2 rounded border"
+        className="input input-bordered w-full mb-4"
       />
       <label htmlFor="pin-description" className="block font-medium mb-1">Description</label>
       <textarea
@@ -146,7 +146,7 @@ export default function PinModal({
         autoComplete="off"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="w-full mb-4 px-3 py-2 rounded border"
+        className="textarea textarea-bordered w-full mb-4"
       />
 
       {isCustom && customType && setCustomData ? (
@@ -202,7 +202,7 @@ export default function PinModal({
             type={isTimeOnly ? "time" : "datetime-local"}
             value={startTime}
             onChange={e => setStartTime(e.target.value)}
-            className="w-full mb-2 px-3 py-2 rounded border"
+            className="input input-bordered w-full mb-2"
           />
           <label htmlFor="pin-end-time" className="block font-medium mb-1">End Time</label>
           <input
@@ -211,7 +211,7 @@ export default function PinModal({
             type={isTimeOnly ? "time" : "datetime-local"}
             value={endTime}
             onChange={e => setEndTime(e.target.value)}
-            className="w-full mb-2 px-3 py-2 rounded border"
+            className="input input-bordered w-full mb-2"
           />
           {isTimeOnly && (
             <ScheduleRruleBuilder
@@ -271,7 +271,7 @@ export default function PinModal({
         </div>
       )}
       <div className="flex gap-2 justify-end">
-        <button type="button" onClick={onCancel} className="btn" disabled={saving}>Cancel</button>
+        <button type="button" onClick={onCancel} className="btn btn-ghost" disabled={saving}>Cancel</button>
         {mode === "edit" && canDelete && (
           <button type="button" onClick={onDelete} className="btn btn-error" disabled={saving}>Delete</button>
         )}

@@ -2,6 +2,7 @@ import React, { useCallback, useId, useMemo, useRef, useState } from "react"
 import { useDebouncedValue } from "../hooks/useDebouncedValue"
 import { searchTagSuggestions } from "../utils/tagSuggestions"
 import {
+  COMBOBOX_INPUT_CLASS,
   COMBOBOX_LIST_CLASS,
   comboboxActiveDescendant,
   comboboxOptionClassName,
@@ -127,8 +128,7 @@ export default function TagCombobox({
             })
           }
           className={[
-            "min-h-10 rounded-lg text-sm px-3 py-2 border border-base-300 bg-base-100",
-            "focus:outline-none focus:ring-2 focus:ring-primary/40",
+            COMBOBOX_INPUT_CLASS,
             allowCreate ? "flex-1 min-w-0" : "w-full",
           ].join(" ")}
         />

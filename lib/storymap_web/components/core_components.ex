@@ -294,13 +294,10 @@ defmodule StorymapWeb.CoreComponents do
 
   def theme_toggle(assigns) do
     ~H"""
-    <div
-      class={[
-        "card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full",
-        @variant == "compact" && "inline-flex origin-right scale-90"
-      ]}
-      style="width: fit-content;"
-    >
+    <div class={[
+      "card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full w-fit",
+      @variant == "compact" && "inline-flex origin-right scale-90"
+    ]}>
       <div class="absolute w-1/3 h-full rounded-full border border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
 
       <button

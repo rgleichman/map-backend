@@ -1,56 +1,64 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <%= if @not_found do %>
-    <div class="max-w-xl mx-auto mt-12 p-8 bg-base-100 rounded-lg shadow border border-base-300">
-      <h1 class="text-2xl font-bold mb-4 text-base-content">
-        404 - User Not Found
-      </h1>
-      <p class="text-base-content/80">The user you are looking for does not exist.</p>
+    <div class="max-w-xl mx-auto px-4 py-10">
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body">
+          <h1 class="text-3xl font-bold mb-4 text-base-content">
+            404 - User Not Found
+          </h1>
+          <p class="text-base-content/70">The user you are looking for does not exist.</p>
+        </div>
+      </div>
     </div>
   <% else %>
-    <div class="max-w-xl mx-auto mt-12 p-8 bg-base-100 rounded-lg shadow border border-base-300">
-      <h1 class="text-2xl font-bold mb-4 text-base-content">User {@user.id}</h1>
+    <div class="max-w-xl mx-auto px-4 py-10">
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body">
+          <h1 class="text-3xl font-bold mb-4 text-base-content">User {@user.id}</h1>
 
-      <%= if @own_profile? do %>
-        <div class="mt-8 pt-6 border-t border-base-300">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h2 class="text-lg font-semibold text-base-content">Saved pins</h2>
-            <%= if @saved_pins_count > 0 do %>
-              <.link navigate={~p"/saved"} class="link link-primary text-sm font-medium">
-                See all ({@saved_pins_count})
-              </.link>
-            <% end %>
-          </div>
-
-          <%= if @saved_pins_preview == [] do %>
-            <p class="text-sm text-base-content/70">
-              You have not saved any pins yet.
-              <.link navigate={~p"/"} class="link link-primary">Browse the map</.link>
-              to find pins to save.
-            </p>
-          <% else %>
-            <ul class="space-y-2">
-              <%= for pin <- @saved_pins_preview do %>
-                <li id={"profile-saved-pin-#{pin.id}"}>
-                  <.link
-                    href={Storymap.Pins.map_path_for_pin(pin)}
-                    class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-base-200 transition-colors"
-                  >
-                    <span class="font-medium text-base-content truncate">{pin.title}</span>
-                    <%= if pin.sub_map do %>
-                      <span class="text-xs text-base-content/60 shrink-0">{pin.sub_map.name}</span>
-                    <% end %>
+          <%= if @own_profile? do %>
+            <div class="mt-8 pt-6 border-t border-base-300">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 class="text-lg font-semibold text-base-content">Saved pins</h2>
+                <%= if @saved_pins_count > 0 do %>
+                  <.link navigate={~p"/saved"} class="link link-primary text-sm font-medium">
+                    See all ({@saved_pins_count})
                   </.link>
-                </li>
+                <% end %>
+              </div>
+
+              <%= if @saved_pins_preview == [] do %>
+                <p class="text-sm text-base-content/70">
+                  You have not saved any pins yet.
+                  <.link navigate={~p"/"} class="link link-primary">Browse the map</.link>
+                  to find pins to save.
+                </p>
+              <% else %>
+                <ul class="space-y-2">
+                  <%= for pin <- @saved_pins_preview do %>
+                    <li id={"profile-saved-pin-#{pin.id}"}>
+                      <.link
+                        href={Storymap.Pins.map_path_for_pin(pin)}
+                        class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-base-200 transition-colors"
+                      >
+                        <span class="font-medium text-base-content truncate">{pin.title}</span>
+                        <%= if pin.sub_map do %>
+                          <span class="text-xs text-base-content/60 shrink-0">{pin.sub_map.name}</span>
+                        <% end %>
+                      </.link>
+                    </li>
+                  <% end %>
+                </ul>
+                <%= if @saved_pins_count > length(@saved_pins_preview) do %>
+                  <.link navigate={~p"/saved"} class="btn btn-sm btn-outline mt-4">
+                    See all saved pins
+                  </.link>
+                <% end %>
               <% end %>
-            </ul>
-            <%= if @saved_pins_count > length(@saved_pins_preview) do %>
-              <.link navigate={~p"/saved"} class="btn btn-sm btn-outline mt-4">
-                See all saved pins
-              </.link>
-            <% end %>
+            </div>
           <% end %>
         </div>
-      <% end %>
+      </div>
     </div>
   <% end %>
 </Layouts.app>

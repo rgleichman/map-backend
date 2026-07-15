@@ -35,7 +35,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
   const content = (
     <div className={shellClassName}>
       <div className={layout === "panel" ? "pb-4 border-b border-base-300" : "p-6 border-b border-base-300 flex-shrink-0"}>
-        <h2 id="pin-type-modal-title" className="text-xl font-semibold text-base-content">
+        <h2 id="pin-type-modal-title" className="text-lg font-semibold text-base-content">
           What type of pin is this?
         </h2>
       </div>
@@ -83,7 +83,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
       <div className={layout === "panel" ? "pt-4 border-t border-base-300 flex justify-end" : "p-4 border-t border-base-300 flex justify-end"}>
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-base-content hover:bg-base-200 rounded transition-colors"
+          className="btn btn-ghost"
         >
           Cancel
         </button>
@@ -94,7 +94,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
   if (layout === "panel") return content
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overscroll-contain"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overscroll-contain"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pin-type-modal-title"

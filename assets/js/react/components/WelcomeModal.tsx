@@ -69,7 +69,7 @@ export default function WelcomeModal({ onClose }: Props) {
             className="btn btn-ghost btn-sm btn-circle"
             aria-label="Close welcome dialog"
           >
-            ✕
+            ×
           </button>
         </div>
 

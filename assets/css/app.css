@@ -36,8 +36,9 @@
   /* Bright fills need dark content; keep chroma so outline/soft text stays ≥4.5:1 on base-100 */
   --color-primary: oklch(83% 0.14 139.72);
   --color-primary-content: oklch(22% 0.04 140);
-  --color-secondary: oklch(83% 0.14 139.72);
-  --color-secondary-content: oklch(22% 0.04 140);
+  /* Distinct cool gray from primary green; L≈primary so outline/soft stay ≥4.5:1 */
+  --color-secondary: oklch(84% 0.03 264);
+  --color-secondary-content: oklch(22% 0.02 264);
   --color-accent: oklch(83.54% 0.116 157.16);
   --color-accent-content: oklch(22% 0.04 157);
   --color-neutral: oklch(96.70% 0.010 212.52);
@@ -159,23 +160,6 @@
 
 .pin-modal-content h2 {
   color: var(--color-base-content) !important;
-}
-
-.pin-modal-content input {
-  background: var(--color-base-100) !important;
-  color: var(--color-base-content) !important;
-  border: 1px solid var(--color-base-300) !important;
-}
-
-.pin-modal-content input::placeholder {
-  color: var(--color-base-content);
-  opacity: 0.6;
-}
-
-.pin-modal-content button:not([data-sequencer-pad]) {
-  background: var(--color-base-100) !important;
-  color: var(--color-base-content) !important;
-  border: 1px solid var(--color-base-300) !important;
 }
 
 /* Highlight for the pin at pending location: teardrop outline uses currentColor */

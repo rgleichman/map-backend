@@ -169,15 +169,39 @@ if (document.readyState === "loading") {
 // Re-initialize after LiveView navigation
 window.addEventListener("phx:page-loading-stop", initPartyMode)
 
-// Desktop floating footer active link highlighting.
+// Desktop floating footer active link highlighting + map/content chrome.
 // The footer lives in the root layout (outside LiveView inner content), so it doesn't re-render
-// on navigation. Instead, update active styles on page load + LiveView navigation.
+// on navigation. Instead, update styles on page load + LiveView navigation.
+const isMapPathname = (pathname) => {
+  const trimmed = (pathname || "").replace(/\/+$/, "")
+  const path = trimmed === "" ? "/" : trimmed
+  if (path === "/" || path === "/map") return true
+  return /^\/m\/[^/]+\/map$/.test(path)
+}
+
+const FOOTER_LEGEND_PAD =
+  "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
+
 const initFooterNavActive = () => {
   const normalizePath = (p) => {
     const trimmed = (p || "").replace(/\/+$/, "")
     return trimmed === "" ? "/" : trimmed
   }
   const currentPath = normalizePath(window.location?.pathname)
+  const mapPage = isMapPathname(currentPath)
+  const footer = document.querySelector("[data-desktop-footer]")
+  if (footer) {
+    const mapChrome = footer.getAttribute("data-footer-chrome-map") || ""
+    const contentChrome = footer.getAttribute("data-footer-chrome-content") || ""
+    const chrome = mapPage ? mapChrome : contentChrome
+    const chromeClasses = chrome.split(/\s+/).filter(Boolean)
+    const allChrome = `${mapChrome} ${contentChrome}`.split(/\s+/).filter(Boolean)
+    footer.querySelectorAll("a, span").forEach((node) => {
+      allChrome.forEach((cls) => node.classList.remove(cls))
+      chromeClasses.forEach((cls) => node.classList.add(cls))
+    })
+    footer.classList.toggle(FOOTER_LEGEND_PAD, mapPage)
+  }
   const nodes = Array.from(document.querySelectorAll("[data-footer-nav][data-footer-path]"))
   nodes.forEach((node) => {
     const expected = normalizePath(node.getAttribute("data-footer-path"))

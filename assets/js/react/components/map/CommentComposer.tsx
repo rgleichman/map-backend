@@ -30,14 +30,14 @@ export default function CommentComposer({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full rounded border border-base-300 bg-base-100 px-2 py-1.5 text-sm"
+        className="w-full textarea textarea-bordered textarea-sm"
         disabled={disabled}
         onFocus={onFocus}
       />
       <div className="flex gap-2">
         <button
           type="button"
-          className="rounded px-2 py-1 text-sm font-medium bg-primary text-primary-content disabled:opacity-50"
+          className="btn btn-sm btn-primary"
           onClick={onSubmit}
           disabled={disabled || value.trim() === ""}
         >
@@ -46,7 +46,7 @@ export default function CommentComposer({
         {onCancel ? (
           <button
             type="button"
-            className="rounded px-2 py-1 text-sm bg-base-200"
+            className="btn btn-sm btn-ghost"
             onClick={onCancel}
             disabled={disabled}
           >

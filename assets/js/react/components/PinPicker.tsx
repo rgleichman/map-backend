@@ -3,6 +3,7 @@ import type { Pin } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { useDebouncedValue } from "../hooks/useDebouncedValue"
 import {
+  COMBOBOX_INPUT_CLASS,
   COMBOBOX_LIST_CLASS,
   comboboxActiveDescendant,
   comboboxOptionClassName,
@@ -138,7 +139,7 @@ export default function PinPicker({
             inputValue,
           })
         }}
-        className="w-full min-h-10 rounded-lg text-sm px-3 py-2 border border-base-300 bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+        className={`w-full ${COMBOBOX_INPUT_CLASS} disabled:opacity-60`}
       />
       {resolving ? (
         <p className="mt-1 text-sm text-base-content/60">Looking up pin…</p>

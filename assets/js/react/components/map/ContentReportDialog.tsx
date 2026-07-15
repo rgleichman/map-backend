@@ -91,7 +91,7 @@ export default function ContentReportDialog({
             onClick={closeReport}
             aria-label="Close report dialog"
           >
-            ✕
+            ×
           </button>
         </div>
         <div id="content-report-form" className="px-4 py-3 space-y-3 overflow-y-auto text-sm">

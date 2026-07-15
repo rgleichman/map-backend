@@ -45,5 +45,19 @@ defmodule StorymapWeb.LayoutsTest do
       assert html =~ ~s(data-desktop-footer)
       refute html =~ "--map-pin-legend-max-width"
     end
+
+    test "map and content chrome classes are available for client sync", %{conn: conn} do
+      map_html = html_response(get(conn, ~p"/"), 200)
+      assert map_html =~ ~s(data-footer-chrome-map=)
+      assert map_html =~ ~s(data-footer-chrome-content=)
+      assert map_html =~ "text-shadow-map-ui"
+      assert map_html =~ "bg-black/15"
+
+      about_html = html_response(get(conn, ~p"/about"), 200)
+      assert about_html =~ ~s(data-footer-chrome-map=)
+      assert about_html =~ ~s(data-footer-chrome-content=)
+      assert about_html =~ "bg-base-200/80"
+      assert about_html =~ "border-base-300"
+    end
   end
 end

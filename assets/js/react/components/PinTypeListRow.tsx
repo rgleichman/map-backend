@@ -1,6 +1,7 @@
 import React from "react"
 import type { CustomPinType, PinType } from "../types"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { filterChipToneClass } from "../utils/mapUiClasses"
 import PinTypeBadge from "./PinTypeBadge"
 
 type Props = {
@@ -34,9 +35,7 @@ export default function PinTypeListRow({
         compact
           ? "gap-2 text-xs rounded-lg min-h-0 py-1 px-2"
           : "gap-2.5 text-sm rounded-xl min-h-[44px] py-2 px-2.5",
-        selected
-          ? "bg-primary text-primary-content"
-          : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80",
+        filterChipToneClass(selected),
       ].join(" ")}
     >
       <PinTypeBadge

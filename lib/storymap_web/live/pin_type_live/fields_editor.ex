@@ -24,7 +24,7 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
         <% field_type = field["type"] || "text" %>
         <div
           id={"pin-type-field-#{index}"}
-          class="rounded-lg border border-base-300 bg-base-100/50 dark:bg-base-200/10 p-4 space-y-3"
+          class="rounded-lg border border-base-300 bg-base-200/30 p-4 space-y-3"
         >
           <div class="flex items-center justify-between gap-2">
             <span class="text-sm font-medium text-base-content/70">Field {index + 1}</span>

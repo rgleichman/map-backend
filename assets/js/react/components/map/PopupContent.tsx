@@ -165,7 +165,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
           href={openInMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block rounded px-2 py-1.5 font-semibold text-white no-underline bg-blue-700 hover:bg-blue-800"
+          className="btn btn-sm btn-primary no-underline"
         >
           Get directions
         </a>
@@ -173,7 +173,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
           type="button"
           data-pin-action="copy-link"
           data-pin-id={pin.id}
-          className="rounded px-2 py-1.5 border-none cursor-pointer font-semibold bg-base-200 text-base-content hover:opacity-90"
+          className="btn btn-sm"
         >
           Copy link
         </button>
@@ -186,7 +186,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         )}
         <button
           type="button"
-          className="rounded px-2 py-1.5 border-none cursor-pointer font-semibold bg-base-300 text-base-content hover:opacity-90"
+          className="btn btn-sm btn-ghost"
           onClick={() => {
             setDoneMessage(null)
             setReportOpen(true)
@@ -202,7 +202,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
             type="button"
             data-pin-action="edit"
             data-pin-id={pin.id}
-            className="rounded px-2 py-1.5 border-none cursor-pointer font-semibold text-white bg-emerald-700 hover:bg-emerald-800"
+            className="btn btn-sm btn-outline"
           >
             Edit
           </button>
@@ -210,7 +210,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
             type="button"
             data-pin-action="delete"
             data-pin-id={pin.id}
-            className="rounded px-2 py-1.5 border-none cursor-pointer font-semibold text-white bg-red-700 hover:bg-red-800"
+            className="btn btn-sm btn-error"
           >
             Delete
           </button>

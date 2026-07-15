@@ -5,6 +5,9 @@ export const COMBOBOX_BLUR_DELAY_MS = 150
 export const COMBOBOX_LIST_CLASS =
   "absolute left-0 right-0 z-10 mt-1 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg py-1"
 
+export const COMBOBOX_INPUT_CLASS =
+  "min-h-10 rounded-lg text-sm px-3 py-2 border border-base-300 bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
+
 export function comboboxOptionClassName(
   highlighted: boolean,
   ...extra: Array<string | false | null | undefined>

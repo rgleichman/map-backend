@@ -1,4 +1,8 @@
 import React, { useId } from "react"
+import {
+  MAP_OVERLAY_CONTROL_ACTIVE_CLASS,
+  MAP_OVERLAY_CONTROL_CLASS,
+} from "../utils/mapUiClasses"
 
 type Props = {
   pressed: boolean
@@ -21,12 +25,7 @@ export default function PinConnectionsToggle({
         onClick={onToggle}
         aria-pressed={pressed}
         aria-describedby={showHint ? hintId : undefined}
-        className={[
-          "inline-flex shrink-0 items-center gap-1.5 min-h-10 px-2.5 rounded-xl text-xs font-medium whitespace-nowrap border shadow-lg active:opacity-90 transition-colors",
-          pressed
-            ? "bg-primary text-primary-content border-primary hover:bg-primary/90"
-            : "text-base-content bg-base-100/95 dark:bg-base-100/90 backdrop-blur-sm border-base-300 hover:bg-base-200/90 dark:hover:bg-base-200/85",
-        ].join(" ")}
+        className={pressed ? MAP_OVERLAY_CONTROL_ACTIVE_CLASS : MAP_OVERLAY_CONTROL_CLASS}
       >
         <svg
           width="16"
@@ -45,7 +44,7 @@ export default function PinConnectionsToggle({
         <span>Connections</span>
       </button>
       {showHint && (
-        <p id={hintId} className="text-[10px] leading-snug text-base-content/60 text-right max-w-[11rem]">
+        <p id={hintId} className="text-[11px] leading-snug text-base-content/60 text-right max-w-[11rem]">
           Open a pin to see its connections
         </p>
       )}
