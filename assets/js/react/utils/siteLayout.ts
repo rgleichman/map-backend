@@ -64,27 +64,18 @@ export function mapShellTopRightOverlayTop(): string {
   return `calc(${MAP_SHELL_OVERLAY_TOP} + ${MAPLIBRE_GEOLOCATE_RESERVE})`
 }
 
-/**
- * Vertical offset for pin search below MapLibre's Stadia place search control (~40px + margin).
- */
-export const MAPLIBRE_PLACE_SEARCH_RESERVE = "3.25rem"
-
-export function mapShellTopLeftPinSearchTop(): string {
-  return `calc(${MAP_SHELL_OVERLAY_TOP} + ${MAPLIBRE_PLACE_SEARCH_RESERVE})`
-}
-
-/** Pin search input height (matches PinSearch min-h-10). */
+/** Unified map search input height (matches PinSearch min-h-10). */
 export const PIN_SEARCH_INPUT_HEIGHT = "2.5rem"
 
-/** Gap below pin search before the pin type legend may begin. */
+/** Gap below map search before the pin type legend may begin. */
 export const PIN_TYPE_LEGEND_TOP_GAP = "0.5rem"
 
 /**
  * Max height for the bottom-left pin type legend so it stays below the
- * top-left place + pin search stack (and above the desktop footer reserve).
+ * top-left search control (and above the desktop footer reserve).
  */
 export function mapShellPinTypeLegendMaxHeight(): string {
-  return `calc(100% - ${mapShellOverlayBottomAboveFooter()} - ${MAP_SHELL_OVERLAY_TOP} - ${MAPLIBRE_PLACE_SEARCH_RESERVE} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
+  return `calc(100% - ${mapShellOverlayBottomAboveFooter()} - ${MAP_SHELL_OVERLAY_TOP} - ${PIN_SEARCH_INPUT_HEIGHT} - ${PIN_TYPE_LEGEND_TOP_GAP})`
 }
 
 /**

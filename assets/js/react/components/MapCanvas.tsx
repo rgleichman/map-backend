@@ -10,8 +10,8 @@ import {
   getPinTypeMarkerImageId,
 } from "../utils/pinTypeIcons"
 import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
-import { MapLibreSearchControl } from "@stadiamaps/maplibre-search-box";
 import { CLEARED_FILTER, buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
+import type { PlaceSuggestion } from "../utils/placeSearch"
 import {
   expandClusterAtPoint,
   MATCHING_SOURCE_ID,
@@ -42,7 +42,7 @@ import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import PinSearch from "./PinSearch"
-import { mapShellTopLeftPinSearchTop, mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import type { ToggleHeartResult } from "../types"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
@@ -163,9 +163,9 @@ export default function MapCanvas({
   const [openPopupPinId, setOpenPopupPinId] = useState<number | null>(null)
   const [focusedBacklinks, setFocusedBacklinks] = useState<PinLink[] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [placeSearchActive, setPlaceSearchActive] = useState(false)
-  const [pinSearchActive, setPinSearchActive] = useState(false)
-  const overlaySearchActive = placeSearchActive || pinSearchActive
+  const [searchActive, setSearchActive] = useState(false)
+  const searchActiveRef = useRef(false)
+  searchActiveRef.current = searchActive
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
   const mapMouseDownHandlerRef = useRef<(() => void) | null>(null)
@@ -328,23 +328,6 @@ export default function MapCanvas({
     return () => toggle.removeEventListener("change", sync)
   }, [])
 
-  // Track search input focus so we can hide filters on mobile while searching
-  useEffect(() => {
-    if (!mapReady || !containerRef.current) return
-    const input = containerRef.current.querySelector<HTMLInputElement>(".maplibre-search-box input")
-    if (!input) return
-    // Placeholder is not a label; the control is created by MapLibreSearchControl without a <label>.
-    input.setAttribute("aria-label", "Search for places")
-    const onFocus = () => setPlaceSearchActive(true)
-    const onBlur = () => setTimeout(() => setPlaceSearchActive(false), 150)
-    input.addEventListener("focus", onFocus)
-    input.addEventListener("blur", onBlur)
-    return () => {
-      input.removeEventListener("focus", onFocus)
-      input.removeEventListener("blur", onBlur)
-    }
-  }, [mapReady])
-
   // Initialize map once
   useEffect(() => {
     if (!containerRef.current) return
@@ -356,14 +339,6 @@ export default function MapCanvas({
       if (!res.ok) throw new Error(`Failed to load map style (${res.status})`)
       const style = await res.json()
       if (!isMounted) return
-      const control = new MapLibreSearchControl({
-        minWaitPeriodMs: 500,
-        onResultSelected: feature => {
-          void feature
-        },
-        // You can also use our EU endpoint to keep traffic within the EU using the basePath option:
-        // baseUrl: "https://api-eu.stadiamaps.com",
-      });
       const map = new maplibregl.Map({
         container: containerRef.current!,
         style,
@@ -376,9 +351,6 @@ export default function MapCanvas({
         // performance optimization
         validateStyle: false,
       })
-      // The search control is implemented against a different maplibre-gl type instance;
-      // coerce it to the expected IControl to satisfy TypeScript.
-      map.addControl(control as unknown as maplibregl.IControl, "top-left")
       const geolocateControl = new maplibregl.GeolocateControl({
         positionOptions: GEOLOCATE_POSITION_OPTIONS,
         trackUserLocation: false,
@@ -391,8 +363,7 @@ export default function MapCanvas({
       mapRef.current = map
       const container = map.getContainer()
       const onMapMouseDown = () => {
-        const searchBox = container.querySelector(".maplibre-search-box")
-        if (searchBox?.contains(document.activeElement)) {
+        if (searchActiveRef.current) {
           searchDismissingClickRef.current = true
         }
       }
@@ -945,7 +916,7 @@ export default function MapCanvas({
         <div
           className={[
             "absolute right-2 z-10 flex flex-col items-end gap-2",
-            overlaySearchActive && "max-sm:hidden",
+            searchActive && "max-sm:hidden",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -974,14 +945,28 @@ export default function MapCanvas({
           pins={pins}
           filter={filter}
           setFilter={setFilter}
-          topOffset={mapShellTopLeftPinSearchTop()}
-          onFocusChange={setPinSearchActive}
+          onFocusChange={setSearchActive}
           pinMatches={pinFilterMatcher}
           onSelectPin={(pin) => {
             const map = mapRef.current
             if (!map) return
             map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
             openPinPopup(map, pin)
+          }}
+          onSelectPlace={(place: PlaceSuggestion) => {
+            const map = mapRef.current
+            if (!map) return
+            if (place.bbox) {
+              map.fitBounds(
+                [
+                  [place.bbox[0], place.bbox[1]],
+                  [place.bbox[2], place.bbox[3]],
+                ],
+                { padding: 48, maxZoom: PIN_FOCUS_ZOOM, duration: 1000 },
+              )
+            } else {
+              map.flyTo({ center: [place.longitude, place.latitude], zoom: PIN_FOCUS_ZOOM })
+            }
           }}
         />
       )}

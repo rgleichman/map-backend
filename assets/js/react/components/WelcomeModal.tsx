@@ -87,10 +87,9 @@ export default function WelcomeModal({ onClose }: Props) {
               <li>
                 Use <span className="font-medium">Sign in</span> in the top right to create an account so you can create pins.
               </li>
-              <li>Use the Address Bar in the map top-left to search for an address or location.</li>
+              <li>Use the search control in the map top-left to find pins or places.</li>
               <li>
-                Use <span className="font-medium">Search pins</span> below the address bar to find pins by
-                name, description, or tag.
+                Search finds pins by name, description, or tag, and places by address or location.
               </li>
               <li>
                 Use the filter button in the map top-right to filter by pin type and other unique qualities.

@@ -19,7 +19,6 @@ import type { PinWorkflowAction } from "./pinWorkflow/types"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
 import * as api from "./api/client"
-import "@stadiamaps/maplibre-search-box/dist/maplibre-search-box.css"
 
 type Props = {
   userId?: number
