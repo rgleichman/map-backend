@@ -114,36 +114,42 @@ const MARKER_ICON_TRANSFORM = "translate(20,14) scale(0.833) translate(-12,-12)"
 const TEARDROP_PATH =
   "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
 
+/**
+ * Teardrop outline styles used when building marker SVGs.
+ * - pending: stroke via CSS `currentColor` (DOM placement; see `.pin-marker--pending`)
+ * - new: baked amber stroke for MapLibre “new since last visit” images
+ */
+export type PinMarkerOutline = "pending" | "new"
+
+/** Only MapLibre image ids use a baked outline variant. */
+export type PinMarkerMapOutline = Extract<PinMarkerOutline, "new">
+
+/** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
+export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
+
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
-export function getPinTypeMarkerImageId(pinType: PinType, outline?: "new"): string {
+export function getPinTypeMarkerImageId(
+  pinType: PinType,
+  outline?: PinMarkerMapOutline,
+): string {
   const base = isCustomPinType(pinType)
     ? customPinTypeMarkerImageId(pinType)
     : `pin-icon-${builtinIconKeyForPinType(pinType)}`
   return outline === "new" ? `${base}-new` : base
 }
 
-/**
- * Outline style for teardrop markers.
- * - pending: stroke via CSS `currentColor` (see `.pin-marker--pending`)
- * - new: baked amber stroke for MapLibre images (distinct from primary)
- */
-export type PinMarkerOutline = "pending" | "new"
-
-/** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
-export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
-
 const SVG_NS = "http://www.w3.org/2000/svg"
 
-function markerOutlineStroke(outline: PinMarkerOutline | false): string | null {
+function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   if (outline === "pending") return "currentColor"
   if (outline === "new") return NEW_PIN_OUTLINE_STROKE
   return null
 }
 
 function buildPinMarkerSVGStringFallback(
-  pinType: PinType | string | null | undefined,
-  outline: PinMarkerOutline | false,
-  catalog: CustomPinType[] = []
+  pinType: PinType,
+  outline: PinMarkerOutline | null,
+  catalog: CustomPinType[] = [],
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
@@ -194,15 +200,15 @@ function buildPinMarkerSVGStringFallback(
 }
 
 function buildPinMarkerSVGElement(
-  pinType: PinType | string | null | undefined,
-  outline: PinMarkerOutline | false,
-  catalog: CustomPinType[] = []
+  pinType: PinType,
+  outline: PinMarkerOutline | null,
+  catalog: CustomPinType[] = [],
 ): SVGSVGElement {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
   const iconKey = builtinIconKeyForPinType(pinType)
   const isStrokeIcon = iconKey === BuiltinPinType.OneTime
-  const outlined = outline !== false
+  const outlined = outline != null
   const mainPathFillOpacity = outlined ? "0.72" : "1"
   const circleFillOpacity = outlined ? "0.85" : "1"
   const iconPaths = ICON_PATH_DEFS[iconKey]
@@ -289,48 +295,35 @@ function buildPinMarkerSVGElement(
 }
 
 /**
- * Create an SVG marker for a specific pin type (data URL).
+ * MapLibre marker image (data URL). Pass `outline: "new"` for the highlighted variant.
  */
 export function createPinTypeMarkerSVG(
-  pinType: PinType | string | null | undefined,
+  pinType: PinType,
   catalog: CustomPinType[] = [],
-  options?: CreatePinMarkerOptions,
+  outline?: PinMarkerMapOutline,
 ): string {
-  const outline = resolveMarkerOutline(options)
+  const resolved = outline ?? null
   if (typeof document === "undefined" || typeof XMLSerializer === "undefined") {
-    const svg = buildPinMarkerSVGStringFallback(pinType, outline, catalog)
+    const svg = buildPinMarkerSVGStringFallback(pinType, resolved, catalog)
     return `data:image/svg+xml;base64,${btoa(svg)}`
   }
 
-  const svgEl = buildPinMarkerSVGElement(pinType, outline, catalog)
+  const svgEl = buildPinMarkerSVGElement(pinType, resolved, catalog)
   const svg = new XMLSerializer().serializeToString(svgEl)
   return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
-export type CreatePinMarkerOptions = {
-  /**
-   * Teardrop outline. Prefer `outline`.
-   * `pending: true` is equivalent to `outline: "pending"`.
-   */
-  pending?: boolean
-  outline?: PinMarkerOutline
-}
-
-function resolveMarkerOutline(options?: CreatePinMarkerOptions): PinMarkerOutline | false {
-  if (options?.outline) return options.outline
-  if (options?.pending) return "pending"
-  return false
-}
-
 /**
- * Create a DOM element marker: single SVG (teardrop + icon), no rotation.
+ * DOM placement marker (teardrop + icon). When `pending`, draws a primary-colored
+ * outline via `currentColor` (pair with `.pin-marker--pending`).
  */
 export function createPinTypeMarkerElement(
-  pinType: PinType | string,
-  options?: CreatePinMarkerOptions,
-  catalog: CustomPinType[] = []
+  pinType: PinType,
+  catalog: CustomPinType[] = [],
+  pending = false,
 ): HTMLElement {
-  const svg = buildPinMarkerSVGElement(pinType, resolveMarkerOutline(options), catalog)
+  const outline: PinMarkerOutline | null = pending ? "pending" : null
+  const svg = buildPinMarkerSVGElement(pinType, outline, catalog)
   const wrap = document.createElement("div")
   wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
   wrap.appendChild(svg)

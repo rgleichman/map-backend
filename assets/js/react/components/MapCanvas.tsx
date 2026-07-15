@@ -416,11 +416,7 @@ export default function MapCanvas({
         try {
           for (const pinType of BUILTIN_PIN_TYPES) {
             for (const outline of [undefined, "new"] as const) {
-              const dataUrl = createPinTypeMarkerSVG(
-                pinType,
-                [],
-                outline ? { outline } : undefined,
-              )
+              const dataUrl = createPinTypeMarkerSVG(pinType, [], outline)
               const img = await loadImage(dataUrl)
               if (!isMounted) return
               map.addImage(getPinTypeMarkerImageId(pinType, outline), img)
@@ -596,7 +592,6 @@ export default function MapCanvas({
           map.on("mouseleave", PIN_LINKS_LAYER_ID, clearPointerCursor)
 
           pinLayersAddedRef.current = true
-          syncPinGeoJsonRef.current()
 
           if (!isMounted) return
           setMapReady(true)
@@ -705,7 +700,7 @@ export default function MapCanvas({
         pendingMarkerRef.current?.remove()
         pendingMarkerRef.current = null
         pendingPinTypeRef.current = pinType
-        const el = createPinTypeMarkerElement(pinType, { pending: true }, catalogRef.current)
+        const el = createPinTypeMarkerElement(pinType, catalogRef.current, true)
         el.classList.add("pin-marker--pending")
         pendingMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
           .setLngLat([pendingLocation.lng, pendingLocation.lat])
@@ -838,11 +833,53 @@ export default function MapCanvas({
     })
   }
 
-  // Sync GeoJSON pin layers when pins or filters change (not on unrelated popup prop changes).
+  // Register custom marker images (normal + new), then sync GeoJSON so icons exist first.
   useEffect(() => {
     if (!mapReady || !pinLayersAddedRef.current) return
-    syncPinGeoJsonRef.current()
-  }, [pinGeoJsonSyncKey, mapReady])
+    const map = mapRef.current
+    if (!map) return
+
+    let cancelled = false
+
+    const run = async () => {
+      const catalogSnapshot = catalogRef.current
+      const nextIds = new Set<string>()
+      const nextVisualKeys = new Map<string, string>()
+      for (const pinType of catalogSnapshot) {
+        const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
+        for (const outline of [undefined, "new"] as const) {
+          const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
+          nextIds.add(imageId)
+          nextVisualKeys.set(imageId, visualKey)
+          const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
+          if (map.hasImage(imageId) && !visualChanged) continue
+          try {
+            const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalogSnapshot, outline)
+            const img = await loadImage(dataUrl)
+            if (cancelled || mapRef.current !== map) return
+            if (map.hasImage(imageId)) map.removeImage(imageId)
+            map.addImage(imageId, img)
+          } catch {
+            // ignore failed custom marker images
+          }
+        }
+      }
+      if (cancelled) return
+      for (const imageId of knownCustomImageIdsRef.current) {
+        if (!nextIds.has(imageId) && map.hasImage(imageId)) {
+          map.removeImage(imageId)
+        }
+      }
+      knownCustomImageIdsRef.current = nextIds
+      customImageVisualKeysRef.current = nextVisualKeys
+      syncPinGeoJsonRef.current()
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [pinGeoJsonSyncKey, catalog, mapReady])
 
   // Refresh open popup content when pin data or popup props change.
   useEffect(() => {
@@ -879,48 +916,6 @@ export default function MapCanvas({
     map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
     openPinPopup(map, pin)
   }, [initialPinId, pinFocusSeq, pins, mapReady, setFilter])
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady) return
-
-    const registerCustomImages = async () => {
-      const nextIds = new Set<string>()
-      const nextVisualKeys = new Map<string, string>()
-      for (const pinType of catalog) {
-        const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
-        for (const outline of [undefined, "new"] as const) {
-          const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
-          nextIds.add(imageId)
-          nextVisualKeys.set(imageId, visualKey)
-          const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
-          if (map.hasImage(imageId) && !visualChanged) continue
-          try {
-            const dataUrl = createPinTypeMarkerSVG(
-              pinType.pin_type,
-              catalog,
-              outline ? { outline } : undefined,
-            )
-            const img = await loadImage(dataUrl)
-            if (!mapRef.current || mapRef.current !== map) return
-            if (map.hasImage(imageId)) map.removeImage(imageId)
-            map.addImage(imageId, img)
-          } catch {
-            // ignore failed custom marker images
-          }
-        }
-      }
-      for (const imageId of knownCustomImageIdsRef.current) {
-        if (!nextIds.has(imageId) && map.hasImage(imageId)) {
-          map.removeImage(imageId)
-        }
-      }
-      knownCustomImageIdsRef.current = nextIds
-      customImageVisualKeysRef.current = nextVisualKeys
-    }
-
-    void registerCustomImages()
-  }, [catalog, mapReady])
 
   return (
     <div className="relative w-full h-full">

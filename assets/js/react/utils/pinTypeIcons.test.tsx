@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 import PinTypeIcon from "../components/PinTypeIcon"
-import { createPinTypeMarkerElement, createPinTypeMarkerSVG, NEW_PIN_OUTLINE_STROKE } from "./pinTypeIcons"
+import {
+  createPinTypeMarkerElement,
+  createPinTypeMarkerSVG,
+  NEW_PIN_OUTLINE_STROKE,
+} from "./pinTypeIcons"
 
 function hasDangerouslySetInnerHTML(node: unknown): boolean {
   if (node == null) return false
@@ -67,7 +71,7 @@ describe("createPinTypeMarkerSVG", () => {
   })
 
   it("bakes amber stroke for new-since-last-visit outline", () => {
-    const dataUrl = createPinTypeMarkerSVG("scheduled", [], { outline: "new" })
+    const dataUrl = createPinTypeMarkerSVG("scheduled", [], "new")
     const svg = decodeDataUrlBase64(dataUrl)
     expect(svg).toContain(`stroke="${NEW_PIN_OUTLINE_STROKE}"`)
     expect(svg).toContain('stroke-width="10"')
@@ -76,13 +80,13 @@ describe("createPinTypeMarkerSVG", () => {
 
 describe("createPinTypeMarkerElement", () => {
   it.runIf(typeof document !== "undefined")("returns a DOM element containing an svg", () => {
-    const el = createPinTypeMarkerElement("scheduled", { pending: false }, [])
+    const el = createPinTypeMarkerElement("scheduled", [])
     expect(el.querySelector("svg")).not.toBeNull()
     expect(el.childElementCount).toBe(1)
   })
 
   it.runIf(typeof document !== "undefined")("renders pending marker with outline path", () => {
-    const el = createPinTypeMarkerElement("scheduled", { pending: true }, [])
+    const el = createPinTypeMarkerElement("scheduled", [], true)
     const svg = el.querySelector("svg")
     expect(svg).not.toBeNull()
     // Outline path uses stroke-width=10 (teardrop outline for pending state)
