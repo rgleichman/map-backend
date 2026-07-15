@@ -5,6 +5,8 @@ defmodule Storymap.Performance.HotPathsTest do
   """
   use Storymap.DataCase, async: false
 
+  @moduletag :performance
+
   import Storymap.SubMapsFixtures
 
   alias Storymap.Pins.Query

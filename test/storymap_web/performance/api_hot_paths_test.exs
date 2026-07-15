@@ -6,6 +6,8 @@ defmodule StorymapWeb.Performance.ApiHotPathsTest do
   """
   use StorymapWeb.ConnCase, async: false
 
+  @moduletag :performance
+
   import Storymap.PinsFixtures
   import Storymap.SubMapsFixtures
   import Storymap.PerformanceHelpers

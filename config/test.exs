@@ -46,6 +46,6 @@ config :storymap, :email_identifier_secret, "test_email_identifier_secret_32byte
 config :storymap, :tile_cache_enabled, true
 config :storymap, :tile_cache_dir, Path.join(System.tmp_dir!(), "storymap_tile_cache_test")
 
-# Enable helpful, but potentially expensive runtime checks
+# Expensive LiveView checks add overhead; re-enable locally when debugging LV issues.
 config :phoenix_live_view,
-  enable_expensive_runtime_checks: true
+  enable_expensive_runtime_checks: false

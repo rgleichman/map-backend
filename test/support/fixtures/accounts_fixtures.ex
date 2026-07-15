@@ -7,7 +7,10 @@ defmodule Storymap.AccountsFixtures do
   import Ecto.Query
 
   alias Storymap.Accounts
+  alias Storymap.Accounts.EmailIdentifier
   alias Storymap.Accounts.Scope
+  alias Storymap.Accounts.User
+  alias Storymap.Repo
 
   @process_emails_key {__MODULE__, :registered_user_emails}
 
@@ -22,35 +25,53 @@ defmodule Storymap.AccountsFixtures do
   @doc """
   Returns the email string used when registering the user (plaintext is not stored on `%User{}`).
   """
-  def registered_email(%Storymap.Accounts.User{id: id}) do
+  def registered_email(%User{id: id}) do
     Process.get(@process_emails_key, %{})
     |> Map.fetch!(id)
   end
 
-  defp remember_registered_email(%Storymap.Accounts.User{id: id}, email)
+  defp remember_registered_email(%User{id: id}, email)
        when is_binary(email) do
     map = Process.get(@process_emails_key, %{})
     Process.put(@process_emails_key, Map.put(map, id, email))
   end
 
-  def unconfirmed_user_fixture(attrs \\ %{}) do
-    merged = valid_user_attributes(attrs)
-    {:ok, user} = Accounts.register_user(merged)
-    remember_registered_email(user, merged.email)
-    user
+  @doc """
+  Inserts a confirmed user with a single `Repo.insert!` (no register / magic-link side effects).
+  Accepts `:email`, `:admin_level`, `:muted_at`, and `:confirmed_at`.
+  """
+  def user_fixture(attrs \\ %{}) do
+    insert_user!(attrs)
   end
 
-  def user_fixture(attrs \\ %{}) do
-    user = unconfirmed_user_fixture(attrs)
+  @doc """
+  Inserts an unconfirmed user (`confirmed_at: nil`) without calling `Accounts.register_user/1`.
+  """
+  def unconfirmed_user_fixture(attrs \\ %{}) do
+    insert_user!(Map.put(attrs, :confirmed_at, nil))
+  end
 
-    token =
-      extract_user_token(fn url ->
-        Accounts.deliver_login_instructions(user, registered_email(user), url)
-      end)
+  defp insert_user!(attrs) when is_map(attrs) do
+    attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+    email = Map.get(attrs, "email") || unique_user_email()
+    now = DateTime.utc_now(:second)
 
-    {:ok, {user, _expired_tokens}} =
-      Accounts.login_user_by_magic_link(token)
+    confirmed_at =
+      case Map.fetch(attrs, "confirmed_at") do
+        {:ok, value} -> value
+        :error -> now
+      end
 
+    user =
+      %User{
+        email_hmac: EmailIdentifier.hash(email),
+        confirmed_at: confirmed_at,
+        admin_level: Map.get(attrs, "admin_level", 0),
+        muted_at: Map.get(attrs, "muted_at")
+      }
+      |> Repo.insert!()
+
+    remember_registered_email(user, email)
     user
   end
 
@@ -97,12 +118,14 @@ defmodule Storymap.AccountsFixtures do
 
   def muted_user_fixture(user_or_attrs \\ %{})
 
-  def muted_user_fixture(%Storymap.Accounts.User{} = user) do
-    Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+  def muted_user_fixture(%User{} = user) do
+    Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
   end
 
   def muted_user_fixture(attrs) when is_map(attrs) do
-    user = user_fixture(attrs)
-    muted_user_fixture(user)
+    muted_at =
+      Map.get(attrs, :muted_at) || Map.get(attrs, "muted_at") || DateTime.utc_now(:second)
+
+    user_fixture(Map.put(attrs, :muted_at, muted_at))
   end
 end

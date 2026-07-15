@@ -7,55 +7,65 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
 
   alias Storymap.Accounts.Scope
   alias Storymap.Pins.CommentAuthorizer
+  alias Storymap.Pins.PinComment
   alias Storymap.Repo
   alias Storymap.SubMaps
 
   describe "authorize_create/3" do
-    test "allows logged-in user on visible pin" do
+    setup do
       pin = pin_fixture()
+      %{pin: pin}
+    end
+
+    test "allows logged-in user on visible pin", %{pin: pin} do
       user = user_fixture()
       assert :ok = CommentAuthorizer.authorize_create(user, pin, [])
     end
 
-    test "forbids muted user" do
-      pin = pin_fixture()
+    test "forbids muted user", %{pin: pin} do
       muted = muted_user_fixture()
       assert {:error, :forbidden} = CommentAuthorizer.authorize_create(muted, pin, [])
     end
   end
 
   describe "authorize_update/2" do
-    test "allows comment author" do
-      user = user_fixture()
-      comment = pin_comment_fixture(%{}, nil, user)
-      assert :ok = CommentAuthorizer.authorize_update(user, comment, [])
-    end
-
-    test "forbids non-author" do
+    setup do
       author = user_fixture()
       other = user_fixture()
-      comment = pin_comment_fixture(%{}, nil, author)
+      pin = pin_fixture(%{}, author)
+      comment = insert_comment!(pin, author)
+      %{author: author, other: other, comment: comment}
+    end
+
+    test "allows comment author", %{author: author, comment: comment} do
+      assert :ok = CommentAuthorizer.authorize_update(author, comment, [])
+    end
+
+    test "forbids non-author", %{other: other, comment: comment} do
       assert {:error, :forbidden} = CommentAuthorizer.authorize_update(other, comment, [])
     end
   end
 
-  describe "authorize_delete/4" do
-    test "allows comment author" do
-      pin = pin_fixture()
-      user = user_fixture()
-      comment = pin_comment_fixture(%{}, pin, user)
-      assert :ok = CommentAuthorizer.authorize_delete(user, pin, comment, [])
+  describe "authorize_delete/4 world pin" do
+    setup do
+      author = user_fixture()
+      admin = user_fixture(%{admin_level: 1})
+      pin = pin_fixture(%{}, author)
+      comment = insert_comment!(pin, author)
+      %{author: author, admin: admin, pin: pin, comment: comment}
     end
 
-    test "allows site pin moderator" do
-      pin = pin_fixture()
-      author = user_fixture()
-      admin = user_fixture() |> then(&Repo.update!(Ecto.Changeset.change(&1, admin_level: 1)))
-      comment = pin_comment_fixture(%{}, pin, author)
+    test "allows comment author", %{author: author, pin: pin, comment: comment} do
+      assert :ok = CommentAuthorizer.authorize_delete(author, pin, comment, [])
+    end
+
+    test "allows site pin moderator", %{admin: admin, pin: pin, comment: comment} do
       assert :ok = CommentAuthorizer.authorize_delete(admin, pin, comment, [])
     end
+  end
 
-    test "allows sub-map owner to delete another user's comment" do
+  describe "authorize_delete/4 sub-map" do
+    setup do
       owner = user_fixture()
       commenter = user_fixture()
 
@@ -79,7 +89,24 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
 
       pin = Repo.preload(pin, :sub_map)
       membership = SubMaps.get_membership(sub_map.id, owner.id)
-      comment = pin_comment_fixture(%{}, pin, commenter)
+
+      %{
+        owner: owner,
+        commenter: commenter,
+        sub_map: sub_map,
+        pin: pin,
+        membership: membership
+      }
+    end
+
+    test "allows sub-map owner to delete another user's comment", %{
+      owner: owner,
+      commenter: commenter,
+      sub_map: sub_map,
+      pin: pin,
+      membership: membership
+    } do
+      comment = insert_comment!(pin, commenter)
 
       assert :ok =
                CommentAuthorizer.authorize_delete(owner, pin, comment,
@@ -87,5 +114,15 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
                  membership: membership
                )
     end
+  end
+
+  defp insert_comment!(pin, user) do
+    %PinComment{}
+    |> PinComment.create_changeset(%{"body" => "x"},
+      pin_id: pin.id,
+      user_id: user.id,
+      parent: nil
+    )
+    |> Repo.insert!()
   end
 end
