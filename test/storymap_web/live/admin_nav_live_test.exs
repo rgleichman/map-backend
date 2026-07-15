@@ -111,8 +111,9 @@ defmodule StorymapWeb.AdminNavLiveTest do
 
     send(view.pid, {:counts_changed, other.id, %{activity_unread: 99, reports_unresolved: 88}})
 
-    html = render(view)
-    assert html =~ "2"
-    refute html =~ "99"
+    assert has_element?(view, "#admin-activity-unread-badge", "2")
+    refute has_element?(view, "#admin-activity-unread-badge", "99")
+    assert has_element?(view, "#admin-reports-unresolved-badge", "1")
+    refute has_element?(view, "#admin-reports-unresolved-badge", "88")
   end
 end
