@@ -151,6 +151,20 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     })
   }, [data, safeIndex, onionSkin, multiFrame, playing])
 
+  const selectFrame = useCallback(
+    (index: number) => {
+      if (playing) setPlaying(false)
+      setActiveIndex(index)
+      const soundtrack = data.soundtrack ?? emptyScore(data.frames.length)
+      void (async () => {
+        const ctx = getAudioContext()
+        if (ctx.state === "suspended") await ctx.resume()
+        playScoreStep(ctx, soundtrack, index, 180)
+      })()
+    },
+    [data.frames.length, data.soundtrack, playing]
+  )
+
   useEffect(() => {
     if (!playing || frameCount < 2) return
     const ms = Math.max(50, Math.round(1000 / Math.max(1, data.fps)))
@@ -412,10 +426,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
               data={data}
               frameIndex={i}
               selected={i === safeIndex}
-              onSelect={() => {
-                if (playing) setPlaying(false)
-                setActiveIndex(i)
-              }}
+              onSelect={() => selectFrame(i)}
               disabled={disabled}
             />
           ))}
@@ -509,7 +520,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
             onChange={setSoundtrack}
             disabled={disabled || playing}
             compact
-            activeStep={playing ? safeIndex : -1}
+            activeStep={safeIndex}
             stepHeaderLabel={(step) => `F${step + 1}`}
           />
         </div>
