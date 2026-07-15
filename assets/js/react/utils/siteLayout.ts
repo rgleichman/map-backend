@@ -79,6 +79,26 @@ export function mapShellPinTypeLegendMaxHeight(): string {
 }
 
 /**
+ * Vertical clearance for the fixed ? help control above the footer band
+ * (btn-circle btn-sm ≈ 2rem + gap).
+ */
+export const MAP_HELP_BUTTON_CLEARANCE = "2.5rem"
+
+/** Bottom inset for top-right overlays that must clear the help button and footer. */
+export function mapShellOverlayBottomAboveHelp(): string {
+  return `calc(${mapShellOverlayBottomAboveFooter()} + ${MAP_HELP_BUTTON_CLEARANCE})`
+}
+
+/**
+ * Max height for the top-right filters panel when its parent is a flex-1
+ * column that already clears the connections toggle, help button, and footer
+ * (see MapCanvas top-right stack).
+ */
+export function mapShellFiltersMaxHeight(): string {
+  return "100%"
+}
+
+/**
  * Form vs overlay: inputs that affect pin save (title, tags, community options, etc.)
  * belong in PinModal / PinComposer — not in floating MapShell overlays. Overlays are for
  * map chrome only (legend, filters, toolbar). See PinComposer / PinFlowUI.
@@ -92,5 +112,6 @@ export function mapShellPinTypeLegendMaxHeight(): string {
  * Bottom layout tokens (CSS vars in app.css, measured in app.js):
  * - --map-desktop-footer-reserve: footer band height on md+
  * - --map-help-button-reserve: right margin so MapLibre attribution clears the ? button
+ * - mapShellOverlayBottomAboveHelp / MAP_HELP_BUTTON_CLEARANCE: vertical clearance for ?
  * - --map-pin-legend-*: footer left padding so links clear the legend column on map pages
  */

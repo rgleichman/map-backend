@@ -42,7 +42,7 @@ import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
-import { mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import { mapShellOverlayBottomAboveHelp, mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import type { ToggleHeartResult } from "../types"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
@@ -915,29 +915,36 @@ export default function MapCanvas({
       {mapReady && !drawerOpen && (
         <div
           className={[
-            "absolute right-2 z-10 flex flex-col items-end gap-2",
+            "absolute right-2 z-10 flex flex-col items-end gap-2 pointer-events-none",
             searchActive && "max-sm:hidden",
           ]
             .filter(Boolean)
             .join(" ")}
-          style={{ top: mapShellTopRightOverlayTop() }}
+          style={{
+            top: mapShellTopRightOverlayTop(),
+            bottom: mapShellOverlayBottomAboveHelp(),
+          }}
         >
-          <PinConnectionsToggle
-            pressed={showConnections}
-            onToggle={handleConnectionsToggle}
-            globalCapped={showConnections && pinLinkBuildResult.globalCapped}
-          />
-          <MapFilters
-            pins={pins}
-            filter={filter}
-            setFilter={setFilter}
-            openRef={filterPanelOpenRef}
-            position="inline"
-            panelTopOffset="0"
-            showSavedFilter={userId != null}
-            pinHeartsLoading={pinHeartsLoading}
-            savedFilterEmptyOnMap={savedFilterEmptyOnMap}
-          />
+          <div className="pointer-events-auto shrink-0">
+            <PinConnectionsToggle
+              pressed={showConnections}
+              onToggle={handleConnectionsToggle}
+              globalCapped={showConnections && pinLinkBuildResult.globalCapped}
+            />
+          </div>
+          <div className="pointer-events-none min-h-0 flex-1 flex flex-col items-end overflow-hidden">
+            <MapFilters
+              pins={pins}
+              filter={filter}
+              setFilter={setFilter}
+              openRef={filterPanelOpenRef}
+              position="inline"
+              panelTopOffset="0"
+              showSavedFilter={userId != null}
+              pinHeartsLoading={pinHeartsLoading}
+              savedFilterEmptyOnMap={savedFilterEmptyOnMap}
+            />
+          </div>
         </div>
       )}
       {mapReady && !drawerOpen && (

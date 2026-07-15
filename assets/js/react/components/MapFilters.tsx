@@ -15,7 +15,7 @@ import {
 import FloatingPanel from "./FloatingPanel"
 import HeartIcon from "./HeartIcon"
 import TagCombobox from "./TagCombobox"
-import { mapShellOverlayTop } from "../utils/siteLayout"
+import { mapShellFiltersMaxHeight, mapShellOverlayTop } from "../utils/siteLayout"
 import { deriveMapTags } from "../utils/tagSuggestions"
 
 function ChevronDownIcon({ className }: { className?: string }) {
@@ -150,6 +150,7 @@ export default function MapFilters({
       topOffset={panelTopOffset}
       elevated
       compact={false}
+      maxHeight={position === "inline" ? mapShellFiltersMaxHeight() : undefined}
       panelClassName="sm:min-w-xs"
       renderCustomTrigger={({ open, expanded, panelId }) => (
         <div
@@ -220,7 +221,7 @@ export default function MapFilters({
         </div>
       )}
     >
-      <div className="space-y-5 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5 -mr-0.5">
+      <div className="space-y-5 flex-1 min-h-0 overflow-y-auto pr-0.5 -mr-0.5">
         {showSavedFilter && (
           <section>
             <p className={sectionTitle}>Saved</p>

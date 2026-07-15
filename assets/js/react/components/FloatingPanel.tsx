@@ -157,12 +157,17 @@ export default function FloatingPanel({
       <div
         id={panelId}
         className={[
-          elevated ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto" : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
-          isInline && "top-full right-0 mt-2",
+          isInline
+            ? elevated
+              ? "relative z-20 rounded-lg border border-base-300 w-full sm:w-auto pointer-events-auto"
+              : "relative z-10 rounded-lg border border-base-300 w-full sm:w-auto pointer-events-auto"
+            : elevated
+              ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto"
+              : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
           compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
           expanded
             ? maxHeight
-              ? "flex flex-col overflow-hidden"
+              ? "flex min-h-0 flex-col overflow-hidden"
               : "block"
             : "hidden",
           alwaysVisibleOnDesktop && "sm:block",
@@ -171,7 +176,7 @@ export default function FloatingPanel({
         style={panelStyle}
       >
         {renderPanelHeader ? (
-          renderPanelHeader(close)
+          maxHeight ? <div className="shrink-0">{renderPanelHeader(close)}</div> : renderPanelHeader(close)
         ) : (
           <div className={["flex flex-wrap items-center justify-between gap-2", compact ? "mb-2" : "mb-3", maxHeight && "shrink-0"].filter(Boolean).join(" ")}>
             <h3 className={["font-semibold text-base-content shrink-0", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
