@@ -43,6 +43,7 @@ defmodule StorymapWeb.Me.PinHeartControllerTest do
       assert hd(data)["id"] == pin.id
       assert hd(data)["title"] == "Saved spot"
       assert Map.has_key?(hd(data), "is_owner")
+      assert hd(data)["created_by_me"] == true
       refute Map.has_key?(hd(data), "user_id")
     end
 

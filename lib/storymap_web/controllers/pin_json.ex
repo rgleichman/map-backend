@@ -8,8 +8,10 @@ defmodule StorymapWeb.PinJSON do
   alias Storymap.SubMaps.SubMap
   alias StorymapWeb.JSON.DateTime, as: JSONDateTime
 
-  # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner (computed).
-  @pin_data_keys Pin.public_json_fields() ++ [:tags, :community, :is_owner, :linked_pins]
+  # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner /
+  # created_by_me (computed for the authenticated viewer only).
+  @pin_data_keys Pin.public_json_fields() ++
+                   [:tags, :community, :is_owner, :created_by_me, :linked_pins]
 
   @spec index(map()) :: map()
   def index(%{pins: pins, current_user: %{} = current_user} = assigns) do
@@ -36,7 +38,7 @@ defmodule StorymapWeb.PinJSON do
 
   @doc """
   Renders pin data for public (unauthenticated) responses.
-  Does not include user_id or is_owner to prevent user enumeration.
+  Does not include user_id, is_owner, or created_by_me to prevent user enumeration.
   """
   @spec data(Pin.t()) :: map()
   def data(%Pin{} = pin) do
@@ -51,7 +53,7 @@ defmodule StorymapWeb.PinJSON do
     |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
     |> put_community(pin)
     |> Map.put(:linked_pins, linked_pins_data(pin))
-    |> Map.take(@pin_data_keys -- [:is_owner])
+    |> Map.take(@pin_data_keys -- [:is_owner, :created_by_me])
   end
 
   defp put_community(map, %Pin{sub_map: %SubMap{community_url: url, name: name}}) do
@@ -65,9 +67,11 @@ defmodule StorymapWeb.PinJSON do
     opts = authorizer_opts(assigns)
 
     is_owner = Authorizer.can_edit_in_json?(current_user, pin, opts)
+    created_by_me = pin.user_id == current_user.id
 
     data(pin)
     |> Map.put(:is_owner, is_owner)
+    |> Map.put(:created_by_me, created_by_me)
     |> Map.take(@pin_data_keys)
   end
 

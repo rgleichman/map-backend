@@ -104,7 +104,7 @@ type Props = {
   /** Top offset for trigger and panel (map CSS space). */
   panelTopOffset?: string
   position?: "top-left" | "top-right" | "inline"
-  /** When true, show the saved-pins filter section (logged-in users). */
+  /** When true, show My pins / Saved filters (logged-in users). */
   showSavedFilter?: boolean
   pinHeartsLoading?: boolean
   savedFilterEmptyOnMap?: boolean
@@ -129,7 +129,8 @@ export default function MapFilters({
     filter.time !== null ||
     filter.pinType !== null ||
     filter.query.trim() !== "" ||
-    filter.heartedOnly
+    filter.heartedOnly ||
+    filter.mineOnly
   const filterChips = listActiveFilterChips(filter, catalog)
   const filtersSummary =
     filterChips.length > 0 ? filterChips.map((c) => c.label).join("; ") : "Map filters"
@@ -224,25 +225,40 @@ export default function MapFilters({
       <div className="space-y-5 flex-1 min-h-0 overflow-y-auto pr-0.5 -mr-0.5">
         {showSavedFilter && (
           <section>
-            <p className={sectionTitle}>Saved</p>
-            <button
-              type="button"
-              aria-pressed={filter.heartedOnly}
-              disabled={pinHeartsLoading}
-              onClick={() => setFilter((f) => ({ ...f, heartedOnly: !f.heartedOnly }))}
-              className={[
-                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
-                filter.heartedOnly
-                  ? "bg-primary text-primary-content"
-                  : "bg-base-200 text-base-content hover:bg-base-300",
-                pinHeartsLoading && "opacity-60 cursor-not-allowed",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <HeartIcon filled={filter.heartedOnly} size={14} />
-              Saved pins only
-            </button>
+            <p className={sectionTitle}>Yours</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                aria-pressed={filter.mineOnly}
+                onClick={() => setFilter((f) => ({ ...f, mineOnly: !f.mineOnly }))}
+                className={[
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
+                  filter.mineOnly
+                    ? "bg-primary text-primary-content"
+                    : "bg-base-200 text-base-content hover:bg-base-300",
+                ].join(" ")}
+              >
+                My pins
+              </button>
+              <button
+                type="button"
+                aria-pressed={filter.heartedOnly}
+                disabled={pinHeartsLoading}
+                onClick={() => setFilter((f) => ({ ...f, heartedOnly: !f.heartedOnly }))}
+                className={[
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition min-h-[44px] sm:min-h-0",
+                  filter.heartedOnly
+                    ? "bg-primary text-primary-content"
+                    : "bg-base-200 text-base-content hover:bg-base-300",
+                  pinHeartsLoading && "opacity-60 cursor-not-allowed",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <HeartIcon filled={filter.heartedOnly} size={14} />
+                Saved pins only
+              </button>
+            </div>
             {savedFilterEmptyOnMap && (
               <p className="text-sm text-base-content/60 mt-2">
                 No saved pins on this map —{" "}

@@ -65,6 +65,8 @@ export type Pin = {
   icon_url?: string
   custom_data?: Record<string, unknown>
   is_owner?: boolean
+  /** True when the authenticated viewer created this pin (not merely can edit). */
+  created_by_me?: boolean
   status: PinStatus
   visible_on_world_map?: boolean
   community?: PinCommunity | null

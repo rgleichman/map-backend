@@ -34,10 +34,14 @@ export function useMapData({
       if (existingIndex >= 0) {
         const existing = prevPins[existingIndex]
         const updated = [...prevPins]
-        updated[existingIndex] = { ...pin, is_owner: pin.is_owner ?? existing.is_owner ?? false }
+        updated[existingIndex] = {
+          ...pin,
+          is_owner: pin.is_owner ?? existing.is_owner ?? false,
+          created_by_me: pin.created_by_me ?? existing.created_by_me ?? false,
+        }
         return updated
       }
-      return [...prevPins, { ...pin, is_owner: false }]
+      return [...prevPins, { ...pin, is_owner: false, created_by_me: false }]
     })
   }, [])
 

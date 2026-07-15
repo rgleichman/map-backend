@@ -19,14 +19,18 @@ export default function PinTypeListRow({
   compact = false,
 }: Props) {
   const config = resolvePinTypeConfig(pinType, catalog)
+  const description = config.description?.trim() || null
+  const showDescription = selected && description != null
 
   return (
     <button
       type="button"
       aria-pressed={selected}
+      title={description ?? undefined}
       onClick={onClick}
       className={[
-        "flex w-full items-center text-left transition",
+        "flex w-full text-left transition",
+        showDescription ? "items-start" : "items-center",
         compact
           ? "gap-2 text-xs rounded-lg min-h-0 py-1 px-2"
           : "gap-2.5 text-sm rounded-xl min-h-[44px] py-2 px-2.5",
@@ -35,8 +39,25 @@ export default function PinTypeListRow({
           : "bg-base-200 text-base-content hover:bg-base-300 dark:hover:bg-base-300/80",
       ].join(" ")}
     >
-      <PinTypeBadge pinType={pinType} catalog={catalog} size={compact ? "sm" : "md"} />
-      <span className="font-medium">{config.label}</span>
+      <PinTypeBadge
+        pinType={pinType}
+        catalog={catalog}
+        size={compact ? "sm" : "md"}
+        className={showDescription ? "mt-0.5 shrink-0" : "shrink-0"}
+      />
+      <span className="min-w-0 flex-1 flex flex-col gap-0.5">
+        <span className="font-medium">{config.label}</span>
+        {showDescription && (
+          <span
+            className={[
+              "font-normal opacity-90",
+              compact ? "text-[10px] leading-snug" : "text-xs leading-snug",
+            ].join(" ")}
+          >
+            {description}
+          </span>
+        )}
+      </span>
     </button>
   )
 }

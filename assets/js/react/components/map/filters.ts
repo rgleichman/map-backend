@@ -26,6 +26,8 @@ export type FilterState = {
   query: string
   /** When true, only pins the user has saved are shown. */
   heartedOnly: boolean
+  /** When true, only pins the viewer created are shown. */
+  mineOnly: boolean
 }
 
 /** Map opens with no filters active. */
@@ -35,6 +37,7 @@ export const DEFAULT_FILTER: FilterState = {
   pinType: null,
   query: "",
   heartedOnly: false,
+  mineOnly: false,
 }
 /** Clear all = show all pins (no tag, no time filter, all pin types). */
 export const CLEARED_FILTER: FilterState = {
@@ -43,12 +46,13 @@ export const CLEARED_FILTER: FilterState = {
   pinType: null,
   query: "",
   heartedOnly: false,
+  mineOnly: false,
 }
 
 /** Label shown on filter chips and in the time section. */
 export const TIME_FILTER_LABEL = "Open now or within 2 hours"
 
-export type FilterDimension = "time" | "tag" | "pinType" | "query" | "hearted"
+export type FilterDimension = "time" | "tag" | "pinType" | "query" | "hearted" | "mine"
 
 export function clearFilterDimension(filter: FilterState, dim: FilterDimension): FilterState {
   switch (dim) {
@@ -62,6 +66,8 @@ export function clearFilterDimension(filter: FilterState, dim: FilterDimension):
       return { ...filter, query: "" }
     case "hearted":
       return { ...filter, heartedOnly: false }
+    case "mine":
+      return { ...filter, mineOnly: false }
   }
 }
 
@@ -90,6 +96,9 @@ export function listActiveFilterChips(filter: FilterState, catalog: CustomPinTyp
   }
   if (filter.heartedOnly) {
     chips.push({ dimension: "hearted", label: "Saved pins" })
+  }
+  if (filter.mineOnly) {
+    chips.push({ dimension: "mine", label: "My pins" })
   }
   const q = filter.query.trim()
   if (q !== "") {
@@ -224,6 +233,10 @@ export function pinMatchesFilter(
     return false
   }
 
+  if (filter.mineOnly && !p.created_by_me) {
+    return false
+  }
+
   if (filter.pinType !== null && p.pin_type !== filter.pinType) {
     return false
   }
@@ -238,9 +251,6 @@ export function pinMatchesFilter(
 
   // Text search is for discovery — skip "open now" while a query is active.
   if (filter.query.trim() !== "") return true
-
-  // Saved filter shows bookmarks regardless of schedule.
-  if (filter.heartedOnly) return true
 
   if (filter.time !== TIME_FILTER_NOW) return true
 

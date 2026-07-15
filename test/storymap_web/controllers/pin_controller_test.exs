@@ -67,7 +67,10 @@ defmodule StorymapWeb.PinControllerTest do
     test "returns approved world pin for anonymous users", %{conn: conn} do
       pin = pin_fixture()
       conn = get(conn, ~p"/api/pins/#{pin.id}")
-      assert json_response(conn, 200)["data"]["id"] == pin.id
+      data = json_response(conn, 200)["data"]
+      assert data["id"] == pin.id
+      refute Map.has_key?(data, "created_by_me")
+      refute Map.has_key?(data, "is_owner")
     end
 
     test "returns sub-map-only approved pin for anonymous users", %{conn: conn} do
@@ -281,7 +284,21 @@ defmodule StorymapWeb.PinControllerTest do
                "pin_type" => "one_time"
              } = data
 
+      assert data["created_by_me"] == true
+      assert data["is_owner"] == true
       refute Map.has_key?(data, "community")
+      refute Map.has_key?(data, "user_id")
+    end
+
+    test "created_by_me is false for another user's pin", %{conn: conn} do
+      other = Storymap.AccountsFixtures.user_fixture()
+      pin = pin_fixture(%{}, other)
+
+      conn = get(conn, ~p"/api/pins/#{pin.id}")
+      data = json_response(conn, 200)["data"]
+
+      assert data["created_by_me"] == false
+      refute Map.has_key?(data, "user_id")
     end
 
     test "renders errors when data is invalid", %{conn: conn} do

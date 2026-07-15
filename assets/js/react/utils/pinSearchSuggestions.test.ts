@@ -36,7 +36,7 @@ describe("searchPinSuggestions", () => {
 
   it("respects pinMatches", () => {
     const hearted = new Set([2])
-    const filter = { tag: null, time: "now" as const, pinType: null, query: "", heartedOnly: true }
+    const filter = { tag: null, time: "now" as const, pinType: null, query: "", heartedOnly: true, mineOnly: false }
     const pinMatches = createPinFilterMatcher(pins, filter, [], hearted)
     const filtered = searchPinSuggestions(pins, "park", [], { pinMatches })
     expect(filtered.map((p) => p.id)).toEqual([2])
