@@ -70,14 +70,22 @@ export default function FieldEditorModal({
       <div
         className={
           fillAvailable
-            ? "flex flex-1 min-h-0 flex-col overflow-hidden px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            ? [
+              "flex flex-1 min-h-0 flex-col py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:py-4",
+              // Mobile must scroll (finger gutter beside canvas); desktop fills without page scroll.
+              isDesktop
+                ? "overflow-hidden px-4"
+                : "overflow-y-auto overscroll-contain px-2",
+            ].join(" ")
             : "flex-1 overflow-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         }
       >
         <div
           className={
             fillAvailable
-              ? "flex min-h-0 w-full flex-1 flex-col"
+              ? isDesktop
+                ? "flex min-h-0 w-full flex-1 flex-col"
+                : "flex w-full flex-col"
               : "mx-auto max-w-3xl"
           }
         >

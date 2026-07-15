@@ -129,15 +129,28 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     if (!container) return
 
     const updateSize = () => {
-      const { width, height } = container.getBoundingClientRect()
-      const side = Math.floor(Math.min(width, height))
+      const width = container.clientWidth
+      const height = container.clientHeight
+      // Mobile: size to available width (square) so the canvas is wide and left-heavy.
+      // Desktop: fit within the flex panel (min of width/height).
+      const compact = window.matchMedia("(max-width: 639px)").matches
+      // Leave room for the white frame padding around the canvas.
+      const framePad = 10
+      const side = compact
+        ? Math.floor(width - framePad)
+        : Math.floor(Math.min(width, height || width) - framePad)
       setDisplaySize(Math.max(120, side))
     }
 
     updateSize()
     const observer = new ResizeObserver(updateSize)
     observer.observe(container)
-    return () => observer.disconnect()
+    const mq = window.matchMedia("(max-width: 639px)")
+    mq.addEventListener("change", updateSize)
+    return () => {
+      observer.disconnect()
+      mq.removeEventListener("change", updateSize)
+    }
   }, [])
 
   useEffect(() => {
@@ -364,7 +377,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
   const drawDisabled = disabled || playing
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex flex-col gap-3 sm:min-h-0 sm:flex-1">
       <div className="flex shrink-0 flex-wrap gap-2 items-center">
         <Button
           type="button"
@@ -418,8 +431,8 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
         ) : null}
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
+      <div className="flex shrink-0 flex-col gap-1.5">
+        <div className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto py-0.5">
           {data.frames.map((_, i) => (
             <FrameThumb
               key={i}
@@ -431,35 +444,40 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
             />
           ))}
         </div>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={addFrame}
-          disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
-        >
-          Add frame
-        </Button>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={duplicateFrame}
-          disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
-        >
-          Duplicate
-        </Button>
-        {multiFrame ? (
+        <div className="flex flex-wrap items-center gap-1">
           <Button
             type="button"
             size="xs"
             variant="ghost"
-            onClick={deleteFrame}
-            disabled={disabled || playing}
+            className="px-1.5"
+            onClick={addFrame}
+            disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
           >
-            Remove frame
+            Add
           </Button>
-        ) : null}
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            className="px-1.5"
+            onClick={duplicateFrame}
+            disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
+          >
+            Duplicate
+          </Button>
+          {multiFrame ? (
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-1.5"
+              onClick={deleteFrame}
+              disabled={disabled || playing}
+            >
+              Remove
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs text-base-content/70">
@@ -491,30 +509,37 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
-        <div
-          ref={containerRef}
-          className="flex min-h-0 min-w-0 flex-1 items-center justify-center"
-        >
-          <div className="rounded-box border border-base-300 bg-white p-1 dark:bg-white">
-            <canvas
-              ref={canvasRef}
-              width={DRAWING_WIDTH}
-              height={DRAWING_HEIGHT}
-              className={[
-                "block touch-none",
-                drawDisabled ? "cursor-default" : "cursor-crosshair",
-              ].join(" ")}
-              style={{ width: displaySize, height: displaySize }}
-              onPointerDown={drawDisabled ? undefined : onPointerDown}
-              onPointerMove={drawDisabled ? undefined : onPointerMove}
-              onPointerUp={drawDisabled ? undefined : onPointerUp}
-              onPointerLeave={drawDisabled ? undefined : onPointerUp}
-              onPointerCancel={drawDisabled ? undefined : onPointerUp}
-            />
+        {/*
+          Mobile: left-aligned wide canvas; finger-width strip on the right is free of
+          touch-none so users can scroll down to the soundtrack.
+        */}
+        <div className="flex w-full shrink-0 sm:min-h-0 sm:flex-1">
+          <div
+            ref={containerRef}
+            className="flex min-w-0 flex-1 items-center justify-start sm:justify-center"
+          >
+            <div className="rounded-box border border-base-300 bg-white p-1 dark:bg-white">
+              <canvas
+                ref={canvasRef}
+                width={DRAWING_WIDTH}
+                height={DRAWING_HEIGHT}
+                className={[
+                  "block touch-none",
+                  drawDisabled ? "cursor-default" : "cursor-crosshair",
+                ].join(" ")}
+                style={{ width: displaySize, height: displaySize }}
+                onPointerDown={drawDisabled ? undefined : onPointerDown}
+                onPointerMove={drawDisabled ? undefined : onPointerMove}
+                onPointerUp={drawDisabled ? undefined : onPointerUp}
+                onPointerLeave={drawDisabled ? undefined : onPointerUp}
+                onPointerCancel={drawDisabled ? undefined : onPointerUp}
+              />
+            </div>
           </div>
+          <div className="w-11 shrink-0 sm:hidden" aria-hidden="true" />
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col max-h-56 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 sm:max-h-none sm:overflow-y-auto sm:self-stretch">
+        <div className="flex min-h-0 min-w-0 flex-col rounded-box border border-base-300 bg-base-100 p-2 sm:max-h-none sm:flex-1 sm:overflow-y-auto sm:self-stretch">
           <MusicSequencer
             score={resizeSoundtrack(data.soundtrack ?? emptyScore(frameCount), frameCount)}
             onChange={setSoundtrack}
