@@ -76,6 +76,10 @@ export type Pin = {
   schedule_rrule?: string // iCal RRULE for recurring schedule
   schedule_timezone?: string // IANA timezone for schedule
   linked_pins?: PinLink[]
+  /** ISO datetime from API (optional on partial channel upserts). */
+  inserted_at?: string
+  /** ISO datetime from API; used for “new since last visit” highlights. */
+  updated_at?: string
 }
 
 export type PinCommentAuthor = {

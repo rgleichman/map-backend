@@ -218,6 +218,7 @@ export function pinMapGeoJsonSyncPart(p: Pin): string {
     end_time: p.end_time ?? null,
     schedule_rrule: p.schedule_rrule ?? null,
     custom_data: p.custom_data ?? null,
+    updated_at: p.updated_at ?? null,
   })
 }
 

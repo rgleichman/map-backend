@@ -64,7 +64,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
                     color: config.textColor
                   }}
                 >
-                  <PinTypeIcon pinType={type} size={24} catalog={catalog} />
+                  <PinTypeIcon pinType={type} size={24} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base-content">

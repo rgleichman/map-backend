@@ -1,23 +1,18 @@
 import React from "react"
-import type { CustomPinType, PinType } from "../types"
+import type { PinType } from "../types"
 import { BuiltinPinType, builtinIconKeyForPinType } from "../utils/builtinPinType"
-import { ICON_PATH_DEFS, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { ICON_PATH_DEFS } from "../utils/pinTypeIcons"
 
 type Props = {
   pinType: PinType | null | undefined
-  className?: string
   size?: number
-  catalog?: CustomPinType[]
 }
 
-/** Renders the SVG icon for a pin type. Size defaults to 24. */
+/** Renders the builtin pin-type glyph. Inherit color from the parent (e.g. PinTypeBadge). */
 export default function PinTypeIcon({
   pinType,
-  className,
   size = 24,
-  catalog = [],
 }: Props): React.ReactElement {
-  const config = resolvePinTypeConfig(pinType, catalog)
   const iconKey = builtinIconKeyForPinType(pinType)
   const isStrokeIcon = iconKey === BuiltinPinType.OneTime
   const paths = ICON_PATH_DEFS[iconKey]
@@ -28,11 +23,9 @@ export default function PinTypeIcon({
       viewBox="0 0 24 24"
       fill={isStrokeIcon ? "none" : "currentColor"}
       stroke={isStrokeIcon ? "currentColor" : undefined}
-      style={isStrokeIcon ? { color: config.textColor } : undefined}
       aria-hidden
       width={size}
       height={size}
-      className={className}
     >
       {isStrokeIcon ? (
         <g
@@ -41,7 +34,6 @@ export default function PinTypeIcon({
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          color={config.textColor}
         >
           {paths.map((p) => (
             <path key={p.d} d={p.d} />

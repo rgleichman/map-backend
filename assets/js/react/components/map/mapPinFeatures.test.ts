@@ -65,6 +65,19 @@ describe("toPinFeature", () => {
     expect(feature.properties.pin_type).toBe("scheduled")
     expect(feature.properties.pin_type_icon).toBe("pin-icon-scheduled")
     expect(feature.properties.haloColor).toMatch(/^#[0-9a-f]{6}$/i)
+    expect(feature.properties.isNew).toBe(false)
+  })
+
+  it("sets isNew and outlined icon when updated_at is after the last-visit watermark", () => {
+    const pin = minimalPin({
+      pin_type: "scheduled",
+      updated_at: "2025-06-02T00:00:00.000Z",
+    })
+    const watermark = new Date("2025-06-01T12:00:00.000Z")
+    const feature = toPinFeature(pin, [], watermark)
+    expect(feature.properties.isNew).toBe(true)
+    expect(feature.properties.pin_type_icon).toBe("pin-icon-scheduled-new")
+    expect(toPinFeature(pin, [], null).properties.pin_type_icon).toBe("pin-icon-scheduled")
   })
 })
 
@@ -134,5 +147,11 @@ describe("buildPinGeoJsonSyncKey", () => {
     )
     expect(key1).not.toBe(key2)
     expect(key2).not.toBe(key3)
+  })
+
+  it("changes when last-visit watermark changes", () => {
+    const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, catalog, null)
+    const key2 = buildPinGeoJsonSyncKey([pin], clearedKey, catalog, 1_700_000_000_000)
+    expect(key1).not.toBe(key2)
   })
 })

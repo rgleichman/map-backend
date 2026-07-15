@@ -162,7 +162,8 @@
   color: var(--color-base-content) !important;
 }
 
-/* Highlight for the pin at pending location: teardrop outline uses currentColor */
+/* Pending placement marker: teardrop outline uses currentColor (primary).
+   New-since-last-visit markers use a baked amber stroke in MapLibre images instead. */
 .pin-marker--pending {
   color: var(--color-primary);
 }

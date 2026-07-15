@@ -115,19 +115,34 @@ const TEARDROP_PATH =
   "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
-export function getPinTypeMarkerImageId(pinType: PinType | string | null | undefined): string {
-  if (typeof pinType === "string" && isCustomPinType(pinType)) {
-    return customPinTypeMarkerImageId(pinType)
-  }
-  const key = builtinIconKeyForPinType(pinType)
-  return `pin-icon-${key}`
+export function getPinTypeMarkerImageId(pinType: PinType, outline?: "new"): string {
+  const base = isCustomPinType(pinType)
+    ? customPinTypeMarkerImageId(pinType)
+    : `pin-icon-${builtinIconKeyForPinType(pinType)}`
+  return outline === "new" ? `${base}-new` : base
 }
+
+/**
+ * Outline style for teardrop markers.
+ * - pending: stroke via CSS `currentColor` (see `.pin-marker--pending`)
+ * - new: baked amber stroke for MapLibre images (distinct from primary)
+ */
+export type PinMarkerOutline = "pending" | "new"
+
+/** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
+export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 
+function markerOutlineStroke(outline: PinMarkerOutline | false): string | null {
+  if (outline === "pending") return "currentColor"
+  if (outline === "new") return NEW_PIN_OUTLINE_STROKE
+  return null
+}
+
 function buildPinMarkerSVGStringFallback(
   pinType: PinType | string | null | undefined,
-  pending: boolean,
+  outline: PinMarkerOutline | false,
   catalog: CustomPinType[] = []
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
@@ -138,12 +153,14 @@ function buildPinMarkerSVGStringFallback(
     ? `fill="none" stroke="${iconFill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="${iconFill}"`
     : `fill="${iconFill}"`
 
-  const outlinePath = pending
-    ? `<path d="${TEARDROP_PATH}" fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="round"/>`
+  const stroke = markerOutlineStroke(outline)
+  const outlined = stroke != null
+  const outlinePath = outlined
+    ? `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
     : ""
-  const mainPathFillOpacity = pending ? "0.72" : "1"
-  const circleFillOpacity = pending ? "0.85" : "1"
-  const shadowFilter = pending ? "" : ' filter="url(#shadow)"'
+  const mainPathFillOpacity = outlined ? "0.72" : "1"
+  const circleFillOpacity = outlined ? "0.85" : "1"
+  const shadowFilter = outlined ? "" : ' filter="url(#shadow)"'
   const iconPaths = ICON_PATH_DEFS[iconKey]
 
   const iconMarkup = iconPaths
@@ -178,16 +195,18 @@ function buildPinMarkerSVGStringFallback(
 
 function buildPinMarkerSVGElement(
   pinType: PinType | string | null | undefined,
-  pending: boolean,
+  outline: PinMarkerOutline | false,
   catalog: CustomPinType[] = []
 ): SVGSVGElement {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
   const iconKey = builtinIconKeyForPinType(pinType)
   const isStrokeIcon = iconKey === BuiltinPinType.OneTime
-  const mainPathFillOpacity = pending ? "0.72" : "1"
-  const circleFillOpacity = pending ? "0.85" : "1"
+  const outlined = outline !== false
+  const mainPathFillOpacity = outlined ? "0.72" : "1"
+  const circleFillOpacity = outlined ? "0.85" : "1"
   const iconPaths = ICON_PATH_DEFS[iconKey]
+  const stroke = markerOutlineStroke(outline)
 
   const svg = document.createElementNS(SVG_NS, "svg")
   svg.setAttribute("width", "40")
@@ -196,7 +215,7 @@ function buildPinMarkerSVGElement(
   svg.setAttribute("xmlns", SVG_NS)
 
   const defs = document.createElementNS(SVG_NS, "defs")
-  if (!pending) {
+  if (!outlined) {
     const filter = document.createElementNS(SVG_NS, "filter")
     filter.setAttribute("id", "shadow")
     filter.setAttribute("x", "-50%")
@@ -219,21 +238,21 @@ function buildPinMarkerSVGElement(
   rootGroup.setAttribute("transform", "translate(3, 3)")
   svg.appendChild(rootGroup)
 
-  if (pending) {
-    const outline = document.createElementNS(SVG_NS, "path")
-    outline.setAttribute("d", TEARDROP_PATH)
-    outline.setAttribute("fill", "none")
-    outline.setAttribute("stroke", "currentColor")
-    outline.setAttribute("stroke-width", "10")
-    outline.setAttribute("stroke-linejoin", "round")
-    rootGroup.appendChild(outline)
+  if (stroke != null) {
+    const outlinePath = document.createElementNS(SVG_NS, "path")
+    outlinePath.setAttribute("d", TEARDROP_PATH)
+    outlinePath.setAttribute("fill", "none")
+    outlinePath.setAttribute("stroke", stroke)
+    outlinePath.setAttribute("stroke-width", "10")
+    outlinePath.setAttribute("stroke-linejoin", "round")
+    rootGroup.appendChild(outlinePath)
   }
 
   const teardrop = document.createElementNS(SVG_NS, "path")
   teardrop.setAttribute("d", TEARDROP_PATH)
   teardrop.setAttribute("fill", config.color)
   teardrop.setAttribute("fill-opacity", mainPathFillOpacity)
-  if (!pending) teardrop.setAttribute("filter", "url(#shadow)")
+  if (!outlined) teardrop.setAttribute("filter", "url(#shadow)")
   rootGroup.appendChild(teardrop)
 
   const circle = document.createElementNS(SVG_NS, "circle")
@@ -270,25 +289,37 @@ function buildPinMarkerSVGElement(
 }
 
 /**
- * Create an SVG marker for a specific pin type (data URL). Uses same SVG as createPinTypeMarkerElement with pending false.
+ * Create an SVG marker for a specific pin type (data URL).
  */
 export function createPinTypeMarkerSVG(
   pinType: PinType | string | null | undefined,
-  catalog: CustomPinType[] = []
+  catalog: CustomPinType[] = [],
+  options?: CreatePinMarkerOptions,
 ): string {
+  const outline = resolveMarkerOutline(options)
   if (typeof document === "undefined" || typeof XMLSerializer === "undefined") {
-    const svg = buildPinMarkerSVGStringFallback(pinType, false, catalog)
+    const svg = buildPinMarkerSVGStringFallback(pinType, outline, catalog)
     return `data:image/svg+xml;base64,${btoa(svg)}`
   }
 
-  const svgEl = buildPinMarkerSVGElement(pinType, false, catalog)
+  const svgEl = buildPinMarkerSVGElement(pinType, outline, catalog)
   const svg = new XMLSerializer().serializeToString(svgEl)
   return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
 export type CreatePinMarkerOptions = {
-  /** When true, draw pin outline and lighter fill for pending (create/edit) state. */
+  /**
+   * Teardrop outline. Prefer `outline`.
+   * `pending: true` is equivalent to `outline: "pending"`.
+   */
   pending?: boolean
+  outline?: PinMarkerOutline
+}
+
+function resolveMarkerOutline(options?: CreatePinMarkerOptions): PinMarkerOutline | false {
+  if (options?.outline) return options.outline
+  if (options?.pending) return "pending"
+  return false
 }
 
 /**
@@ -299,7 +330,7 @@ export function createPinTypeMarkerElement(
   options?: CreatePinMarkerOptions,
   catalog: CustomPinType[] = []
 ): HTMLElement {
-  const svg = buildPinMarkerSVGElement(pinType, options?.pending ?? false, catalog)
+  const svg = buildPinMarkerSVGElement(pinType, resolveMarkerOutline(options), catalog)
   const wrap = document.createElement("div")
   wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
   wrap.appendChild(svg)

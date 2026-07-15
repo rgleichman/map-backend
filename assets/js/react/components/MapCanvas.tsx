@@ -28,6 +28,7 @@ import {
   pinIconLayout,
   pinLabelsVisibleFilter,
 } from "./map/mapPinFeatures"
+import { takeLastVisitWatermark } from "../utils/mapLastVisit"
 import {
   buildPinLinkGeoJson,
   buildPinLinkSyncKey,
@@ -159,6 +160,10 @@ export default function MapCanvas({
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
   const [mapInitError, setMapInitError] = useState<string | null>(null)
+  /** Previous visit watermark for this map scope; null on first visit. */
+  const [lastVisitWatermark, setLastVisitWatermark] = useState<Date | null>(() =>
+    takeLastVisitWatermark(mapScopeKey),
+  )
   const [showConnections, setShowConnections] = useState(() => readShowConnectionsPreference())
   const [openPopupPinId, setOpenPopupPinId] = useState<number | null>(null)
   const [focusedBacklinks, setFocusedBacklinks] = useState<PinLink[] | null>(null)
@@ -209,9 +214,12 @@ export default function MapCanvas({
   )
   const filterSyncKeyRef = useRef(filterSyncKey)
   filterSyncKeyRef.current = filterSyncKey
+  const lastVisitWatermarkMs = lastVisitWatermark?.getTime() ?? null
+  const lastVisitWatermarkRef = useRef(lastVisitWatermark)
+  lastVisitWatermarkRef.current = lastVisitWatermark
   const pinGeoJsonSyncKey = useMemo(
-    () => buildPinGeoJsonSyncKey(pinsForMap, filterSyncKey, catalog),
-    [pinsForMap, filterSyncKey, catalog],
+    () => buildPinGeoJsonSyncKey(pinsForMap, filterSyncKey, catalog, lastVisitWatermarkMs),
+    [pinsForMap, filterSyncKey, catalog, lastVisitWatermarkMs],
   )
   const pinLinkBuildParams = useMemo(
     () => ({
@@ -252,13 +260,24 @@ export default function MapCanvas({
 
     const pins = pinsForMapRef.current
     const catalogSnapshot = catalogRef.current
-    const syncKey = buildPinGeoJsonSyncKey(pins, filterSyncKeyRef.current, catalogSnapshot)
+    const watermark = lastVisitWatermarkRef.current
+    const syncKey = buildPinGeoJsonSyncKey(
+      pins,
+      filterSyncKeyRef.current,
+      catalogSnapshot,
+      watermark?.getTime() ?? null,
+    )
     if (syncKey === lastPinGeoJsonSyncKeyRef.current) return
 
     lastPinGeoJsonSyncKeyRef.current = syncKey
     pinsByIdRef.current = new Map(pins.map((p) => [p.id, p]))
 
-    const featureSets = buildPinFeatureSets(pins, pinFilterMatcherRef.current, catalogSnapshot)
+    const featureSets = buildPinFeatureSets(
+      pins,
+      pinFilterMatcherRef.current,
+      catalogSnapshot,
+      watermark,
+    )
       ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
         features: featureSets.matching,
@@ -314,6 +333,7 @@ export default function MapCanvas({
     lastPinFocusSeqRef.current = 0
     lastPinGeoJsonSyncKeyRef.current = ""
     lastPinLinkSyncKeyRef.current = ""
+    setLastVisitWatermark(takeLastVisitWatermark(mapScopeKey))
     setFocusedBacklinks(null)
     closeOpenPopup()
   }, [mapScopeKey])
@@ -395,10 +415,16 @@ export default function MapCanvas({
         if (!map || !isMounted) return
         try {
           for (const pinType of BUILTIN_PIN_TYPES) {
-            const dataUrl = createPinTypeMarkerSVG(pinType)
-            const img = await loadImage(dataUrl)
-            if (!isMounted) return
-            map.addImage(getPinTypeMarkerImageId(pinType), img)
+            for (const outline of [undefined, "new"] as const) {
+              const dataUrl = createPinTypeMarkerSVG(
+                pinType,
+                [],
+                outline ? { outline } : undefined,
+              )
+              const img = await loadImage(dataUrl)
+              if (!isMounted) return
+              map.addImage(getPinTypeMarkerImageId(pinType, outline), img)
+            }
           }
           map.addSource(MATCHING_SOURCE_ID, {
             type: "geojson",
@@ -862,20 +888,26 @@ export default function MapCanvas({
       const nextIds = new Set<string>()
       const nextVisualKeys = new Map<string, string>()
       for (const pinType of catalog) {
-        const imageId = getPinTypeMarkerImageId(pinType.pin_type)
         const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
-        nextIds.add(imageId)
-        nextVisualKeys.set(imageId, visualKey)
-        const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
-        if (map.hasImage(imageId) && !visualChanged) continue
-        try {
-          const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalog)
-          const img = await loadImage(dataUrl)
-          if (!mapRef.current || mapRef.current !== map) return
-          if (map.hasImage(imageId)) map.removeImage(imageId)
-          map.addImage(imageId, img)
-        } catch {
-          // ignore failed custom marker images
+        for (const outline of [undefined, "new"] as const) {
+          const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
+          nextIds.add(imageId)
+          nextVisualKeys.set(imageId, visualKey)
+          const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
+          if (map.hasImage(imageId) && !visualChanged) continue
+          try {
+            const dataUrl = createPinTypeMarkerSVG(
+              pinType.pin_type,
+              catalog,
+              outline ? { outline } : undefined,
+            )
+            const img = await loadImage(dataUrl)
+            if (!mapRef.current || mapRef.current !== map) return
+            if (map.hasImage(imageId)) map.removeImage(imageId)
+            map.addImage(imageId, img)
+          } catch {
+            // ignore failed custom marker images
+          }
         }
       }
       for (const imageId of knownCustomImageIdsRef.current) {

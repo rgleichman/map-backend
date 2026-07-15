@@ -40,7 +40,7 @@ export default function PinTypeBadge({
         color: config.textColor,
       }}
     >
-      <PinTypeIcon pinType={pinType} size={icon} catalog={catalog} />
+      <PinTypeIcon pinType={pinType} size={icon} />
     </span>
   )
 }

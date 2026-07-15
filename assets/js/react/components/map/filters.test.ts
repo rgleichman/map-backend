@@ -352,6 +352,7 @@ describe("pinMapGeoJsonSyncPart", () => {
     expect(pinMapGeoJsonSyncPart({ ...base, end_time: "2025-06-01T17:00:00" })).not.toBe(baseKey)
     expect(pinMapGeoJsonSyncPart({ ...base, schedule_rrule: "FREQ=WEEKLY;BYDAY=MO" })).not.toBe(baseKey)
     expect(pinMapGeoJsonSyncPart({ ...base, custom_data: { note: "hello" } })).not.toBe(baseKey)
+    expect(pinMapGeoJsonSyncPart({ ...base, updated_at: "2025-06-01T12:00:00Z" })).not.toBe(baseKey)
   })
 
   it("is stable when only non-map fields change", () => {
@@ -362,6 +363,7 @@ describe("pinMapGeoJsonSyncPart", () => {
       visible_on_world_map: false,
       is_owner: true,
       created_by_me: true,
+      inserted_at: "2025-01-01T00:00:00Z",
     })
     const key = pinMapGeoJsonSyncPart(pin)
     expect(
@@ -371,6 +373,7 @@ describe("pinMapGeoJsonSyncPart", () => {
         visible_on_world_map: true,
         is_owner: false,
         created_by_me: false,
+        inserted_at: "2025-02-01T00:00:00Z",
       }),
     ).toBe(key)
   })

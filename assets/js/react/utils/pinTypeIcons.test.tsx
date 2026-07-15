@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import PinTypeIcon from "../components/PinTypeIcon"
-import { createPinTypeMarkerElement, createPinTypeMarkerSVG } from "./pinTypeIcons"
+import { createPinTypeMarkerElement, createPinTypeMarkerSVG, NEW_PIN_OUTLINE_STROKE } from "./pinTypeIcons"
 
 function hasDangerouslySetInnerHTML(node: unknown): boolean {
   if (node == null) return false
@@ -28,7 +28,7 @@ function decodeDataUrlBase64(dataUrl: string): string {
 
 describe("PinTypeIcon", () => {
   it("does not use dangerouslySetInnerHTML", () => {
-    const el = PinTypeIcon({ pinType: "scheduled", size: 24, catalog: [] })
+    const el = PinTypeIcon({ pinType: "scheduled", size: 24 })
     expect(hasDangerouslySetInnerHTML(el)).toBe(false)
   })
 })
@@ -65,6 +65,13 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).not.toContain("<script")
     expect(svg).not.toContain("onload=")
   })
+
+  it("bakes amber stroke for new-since-last-visit outline", () => {
+    const dataUrl = createPinTypeMarkerSVG("scheduled", [], { outline: "new" })
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain(`stroke="${NEW_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain('stroke-width="10"')
+  })
 })
 
 describe("createPinTypeMarkerElement", () => {
@@ -80,6 +87,7 @@ describe("createPinTypeMarkerElement", () => {
     expect(svg).not.toBeNull()
     // Outline path uses stroke-width=10 (teardrop outline for pending state)
     expect(svg!.querySelector('path[stroke-width="10"]')).not.toBeNull()
+    expect(svg!.querySelector('path[stroke="currentColor"]')).not.toBeNull()
   })
 })
 

@@ -1,6 +1,7 @@
 import type maplibregl from "maplibre-gl"
 import type { CustomPinType, Pin, PinType } from "../../types"
 import { getPinTypeMarkerImageId, resolvePinTypeConfig } from "../../utils/pinTypeIcons"
+import { isPinNewSince } from "../../utils/mapLastVisit"
 import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
 
 export type PinFeatureProperties = {
@@ -9,6 +10,8 @@ export type PinFeatureProperties = {
   pin_type: PinType
   pin_type_icon: string
   haloColor: string
+  /** True when the pin is new since the viewer’s last visit. */
+  isNew: boolean
 }
 
 export type PinPointFeature = {
@@ -61,8 +64,13 @@ export function desaturateHex(hex: string, whiteRatio = 0.85): string {
   return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
 }
 
-export function toPinFeature(pin: Pin, catalog: CustomPinType[]): PinPointFeature {
+export function toPinFeature(
+  pin: Pin,
+  catalog: CustomPinType[],
+  lastVisitWatermark: Date | null = null,
+): PinPointFeature {
   const pinColor = resolvePinTypeConfig(pin.pin_type, catalog).color
+  const isNew = isPinNewSince(pin, lastVisitWatermark)
   return {
     type: "Feature",
     geometry: { type: "Point", coordinates: [pin.longitude, pin.latitude] },
@@ -70,8 +78,9 @@ export function toPinFeature(pin: Pin, catalog: CustomPinType[]): PinPointFeatur
       pin_id: pin.id,
       title: truncateTitle(pin.title),
       pin_type: pin.pin_type,
-      pin_type_icon: getPinTypeMarkerImageId(pin.pin_type),
+      pin_type_icon: getPinTypeMarkerImageId(pin.pin_type, isNew ? "new" : undefined),
       haloColor: desaturateHex(pinColor),
+      isNew,
     },
   }
 }
@@ -80,11 +89,12 @@ export function buildPinFeatureSets(
   pinList: Pin[],
   pinMatches: PinFilterMatcher,
   catalog: CustomPinType[],
+  lastVisitWatermark: Date | null = null,
 ): PinFeatureSets {
   const matching: PinPointFeature[] = []
   const dimmed: PinPointFeature[] = []
   for (const pin of pinList) {
-    const feature = toPinFeature(pin, catalog)
+    const feature = toPinFeature(pin, catalog, lastVisitWatermark)
     if (pinMatches(pin)) matching.push(feature)
     else dimmed.push(feature)
   }
@@ -96,10 +106,11 @@ export function buildPinGeoJsonSyncKey(
   pins: Pin[],
   filterSyncKey: string,
   catalog: CustomPinType[],
+  lastVisitWatermarkMs: number | null = null,
 ): string {
   const pinParts = pins.map(pinMapGeoJsonSyncPart)
   const catalogParts = catalog.map(
     (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
   )
-  return `${pinParts.join("|")}::${filterSyncKey}::${catalogParts.join("|")}`
+  return `${pinParts.join("|")}::${filterSyncKey}::${catalogParts.join("|")}::lv:${lastVisitWatermarkMs ?? "none"}`
 }

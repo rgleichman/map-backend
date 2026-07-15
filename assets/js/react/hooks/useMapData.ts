@@ -38,6 +38,8 @@ export function useMapData({
           ...pin,
           is_owner: pin.is_owner ?? existing.is_owner ?? false,
           created_by_me: pin.created_by_me ?? existing.created_by_me ?? false,
+          inserted_at: pin.inserted_at ?? existing.inserted_at,
+          updated_at: pin.updated_at ?? existing.updated_at,
         }
         return updated
       }
