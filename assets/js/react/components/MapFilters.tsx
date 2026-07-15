@@ -194,7 +194,7 @@ export default function MapFilters({
             <ActiveFilterChips
               filter={filter}
               setFilter={setFilter}
-              emptyLabel="None — choose options below"
+              emptyLabel="No active filters"
               catalog={catalog}
             />
           </div>
