@@ -760,9 +760,8 @@ export default function MapCanvas({
           }
           setFilter((f) => ({ ...f, tag }))
           filterPanelOpenRef.current?.open()
-          document.querySelectorAll('.maplibregl-popup').forEach((el) => {
-            (el as HTMLElement).style.display = 'none'
-          })
+          closeOpenPopup()
+          onPopupCloseRef.current?.()
         }
       }
     }
