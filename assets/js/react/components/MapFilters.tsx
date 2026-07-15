@@ -221,8 +221,6 @@ export default function MapFilters({
       )}
     >
       <div className="space-y-5 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5 -mr-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-base-content/50">Add or change</p>
-
         {showSavedFilter && (
           <section>
             <p className={sectionTitle}>Saved</p>
