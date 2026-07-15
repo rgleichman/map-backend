@@ -199,35 +199,38 @@ defmodule StorymapWeb.AdminLive.Users do
                     <%= if user.muted_at do %>
                       <div class="flex items-center gap-2">
                         <span class="badge badge-warning badge-outline">Muted</span>
-                        <button
+                        <.button
                           type="button"
-                          class="btn btn-ghost btn-xs"
+                          variant="ghost"
+                          size="xs"
                           phx-click="mute_toggle"
                           phx-value-id={user.id}
                           phx-value-muted="false"
                         >
                           Unmute
-                        </button>
+                        </.button>
                       </div>
                     <% else %>
                       <div class="flex items-center gap-2">
                         <span class="badge badge-ghost">No</span>
-                        <button
+                        <.button
                           type="button"
-                          class="btn btn-outline btn-error btn-xs"
+                          variant="danger_outline"
+                          size="xs"
                           phx-click="mute_toggle"
                           phx-value-id={user.id}
                           phx-value-muted="true"
                         >
                           Mute
-                        </button>
+                        </.button>
                       </div>
                     <% end %>
                   </td>
                   <td class="w-32 align-top">
-                    <button
+                    <.button
                       type="button"
-                      class="btn btn-ghost btn-sm"
+                      variant="ghost"
+                      size="sm"
                       phx-click="toggle_user_pins"
                       phx-value-id={user.id}
                     >
@@ -236,7 +239,7 @@ defmodule StorymapWeb.AdminLive.Users do
                       <% else %>
                         Pins
                       <% end %>
-                    </button>
+                    </.button>
                     <div
                       :if={MapSet.member?(@expanded_user_ids, user.id)}
                       id={"#{dom_id}-pins"}
@@ -295,7 +298,7 @@ defmodule StorymapWeb.AdminLive.Users do
                         type="select"
                         options={Enum.map(0..10, &{&1, &1})}
                       />
-                      <button class="btn btn-primary btn-sm mt-2" type="submit">Save</button>
+                      <.button class="mt-2" variant="primary" size="sm" type="submit">Save</.button>
                     </.form>
                   </td>
                 </tr>

@@ -29,40 +29,38 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
           <div class="flex items-center justify-between gap-2">
             <span class="text-sm font-medium text-base-content/70">Field {index + 1}</span>
             <div class="flex items-center gap-1">
-              <button
+              <.button
                 type="button"
-                class={[
-                  "btn btn-xs btn-ghost",
-                  index == 0 && "btn-disabled pointer-events-none opacity-40"
-                ]}
+                variant="ghost"
+                size="xs"
                 phx-click="move_field_up"
                 phx-value-index={index}
                 aria-label="Move field up"
                 disabled={index == 0}
               >
                 <.icon name="hero-chevron-up" class="w-4 h-4" />
-              </button>
-              <button
+              </.button>
+              <.button
                 type="button"
-                class={[
-                  "btn btn-xs btn-ghost",
-                  index == length(@fields) - 1 && "btn-disabled pointer-events-none opacity-40"
-                ]}
+                variant="ghost"
+                size="xs"
                 phx-click="move_field_down"
                 phx-value-index={index}
                 aria-label="Move field down"
                 disabled={index == length(@fields) - 1}
               >
                 <.icon name="hero-chevron-down" class="w-4 h-4" />
-              </button>
-              <button
+              </.button>
+              <.button
                 type="button"
-                class="btn btn-xs btn-ghost text-error"
+                variant="ghost"
+                size="xs"
+                class="text-error"
                 phx-click="remove_field"
                 phx-value-index={index}
               >
                 Remove
-              </button>
+              </.button>
             </div>
           </div>
 
@@ -126,14 +124,9 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
         </div>
       <% end %>
 
-      <button
-        type="button"
-        class="btn btn-sm btn-ghost"
-        phx-click="add_field"
-        id="pin-type-add-field"
-      >
+      <.button type="button" variant="ghost" size="sm" phx-click="add_field" id="pin-type-add-field">
         Add field
-      </button>
+      </.button>
     </div>
     """
   end

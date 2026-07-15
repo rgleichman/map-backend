@@ -14,6 +14,7 @@ import {
   formatCustomFieldValue,
   isCustomFieldEmpty,
 } from "../utils/customFieldValue"
+import Button from "./ui/Button"
 
 type Props = {
   fields: CustomFieldSchema[]
@@ -119,22 +120,19 @@ function renderField(
                   onValue(next.filter((s) => s.trim() !== ""))
                 }}
               />
-              <button
+              <Button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                variant="ghost"
+                size="sm"
                 onClick={() => onValue(items.filter((_, i) => i !== idx))}
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => onValue([...items, ""])}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => onValue([...items, ""])}>
             Add item
-          </button>
+          </Button>
         </div>
       )
     }
@@ -292,14 +290,15 @@ function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps
 
   return (
     <div className={`inline-flex flex-wrap items-center gap-2 ${className ?? ""}`.trim()}>
-      <button
+      <Button
         type="button"
-        className={`btn btn-xs ${playing ? "btn-secondary" : "btn-primary"}`}
+        size="xs"
+        variant="action"
         onClick={onToggle}
         disabled={loading}
       >
         {loading ? "Loading…" : <MusicPlayStopLabel playing={playing} />}
-      </button>
+      </Button>
       {error ? <span className="text-xs text-error">{error}</span> : null}
     </div>
   )

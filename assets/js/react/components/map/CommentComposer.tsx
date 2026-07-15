@@ -1,4 +1,5 @@
 import React from "react"
+import Button from "../ui/Button"
 
 type Props = {
   value: string
@@ -35,23 +36,19 @@ export default function CommentComposer({
         onFocus={onFocus}
       />
       <div className="flex gap-2">
-        <button
+        <Button
           type="button"
-          className="btn btn-sm btn-primary"
+          variant="primary"
+          size="sm"
           onClick={onSubmit}
           disabled={disabled || value.trim() === ""}
         >
           {submitLabel}
-        </button>
+        </Button>
         {onCancel ? (
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={onCancel}
-            disabled={disabled}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={disabled}>
             Cancel
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

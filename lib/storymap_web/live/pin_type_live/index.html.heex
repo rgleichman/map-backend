@@ -11,13 +11,13 @@
         </p>
       </div>
       <%= if @logged_in? && user_can_write?(@current_scope) do %>
-        <.link navigate={~p"/pin-types/new"} class="btn btn-primary" id="pin-types-create-link">
+        <.button navigate={~p"/pin-types/new"} variant="primary" id="pin-types-create-link">
           Create pin type
-        </.link>
+        </.button>
       <% else %>
-        <.link navigate={~p"/users/log-in"} class="btn btn-primary">
+        <.button navigate={~p"/users/log-in"} variant="primary">
           Sign in to create
-        </.link>
+        </.button>
       <% end %>
     </div>
 

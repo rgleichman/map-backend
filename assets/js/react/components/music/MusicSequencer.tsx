@@ -4,6 +4,7 @@ import { cloneScore, serializeScore } from "../../utils/musicScore"
 import { getAudioContext, playNotePreview } from "../../utils/musicAudio"
 import MusicPlayStopLabel from "./MusicPlayStopLabel"
 import { useMusicPreview } from "../../hooks/useMusicPreview"
+import Button from "../ui/Button"
 
 type Props = {
   score: MusicScore
@@ -114,30 +115,21 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
           />
         </label>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
-            className={`btn btn-sm ${previewing ? "btn-secondary" : "btn-outline"}`}
+            size="sm"
+            variant="action"
             onClick={onTogglePreview}
             disabled={disabled}
           >
             <MusicPlayStopLabel playing={previewing} />
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={undo}
-            disabled={disabled || !canUndo}
-          >
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={undo} disabled={disabled || !canUndo}>
             Undo
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={clearGrid}
-            disabled={disabled}
-          >
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={clearGrid} disabled={disabled}>
             Clear
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -157,15 +149,17 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
 
           {score.rows.map((row, rowIdx) => (
             <div key={row.note} className="flex gap-1 items-center">
-              <button
+              <Button
                 type="button"
-                className="btn btn-ghost btn-xs h-9 min-h-9 w-[3.25rem] shrink-0 font-mono text-xs justify-start px-1"
+                variant="ghost"
+                size="xs"
+                className="h-9 min-h-9 w-[3.25rem] font-mono justify-start"
                 disabled={disabled}
                 onClick={() => void previewNote(row.note)}
                 title={`Preview ${row.note}`}
               >
                 {row.note}
-              </button>
+              </Button>
               {row.hits.map((on, stepIdx) => (
                 <button
                   key={`${row.note}-${stepIdx}`}

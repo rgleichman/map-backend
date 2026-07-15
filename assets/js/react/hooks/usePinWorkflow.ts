@@ -41,6 +41,7 @@ export function usePinWorkflow({
   const { modal, placement, draft, timeError, formError } = state
   const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const [saving, setSaving] = useState(false)
+  const [pendingDeletePinId, setPendingDeletePinId] = useState<number | null>(null)
 
   const modalRef = useRef(modal)
   modalRef.current = modal
@@ -84,15 +85,29 @@ export function usePinWorkflow({
     dispatch({ type: "open_edit", pin })
   }, [pins])
 
-  const onDelete = useCallback(async (pinId: number) => {
-    const pin = pins.find(p => p.id === pinId)
+  const onDelete = useCallback((pinId: number) => {
+    const pin = pins.find((p) => p.id === pinId)
     if (!pin) return
-    if (!confirm("Are you sure you want to delete this pin?")) return
+    setPendingDeletePinId(pinId)
+  }, [pins])
+
+  const cancelPendingDelete = useCallback(() => {
+    setPendingDeletePinId(null)
+  }, [])
+
+  const confirmPendingDelete = useCallback(async () => {
+    if (pendingDeletePinId == null) return
+    const pin = pins.find((p) => p.id === pendingDeletePinId)
+    if (!pin) {
+      setPendingDeletePinId(null)
+      return
+    }
     setApiError(null)
     setSaving(true)
     try {
       await api.deletePin(csrfToken, pin.id)
       setPins((prev) => prev.filter((p) => p.id !== pin.id))
+      setPendingDeletePinId(null)
       dispatch({ type: "close_all" })
     } catch (err) {
       const message = err instanceof Error ? err.message : "Delete failed. Please try again."
@@ -100,7 +115,7 @@ export function usePinWorkflow({
     } finally {
       setSaving(false)
     }
-  }, [csrfToken, pins, setApiError, setPins])
+  }, [csrfToken, pendingDeletePinId, pins, setApiError, setPins])
 
   const onStartPickOnMap = useCallback(() => {
     if (modal?.mode === "edit") {
@@ -216,6 +231,9 @@ export function usePinWorkflow({
     onMapClick,
     onEdit,
     onDelete,
+    pendingDeletePinId,
+    cancelPendingDelete,
+    confirmPendingDelete,
     onStartPickOnMap,
     onPlacementMapClick,
     onSelectPinType,

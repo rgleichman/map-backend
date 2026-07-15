@@ -36,13 +36,21 @@
         <div class="w-full relative z-50 flex h-[var(--site-header-height)] flex-shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <.link
             navigate={~p"/"}
-            class="btn btn-ghost shrink-0 text-lg tracking-tight text-base-content"
+            class={[
+              "inline-flex items-center shrink-0 rounded-md border-0 shadow-none bg-transparent",
+              "px-2 min-h-9 text-lg tracking-tight text-base-content origin-center cursor-pointer",
+              "hover:bg-base-200/80 dark:hover:bg-base-300/60",
+              "transition-[background-color,transform] duration-150 ease-out",
+              "active:scale-[0.9] active:duration-75",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+            ]}
           >
             <span class="font-semibold">{gettext("Map Garden")}</span>
             <span class="font-normal">{" "}{gettext("(beta)")}</span>
           </.link>
           <div class="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-            <ul class="menu menu-horizontal hidden min-w-0 items-center justify-end gap-1 md:flex lg:gap-2">
+            <ul class="hidden min-w-0 list-none items-center justify-end gap-1 md:flex lg:gap-2 p-0 m-0">
               <.nav_menu_items
                 variant="desktop"
                 current_path={@conn.request_path}
@@ -55,7 +63,16 @@
             </div>
             <label
               for="drawer-toggle"
-              class="btn btn-ghost drawer-button shrink-0 md:hidden"
+              class={[
+                "inline-flex items-center justify-center shrink-0 size-10 rounded-md md:hidden",
+                "border-0 shadow-none bg-transparent text-base-content origin-center cursor-pointer",
+                "hover:bg-base-200/80 dark:hover:bg-base-300/60",
+                "transition-[background-color,transform] duration-150 ease-out",
+                "active:scale-[0.9] active:duration-75",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
+                "drawer-button"
+              ]}
               aria-label="Open menu"
             >
               <span aria-hidden="true"><.icon name="hero-bars-3" class="size-6" /></span>

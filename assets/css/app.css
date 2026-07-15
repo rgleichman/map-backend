@@ -51,6 +51,9 @@
   --color-warning-content: oklch(22% 0.04 58);
   --color-error: oklch(88% 0.1 25);
   --color-error-content: oklch(20% 0.04 25);
+  /* “Do something” CTAs (Play, Party, …) — cool violet, distinct from fern primary */
+  --color-action: oklch(87% 0.09 292);
+  --color-action-content: oklch(22% 0.04 292);
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -87,6 +90,9 @@
   --color-warning-content: oklch(98.50% 0.015 95);
   --color-error: oklch(48.50% 0.253 17.585);
   --color-error-content: oklch(98.50% 0.01 17);
+  /* “Do something” CTAs (Play, Party, …) — cool violet, distinct from fern primary */
+  --color-action: oklch(48% 0.17 292);
+  --color-action-content: oklch(98.50% 0.01 292);
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -95,6 +101,13 @@
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
+}
+
+/* Register custom semantic so Tailwind emits bg-action / text-action-content.
+   Theme plugin blocks above override these per light/dark. */
+@theme {
+  --color-action: oklch(48% 0.17 292);
+  --color-action-content: oklch(98.50% 0.01 292);
 }
 
 /* Add variants based on LiveView classes */

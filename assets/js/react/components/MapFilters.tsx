@@ -13,6 +13,8 @@ import {
   type FilterState
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
+import CloseButton from "./ui/CloseButton"
+import Button from "./ui/Button"
 import HeartIcon from "./HeartIcon"
 import TagCombobox from "./TagCombobox"
 import { mapShellFiltersMaxHeight, mapShellOverlayTop } from "../utils/siteLayout"
@@ -199,23 +201,18 @@ export default function MapFilters({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {hasActiveFilter && (
-              <button
+              <Button
                 type="button"
-                className="btn btn-xs btn-ghost text-base-content min-h-9 px-2"
+                variant="ghost"
+                size="xs"
+                className="text-base-content min-h-9 px-2"
                 aria-label="Clear all filters"
                 onClick={() => setFilter(CLEARED_FILTER)}
               >
                 Clear all
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              onClick={close}
-              className="btn btn-ghost btn-sm btn-square min-h-9 min-w-9 text-base-content hover:bg-base-200"
-              aria-label="Close filters"
-            >
-              <span className="text-lg leading-none">×</span>
-            </button>
+            <CloseButton square aria-label="Close filters" onClick={close} />
           </div>
         </div>
       )}

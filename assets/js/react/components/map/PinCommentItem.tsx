@@ -4,6 +4,9 @@ import { isCommentAuthor } from "../../utils/pinComment"
 import { formatCommentTimestamp } from "../../utils/popupFormatters"
 import { ReportSubjectType } from "../../utils/reportSubjectType"
 import LinkifiedText from "../LinkifiedText"
+import Button from "../ui/Button"
+import ConfirmDialog from "../ui/ConfirmDialog"
+import { PencilIcon, TrashIcon } from "../ui/icons"
 import CommentComposer from "./CommentComposer"
 import ContentReportDialog from "./ContentReportDialog"
 
@@ -44,6 +47,7 @@ export default function PinCommentItem({
   const [actionError, setActionError] = useState<string | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSuccess, setReportSuccess] = useState<string | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const isAuthor = isCommentAuthor(comment, userId)
   const canInteract = Boolean(userId) && !userMuted && !comment.deleted
@@ -119,11 +123,12 @@ export default function PinCommentItem({
       )}
 
       {!comment.deleted && !editing ? (
-        <div className="mt-1 flex flex-wrap gap-2">
+        <div className="mt-1 flex flex-wrap gap-1">
           {canReply ? (
-            <button
+            <Button
               type="button"
-              className="text-xs font-medium text-primary hover:underline bg-transparent border-none cursor-pointer p-0"
+              variant="ghost"
+              size="xs"
               onClick={() => {
                 if (!userId) {
                   onLoginRequired()
@@ -133,42 +138,55 @@ export default function PinCommentItem({
               }}
             >
               Reply
-            </button>
+            </Button>
           ) : null}
           {canEdit ? (
-            <button
+            <Button
               type="button"
-              className="text-xs font-medium text-base-content/70 hover:underline bg-transparent border-none cursor-pointer p-0"
+              variant="ghost"
+              size="xs"
+              className="inline-flex items-center gap-1"
               onClick={() => {
                 setEditBody(comment.body)
                 setEditing(true)
               }}
             >
+              <PencilIcon className="size-3.5" />
               Edit
-            </button>
+            </Button>
           ) : null}
           {canDelete ? (
-            <button
+            <Button
               type="button"
-              className="text-xs font-medium text-error hover:underline bg-transparent border-none cursor-pointer p-0"
-              onClick={() => {
-                if (!window.confirm("Delete this comment?")) return
-                void runAction(() => onDelete(comment.id, comment.parent_id))
-              }}
+              variant="ghost"
+              size="xs"
+              className="inline-flex items-center gap-1 text-error"
+              onClick={() => setConfirmDeleteOpen(true)}
               disabled={submitting}
             >
+              <TrashIcon className="size-3.5" />
               Delete
-            </button>
+            </Button>
           ) : null}
-          <button
-            type="button"
-            className="text-xs font-medium text-base-content/70 hover:underline bg-transparent border-none cursor-pointer p-0"
-            onClick={() => setReportOpen(true)}
-          >
+          <Button type="button" variant="ghost" size="xs" onClick={() => setReportOpen(true)}>
             Report
-          </button>
+          </Button>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete this comment?"
+        body="This cannot be undone."
+        confirming={submitting}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          void runAction(async () => {
+            await onDelete(comment.id, comment.parent_id)
+            setConfirmDeleteOpen(false)
+          })
+        }}
+      />
 
       <ContentReportDialog
         subjectType={ReportSubjectType.PinComment}

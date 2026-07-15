@@ -188,8 +188,27 @@ defmodule StorymapWeb.AdminNavLive do
 
   defp initial_counts(_), do: %{activity_unread: 0, reports_unresolved: 0}
 
-  defp nav_btn_classes(true),
-    do: "btn btn-ghost btn-sm btn-square btn-active"
+  defp nav_btn_classes(true) do
+    [
+      "inline-flex items-center justify-center size-9 min-h-9 shrink-0 rounded-md",
+      "border-0 shadow-none bg-base-200/90 dark:bg-base-300/70 text-base-content origin-center",
+      "hover:bg-base-200 dark:hover:bg-base-300",
+      "transition-[background-color,transform] duration-150 ease-out",
+      "active:scale-[0.9] active:duration-75",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+    ]
+  end
 
-  defp nav_btn_classes(false), do: "btn btn-ghost btn-sm btn-square"
+  defp nav_btn_classes(false) do
+    [
+      "inline-flex items-center justify-center size-9 min-h-9 shrink-0 rounded-md",
+      "border-0 shadow-none bg-transparent text-base-content origin-center",
+      "hover:bg-base-200/80 dark:hover:bg-base-300/60",
+      "transition-[background-color,transform] duration-150 ease-out",
+      "active:scale-[0.9] active:duration-75",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+    ]
+  end
 end

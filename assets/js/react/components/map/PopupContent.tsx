@@ -13,6 +13,8 @@ import PinReportDialog from "./PinReportDialog"
 import PinComments from "./PinComments"
 import PinHeartButton from "./PinHeartButton"
 import type { ToggleHeartResult } from "../../types"
+import Button from "../ui/Button"
+import { PencilIcon, TrashIcon } from "../ui/icons"
 
 const popupContentClasses = "text-sm text-base-content"
 
@@ -161,22 +163,19 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         </div>
       ) : null}
       <div className="mt-2 flex flex-wrap gap-2 items-center">
-        <a
+        <Button
           href={openInMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn btn-sm btn-primary no-underline"
+          variant="primary"
+          size="sm"
+          className="no-underline"
         >
           Get directions
-        </a>
-        <button
-          type="button"
-          data-pin-action="copy-link"
-          data-pin-id={pin.id}
-          className="btn btn-sm"
-        >
+        </Button>
+        <Button type="button" data-pin-action="copy-link" data-pin-id={pin.id} variant="ghost" size="sm">
           Copy link
-        </button>
+        </Button>
         {onToggleHeart && (
           <PinHeartButton
             hearted={hearted}
@@ -184,36 +183,43 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
             onToggle={onToggleHeart}
           />
         )}
-        <button
+        <Button
           type="button"
-          className="btn btn-sm btn-ghost"
+          variant="ghost"
+          size="sm"
           onClick={() => {
             setDoneMessage(null)
             setReportOpen(true)
           }}
         >
           Report pin
-        </button>
+        </Button>
       </div>
       {doneMessage ? <p className="mt-2 text-sm text-success">{doneMessage}</p> : null}
       {pin.is_owner && (
         <div className="mt-2 flex gap-2">
-          <button
+          <Button
             type="button"
             data-pin-action="edit"
             data-pin-id={pin.id}
-            className="btn btn-sm btn-outline"
+            variant="primary"
+            size="sm"
+            className="inline-flex items-center gap-1.5"
           >
+            <PencilIcon className="size-4" />
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             data-pin-action="delete"
             data-pin-id={pin.id}
-            className="btn btn-sm btn-error"
+            variant="danger"
+            size="sm"
+            className="inline-flex items-center gap-1.5"
           >
+            <TrashIcon className="size-4" />
             Delete
-          </button>
+          </Button>
         </div>
       )}
 

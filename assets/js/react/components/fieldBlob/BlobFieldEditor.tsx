@@ -8,6 +8,8 @@ import {
 } from "../../utils/blobFieldValue"
 import type { BlobFieldType } from "../../utils/blobFieldType"
 import { useIsDesktop } from "../../hooks/useMediaQuery"
+import Button from "../ui/Button"
+import { PencilIcon, TrashIcon } from "../ui/icons"
 import FieldEditorModal from "./FieldEditorModal"
 
 export type BlobFieldEditorProps<T> = {
@@ -242,23 +244,29 @@ export default function BlobFieldEditor<T>({
             <div className="text-xs text-base-content/70 w-full">{statusMessage}</div>
           ) : null}
           <div className="flex flex-wrap gap-2 items-center">
-            <button
+            <Button
               type="button"
-              className="btn btn-xs btn-primary"
+              size="xs"
+              variant="primary"
+              className="inline-flex items-center gap-1"
               onClick={() => setEditorOpen(true)}
               disabled={editorDisabled}
             >
+              <PencilIcon className="size-3.5" />
               {editLabel}
-            </button>
+            </Button>
             {renderToolbarExtra?.({ data, disabled: editorDisabled, hasContent: contentPresent })}
-            <button
+            <Button
               type="button"
-              className="btn btn-xs btn-error btn-outline"
+              size="xs"
+              variant="dangerOutline"
+              className="inline-flex items-center gap-1"
               onClick={() => void remove()}
               disabled={deleting || (!canUseApi && !contentPresent && !draftStored)}
             >
+              <TrashIcon className="size-3.5" />
               {deleting ? "Deleting…" : deleteLabel}
-            </button>
+            </Button>
           </div>
         </div>
 

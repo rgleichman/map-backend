@@ -46,12 +46,12 @@
       />
 
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="btn btn-primary" id="sub-map-settings-save">
-          Save changes
-        </button>
-        <.link navigate={~p"/m/#{@sub_map.community_url}/map"} class="btn btn-ghost">
+        <.button type="submit" variant="primary" id="sub-map-settings-save">
+          Save
+        </.button>
+        <.button navigate={~p"/m/#{@sub_map.community_url}/map"} variant="ghost">
           Back to map
-        </.link>
+        </.button>
       </div>
     </.form>
   </div>

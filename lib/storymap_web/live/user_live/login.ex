@@ -54,7 +54,7 @@ defmodule StorymapWeb.UserLive.Login do
               Please remember your email. We store addresses securely and cannot recover your account if you forget it.
             </span>
           </p>
-          <.button class="btn btn-primary w-full">
+          <.button variant="primary" class="w-full">
             Continue with email <span aria-hidden="true">→</span>
           </.button>
         </.form>

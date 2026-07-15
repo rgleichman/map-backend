@@ -23,6 +23,7 @@ const BUTTON_COLOR_KEYS = [
   "success",
   "warning",
   "error",
+  "action",
 ] as const
 
 function requireToken(theme: ThemeTokens, key: string) {

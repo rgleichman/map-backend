@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from "react"
+import Button from "./ui/Button"
+import CloseButton from "./ui/CloseButton"
 
 export default function LoginRequiredModal({
   onClose,
@@ -26,15 +28,17 @@ export default function LoginRequiredModal({
       aria-labelledby="login-required-title"
     >
       <div className="pin-modal-content rounded-lg min-w-[300px] shadow-xl p-6 bg-base-100 text-base-content border border-base-300 overscroll-contain">
-        <h2 id="login-required-title" className="text-lg font-semibold mb-4">Login Required</h2>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h2 id="login-required-title" className="text-lg font-semibold">
+            Login Required
+          </h2>
+          <CloseButton aria-label="Close login required dialog" onClick={onClose} />
+        </div>
         <p className="mb-6">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
-            Close
-          </button>
-          <a ref={signInRef} href="/users/log-in" className="btn btn-primary">
+          <Button ref={signInRef} href="/users/log-in" variant="primary">
             Sign in
-          </a>
+          </Button>
         </div>
       </div>
     </div>

@@ -163,18 +163,19 @@ defmodule StorymapWeb.Layouts do
     <% end %>
     <li>
       <%= if @variant == "desktop" do %>
-        <button id="party-button" type="button" class={nav_btn_classes(false)} aria-label="Party mode">
+        <.button id="party-button" type="button" variant="action" aria-label="Party mode">
           🎉 Party
-        </button>
+        </.button>
       <% else %>
-        <button
+        <.button
           id="party-button-mobile"
           type="button"
-          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+          variant="action"
+          class="w-full justify-start drawer-close"
           aria-label="Party mode"
         >
           🎉 Party
-        </button>
+        </.button>
       <% end %>
     </li>
     <li>
@@ -268,10 +269,11 @@ defmodule StorymapWeb.Layouts do
         />
 
         <li class="dropdown dropdown-end hidden md:block">
-          <button
+          <.button
             type="button"
+            variant="ghost"
             tabindex="0"
-            class="btn btn-ghost max-w-[14rem] gap-1 font-normal"
+            class="max-w-[14rem] gap-1 font-normal"
             aria-haspopup="menu"
             aria-label={gettext("Account menu")}
           >
@@ -279,7 +281,7 @@ defmodule StorymapWeb.Layouts do
               Account
             </span>
             <.icon name="hero-chevron-down" class="size-4 shrink-0 opacity-60" />
-          </button>
+          </.button>
           <ul
             tabindex="0"
             class="dropdown-content menu bg-base-200 rounded-box z-[60] w-56 p-2 shadow-lg border border-base-300"
@@ -615,7 +617,17 @@ defmodule StorymapWeb.Layouts do
   end
 
   defp nav_btn_classes(active?) do
-    ["btn", "btn-ghost", if(active?, do: "btn-active")]
+    [
+      "inline-flex items-center justify-center gap-1.5 shrink-0",
+      "min-h-9 px-3 rounded-md text-sm font-medium leading-none",
+      "border-0 shadow-none bg-transparent text-base-content origin-center cursor-pointer select-none",
+      "hover:bg-base-200/80 dark:hover:bg-base-300/60",
+      "transition-[background-color,color,transform] duration-150 ease-out",
+      "active:scale-[0.9] active:duration-75",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
+      active? && "bg-base-200/90 dark:bg-base-300/70"
+    ]
   end
 
   defp user_profile_active?(path, %{user: %{id: id}}), do: path == "/user/#{id}"

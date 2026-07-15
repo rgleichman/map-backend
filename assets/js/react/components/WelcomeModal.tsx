@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react"
+import Button from "./ui/Button"
+import CloseButton from "./ui/CloseButton"
 
 const GITHUB_ISSUES_NEW_URL = "https://github.com/rgleichman/map-backend/issues/new/choose"
 
@@ -63,14 +65,7 @@ export default function WelcomeModal({ onClose }: Props) {
           <h2 id="welcome-modal-title" className="text-xl font-semibold">
             Welcome to Map Garden!
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-ghost btn-sm btn-circle"
-            aria-label="Close welcome dialog"
-          >
-            ×
-          </button>
+          <CloseButton aria-label="Close welcome dialog" onClick={onClose} />
         </div>
 
         <div className="px-5 py-4 overflow-y-auto space-y-4 text-sm sm:text-base">
@@ -125,30 +120,26 @@ export default function WelcomeModal({ onClose }: Props) {
 
         <div className="px-5 py-4 border-t border-base-300 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={handleTellAFriend}>
+            <Button type="button" variant="ghost" size="sm" onClick={handleTellAFriend}>
               {shareStatus === "copied"
                 ? "Link copied!"
                 : shareStatus === "error"
                   ? "Couldn't copy"
                   : "Tell a friend"}
-            </button>
-            <a
+            </Button>
+            <Button
               href={GITHUB_ISSUES_NEW_URL}
+              variant="ghost"
+              size="sm"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-ghost btn-sm"
             >
               Report an issue
-            </a>
+            </Button>
           </div>
-          <button
-            type="button"
-            ref={closeButtonRef}
-            onClick={onClose}
-            className="btn btn-primary"
-          >
+          <Button type="button" ref={closeButtonRef} variant="primary" onClick={onClose}>
             Get started
-          </button>
+          </Button>
         </div>
       </div>
     </div>

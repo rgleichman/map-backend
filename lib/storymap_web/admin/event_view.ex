@@ -50,15 +50,17 @@ defmodule StorymapWeb.Admin.EventView do
         >
           {@count_label}: {@count}
         </span>
-        <button
+        <.button
           id={@bulk_button_id}
           type="button"
-          class="btn btn-sm btn-primary whitespace-nowrap"
+          variant="primary"
+          size="sm"
+          class="whitespace-nowrap"
           phx-click={@bulk_event}
           disabled={@bulk_disabled}
         >
           {@bulk_label}
-        </button>
+        </.button>
       </div>
     </header>
     """
@@ -131,9 +133,11 @@ defmodule StorymapWeb.Admin.EventView do
         </div>
 
         <%= if not @audit? do %>
-          <button
+          <.button
             type="button"
-            class="btn btn-xs btn-ghost shrink-0"
+            variant="ghost"
+            size="xs"
+            class="shrink-0"
             phx-click={if(@show_read?, do: "mark_unread", else: "mark_read")}
             phx-value-id={@event.id}
           >
@@ -142,7 +146,7 @@ defmodule StorymapWeb.Admin.EventView do
             <% else %>
               Mark read
             <% end %>
-          </button>
+          </.button>
         <% end %>
       </div>
 
@@ -315,16 +319,18 @@ defmodule StorymapWeb.Admin.EventView do
 
         <div class="flex flex-wrap gap-2 shrink-0">
           <%= if @pin_id do %>
-            <.link
+            <.button
               href={Pins.map_path_for_pin(@pin_id)}
-              class="btn btn-xs btn-ghost"
+              variant="ghost"
+              size="xs"
             >
               <.icon name="hero-map-pin" class="size-4" /> View pin
-            </.link>
+            </.button>
           <% end %>
-          <button
+          <.button
             type="button"
-            class="btn btn-xs btn-ghost"
+            variant="ghost"
+            size="xs"
             phx-click={if(@resolved?, do: "unresolve", else: "resolve")}
             phx-value-id={@report.id}
           >
@@ -333,7 +339,7 @@ defmodule StorymapWeb.Admin.EventView do
             <% else %>
               Mark resolved
             <% end %>
-          </button>
+          </.button>
         </div>
       </div>
     </div>

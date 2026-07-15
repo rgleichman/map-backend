@@ -24,17 +24,19 @@ defmodule StorymapWeb.UserLive.Confirmation do
           <input :if={@remember_me} type="hidden" name="user[remember_me]" value="true" />
           <.button
             type="button"
+            variant="primary"
             phx-click="submit_stay"
             phx-disable-with="Confirming..."
-            class="btn btn-primary w-full"
+            class="w-full"
           >
             Confirm and stay logged in
           </.button>
           <.button
             type="button"
+            variant="soft"
             phx-click="submit_once"
             phx-disable-with="Confirming..."
-            class="btn btn-primary btn-soft w-full mt-2"
+            class="w-full mt-2"
           >
             Confirm and log in only this time
           </.button>
@@ -53,26 +55,29 @@ defmodule StorymapWeb.UserLive.Confirmation do
           <%= if @current_scope do %>
             <.button
               type="button"
+              variant="primary"
               phx-click="submit_once"
               phx-disable-with="Logging in..."
-              class="btn btn-primary w-full"
+              class="w-full"
             >
               Log in
             </.button>
           <% else %>
             <.button
               type="button"
+              variant="primary"
               phx-click="submit_stay"
               phx-disable-with="Logging in..."
-              class="btn btn-primary w-full"
+              class="w-full"
             >
               Keep me logged in on this device
             </.button>
             <.button
               type="button"
+              variant="soft"
               phx-click="submit_once"
               phx-disable-with="Logging in..."
-              class="btn btn-primary btn-soft w-full mt-2"
+              class="w-full mt-2"
             >
               Log me in only this time
             </.button>

@@ -10,6 +10,7 @@ import {
   useComboboxNavigation,
 } from "../hooks/useComboboxNavigation"
 import { HighlightedMatch } from "./HighlightedExcerpt"
+import Button from "./ui/Button"
 
 type Props = {
   availableTags: string[]
@@ -133,9 +134,9 @@ export default function TagCombobox({
           ].join(" ")}
         />
         {allowCreate ? (
-          <button type="button" onClick={() => tryCreate()} className="btn btn-sm btn-primary shrink-0">
+          <Button type="button" variant="primary" size="sm" className="shrink-0" onClick={() => tryCreate()}>
             Add
-          </button>
+          </Button>
         ) : null}
       </div>
       {showList && (

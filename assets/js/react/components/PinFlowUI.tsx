@@ -5,6 +5,7 @@ import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
+import Button from "./ui/Button"
 
 type Props = {
   isDesktop: boolean
@@ -99,10 +100,10 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
             {placement.intent === "add" ? (
               modal?.mode === "add" ? (
                 <>
-                  <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
-                  <button
+                  <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+                  <Button
                     type="button"
-                    className="btn btn-primary"
+                    variant="primary"
                     onClick={() => {
                       if (!placement || placement.intent !== "add") return
                       dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
@@ -110,14 +111,14 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
                     }}
                   >
                     Confirm
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
-                  <button
+                  <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+                  <Button
                     type="button"
-                    className="btn btn-primary"
+                    variant="primary"
                     onClick={() => {
                       if (!placement || placement.intent !== "add") return
                       dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
@@ -125,15 +126,15 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
                     }}
                   >
                     Create pin
-                  </button>
+                  </Button>
                 </>
               )
             ) : (
               <>
-                <button type="button" className="btn btn-ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</button>
-                <button
+                <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+                <Button
                   type="button"
-                  className="btn btn-primary"
+                  variant="primary"
                   onClick={() => {
                     if (!placement || placement.intent !== "edit") return
                     dispatch({ type: "set_edit_location", lat: placement.lat, lng: placement.lng })
@@ -141,7 +142,7 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
                   }}
                 >
                   Confirm
-                </button>
+                </Button>
               </>
             )}
           </div>

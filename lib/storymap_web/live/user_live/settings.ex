@@ -34,44 +34,26 @@ defmodule StorymapWeb.UserLive.Settings do
       <div class="mt-12 flex flex-col items-center">
         <.button
           id="delete-account-btn"
-          class="btn btn-error btn-outline w-full max-w-xs text-base font-semibold"
+          variant="danger_outline"
+          class="w-full max-w-xs text-base font-semibold inline-flex items-center justify-center"
           phx-click="show_delete_modal"
         >
-          <.icon name="hero-trash" class="w-5 h-5 mr-2" /> Delete Account
+          <.icon name="hero-trash" class="size-5 mr-2" /> Delete Account
         </.button>
       </div>
 
-      <div
+      <.confirm_modal
         :if={@show_delete_modal}
         id="delete-account-modal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-        phx-click-away="hide_delete_modal"
+        title="Delete Account?"
+        on_cancel="hide_delete_modal"
+        on_confirm="confirm_delete_account"
+        confirm_label="Confirm Delete"
+        confirm_id="confirm-delete-btn"
+        cancel_id="cancel-delete-btn"
       >
-        <div class="bg-base-100 rounded-xl shadow-xl p-8 w-full max-w-md border border-error flex flex-col items-center animate-fade-in">
-          <.icon name="hero-exclamation-triangle" class="w-10 h-10 text-error mb-4" />
-          <h2 class="text-xl font-bold text-error mb-2">Delete Account?</h2>
-          <p class="text-center mb-6 text-base-content/80">
-            Are you sure you want to delete your account? This will delete all the pins and comments you have created and cannot be undone.
-          </p>
-          <div class="flex gap-4 w-full justify-center">
-            <.button
-              id="confirm-delete-btn"
-              class="btn btn-error w-40 font-semibold"
-              phx-click="confirm_delete_account"
-              phx-disable-with="Deleting..."
-            >
-              Confirm Delete
-            </.button>
-            <.button
-              id="cancel-delete-btn"
-              class="btn w-32"
-              phx-click="hide_delete_modal"
-            >
-              Cancel
-            </.button>
-          </div>
-        </div>
-      </div>
+        Are you sure you want to delete your account? This will delete all the pins and comments you have created and cannot be undone.
+      </.confirm_modal>
     </Layouts.app>
     """
   end

@@ -69,7 +69,7 @@
               </div>
 
               <div class="flex-shrink-0 text-right">
-                <.link
+                <.button
                   navigate={
                     if pin.sub_map do
                       ~p"/m/#{pin.sub_map.community_url}/map?pin=#{pin.id}"
@@ -77,10 +77,10 @@
                       ~p"/map?pin=#{pin.id}"
                     end
                   }
-                  class="btn btn-primary"
+                  variant="primary"
                 >
                   View on Map
-                </.link>
+                </.button>
               </div>
             </div>
 

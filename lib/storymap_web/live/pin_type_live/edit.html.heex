@@ -47,17 +47,28 @@
       <.fields_editor fields={@fields} field_errors={@field_errors} />
 
       <div class="flex flex-wrap gap-3 pt-2">
-        <button type="submit" class="btn btn-primary" id="pin-type-save">Save</button>
-        <button
+        <.button type="submit" variant="primary" id="pin-type-save">Save</.button>
+        <.button
           type="button"
-          class="btn btn-error btn-outline"
-          phx-click="delete"
-          data-confirm="Delete this pin type?"
+          variant="danger_outline"
+          class="inline-flex items-center gap-1.5"
+          phx-click="show_delete_modal"
         >
-          Delete
-        </button>
-        <.link navigate={~p"/pin-types"} class="btn btn-ghost">Cancel</.link>
+          <.icon name="hero-trash" class="size-4" /> Delete
+        </.button>
+        <.button navigate={~p"/pin-types"} variant="ghost">Cancel</.button>
       </div>
     </.form>
+
+    <.confirm_modal
+      :if={@show_delete_modal}
+      id="pin-type-delete-modal"
+      title="Delete this pin type?"
+      on_cancel="hide_delete_modal"
+      on_confirm="delete"
+      confirm_label="Delete"
+    >
+      This cannot be undone. Pins using this type cannot be deleted while they exist.
+    </.confirm_modal>
   </div>
 </Layouts.app>

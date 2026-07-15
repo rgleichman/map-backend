@@ -7,6 +7,8 @@ import PinTypeLegend from "./components/PinTypeLegend"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import ErrorToast from "./components/ErrorToast"
+import ConfirmDialog from "./components/ui/ConfirmDialog"
+import Button from "./components/ui/Button"
 import { SubMapProvider } from "./context/SubMapContext"
 import { PinTypesProvider } from "./context/PinTypesContext"
 import { usePinWorkflow } from "./hooks/usePinWorkflow"
@@ -101,7 +103,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     setApiError,
   })
 
-  const { modal, placement, timeError, formError, dispatch, onMapClick, onEdit, onDelete, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
+  const { modal, placement, timeError, formError, dispatch, onMapClick, onEdit, onDelete, pendingDeletePinId, cancelPendingDelete, confirmPendingDelete, saving, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
   onScopeChangeRef.current = dispatch
 
   const [showWelcome, setShowWelcome] = useState(false)
@@ -258,16 +260,27 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
           {showWelcome && <WelcomeModal onClose={closeWelcome} />}
 
-          <button
+          <ConfirmDialog
+            open={pendingDeletePinId != null}
+            title="Delete this pin?"
+            body="This cannot be undone."
+            confirming={saving && pendingDeletePinId != null}
+            onCancel={cancelPendingDelete}
+            onConfirm={() => void confirmPendingDelete()}
+          />
+
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={openWelcome}
             aria-label="Open help"
             title="Help"
-            className="fixed right-3 z-30 btn btn-circle btn-sm bg-base-100/90 text-base-content border border-base-300 shadow hover:bg-base-200"
+            className="fixed right-3 z-30 size-8 min-h-8 p-0 rounded-full bg-base-100/90 border border-solid border-base-300 shadow hover:bg-base-200"
             style={{ bottom: mapPageFixedBottom() }}
           >
             ?
-          </button>
+          </Button>
 
           <PinFlowUI isDesktop={isDesktop} workflow={workflow} />
 

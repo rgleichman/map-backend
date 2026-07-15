@@ -9,17 +9,18 @@
           </p>
         </div>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
-          <.link navigate={~p"/m/new"} class="btn btn-primary shrink-0" id="sub-maps-create">
+          <.button navigate={~p"/m/new"} variant="primary" class="shrink-0" id="sub-maps-create">
             Create a community
-          </.link>
+          </.button>
         <% else %>
-          <.link
+          <.button
             navigate={~p"/users/log-in"}
-            class="btn btn-primary shrink-0"
+            variant="primary"
+            class="shrink-0"
             id="sub-maps-create"
           >
             Sign in to create
-          </.link>
+          </.button>
         <% end %>
       </div>
     </div>
@@ -46,13 +47,13 @@
           No communities yet. Be the first to create one and start mapping together.
         </p>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
-          <.link navigate={~p"/m/new"} class="btn btn-primary">
+          <.button navigate={~p"/m/new"} variant="primary">
             Create a community
-          </.link>
+          </.button>
         <% else %>
-          <.link navigate={~p"/users/log-in"} class="btn btn-primary">
+          <.button navigate={~p"/users/log-in"} variant="primary">
             Sign in to create a community
-          </.link>
+          </.button>
         <% end %>
       </div>
     <% else %>

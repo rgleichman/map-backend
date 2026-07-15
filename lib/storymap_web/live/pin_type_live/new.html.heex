@@ -41,8 +41,8 @@
       <.fields_editor fields={@fields} field_errors={@field_errors} />
 
       <div class="flex flex-wrap gap-3 pt-2">
-        <button type="submit" class="btn btn-primary" id="pin-type-save">Save</button>
-        <.link navigate={~p"/pin-types"} class="btn btn-ghost">Cancel</.link>
+        <.button type="submit" variant="primary" id="pin-type-save">Save</.button>
+        <.button navigate={~p"/pin-types"} variant="ghost">Cancel</.button>
       </div>
     </.form>
   </div>

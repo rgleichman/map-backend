@@ -50,9 +50,9 @@
                   <% end %>
                 </ul>
                 <%= if @saved_pins_count > length(@saved_pins_preview) do %>
-                  <.link navigate={~p"/saved"} class="btn btn-sm btn-outline mt-4">
+                  <.button navigate={~p"/saved"} variant="ghost" size="sm" class="mt-4">
                     See all saved pins
-                  </.link>
+                  </.button>
                 <% end %>
               <% end %>
             </div>

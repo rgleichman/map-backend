@@ -20,29 +20,31 @@
             <p class="text-sm text-base-content/60">{pin.pin_type}</p>
           </div>
           <div class="flex gap-2">
-            <button
+            <.button
               type="button"
               phx-click="approve"
               phx-value-id={pin.id}
-              class="btn btn-primary btn-sm"
+              variant="primary"
+              size="sm"
             >
               Approve
-            </button>
-            <button
+            </.button>
+            <.button
               type="button"
               phx-click="reject"
               phx-value-id={pin.id}
-              class="btn btn-ghost btn-sm"
+              variant="ghost"
+              size="sm"
             >
               Reject
-            </button>
+            </.button>
           </div>
         </div>
       </div>
     </div>
 
-    <.link navigate={~p"/m/#{@sub_map.community_url}"} class="btn btn-ghost mt-8">
+    <.button navigate={~p"/m/#{@sub_map.community_url}"} variant="ghost" class="mt-8">
       Back to community
-    </.link>
+    </.button>
   </div>
 </Layouts.app>

@@ -2,6 +2,8 @@ import React, { useCallback, useState } from "react"
 import * as api from "../../api/client"
 import type { ReportCategory as ReportCategoryName, ReportSubjectType } from "../../types"
 import { ReportCategory } from "../../utils/reportCategory"
+import Button from "../ui/Button"
+import CloseButton from "../ui/CloseButton"
 
 const REPORT_CATEGORY_OPTIONS: { value: ReportCategoryName; label: string }[] = [
   { value: ReportCategory.Inaccurate, label: "Inaccurate information" },
@@ -85,14 +87,7 @@ export default function ContentReportDialog({
           <h3 id="content-report-title" className="text-lg font-semibold">
             {title}
           </h3>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={closeReport}
-            aria-label="Close report dialog"
-          >
-            ×
-          </button>
+          <CloseButton aria-label="Close report dialog" onClick={closeReport} />
         </div>
         <div id="content-report-form" className="px-4 py-3 space-y-3 overflow-y-auto text-sm">
           <label className="form-control w-full">
@@ -122,18 +117,19 @@ export default function ContentReportDialog({
           {formError ? <p className="text-error text-sm">{formError}</p> : null}
         </div>
         <div className="px-4 py-3 border-t border-base-300 flex justify-end gap-2">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={closeReport}>
+          <Button type="button" variant="ghost" size="sm" onClick={closeReport}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             id="content-report-submit"
             type="button"
-            className="btn btn-primary btn-sm"
+            variant="primary"
+            size="sm"
             disabled={submitting}
             onClick={() => void submitReport()}
           >
             {submitting ? "Sending…" : "Submit report"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

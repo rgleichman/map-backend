@@ -80,29 +80,79 @@ defmodule StorymapWeb.CoreComponents do
   end
 
   @doc """
-  Renders a button with navigation support.
+  Renders a button with navigation support and shared action variants.
 
   ## Examples
 
       <.button>Send!</.button>
       <.button phx-click="go" variant="primary">Send!</.button>
+      <.button variant="ghost">Cancel</.button>
+      <.button variant="action">Play</.button>
+      <.button variant="danger">Delete</.button>
       <.button navigate={~p"/"}>Home</.button>
   """
   attr :rest, :global,
     include:
-      ~w(href navigate patch method download name value disabled type phx-disable-with phx-click)
+      ~w(href navigate patch method download name value disabled type phx-disable-with phx-click id phx-value-id phx-value-index phx-value-muted)
 
-  attr :class, :string
-  attr :variant, :string, values: ~w(primary)
+  attr :class, :any, default: nil
+
+  attr :variant, :string,
+    values: ~w(primary soft ghost action danger danger_outline),
+    default: "soft"
+
+  attr :size, :string, values: ~w(md sm xs), default: "md"
   slot :inner_block, required: true
 
-  def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+  def button(assigns) do
+    size_class =
+      case assigns.size do
+        "sm" -> "min-h-7 px-3 text-[13px]"
+        "xs" -> "min-h-6 px-2 text-xs"
+        _ -> "min-h-9 px-3.5 text-sm"
+      end
+
+    variant_class =
+      case assigns.variant do
+        "primary" ->
+          "bg-primary text-primary-content hover:brightness-[0.88] border-0"
+
+        "action" ->
+          "bg-action text-action-content hover:brightness-[0.88] border-0 focus-visible:ring-action/40"
+
+        "ghost" ->
+          "bg-transparent text-base-content hover:bg-base-200/80 dark:hover:bg-base-300/60 border-0"
+
+        "danger" ->
+          "bg-error text-error-content hover:brightness-[0.9] border-0"
+
+        "danger_outline" ->
+          "bg-transparent text-error border border-solid border-error hover:bg-error/10"
+
+        # Soft auth / secondary CTA — keep a filled primary wash without heavy border.
+        _ ->
+          "bg-primary/15 text-primary hover:bg-primary/25 border-0"
+      end
+
+    rest = assigns.rest
 
     assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+      assign(assigns,
+        class: [
+          "inline-flex items-center justify-center gap-1.5 shrink-0",
+          "rounded-md font-medium leading-none cursor-pointer select-none shadow-none",
+          "origin-center",
+          "transition-[background-color,color,opacity,filter,transform,box-shadow] duration-150 ease-out",
+          # `active:` (not enabled:active:) so <.link> buttons also press-scale
+          "active:scale-[0.9] active:duration-75",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
+          variant_class,
+          size_class,
+          assigns.class
+        ]
+      )
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
@@ -117,6 +167,103 @@ defmodule StorymapWeb.CoreComponents do
       </button>
       """
     end
+  end
+
+  @doc """
+  Icon-only close control for dialogs and panels.
+
+  ## Examples
+
+      <.close_button aria_label="Close welcome dialog" phx-click="close" />
+  """
+  attr :aria_label, :string, required: true
+  attr :square, :boolean, default: false
+  attr :class, :any, default: nil
+  attr :rest, :global, include: ~w(disabled type phx-click id)
+
+  def close_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      aria-label={@aria_label}
+      class={[
+        "inline-flex items-center justify-center shrink-0 cursor-pointer select-none",
+        "border-0 shadow-none bg-transparent origin-center group",
+        "text-base-content/70 hover:bg-base-200/90 dark:hover:bg-base-300/70 hover:text-base-content",
+        "transition-[background-color,color,opacity,transform] duration-150 ease-out",
+        "active:scale-[0.9] active:duration-75",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
+        if(@square, do: "size-9 min-h-9 min-w-9 rounded-md", else: "size-8 min-h-8 rounded-full"),
+        @class
+      ]}
+      {@rest}
+    >
+      <.icon name="hero-x-mark" class="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+    </button>
+    """
+  end
+
+  @doc """
+  Destructive confirmation modal (shared chrome for account / entity delete).
+
+  ## Examples
+
+      <.confirm_modal
+        :if={@show_delete_modal}
+        id="delete-account-modal"
+        title="Delete Account?"
+        on_cancel="hide_delete_modal"
+        on_confirm="confirm_delete_account"
+      >
+        Are you sure…
+      </.confirm_modal>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :on_cancel, :string, required: true
+  attr :on_confirm, :string, required: true
+  attr :confirm_label, :string, default: "Delete"
+  attr :confirm_disable_with, :string, default: "Deleting..."
+  attr :confirm_id, :string, default: nil
+  attr :cancel_id, :string, default: nil
+  slot :inner_block, required: true
+
+  def confirm_modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      phx-click-away={@on_cancel}
+    >
+      <div class="bg-base-100 rounded-xl shadow-xl p-8 w-full max-w-md border border-base-300 flex flex-col items-center">
+        <.icon name="hero-exclamation-triangle" class="size-10 text-error mb-4" />
+        <h2 class="text-xl font-bold text-error mb-2">{@title}</h2>
+        <p class="text-center mb-6 text-base-content/80">
+          {render_slot(@inner_block)}
+        </p>
+        <div class="flex gap-4 w-full justify-center">
+          <.button
+            id={@cancel_id}
+            variant="ghost"
+            class="w-32"
+            phx-click={@on_cancel}
+          >
+            Cancel
+          </.button>
+          <.button
+            id={@confirm_id}
+            variant="danger"
+            class="w-40 font-semibold inline-flex items-center justify-center gap-1.5"
+            phx-click={@on_confirm}
+            phx-disable-with={@confirm_disable_with}
+          >
+            <.icon name="hero-trash" class="size-4" /> {@confirm_label}
+          </.button>
+        </div>
+      </div>
+    </div>
+    """
   end
 
   @doc """
@@ -295,10 +442,10 @@ defmodule StorymapWeb.CoreComponents do
   def theme_toggle(assigns) do
     ~H"""
     <div class={[
-      "card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full w-fit",
+      "relative flex flex-row items-center rounded-full w-fit bg-base-200/80 dark:bg-base-300/60",
       @variant == "compact" && "inline-flex origin-right scale-90"
     ]}>
-      <div class="absolute w-1/3 h-full rounded-full border border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+      <div class="absolute w-1/3 h-full rounded-full bg-base-100 border-0 shadow-sm left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
 
       <button
         type="button"

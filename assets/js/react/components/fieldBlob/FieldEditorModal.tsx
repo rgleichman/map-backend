@@ -1,6 +1,7 @@
 import React, { useEffect } from "react"
 import { createPortal } from "react-dom"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../../utils/siteLayout"
+import Button from "../ui/Button"
 
 type Props = {
   open: boolean
@@ -50,14 +51,16 @@ export default function FieldEditorModal({
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-base-300 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <h3 className="text-base font-semibold text-base-content truncate">{fieldLabel}</h3>
-        <button
+        <Button
           type="button"
-          className="btn btn-sm btn-primary shrink-0"
+          variant="primary"
+          size="sm"
+          className="shrink-0"
           onClick={() => void onDone()}
           disabled={disabled || saving}
         >
           {saving ? "Saving…" : "Done"}
-        </button>
+        </Button>
       </div>
       {error ? (
         <div className="shrink-0 border-b border-base-300 px-4 py-2 text-xs text-error">{error}</div>

@@ -9,6 +9,8 @@ import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinTyp
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
 import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
+import Button from "./ui/Button"
+import { TrashIcon } from "./ui/icons"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -170,13 +172,9 @@ export default function PinModal({
           {formatCoord(latitude)}, {formatCoord(longitude)}
         </p>
         <div className="flex flex-wrap gap-2 mb-2">
-          <button
-            type="button"
-            onClick={onStartPickOnMap}
-            className="btn btn-sm btn-outline"
-          >
+          <Button type="button" size="sm" variant="ghost" onClick={onStartPickOnMap}>
             {(locationAlreadySetFromPlacement || mode === "edit") ? "Change location on map" : "Set location on map"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -275,13 +273,24 @@ export default function PinModal({
         </div>
       )}
       <div className="flex gap-2 justify-end">
-        <button type="button" onClick={onCancel} className="btn btn-ghost" disabled={saving}>Cancel</button>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
         {mode === "edit" && canDelete && (
-          <button type="button" onClick={onDelete} className="btn btn-error" disabled={saving}>Delete</button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={onDelete}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5"
+          >
+            <TrashIcon className="size-4" />
+            Delete
+          </Button>
         )}
-        <button type="button" onClick={onSave} className="btn btn-success" disabled={saving}>
+        <Button type="button" variant="primary" onClick={onSave} disabled={saving}>
           {saving ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save" : "Add")}
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -101,6 +101,29 @@ When adding a new closed domain: union in `types.ts` → const object + guards i
 - Ensure **clean typography, spacing, and layout balance** for a refined, premium look
 - Focus on **delightful details** like hover effects, loading states, and smooth page transitions
 
+### Action buttons (vocabulary + daisyUI)
+
+Keep React map UI and LiveView pages visually cohesive for common actions. Implementations stay separate (React `components/ui/` vs LiveView `<.button>` / `<.close_button>` / `<.confirm_modal>`).
+
+**Vocabulary**
+
+| Intent | Label | Notes |
+|--------|-------|-------|
+| Dismiss overlay | icon-only X + `aria-label` starting with `Close …` | No bare text “Close”; no literal `×` character |
+| Abandon form | **Cancel** | Ghost |
+| Named navigate back | **Back to map** / **Back to community** | Not Cancel |
+| Persist edit | **Save** | Prefer over “Save changes” |
+| Create | **Create …** / **Add** | Match noun |
+| Change in place | **Edit** | Pencil icon on primary Edit CTAs |
+| Do something | contextual (**Play**, **Party**, …) | Action fill (`bg-action`) — not Save/Edit/Delete |
+| Destroy entity | **Delete** | Danger styling + confirm modal |
+| Detach list/chip | **Remove** | Light ghost; no confirm unless irreversible |
+| Exit immersive editor | **Done** | Blob `FieldEditorModal` only |
+
+**Class map (theme semantic colors, no daisyUI `btn` chrome):** filled `bg-primary` / `bg-action` / `bg-error`, ghost wash, danger outline only when Delete sits beside Save. Never use `btn-success` for Save. Shared tokens: `assets/js/react/utils/actionUiClasses.ts` and LiveView `<.button>` / `<.close_button>`.
+
+**Hover / focus / press:** `hover:brightness-*` or ghost wash, `focus-visible:ring-*`, `origin-center` + `active:scale-[0.9]` so press shrinks toward the center (no daisyUI border flicker).
+
 
 <!-- phoenix-gen-auth-start -->
 ## Authentication

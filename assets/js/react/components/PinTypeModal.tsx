@@ -3,6 +3,7 @@ import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { builtinIconKeyForPinType } from "../utils/builtinPinType"
 import PinTypeIcon from "./PinTypeIcon"
+import Button from "./ui/Button"
 import { getPinTypeConfig, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
 type Props = {
@@ -81,12 +82,9 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
       </div>
 
       <div className={layout === "panel" ? "pt-4 border-t border-base-300 flex justify-end" : "p-4 border-t border-base-300 flex justify-end"}>
-        <button
-          onClick={onCancel}
-          className="btn btn-ghost"
-        >
+        <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   )

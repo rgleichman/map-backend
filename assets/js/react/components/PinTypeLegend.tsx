@@ -4,6 +4,8 @@ import { usePinTypes } from "../context/PinTypesContext"
 import { mapShellPinTypeLegendMaxHeight } from "../utils/siteLayout"
 import PinTypePickerList from "./PinTypePickerList"
 import FloatingPanel from "./FloatingPanel"
+import Button from "./ui/Button"
+import { PencilIcon } from "./ui/icons"
 
 type Props = {
   /** When set, that row is highlighted (same source as map Filters). */
@@ -34,9 +36,15 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
         onTogglePinType={(pinType) => onTogglePinType?.(pinType)}
         compact
       />
-      <a href="/pin-types" className="btn btn-sm btn-outline w-full mt-1.5 shrink-0">
+      <Button
+        href="/pin-types"
+        variant="primary"
+        size="sm"
+        className="w-full mt-1.5 shrink-0 inline-flex items-center justify-center gap-1.5"
+      >
+        <PencilIcon className="size-4" />
         Add or Edit pin types
-      </a>
+      </Button>
     </FloatingPanel>
   )
 }

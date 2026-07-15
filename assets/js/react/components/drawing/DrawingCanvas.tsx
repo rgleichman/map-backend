@@ -8,6 +8,8 @@ import {
   emptyDrawing,
   renderDrawingToCanvas,
 } from "../../utils/drawingPayload"
+import Button from "../ui/Button"
+import ConfirmDialog from "../ui/ConfirmDialog"
 
 type DrawingToolType = (typeof DrawingTool)[keyof typeof DrawingTool]
 
@@ -30,6 +32,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [tool, setTool] = useState<DrawingToolType>(DrawingTool.Pen)
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
   const [displaySize, setDisplaySize] = useState(DRAWING_WIDTH)
   const drawingRef = useRef(false)
   const activeStrokeRef = useRef<DrawingStroke | null>(null)
@@ -130,40 +133,55 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
 
   const deleteAll = useCallback(() => {
     if (disabled || !drawingHasContent(data)) return
-    if (!confirm("Clear the entire drawing? This cannot be undone.")) return
+    setConfirmDeleteAll(true)
+  }, [data, disabled])
+
+  const confirmDeleteAllDrawing = useCallback(() => {
     onChange(emptyDrawing())
-  }, [data, disabled, onChange])
+    setConfirmDeleteAll(false)
+  }, [onChange])
 
   const canDeleteAll = drawingHasContent(data)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap gap-2">
-        <button
+        <Button
           type="button"
-          className={`btn btn-xs ${tool === DrawingTool.Pen ? "btn-primary" : "btn-outline"}`}
+          size="xs"
+          variant={tool === DrawingTool.Pen ? "primary" : "ghost"}
           onClick={() => setTool(DrawingTool.Pen)}
           disabled={disabled}
         >
           Pen
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={`btn btn-xs ${tool === DrawingTool.Eraser ? "btn-primary" : "btn-outline"}`}
+          size="xs"
+          variant={tool === DrawingTool.Eraser ? "primary" : "ghost"}
           onClick={() => setTool(DrawingTool.Eraser)}
           disabled={disabled}
         >
           Eraser
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="btn btn-xs btn-error btn-outline"
+          size="xs"
+          variant="dangerOutline"
           onClick={deleteAll}
           disabled={disabled || !canDeleteAll}
         >
           Delete all
-        </button>
+        </Button>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        title="Delete the entire drawing?"
+        body="This cannot be undone."
+        confirmLabel="Delete all"
+        onCancel={() => setConfirmDeleteAll(false)}
+        onConfirm={confirmDeleteAllDrawing}
+      />
       <div
         ref={containerRef}
         className="flex min-h-0 flex-1 items-center justify-center"

@@ -22,6 +22,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
            |> assign(:pin_type, pin_type)
            |> assign(:fields, fields_from_schema(pin_type.schema))
            |> assign(:field_errors, %{})
+           |> assign(:show_delete_modal, false)
            |> assign_form(pin_type, %{})}
         else
           {:ok,
@@ -123,6 +124,14 @@ defmodule StorymapWeb.PinTypeLive.Edit do
     end
   end
 
+  def handle_event("show_delete_modal", _params, socket) do
+    {:noreply, assign(socket, :show_delete_modal, true)}
+  end
+
+  def handle_event("hide_delete_modal", _params, socket) do
+    {:noreply, assign(socket, :show_delete_modal, false)}
+  end
+
   def handle_event("delete", _params, socket) do
     case PinTypes.delete_pin_type(socket.assigns.current_scope, socket.assigns.pin_type) do
       {:ok, _} ->
@@ -132,10 +141,16 @@ defmodule StorymapWeb.PinTypeLive.Edit do
          |> push_navigate(to: ~p"/pin-types")}
 
       {:error, :in_use} ->
-        {:noreply, put_flash(socket, :error, "Cannot delete: pins are using this type")}
+        {:noreply,
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, "Cannot delete: pins are using this type")}
 
       {:error, :forbidden} ->
-        {:noreply, put_flash(socket, :error, "You cannot delete this pin type")}
+        {:noreply,
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, "You cannot delete this pin type")}
     end
   end
 

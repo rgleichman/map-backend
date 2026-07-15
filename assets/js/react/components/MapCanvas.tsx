@@ -43,6 +43,7 @@ import PopupContent from "./map/PopupContent"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
+import Button from "./ui/Button"
 import { mapShellOverlayBottomAboveHelp, mapShellTopRightOverlayTop } from "../utils/siteLayout"
 import type { ToggleHeartResult } from "../types"
 import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
@@ -932,9 +933,9 @@ export default function MapCanvas({
             <div className="font-semibold">Map failed to load</div>
             <div className="mt-1 opacity-80 break-words">{mapInitError}</div>
             <div className="mt-3">
-              <button className="btn btn-sm" type="button" onClick={() => window.location.reload()}>
+              <Button type="button" variant="primary" size="sm" onClick={() => window.location.reload()}>
                 Reload
-              </button>
+              </Button>
             </div>
           </div>
         </div>

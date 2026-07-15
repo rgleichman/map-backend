@@ -7,6 +7,7 @@ import MusicSequencer from "./MusicSequencer"
 import { BlobFieldType } from "../../utils/blobFieldType"
 import { isBlobFieldRef } from "../../utils/blobFieldValue"
 import { useMusicPreview } from "../../hooks/useMusicPreview"
+import Button from "../ui/Button"
 
 export { isBlobFieldRef as isMusicFieldRef }
 
@@ -57,14 +58,15 @@ export default function MusicFieldEditor({
       renderSummary={(score) => `${score.tempo} BPM · ${score.steps} steps · pattern ready`}
       renderToolbarExtra={({ data, disabled, hasContent }) =>
         hasContent ? (
-          <button
+          <Button
             type="button"
-            className={`btn btn-xs ${previewing ? "btn-secondary" : "btn-outline"}`}
+            size="xs"
+            variant="action"
             onClick={() => void togglePreview(data)}
             disabled={disabled}
           >
             <MusicPlayStopLabel playing={previewing} />
-          </button>
+          </Button>
         ) : null
       }
       renderEditor={({ data, onChange, disabled }) => (

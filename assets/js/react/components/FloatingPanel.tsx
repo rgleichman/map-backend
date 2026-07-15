@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useState } from "react"
 import { mapShellOverlayBottomAboveFooter, mapShellOverlayTop } from "../utils/siteLayout"
+import CloseButton from "./ui/CloseButton"
 
 const safeBottom = mapShellOverlayBottomAboveFooter()
 const safeLeft = "max(1rem, env(safe-area-inset-left))"
@@ -182,17 +183,11 @@ export default function FloatingPanel({
             <h3 className={["font-semibold text-base-content shrink-0", compact ? "text-xs" : "text-sm"].filter(Boolean).join(" ")}>{title}</h3>
             <div className="flex items-center gap-1 shrink-0 ml-auto">
               {headerActions}
-              <button
-                type="button"
+              <CloseButton
                 onClick={close}
-                className={[
-                  "p-2 -m-2 rounded-md hover:bg-base-200 active:opacity-80 transition-opacity",
-                  alwaysVisibleOnDesktop && "sm:hidden"
-                ].filter(Boolean).join(" ")}
                 aria-label={closeAriaLabel}
-              >
-                <span className="text-base-content/70 text-lg leading-none">×</span>
-              </button>
+                className={alwaysVisibleOnDesktop ? "sm:hidden" : undefined}
+              />
             </div>
           </div>
         )}

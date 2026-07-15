@@ -26,42 +26,37 @@
     <% end %>
 
     <div class="flex flex-wrap gap-3">
-      <.link
+      <.button
         navigate={~p"/m/#{@sub_map.community_url}/map"}
-        class="btn btn-primary"
+        variant="primary"
         id="sub-map-open-map"
       >
         Open map
-      </.link>
+      </.button>
 
       <%= if @current_scope && @current_scope.user do %>
         <%= if @sub_map_membership do %>
-          <button
-            type="button"
-            id="sub-map-leave"
-            phx-click="leave"
-            class="btn btn-ghost"
-          >
+          <.button type="button" id="sub-map-leave" phx-click="leave" variant="ghost">
             Leave community
-          </button>
+          </.button>
         <% else %>
-          <button type="button" id="sub-map-join" phx-click="join" class="btn btn-outline">
+          <.button type="button" id="sub-map-join" phx-click="join" variant="soft">
             Join community
-          </button>
+          </.button>
         <% end %>
       <% end %>
 
       <%= if @can_moderate_sub_map do %>
-        <.link
+        <.button
           navigate={~p"/m/#{@sub_map.community_url}/admin"}
-          class="btn btn-ghost"
+          variant="ghost"
           id="sub-map-admin-link"
         >
           Moderation
           <%= if @counts.pending_count > 0 do %>
             <span class="badge badge-warning ml-1">{@counts.pending_count}</span>
           <% end %>
-        </.link>
+        </.button>
       <% end %>
     </div>
   </div>
