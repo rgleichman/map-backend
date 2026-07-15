@@ -1,5 +1,15 @@
 # Storymap
 
+## Windows (WSL2)
+
+**Native Windows is not supported.** On Windows, develop inside **WSL2 with Ubuntu**, then follow [Prerequisites (Ubuntu)](#prerequisites-ubuntu) and [Setup](#setup) from a WSL shell.
+
+1. Install [WSL2 and Ubuntu](https://learn.microsoft.com/windows/wsl/install).
+2. Clone the repo on the **Linux filesystem** (for example `~/code/map-backend`), **not** under `/mnt/c/...`. The Windows mount is much slower and makes Elixir file watching unreliable.
+3. Install Elixir, PostgreSQL, Node.js, and `inotify-tools` **inside WSL** using the Ubuntu steps below.
+4. Run `./scripts/install-git-hooks` from WSL (not Git for Windows / PowerShell).
+5. Start the server with `mix phx.server` in WSL, then open [`http://localhost:4000`](http://localhost:4000) in your Windows browser (WSL forwards localhost).
+
 ## Prerequisites (Ubuntu)
 
 1. **Install Elixir**: Follow the [official installation guide](https://elixir-lang.org/install.html)

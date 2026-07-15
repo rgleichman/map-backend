@@ -9,7 +9,9 @@ defmodule Mix.Tasks.Tsc.Run do
     assets_dir = Path.join(File.cwd!(), "assets")
 
     {output, exit_code} =
-      System.cmd("npx", ["tsc", "-p", "tsconfig.json", "--noEmit"], cd: assets_dir)
+      System.cmd(Mix.Tasks.NpmCmd.npx(), ["tsc", "-p", "tsconfig.json", "--noEmit"],
+        cd: assets_dir
+      )
 
     IO.write(output)
 

@@ -8,7 +8,8 @@ defmodule Mix.Tasks.Vitest.Run do
   def run(_args) do
     assets_dir = Path.join(File.cwd!(), "assets")
 
-    {output, exit_code} = System.cmd("npx", ["vitest", "run"], cd: assets_dir)
+    {output, exit_code} =
+      System.cmd(Mix.Tasks.NpmCmd.npx(), ["vitest", "run"], cd: assets_dir)
 
     IO.write(output)
 
