@@ -18,8 +18,12 @@ function blobDraftHasContent(field: CustomFieldSchema | undefined, value: unknow
   }
 
   try {
-    const parsed = JSON.parse(payload) as { strokes?: unknown[]; rows?: unknown[] }
-    if (Array.isArray(parsed.strokes)) {
+    const parsed = JSON.parse(payload) as {
+      strokes?: unknown[]
+      frames?: unknown[]
+      rows?: unknown[]
+    }
+    if (Array.isArray(parsed.frames) || Array.isArray(parsed.strokes)) {
       return drawingHasContent(parseDrawing(payload))
     }
     if (Array.isArray(parsed.rows)) {

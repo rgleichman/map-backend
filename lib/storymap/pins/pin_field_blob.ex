@@ -63,7 +63,7 @@ defmodule Storymap.Pins.PinFieldBlob do
 
   defp validate_payload_size(changeset) do
     # Keep in sync with DB check constraint `pin_field_blobs_payload_size`.
-    max_bytes = 262_144
+    max_bytes = 1_048_576
 
     validate_change(changeset, :payload, fn :payload, payload ->
       if is_binary(payload) and byte_size(payload) <= max_bytes do

@@ -37,7 +37,9 @@ export function inferBlobFieldTypeFromPayload(payload: string): BlobFieldKind | 
   try {
     const parsed = JSON.parse(payload) as Record<string, unknown>
     if (parsed != null && typeof parsed === "object") {
-      if (Array.isArray(parsed.strokes)) return BlobFieldType.Drawing
+      if (Array.isArray(parsed.frames) || Array.isArray(parsed.strokes)) {
+        return BlobFieldType.Drawing
+      }
       if (Array.isArray(parsed.rows)) return BlobFieldType.Music
     }
   } catch {

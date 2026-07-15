@@ -11,10 +11,11 @@ describe("isCustomFieldEmpty", () => {
   it("treats drawing drafts with strokes as non-empty when field type is known", () => {
     const draft = {
       draft: serializeDrawing({
-        version: 1,
+        version: 2,
         width: 256,
         height: 256,
-        strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }],
+        fps: 4,
+        frames: [{ strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }] }],
       }),
     }
     expect(isCustomFieldEmpty(draft, drawingField)).toBe(false)
@@ -23,10 +24,11 @@ describe("isCustomFieldEmpty", () => {
   it("auto-detects drawing drafts without field type", () => {
     const draft = {
       draft: serializeDrawing({
-        version: 1,
+        version: 2,
         width: 256,
         height: 256,
-        strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }],
+        fps: 4,
+        frames: [{ strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }] }],
       }),
     }
     expect(isCustomFieldEmpty(draft)).toBe(false)

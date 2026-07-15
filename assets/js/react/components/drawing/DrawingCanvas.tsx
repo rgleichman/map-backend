@@ -4,14 +4,19 @@ import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
   DrawingTool,
-  drawingHasContent,
-  emptyDrawing,
+  MAX_DRAWING_FRAMES,
+  cloneFrame,
+  emptyFrame,
+  frameHasContent,
   renderDrawingToCanvas,
 } from "../../utils/drawingPayload"
 import Button from "../ui/Button"
 import ConfirmDialog from "../ui/ConfirmDialog"
+import MusicPlayStopLabel from "../music/MusicPlayStopLabel"
 
 type DrawingToolType = (typeof DrawingTool)[keyof typeof DrawingTool]
+
+const FPS_OPTIONS = [2, 4, 8] as const
 
 type Props = {
   data: DrawingData
@@ -28,14 +33,80 @@ function clientPoint(canvas: HTMLCanvasElement, clientX: number, clientY: number
   return [Math.round(x), Math.round(y)]
 }
 
+function FrameThumb({
+  data,
+  frameIndex,
+  selected,
+  onSelect,
+  disabled,
+}: {
+  data: DrawingData
+  frameIndex: number
+  selected: boolean
+  onSelect: () => void
+  disabled: boolean
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    renderDrawingToCanvas(ctx, data, { frameIndex, onionSkin: false })
+  }, [data, frameIndex])
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-label={`Frame ${frameIndex + 1}`}
+      aria-pressed={selected}
+      className={[
+        "shrink-0 rounded-md border p-0.5 bg-white dark:bg-white transition-colors",
+        selected
+          ? "border-primary ring-2 ring-primary/40"
+          : "border-base-300 hover:border-base-content/40",
+        disabled ? "opacity-50 pointer-events-none" : "cursor-pointer",
+      ].join(" ")}
+    >
+      <canvas
+        ref={canvasRef}
+        width={DRAWING_WIDTH}
+        height={DRAWING_HEIGHT}
+        className="block rounded-sm"
+        style={{ width: 40, height: 40 }}
+        aria-hidden
+      />
+    </button>
+  )
+}
+
 export default function DrawingCanvas({ data, onChange, disabled = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [tool, setTool] = useState<DrawingToolType>(DrawingTool.Pen)
-  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
+  const [confirmClearFrame, setConfirmClearFrame] = useState(false)
   const [displaySize, setDisplaySize] = useState(DRAWING_WIDTH)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [onionSkin, setOnionSkin] = useState(true)
+  const [playing, setPlaying] = useState(false)
   const drawingRef = useRef(false)
   const activeStrokeRef = useRef<DrawingStroke | null>(null)
+  const activeIndexRef = useRef(0)
+  activeIndexRef.current = activeIndex
+
+  const frameCount = data.frames.length
+  const safeIndex = Math.max(0, Math.min(frameCount - 1, activeIndex))
+  const activeFrame = data.frames[safeIndex] ?? emptyFrame()
+  const multiFrame = frameCount > 1
+
+  useEffect(() => {
+    if (activeIndex >= frameCount) {
+      setActiveIndex(Math.max(0, frameCount - 1))
+    }
+  }, [activeIndex, frameCount])
 
   useEffect(() => {
     const container = containerRef.current
@@ -58,8 +129,31 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    renderDrawingToCanvas(ctx, data)
-  }, [data])
+    renderDrawingToCanvas(ctx, data, {
+      frameIndex: safeIndex,
+      onionSkin: onionSkin && multiFrame && !playing,
+    })
+  }, [data, safeIndex, onionSkin, multiFrame, playing])
+
+  useEffect(() => {
+    if (!playing || frameCount < 2) return
+    const ms = Math.max(50, Math.round(1000 / Math.max(1, data.fps)))
+    const id = window.setInterval(() => {
+      setActiveIndex((i) => (i + 1) % frameCount)
+    }, ms)
+    return () => window.clearInterval(id)
+  }, [playing, frameCount, data.fps])
+
+  const updateActiveStrokes = useCallback(
+    (strokes: DrawingStroke[]) => {
+      const index = activeIndexRef.current
+      const frames = data.frames.map((frame, i) =>
+        i === index ? { strokes } : frame
+      )
+      onChange({ ...data, frames })
+    },
+    [data, onChange]
+  )
 
   const appendPoint = useCallback(
     (point: [number, number]) => {
@@ -68,17 +162,19 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
       const last = stroke.points[stroke.points.length - 1]
       if (last && last[0] === point[0] && last[1] === point[1]) return
       stroke.points.push(point)
-      onChange({
-        ...data,
-        strokes: [...data.strokes.slice(0, -1), { ...stroke, points: [...stroke.points] }],
-      })
+      const index = activeIndexRef.current
+      const current = data.frames[index]?.strokes ?? []
+      updateActiveStrokes([
+        ...current.slice(0, -1),
+        { ...stroke, points: [...stroke.points] },
+      ])
     },
-    [data, onChange]
+    [data.frames, updateActiveStrokes]
   )
 
   const startStroke = useCallback(
     (point: [number, number]) => {
-      if (disabled) return
+      if (disabled || playing) return
       drawingRef.current = true
       const stroke: DrawingStroke = {
         tool,
@@ -86,9 +182,11 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
         points: [point],
       }
       activeStrokeRef.current = stroke
-      onChange({ ...data, strokes: [...data.strokes, stroke] })
+      const index = activeIndexRef.current
+      const current = data.frames[index]?.strokes ?? []
+      updateActiveStrokes([...current, stroke])
     },
-    [data, disabled, onChange, tool]
+    [data.frames, disabled, playing, tool, updateActiveStrokes]
   )
 
   const endStroke = useCallback(() => {
@@ -131,27 +229,71 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     [endStroke]
   )
 
-  const deleteAll = useCallback(() => {
-    if (disabled || !drawingHasContent(data)) return
-    setConfirmDeleteAll(true)
-  }, [data, disabled])
+  const clearFrame = useCallback(() => {
+    if (disabled || playing || !frameHasContent(activeFrame)) return
+    setConfirmClearFrame(true)
+  }, [activeFrame, disabled, playing])
 
-  const confirmDeleteAllDrawing = useCallback(() => {
-    onChange(emptyDrawing())
-    setConfirmDeleteAll(false)
-  }, [onChange])
+  const confirmClearFrameDrawing = useCallback(() => {
+    updateActiveStrokes([])
+    setConfirmClearFrame(false)
+  }, [updateActiveStrokes])
 
-  const canDeleteAll = drawingHasContent(data)
+  const addFrame = useCallback(() => {
+    if (disabled || playing || frameCount >= MAX_DRAWING_FRAMES) return
+    const frames = [
+      ...data.frames.slice(0, safeIndex + 1),
+      emptyFrame(),
+      ...data.frames.slice(safeIndex + 1),
+    ]
+    onChange({ ...data, frames })
+    setActiveIndex(safeIndex + 1)
+  }, [data, disabled, frameCount, onChange, playing, safeIndex])
+
+  const duplicateFrame = useCallback(() => {
+    if (disabled || playing || frameCount >= MAX_DRAWING_FRAMES) return
+    const source = data.frames[safeIndex] ?? emptyFrame()
+    const frames = [
+      ...data.frames.slice(0, safeIndex + 1),
+      cloneFrame(source),
+      ...data.frames.slice(safeIndex + 1),
+    ]
+    onChange({ ...data, frames })
+    setActiveIndex(safeIndex + 1)
+  }, [data, disabled, frameCount, onChange, playing, safeIndex])
+
+  const deleteFrame = useCallback(() => {
+    if (disabled || playing || frameCount <= 1) return
+    const frames = data.frames.filter((_, i) => i !== safeIndex)
+    onChange({ ...data, frames })
+    setActiveIndex(Math.min(safeIndex, frames.length - 1))
+  }, [data, disabled, frameCount, onChange, playing, safeIndex])
+
+  const setFps = useCallback(
+    (fps: number) => {
+      if (disabled) return
+      onChange({ ...data, fps })
+    },
+    [data, disabled, onChange]
+  )
+
+  const togglePlay = useCallback(() => {
+    if (frameCount < 2) return
+    setPlaying((p) => !p)
+  }, [frameCount])
+
+  const canClearFrame = frameHasContent(activeFrame)
+  const drawDisabled = disabled || playing
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex shrink-0 flex-wrap gap-2">
+      <div className="flex shrink-0 flex-wrap gap-2 items-center">
         <Button
           type="button"
           size="xs"
           variant={tool === DrawingTool.Pen ? "primary" : "ghost"}
           onClick={() => setTool(DrawingTool.Pen)}
-          disabled={disabled}
+          disabled={drawDisabled}
         >
           Pen
         </Button>
@@ -160,7 +302,7 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
           size="xs"
           variant={tool === DrawingTool.Eraser ? "primary" : "ghost"}
           onClick={() => setTool(DrawingTool.Eraser)}
-          disabled={disabled}
+          disabled={drawDisabled}
         >
           Eraser
         </Button>
@@ -168,20 +310,111 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
           type="button"
           size="xs"
           variant="dangerOutline"
-          onClick={deleteAll}
-          disabled={disabled || !canDeleteAll}
+          onClick={clearFrame}
+          disabled={drawDisabled || !canClearFrame}
         >
-          Delete all
+          Clear frame
         </Button>
+        {multiFrame ? (
+          <Button
+            type="button"
+            size="xs"
+            variant={onionSkin ? "primary" : "ghost"}
+            onClick={() => setOnionSkin((v) => !v)}
+            disabled={disabled || playing}
+            aria-pressed={onionSkin}
+          >
+            Onion skin
+          </Button>
+        ) : null}
+        {multiFrame ? (
+          <Button
+            type="button"
+            size="xs"
+            variant="action"
+            onClick={togglePlay}
+            disabled={disabled}
+          >
+            <MusicPlayStopLabel playing={playing} />
+          </Button>
+        ) : null}
       </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
+          {data.frames.map((_, i) => (
+            <FrameThumb
+              key={i}
+              data={data}
+              frameIndex={i}
+              selected={i === safeIndex}
+              onSelect={() => {
+                if (playing) setPlaying(false)
+                setActiveIndex(i)
+              }}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          size="xs"
+          variant="ghost"
+          onClick={addFrame}
+          disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
+        >
+          Add frame
+        </Button>
+        <Button
+          type="button"
+          size="xs"
+          variant="ghost"
+          onClick={duplicateFrame}
+          disabled={disabled || playing || frameCount >= MAX_DRAWING_FRAMES}
+        >
+          Duplicate
+        </Button>
+        {multiFrame ? (
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={deleteFrame}
+            disabled={disabled || playing}
+          >
+            Remove frame
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs text-base-content/70">
+        <span className="font-medium text-base-content/80">FPS</span>
+        {FPS_OPTIONS.map((fps) => (
+          <Button
+            key={fps}
+            type="button"
+            size="xs"
+            variant={data.fps === fps ? "primary" : "ghost"}
+            onClick={() => setFps(fps)}
+            disabled={disabled}
+          >
+            {fps}
+          </Button>
+        ))}
+        <span className="ml-auto tabular-nums">
+          Frame {safeIndex + 1}/{frameCount}
+        </span>
+      </div>
+
       <ConfirmDialog
-        open={confirmDeleteAll}
-        title="Delete the entire drawing?"
-        body="This cannot be undone."
-        confirmLabel="Delete all"
-        onCancel={() => setConfirmDeleteAll(false)}
-        onConfirm={confirmDeleteAllDrawing}
+        open={confirmClearFrame}
+        title="Clear this frame?"
+        body="Strokes on this frame will be removed. This cannot be undone."
+        confirmLabel="Clear frame"
+        onCancel={() => setConfirmClearFrame(false)}
+        onConfirm={confirmClearFrameDrawing}
       />
+
       <div
         ref={containerRef}
         className="flex min-h-0 flex-1 items-center justify-center"
@@ -191,13 +424,16 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
             ref={canvasRef}
             width={DRAWING_WIDTH}
             height={DRAWING_HEIGHT}
-            className="block touch-none cursor-crosshair"
+            className={[
+              "block touch-none",
+              drawDisabled ? "cursor-default" : "cursor-crosshair",
+            ].join(" ")}
             style={{ width: displaySize, height: displaySize }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerLeave={onPointerUp}
-            onPointerCancel={onPointerUp}
+            onPointerDown={drawDisabled ? undefined : onPointerDown}
+            onPointerMove={drawDisabled ? undefined : onPointerMove}
+            onPointerUp={drawDisabled ? undefined : onPointerUp}
+            onPointerLeave={drawDisabled ? undefined : onPointerUp}
+            onPointerCancel={drawDisabled ? undefined : onPointerUp}
           />
         </div>
       </div>

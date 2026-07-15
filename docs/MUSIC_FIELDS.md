@@ -4,7 +4,7 @@ Custom pin types can include a `music` field so users compose short patterns in 
 
 ## Overview
 
-Music data is **not** stored inline in `pins.custom_data`. Payloads can be large (up to 256 KB), so they live in a separate table and the pin only keeps a small reference.
+Music data is **not** stored inline in `pins.custom_data`. Payloads can be large (up to 1 MB), so they live in a separate table and the pin only keeps a small reference.
 
 | Layer | What is stored |
 |-------|----------------|
@@ -23,7 +23,7 @@ Built-in pin types (`one_time`, `scheduled`, etc.) do not use music fields. Only
 | `type` | Always `"music"` today |
 | `format` | `"music/v1"` (default) |
 | `version` | Integer schema version (default `1`) |
-| `payload` | Opaque score string (max **262,144 bytes**) |
+| `payload` | Opaque score string (max **1,048,576 bytes**) |
 
 Unique on `(pin_id, field_key, type)` — one blob per music field per pin.
 

@@ -18,6 +18,15 @@ export type DrawingFieldEditorProps = {
   onValue: (v: unknown) => void
 }
 
+function drawingSummary(drawing: ReturnType<typeof emptyDrawing>): string {
+  const frames = drawing.frames.length
+  if (frames > 1) {
+    return `${drawing.width}×${drawing.height} · ${frames} frames · ${drawing.fps} fps`
+  }
+  const strokes = strokeCount(drawing, 0)
+  return `${drawing.width}×${drawing.height} · ${strokes} stroke${strokes === 1 ? "" : "s"}`
+}
+
 export default function DrawingFieldEditor({
   csrfToken,
   pinId,
@@ -43,9 +52,7 @@ export default function DrawingFieldEditor({
       deleteLabel="Delete drawing"
       emptyHint="Open the editor to draw."
       saveEmptyError="Draw something before saving."
-      renderSummary={(drawing) =>
-        `${drawing.width}×${drawing.height} · ${strokeCount(drawing)} stroke${strokeCount(drawing) === 1 ? "" : "s"}`
-      }
+      renderSummary={drawingSummary}
       renderEditor={({ data, onChange, disabled }) => (
         <DrawingCanvas data={data} onChange={onChange} disabled={disabled} />
       )}
