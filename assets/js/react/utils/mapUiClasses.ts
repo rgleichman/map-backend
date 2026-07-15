@@ -28,6 +28,25 @@ export const MAP_SEARCH_SHELL_CLASS = [
 export const SECTION_LABEL_CLASS =
   "text-[11px] font-semibold uppercase tracking-wide text-base-content/50"
 
+/** Removable pill chip shell (active filters, tags, pin links).
+ * pl-1 / pr-1 match vertical inset for a w-6 circle so leading badge and dismiss
+ * sit concentric with the pill radii. Override end pad when there is no dismiss. */
+export const REMOVABLE_CHIP_CLASS = [
+  "inline-flex min-w-0 max-w-full items-center h-8",
+  "rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium",
+  "pl-1",
+].join(" ")
+
+/** Gap between leading badge / label / hints (not between label and dismiss). */
+export const REMOVABLE_CHIP_CONTENT_CLASS = "inline-flex min-w-0 items-center gap-1"
+
+/** End padding when the chip has no dismiss control (text needs optical inset). */
+export const REMOVABLE_CHIP_PAD_END_CLASS = "pr-2"
+
+/** Circular dismiss control: w-6/h-6 + chip pr-1 = concentric with right radius. */
+export const CHIP_DISMISS_BUTTON_CLASS =
+  "shrink-0 flex items-center justify-center h-6 w-6 rounded-full text-base-content hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity border-none bg-transparent cursor-pointer p-0"
+
 /** Tone only (selected vs idle) for filter/picker chips. */
 export function filterChipToneClass(selected: boolean): string {
   return selected

@@ -22,6 +22,7 @@ import {
   SECTION_LABEL_CLASS,
   filterChipClass,
 } from "../utils/mapUiClasses"
+import RemovableChip from "./RemovableChip"
 
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
@@ -70,9 +71,11 @@ function ActiveFilterChips({
     <div className={["flex flex-wrap gap-1.5 min-w-0 pointer-events-none", className].filter(Boolean).join(" ")}>
       {chips.map(({ dimension, label, pinType: chipPinType }) => {
         return (
-          <span
+          <RemovableChip
             key={dimension}
-            className="flex min-w-0 max-w-full items-center gap-1 min-h-[32px] rounded-full bg-base-200/95 dark:bg-base-300/90 text-base-content text-xs font-medium border border-base-300/90 dark:border-base-content/20 ring-1 ring-primary/20 dark:ring-primary/30 pl-1.5 pr-0.5 py-0.5 pointer-events-auto"
+            className="pointer-events-auto"
+            removeLabel={`Remove filter: ${label}`}
+            onRemove={() => setFilter((f) => clearFilterDimension(f, dimension))}
           >
             {chipPinType != null && <PinTypeBadge pinType={chipPinType} catalog={catalog} />}
             {dimension === "hearted" && (
@@ -83,18 +86,8 @@ function ActiveFilterChips({
                 <HeartIcon filled size={14} />
               </span>
             )}
-            <span className="min-w-0 flex-1 truncate py-1 pl-0.5">{label}</span>
-            <button
-              type="button"
-              className="shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-8 sm:min-h-8 rounded-full text-base-content hover:bg-base-content/10 dark:hover:bg-base-content/15 active:opacity-80 transition-opacity"
-              aria-label={`Remove filter: ${label}`}
-              onClick={() => setFilter((f) => clearFilterDimension(f, dimension))}
-            >
-              <span className="text-base leading-none" aria-hidden>
-                ×
-              </span>
-            </button>
-          </span>
+            <span className="min-w-0 flex-1 truncate pl-0.5">{label}</span>
+          </RemovableChip>
         )
       })}
     </div>

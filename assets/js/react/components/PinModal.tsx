@@ -8,6 +8,7 @@ import { usePinTypes } from "../context/PinTypesContext"
 import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
 import { deriveMapTags } from "../utils/tagSuggestions"
+import RemovableChip from "./RemovableChip"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -226,11 +227,14 @@ export default function PinModal({
         <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map(tag => (
-              <span key={tag} className="inline-flex items-center bg-base-200 text-base-content rounded px-2 py-1 text-sm">
-                {tag}
-                <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 text-error hover:opacity-80" aria-label="Remove tag">×</button>
-              </span>
+            {tags.map((tag) => (
+              <RemovableChip
+                key={tag}
+                removeLabel={`Remove tag: ${tag}`}
+                onRemove={() => handleRemoveTag(tag)}
+              >
+                <span className="min-w-0 truncate pl-0.5">{tag}</span>
+              </RemovableChip>
             ))}
           </div>
         )}
