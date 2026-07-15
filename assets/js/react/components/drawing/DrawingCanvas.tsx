@@ -13,16 +13,15 @@ import {
   renderDrawingToCanvas,
   resizeSoundtrack,
 } from "../../utils/drawingPayload"
-import { getAudioContext, playScoreStep } from "../../utils/musicAudio"
+import { playScoreStepReady } from "../../utils/musicAudio"
 import { cloneScore, emptyScore, type MusicScore } from "../../utils/musicScore"
+import { useDrawingFramePlayback } from "../../hooks/useDrawingFramePlayback"
 import Button from "../ui/Button"
 import ConfirmDialog from "../ui/ConfirmDialog"
 import MusicPlayStopLabel from "../music/MusicPlayStopLabel"
 import MusicSequencer from "../music/MusicSequencer"
 
 type DrawingToolType = (typeof DrawingTool)[keyof typeof DrawingTool]
-
-const FPS_OPTIONS = [2, 4, 8] as const
 
 type Props = {
   data: DrawingData
@@ -168,40 +167,19 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     (index: number) => {
       if (playing) setPlaying(false)
       setActiveIndex(index)
-      const soundtrack = data.soundtrack ?? emptyScore(data.frames.length)
-      void (async () => {
-        const ctx = getAudioContext()
-        if (ctx.state === "suspended") await ctx.resume()
-        playScoreStep(ctx, soundtrack, index, 180)
-      })()
+      const soundtrack = data.soundtrack
+      void playScoreStepReady(soundtrack, index)
     },
-    [data.frames.length, data.soundtrack, playing]
+    [data.soundtrack, playing]
   )
 
-  useEffect(() => {
-    if (!playing || frameCount < 2) return
-    const ms = Math.max(50, Math.round(1000 / Math.max(1, data.fps)))
-    const soundtrack = data.soundtrack ?? emptyScore(frameCount)
-
-    const playFrameNotes = (index: number) => {
-      void (async () => {
-        const ctx = getAudioContext()
-        if (ctx.state === "suspended") await ctx.resume()
-        playScoreStep(ctx, soundtrack, index, ms)
-      })()
-    }
-
-    playFrameNotes(activeIndexRef.current)
-
-    const id = window.setInterval(() => {
-      setActiveIndex((i) => {
-        const next = (i + 1) % frameCount
-        playFrameNotes(next)
-        return next
-      })
-    }, ms)
-    return () => window.clearInterval(id)
-  }, [playing, frameCount, data.fps, data.soundtrack])
+  useDrawingFramePlayback({
+    visualLoop: false,
+    audioEnabled: playing && multiFrame,
+    frameCount,
+    setFrameIndex: setActiveIndex,
+    soundtrack: data.soundtrack,
+  })
 
   const updateActiveStrokes = useCallback(
     (strokes: DrawingStroke[]) => {
@@ -360,13 +338,6 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
     },
     [data, disabled, onChange, playing]
   )
-  const setFps = useCallback(
-    (fps: number) => {
-      if (disabled) return
-      onChange({ ...data, fps })
-    },
-    [data, disabled, onChange]
-  )
 
   const togglePlay = useCallback(() => {
     if (frameCount < 2) return
@@ -481,19 +452,6 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs text-base-content/70">
-        <span className="font-medium text-base-content/80">FPS</span>
-        {FPS_OPTIONS.map((fps) => (
-          <Button
-            key={fps}
-            type="button"
-            size="xs"
-            variant={data.fps === fps ? "primary" : "ghost"}
-            onClick={() => setFps(fps)}
-            disabled={disabled}
-          >
-            {fps}
-          </Button>
-        ))}
         <span className="ml-auto tabular-nums">
           Frame {safeIndex + 1}/{frameCount}
         </span>

@@ -21,7 +21,7 @@ export type DrawingFieldEditorProps = {
 function drawingSummary(drawing: ReturnType<typeof emptyDrawing>): string {
   const frames = drawing.frames.length
   if (frames > 1) {
-    return `${drawing.width}×${drawing.height} · ${frames} frames · ${drawing.fps} fps`
+    return `${drawing.width}×${drawing.height} · ${frames} frames · ${drawing.soundtrack.tempo} BPM`
   }
   const strokes = strokeCount(drawing, 0)
   return `${drawing.width}×${drawing.height} · ${strokes} stroke${strokes === 1 ? "" : "s"}`

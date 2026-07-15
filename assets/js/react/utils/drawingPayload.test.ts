@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import {
-  DEFAULT_DRAWING_FPS,
   MAX_DRAWING_FRAMES,
   drawingHasContent,
   emptyDrawing,
@@ -12,7 +11,7 @@ import {
   serializeDrawing,
   strokeCount,
 } from "./drawingPayload"
-import { emptyScore } from "./musicScore"
+import { DEFAULT_TEMPO, emptyScore } from "./musicScore"
 
 describe("drawingPayload", () => {
   it("parses empty payload", () => {
@@ -29,7 +28,7 @@ describe("drawingPayload", () => {
     const parsed = parseDrawing(serializeDrawing(data))
     expect(parsed.version).toBe(2)
     expect(parsed.frames).toEqual(data.frames)
-    expect(parsed.fps).toBe(DEFAULT_DRAWING_FPS)
+    expect(parsed.soundtrack.tempo).toBe(DEFAULT_TEMPO)
   })
 
   it("normalizes legacy v1 strokes into a single frame", () => {
@@ -55,25 +54,24 @@ describe("drawingPayload", () => {
       version: 2,
       width: 256,
       height: 256,
-      fps: 4,
       frames,
     })
     expect(parseDrawing(payload).frames).toHaveLength(MAX_DRAWING_FRAMES)
   })
 
-  it("clamps fps on parse and serialize", () => {
+  it("ignores legacy fps field on parse", () => {
     const parsed = parseDrawing(
       JSON.stringify({
         version: 2,
         width: 256,
         height: 256,
-        fps: 99,
-        frames: [{ strokes: [] }],
+        fps: 8,
+        frames: [{ strokes: [] }, { strokes: [] }],
+        soundtrack: emptyScore(2),
       })
     )
-    expect(parsed.fps).toBe(12)
-    const again = parseDrawing(serializeDrawing({ ...parsed, fps: 0 }))
-    expect(again.fps).toBe(1)
+    expect(parsed.soundtrack.tempo).toBe(DEFAULT_TEMPO)
+    expect(parsed).not.toHaveProperty("fps")
   })
 
   it("detects content when any frame has strokes", () => {
@@ -132,7 +130,6 @@ describe("drawingPayload", () => {
       version: 2,
       width: 256,
       height: 256,
-      fps: 4,
       frames: [{ strokes: [] }, { strokes: [] }, { strokes: [] }],
     })
     const parsed = parseDrawing(payload)

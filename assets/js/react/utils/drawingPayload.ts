@@ -2,6 +2,7 @@ import {
   DEFAULT_NOTES,
   DEFAULT_TEMPO,
   MUSIC_SCORE_VERSION,
+  clampTempo,
   cloneScore,
   emptyScore,
   type MusicScore,
@@ -11,9 +12,6 @@ export const DRAWING_WIDTH = 256
 export const DRAWING_HEIGHT = 256
 
 export const MAX_DRAWING_FRAMES = 8
-export const DEFAULT_DRAWING_FPS = 4
-export const MIN_DRAWING_FPS = 1
-export const MAX_DRAWING_FPS = 12
 
 /** Semi-transparent ghost under the active frame (previous = cooler, next = warmer). */
 export const ONION_PREV_OPACITY = 0.35
@@ -60,9 +58,8 @@ export type DrawingData = {
   version: 2
   width: number
   height: number
-  fps: number
   frames: DrawingFrame[]
-  /** Sequencer grid; `steps` always equals `frames.length` after normalize. */
+  /** Sequencer grid; `steps` always equals `frames.length` after normalize. Tempo drives playback. */
   soundtrack: MusicScore
 }
 
@@ -75,10 +72,13 @@ export function emptyDrawing(): DrawingData {
     version: 2,
     width: DRAWING_WIDTH,
     height: DRAWING_HEIGHT,
-    fps: DEFAULT_DRAWING_FPS,
     frames: [emptyFrame()],
     soundtrack: emptyScore(1),
   }
+}
+
+function resolveScoreTempo(tempo: unknown, fallback: number = DEFAULT_TEMPO): number {
+  return typeof tempo === "number" && tempo > 0 ? clampTempo(tempo) : fallback
 }
 
 /**
@@ -87,8 +87,7 @@ export function emptyDrawing(): DrawingData {
  */
 export function resizeSoundtrack(score: MusicScore, frameCount: number): MusicScore {
   const steps = Math.max(1, Math.min(MAX_DRAWING_FRAMES, Math.round(frameCount)))
-  const tempo =
-    typeof score.tempo === "number" && score.tempo > 0 ? Math.round(score.tempo) : DEFAULT_TEMPO
+  const tempo = resolveScoreTempo(score.tempo)
   const next = emptyScore(steps, DEFAULT_NOTES, tempo)
   const rowByNote = new Map(next.rows.map((row, idx) => [row.note.toUpperCase(), idx]))
   for (const row of score.rows) {
@@ -126,11 +125,12 @@ export function removeSoundtrackColumn(score: MusicScore, at: number): MusicScor
 
 function normalizeSoundtrack(raw: unknown, frameCount: number): MusicScore {
   const steps = Math.max(1, Math.min(MAX_DRAWING_FRAMES, frameCount))
-  if (raw == null || typeof raw !== "object") return emptyScore(steps)
+  if (raw == null || typeof raw !== "object") {
+    return emptyScore(steps, DEFAULT_NOTES, DEFAULT_TEMPO)
+  }
 
   const obj = raw as Record<string, unknown>
-  const tempo =
-    typeof obj.tempo === "number" && obj.tempo > 0 ? Math.round(obj.tempo) : DEFAULT_TEMPO
+  const tempo = resolveScoreTempo(obj.tempo)
   const base = emptyScore(steps, DEFAULT_NOTES, tempo)
 
   if (obj.version !== MUSIC_SCORE_VERSION || !Array.isArray(obj.rows)) {
@@ -159,11 +159,6 @@ export function frameHasContent(frame: DrawingFrame | undefined): boolean {
 
 export function drawingHasContent(data: DrawingData): boolean {
   return data.frames.some(frameHasContent)
-}
-
-export function clampDrawingFps(fps: number): number {
-  if (!Number.isFinite(fps)) return DEFAULT_DRAWING_FPS
-  return Math.min(MAX_DRAWING_FPS, Math.max(MIN_DRAWING_FPS, Math.round(fps)))
 }
 
 function normalizeStrokes(raw: unknown): DrawingStroke[] {
@@ -207,16 +202,12 @@ export function parseDrawing(payload: string): DrawingData {
       version?: number
       width?: number
       height?: number
-      fps?: number
       strokes?: unknown
       frames?: unknown
       soundtrack?: unknown
     }
     const width = typeof parsed.width === "number" ? parsed.width : DRAWING_WIDTH
     const height = typeof parsed.height === "number" ? parsed.height : DRAWING_HEIGHT
-    const fps = clampDrawingFps(
-      typeof parsed.fps === "number" ? parsed.fps : DEFAULT_DRAWING_FPS
-    )
 
     if (parsed.version === 1 && Array.isArray(parsed.strokes)) {
       const frames = [{ strokes: normalizeStrokes(parsed.strokes) }]
@@ -224,7 +215,6 @@ export function parseDrawing(payload: string): DrawingData {
         version: 2,
         width,
         height,
-        fps: DEFAULT_DRAWING_FPS,
         frames,
         soundtrack: normalizeSoundtrack(undefined, frames.length),
       }
@@ -236,7 +226,6 @@ export function parseDrawing(payload: string): DrawingData {
         version: 2,
         width,
         height,
-        fps,
         frames,
         soundtrack: normalizeSoundtrack(parsed.soundtrack, frames.length),
       }
@@ -258,7 +247,6 @@ export function serializeDrawing(data: DrawingData): string {
     version: 2,
     width: data.width,
     height: data.height,
-    fps: clampDrawingFps(data.fps),
     frames: frames.map((frame) => ({
       strokes: frame.strokes,
     })),

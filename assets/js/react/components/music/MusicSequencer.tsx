@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from "react"
 import type { MusicScore } from "../../utils/musicScore"
-import { cloneScore, serializeScore } from "../../utils/musicScore"
-import { getAudioContext, playNotePreview } from "../../utils/musicAudio"
+import { clampTempo, cloneScore, serializeScore } from "../../utils/musicScore"
+import { PLAYBACK_STOPPED_STEP, playNotePreviewReady } from "../../utils/musicAudio"
 import MusicPlayStopLabel from "./MusicPlayStopLabel"
 import { useMusicPreview } from "../../hooks/useMusicPreview"
 import Button from "../ui/Button"
@@ -10,46 +10,37 @@ type Props = {
   score: MusicScore
   onChange: (score: MusicScore) => void
   disabled?: boolean
-  /** Hide tempo + standalone play; for drawing soundtrack embedding. */
+  /** Compact layout for drawing soundtrack embedding (hides standalone play unless overridden). */
   compact?: boolean
-  hideTempo?: boolean
   hidePreview?: boolean
-  /** Controlled playhead highlight (-1 = none). When set, overrides internal preview step. */
+  /** Controlled playhead highlight (`PLAYBACK_STOPPED_STEP` = none). When set, overrides internal preview step. */
   activeStep?: number
   stepHeaderLabel?: (step: number) => string
 }
 
 const MAX_UNDO = 24
-const TEMPO_MIN = 40
-const TEMPO_MAX = 220
-
-function clampTempo(value: number): number {
-  return Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, Math.round(value)))
-}
 
 export default function MusicSequencer({
   score,
   onChange,
   disabled = false,
   compact = false,
-  hideTempo = false,
   hidePreview = false,
   activeStep: controlledActiveStep,
   stepHeaderLabel,
 }: Props) {
-  const [internalActiveStep, setInternalActiveStep] = useState(-1)
+  const [internalActiveStep, setInternalActiveStep] = useState(PLAYBACK_STOPPED_STEP)
   const [tempoInput, setTempoInput] = useState<string | null>(null)
   const undoStack = useRef<MusicScore[]>([])
   const [canUndo, setCanUndo] = useState(false)
 
-  const hideTempoBar = compact || hideTempo
   const hidePreviewBtn = compact || hidePreview
   const activeStep =
     controlledActiveStep !== undefined ? controlledActiveStep : internalActiveStep
 
   const { playing: previewing, toggle: togglePreview } = useMusicPreview({
     onStep: setInternalActiveStep,
-    onStopped: () => setInternalActiveStep(-1),
+    onStopped: () => setInternalActiveStep(PLAYBACK_STOPPED_STEP),
   })
 
   const pushUndo = useCallback((prev: MusicScore) => {
@@ -100,10 +91,8 @@ export default function MusicSequencer({
     onChange(prev)
   }, [onChange])
 
-  const previewNote = useCallback(async (note: string) => {
-    const ctx = getAudioContext()
-    if (ctx.state === "suspended") await ctx.resume()
-    playNotePreview(ctx, note)
+  const previewNote = useCallback((note: string) => {
+    void playNotePreviewReady(note)
   }, [])
 
   const onTogglePreview = useCallback(() => {
@@ -113,30 +102,28 @@ export default function MusicSequencer({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
-        {!hideTempoBar ? (
-          <label className="form-control w-28">
-            <span className="label-text text-xs text-base-content/70">Tempo (BPM)</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="input input-bordered input-sm w-full"
-              value={tempoInput ?? String(score.tempo)}
-              disabled={disabled}
-              onChange={(e) => setTempoInput(e.target.value.replace(/[^\d]/g, ""))}
-              onBlur={() => commitTempo()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  commitTempo()
-                } else if (e.key === "Escape") {
-                  e.preventDefault()
-                  setTempoInput(null)
-                }
-              }}
-            />
-          </label>
-        ) : null}
+        <label className="form-control w-28">
+          <span className="label-text text-xs text-base-content/70">Tempo (BPM)</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className="input input-bordered input-sm w-full"
+            value={tempoInput ?? String(score.tempo)}
+            disabled={disabled}
+            onChange={(e) => setTempoInput(e.target.value.replace(/[^\d]/g, ""))}
+            onBlur={() => commitTempo()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                commitTempo()
+              } else if (e.key === "Escape") {
+                e.preventDefault()
+                setTempoInput(null)
+              }
+            }}
+          />
+        </label>
         <div className="flex flex-wrap gap-2">
           {!hidePreviewBtn ? (
             <Button
