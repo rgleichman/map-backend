@@ -118,7 +118,7 @@ Keep React map UI and LiveView pages visually cohesive for common actions. Imple
 | Do something | contextual (**Play**, **Party**, …) | Action fill (`bg-action`) — not Save/Edit/Delete |
 | Destroy entity | **Delete** | Danger styling + confirm modal |
 | Detach list/chip | **Remove** | Light ghost; no confirm unless irreversible |
-| Exit immersive editor | **Done** | Blob `FieldEditorModal` only |
+| Exit immersive editor | **Done** | Blob `FieldEditorModal` on mobile only (desktop panel has no Done; Escape or pin Save) |
 
 **Class map (theme semantic colors, no daisyUI `btn` chrome):** filled `bg-primary` / `bg-action` / `bg-error`, ghost wash, danger outline only when Delete sits beside Save. Never use `btn-success` for Save. Shared tokens: `assets/js/react/utils/actionUiClasses.ts` and LiveView `<.button>` / `<.close_button>`.
 

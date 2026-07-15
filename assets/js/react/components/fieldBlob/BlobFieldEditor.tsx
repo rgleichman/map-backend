@@ -124,11 +124,10 @@ export default function BlobFieldEditor<T>({
       setData(next)
       if (markDirty) setDirty(true)
       setError(null)
-      if (!canUseApi) {
-        onValue({ draft: serialize(next) })
-      }
+      // Keep custom_data in sync so pin Save uploads drafts even if Done was not clicked.
+      onValue({ draft: serialize(next) })
     },
-    [canUseApi, onValue, serialize]
+    [onValue, serialize]
   )
 
   const handleChange = useCallback(
@@ -219,15 +218,13 @@ export default function BlobFieldEditor<T>({
 
   const editorDisabled = loading || saving || deleting
   const contentPresent = hasContent(data)
-  const pendingPinDraft = !canUseApi && (draftStored || contentPresent)
+  const pendingPinDraft = draftStored || (dirty && contentPresent)
 
   const statusMessage =
-    saved && dirty ? (
-      <span className="badge badge-warning badge-sm">Unsaved changes</span>
-    ) : pendingPinDraft ? (
+    pendingPinDraft ? (
       <span className="inline-flex items-center gap-1">
-        <span className="badge badge-warning badge-sm">Draft</span>
-        <span>Saves when you add the pin.</span>
+        <span className="badge badge-warning badge-sm">{canUseApi ? "Unsaved" : "Draft"}</span>
+        <span>{canUseApi ? "Saves when you save the pin." : "Saves when you add the pin."}</span>
       </span>
     ) : !saved && !contentPresent ? (
       <span className="inline-flex items-center gap-1">

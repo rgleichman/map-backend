@@ -140,6 +140,51 @@ describe("validateAndBuildSavePayload", () => {
     })
   })
 
+  it("strips blob drafts from custom_data in edit payload", () => {
+    const draftPayload = JSON.stringify({
+      version: 1,
+      tempo: 120,
+      steps: 16,
+      rows: [
+        {
+          note: "C4",
+          hits: Array.from({ length: 16 }, (_, i) => i === 0),
+        },
+      ],
+    })
+    const catalog: CustomPinType[] = [
+      {
+        id: 1,
+        slug: "jam-pin",
+        label: "Jam Pin",
+        pin_type: "custom:jam-pin",
+        enabled: true,
+        schema: {
+          fields: [{ key: "song", type: BlobFieldType.Music, label: "Song", required: true }],
+        },
+      },
+    ]
+    const pin = minimalPin({
+      pin_type: "custom:jam-pin",
+      custom_data: { song: { ref: 99 } },
+    })
+    const result = validateAndBuildSavePayload(
+      { mode: "edit", pin },
+      minimalDraft({
+        pinType: "custom:jam-pin",
+        customData: { song: { draft: draftPayload } },
+      }),
+      false,
+      catalog
+    )
+    if ("changes" in result) {
+      expect(result.changes.custom_data).toEqual({})
+      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+    } else {
+      throw new Error("expected edit payload")
+    }
+  })
+
   it("strips blob drafts from custom_data in add payload", () => {
     const draftPayload = JSON.stringify({
       version: 1,
