@@ -276,7 +276,7 @@ export default function MapFilters({
         </section>
 
         <section>
-          <p className={sectionTitle}>Tag</p>
+          <p className={sectionTitle}>Tags</p>
           {tags.length === 0 ? (
             <p className="text-sm text-base-content/55">No tags on the map yet.</p>
           ) : (
