@@ -1,5 +1,5 @@
 defmodule StorymapWeb.PinControllerTest do
-  use StorymapWeb.ConnCase
+  use StorymapWeb.ConnCase, async: true
 
   import Storymap.PinsFixtures
   alias Storymap.Pins.Pin

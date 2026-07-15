@@ -1,5 +1,5 @@
 defmodule StorymapWeb.PageControllerTest do
-  use StorymapWeb.ConnCase
+  use StorymapWeb.ConnCase, async: true
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")

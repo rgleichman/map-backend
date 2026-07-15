@@ -1,5 +1,5 @@
 defmodule Storymap.PinTypes.ValidatorTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   import Storymap.PinTypesFixtures
   import Ecto.Changeset, only: [get_field: 2]

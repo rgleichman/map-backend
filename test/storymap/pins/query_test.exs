@@ -1,5 +1,5 @@
 defmodule Storymap.Pins.QueryTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   import Storymap.AccountsFixtures
   import Storymap.PinsFixtures

@@ -3,7 +3,7 @@ defmodule Storymap.Performance.HotPathsTest do
   Lightweight timing guards for frequently-used query paths.
   Thresholds are generous to avoid flaky CI; they catch major regressions.
   """
-  use Storymap.DataCase
+  use Storymap.DataCase, async: false
 
   import Storymap.SubMapsFixtures
 

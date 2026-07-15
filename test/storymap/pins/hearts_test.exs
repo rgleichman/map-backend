@@ -1,5 +1,5 @@
 defmodule Storymap.Pins.HeartsTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   import Storymap.AccountsFixtures
   import Storymap.PinsFixtures

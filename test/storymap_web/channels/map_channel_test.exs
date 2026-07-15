@@ -1,5 +1,5 @@
 defmodule StorymapWeb.MapChannelTest do
-  use Storymap.DataCase, async: false
+  use Storymap.DataCase, async: true
 
   import Storymap.SubMapsFixtures
   import Storymap.AccountsFixtures

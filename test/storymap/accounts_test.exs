@@ -1,5 +1,5 @@
 defmodule Storymap.AccountsTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   alias Storymap.Accounts
 

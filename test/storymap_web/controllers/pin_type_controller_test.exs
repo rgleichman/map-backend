@@ -1,5 +1,5 @@
 defmodule StorymapWeb.PinTypeControllerTest do
-  use StorymapWeb.ConnCase
+  use StorymapWeb.ConnCase, async: true
 
   import Storymap.AccountsFixtures
   import Storymap.PinTypesFixtures

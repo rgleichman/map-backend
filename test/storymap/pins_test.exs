@@ -1,5 +1,5 @@
 defmodule Storymap.PinsTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   alias Storymap.Pins
 

@@ -1,5 +1,5 @@
 defmodule StorymapWeb.SavedLive.IndexTest do
-  use StorymapWeb.ConnCase
+  use StorymapWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Storymap.PinsFixtures

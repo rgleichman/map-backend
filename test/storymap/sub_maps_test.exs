@@ -1,5 +1,5 @@
 defmodule Storymap.SubMapsTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   import Storymap.AccountsFixtures
   import Storymap.SubMapsFixtures

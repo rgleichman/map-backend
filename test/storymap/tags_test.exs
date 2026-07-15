@@ -1,5 +1,5 @@
 defmodule Storymap.TagsTest do
-  use Storymap.DataCase
+  use Storymap.DataCase, async: true
 
   alias Storymap.Repo
   alias Storymap.Tags
