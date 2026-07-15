@@ -10,6 +10,13 @@ type Props = {
   score: MusicScore
   onChange: (score: MusicScore) => void
   disabled?: boolean
+  /** Hide tempo + standalone play; for drawing soundtrack embedding. */
+  compact?: boolean
+  hideTempo?: boolean
+  hidePreview?: boolean
+  /** Controlled playhead highlight (-1 = none). When set, overrides internal preview step. */
+  activeStep?: number
+  stepHeaderLabel?: (step: number) => string
 }
 
 const MAX_UNDO = 24
@@ -20,15 +27,29 @@ function clampTempo(value: number): number {
   return Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, Math.round(value)))
 }
 
-export default function MusicSequencer({ score, onChange, disabled = false }: Props) {
-  const [activeStep, setActiveStep] = useState(-1)
+export default function MusicSequencer({
+  score,
+  onChange,
+  disabled = false,
+  compact = false,
+  hideTempo = false,
+  hidePreview = false,
+  activeStep: controlledActiveStep,
+  stepHeaderLabel,
+}: Props) {
+  const [internalActiveStep, setInternalActiveStep] = useState(-1)
   const [tempoInput, setTempoInput] = useState<string | null>(null)
   const undoStack = useRef<MusicScore[]>([])
   const [canUndo, setCanUndo] = useState(false)
 
+  const hideTempoBar = compact || hideTempo
+  const hidePreviewBtn = compact || hidePreview
+  const activeStep =
+    controlledActiveStep !== undefined ? controlledActiveStep : internalActiveStep
+
   const { playing: previewing, toggle: togglePreview } = useMusicPreview({
-    onStep: setActiveStep,
-    onStopped: () => setActiveStep(-1),
+    onStep: setInternalActiveStep,
+    onStopped: () => setInternalActiveStep(-1),
   })
 
   const pushUndo = useCallback((prev: MusicScore) => {
@@ -92,38 +113,42 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
-        <label className="form-control w-28">
-          <span className="label-text text-xs text-base-content/70">Tempo (BPM)</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className="input input-bordered input-sm w-full"
-            value={tempoInput ?? String(score.tempo)}
-            disabled={disabled}
-            onChange={(e) => setTempoInput(e.target.value.replace(/[^\d]/g, ""))}
-            onBlur={() => commitTempo()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault()
-                commitTempo()
-              } else if (e.key === "Escape") {
-                e.preventDefault()
-                setTempoInput(null)
-              }
-            }}
-          />
-        </label>
+        {!hideTempoBar ? (
+          <label className="form-control w-28">
+            <span className="label-text text-xs text-base-content/70">Tempo (BPM)</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="input input-bordered input-sm w-full"
+              value={tempoInput ?? String(score.tempo)}
+              disabled={disabled}
+              onChange={(e) => setTempoInput(e.target.value.replace(/[^\d]/g, ""))}
+              onBlur={() => commitTempo()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  commitTempo()
+                } else if (e.key === "Escape") {
+                  e.preventDefault()
+                  setTempoInput(null)
+                }
+              }}
+            />
+          </label>
+        ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="action"
-            onClick={onTogglePreview}
-            disabled={disabled}
-          >
-            <MusicPlayStopLabel playing={previewing} />
-          </Button>
+          {!hidePreviewBtn ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="action"
+              onClick={onTogglePreview}
+              disabled={disabled}
+            >
+              <MusicPlayStopLabel playing={previewing} />
+            </Button>
+          ) : null}
           <Button type="button" size="sm" variant="ghost" onClick={undo} disabled={disabled || !canUndo}>
             Undo
           </Button>
@@ -142,7 +167,7 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
                 className={`flex h-7 w-9 shrink-0 items-center justify-center text-[10px] font-medium tabular-nums ${activeStep === step ? "text-primary" : "text-base-content/50"
                   }`}
               >
-                {step + 1}
+                {stepHeaderLabel ? stepHeaderLabel(step) : step + 1}
               </div>
             ))}
           </div>
@@ -191,7 +216,9 @@ export default function MusicSequencer({ score, onChange, disabled = false }: Pr
       </div>
 
       <p className="text-xs text-base-content/60">
-        Tap pads to hear notes. Toggle steps to build a pattern. Play runs left to right.
+        {compact
+          ? "Each column is a frame. Drawing Play syncs sound."
+          : "Tap pads to hear notes. Toggle steps to build a pattern. Play runs left to right."}
       </p>
     </div>
   )

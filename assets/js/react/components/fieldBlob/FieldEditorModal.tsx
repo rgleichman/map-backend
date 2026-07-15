@@ -75,7 +75,7 @@ export default function FieldEditorModal({
         <div
           className={
             fillAvailable
-              ? "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col"
+              ? "flex min-h-0 w-full flex-1 flex-col"
               : "mx-auto max-w-3xl"
           }
         >

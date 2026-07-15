@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { BlobFieldType } from "./blobFieldType"
 import { formatCustomFieldValue, isCustomFieldEmpty, searchableCustomFieldText } from "./customFieldValue"
-import { serializeDrawing } from "./drawingPayload"
+import { emptyDrawing, serializeDrawing } from "./drawingPayload"
 import { serializeScore, emptyScore } from "./musicScore"
 
 const drawingField = { key: "sketch", label: "Sketch", type: BlobFieldType.Drawing }
@@ -11,10 +11,7 @@ describe("isCustomFieldEmpty", () => {
   it("treats drawing drafts with strokes as non-empty when field type is known", () => {
     const draft = {
       draft: serializeDrawing({
-        version: 2,
-        width: 256,
-        height: 256,
-        fps: 4,
+        ...emptyDrawing(),
         frames: [{ strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }] }],
       }),
     }
@@ -24,10 +21,7 @@ describe("isCustomFieldEmpty", () => {
   it("auto-detects drawing drafts without field type", () => {
     const draft = {
       draft: serializeDrawing({
-        version: 2,
-        width: 256,
-        height: 256,
-        fps: 4,
+        ...emptyDrawing(),
         frames: [{ strokes: [{ tool: "pen", size: 2, points: [[0, 0], [1, 1]] }] }],
       }),
     }

@@ -141,3 +141,7 @@ Pin popups show **Play** for music fields with a saved reference. The client fet
 - `custom_data` max size: **16,384 bytes** (unchanged; music refs are tiny).
 - Music field values in `custom_data` must be a positive integer id or `%{"ref" => id}`.
 - No external audio URLs or file uploads — in-app composition only.
+
+## Drawing soundtrack (embedded)
+
+Drawing field blobs (`drawing/v1`) may include an optional embedded music grid as `soundtrack` on the drawing JSON payload (same v1 grid shape as above). Column count matches frame count (1–8); each column is the chord for that animation frame. Drawing **Play** advances frames at the drawing FPS and triggers that column’s notes. Map previews stay silent. See `assets/js/react/utils/drawingPayload.ts` and the drawing canvas sequencer.

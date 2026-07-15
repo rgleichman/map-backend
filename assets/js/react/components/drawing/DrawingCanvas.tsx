@@ -8,11 +8,17 @@ import {
   cloneFrame,
   emptyFrame,
   frameHasContent,
+  insertSoundtrackColumn,
+  removeSoundtrackColumn,
   renderDrawingToCanvas,
+  resizeSoundtrack,
 } from "../../utils/drawingPayload"
+import { getAudioContext, playScoreStep } from "../../utils/musicAudio"
+import { cloneScore, emptyScore, type MusicScore } from "../../utils/musicScore"
 import Button from "../ui/Button"
 import ConfirmDialog from "../ui/ConfirmDialog"
 import MusicPlayStopLabel from "../music/MusicPlayStopLabel"
+import MusicSequencer from "../music/MusicSequencer"
 
 type DrawingToolType = (typeof DrawingTool)[keyof typeof DrawingTool]
 
@@ -31,6 +37,16 @@ function clientPoint(canvas: HTMLCanvasElement, clientX: number, clientY: number
   const x = Math.max(0, Math.min(DRAWING_WIDTH, (clientX - rect.left) * scaleX))
   const y = Math.max(0, Math.min(DRAWING_HEIGHT, (clientY - rect.top) * scaleY))
   return [Math.round(x), Math.round(y)]
+}
+
+/** After inserting an empty column at `to`, copy hits from `from` into `to`. */
+function copySoundtrackColumn(score: MusicScore, from: number, to: number): MusicScore {
+  const next = cloneScore(score)
+  if (from < 0 || to < 0 || from >= next.steps || to >= next.steps) return next
+  for (const row of next.rows) {
+    row.hits[to] = row.hits[from] === true
+  }
+  return next
 }
 
 function FrameThumb({
@@ -138,11 +154,27 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
   useEffect(() => {
     if (!playing || frameCount < 2) return
     const ms = Math.max(50, Math.round(1000 / Math.max(1, data.fps)))
+    const soundtrack = data.soundtrack ?? emptyScore(frameCount)
+
+    const playFrameNotes = (index: number) => {
+      void (async () => {
+        const ctx = getAudioContext()
+        if (ctx.state === "suspended") await ctx.resume()
+        playScoreStep(ctx, soundtrack, index, ms)
+      })()
+    }
+
+    playFrameNotes(activeIndexRef.current)
+
     const id = window.setInterval(() => {
-      setActiveIndex((i) => (i + 1) % frameCount)
+      setActiveIndex((i) => {
+        const next = (i + 1) % frameCount
+        playFrameNotes(next)
+        return next
+      })
     }, ms)
     return () => window.clearInterval(id)
-  }, [playing, frameCount, data.fps])
+  }, [playing, frameCount, data.fps, data.soundtrack])
 
   const updateActiveStrokes = useCallback(
     (strokes: DrawingStroke[]) => {
@@ -241,34 +273,66 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
 
   const addFrame = useCallback(() => {
     if (disabled || playing || frameCount >= MAX_DRAWING_FRAMES) return
+    const insertAt = safeIndex + 1
     const frames = [
-      ...data.frames.slice(0, safeIndex + 1),
+      ...data.frames.slice(0, insertAt),
       emptyFrame(),
-      ...data.frames.slice(safeIndex + 1),
+      ...data.frames.slice(insertAt),
     ]
-    onChange({ ...data, frames })
-    setActiveIndex(safeIndex + 1)
+    onChange({
+      ...data,
+      frames,
+      soundtrack: insertSoundtrackColumn(
+        data.soundtrack ?? emptyScore(frameCount),
+        insertAt
+      ),
+    })
+    setActiveIndex(insertAt)
   }, [data, disabled, frameCount, onChange, playing, safeIndex])
 
   const duplicateFrame = useCallback(() => {
     if (disabled || playing || frameCount >= MAX_DRAWING_FRAMES) return
+    const insertAt = safeIndex + 1
     const source = data.frames[safeIndex] ?? emptyFrame()
     const frames = [
-      ...data.frames.slice(0, safeIndex + 1),
+      ...data.frames.slice(0, insertAt),
       cloneFrame(source),
-      ...data.frames.slice(safeIndex + 1),
+      ...data.frames.slice(insertAt),
     ]
-    onChange({ ...data, frames })
-    setActiveIndex(safeIndex + 1)
+    const soundtrack = insertSoundtrackColumn(
+      data.soundtrack ?? emptyScore(frameCount),
+      insertAt
+    )
+    // Copy hits from source column into the new column
+    const duplicated = copySoundtrackColumn(soundtrack, safeIndex, insertAt)
+    onChange({ ...data, frames, soundtrack: duplicated })
+    setActiveIndex(insertAt)
   }, [data, disabled, frameCount, onChange, playing, safeIndex])
 
   const deleteFrame = useCallback(() => {
     if (disabled || playing || frameCount <= 1) return
     const frames = data.frames.filter((_, i) => i !== safeIndex)
-    onChange({ ...data, frames })
+    onChange({
+      ...data,
+      frames,
+      soundtrack: removeSoundtrackColumn(
+        data.soundtrack ?? emptyScore(frameCount),
+        safeIndex
+      ),
+    })
     setActiveIndex(Math.min(safeIndex, frames.length - 1))
   }, [data, disabled, frameCount, onChange, playing, safeIndex])
 
+  const setSoundtrack = useCallback(
+    (soundtrack: MusicScore) => {
+      if (disabled || playing) return
+      onChange({
+        ...data,
+        soundtrack: resizeSoundtrack(soundtrack, data.frames.length),
+      })
+    },
+    [data, disabled, onChange, playing]
+  )
   const setFps = useCallback(
     (fps: number) => {
       if (disabled) return
@@ -415,25 +479,38 @@ export default function DrawingCanvas({ data, onChange, disabled = false }: Prop
         onConfirm={confirmClearFrameDrawing}
       />
 
-      <div
-        ref={containerRef}
-        className="flex min-h-0 flex-1 items-center justify-center"
-      >
-        <div className="rounded-box border border-base-300 bg-white p-1 dark:bg-white">
-          <canvas
-            ref={canvasRef}
-            width={DRAWING_WIDTH}
-            height={DRAWING_HEIGHT}
-            className={[
-              "block touch-none",
-              drawDisabled ? "cursor-default" : "cursor-crosshair",
-            ].join(" ")}
-            style={{ width: displaySize, height: displaySize }}
-            onPointerDown={drawDisabled ? undefined : onPointerDown}
-            onPointerMove={drawDisabled ? undefined : onPointerMove}
-            onPointerUp={drawDisabled ? undefined : onPointerUp}
-            onPointerLeave={drawDisabled ? undefined : onPointerUp}
-            onPointerCancel={drawDisabled ? undefined : onPointerUp}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
+        <div
+          ref={containerRef}
+          className="flex min-h-0 min-w-0 flex-1 items-center justify-center"
+        >
+          <div className="rounded-box border border-base-300 bg-white p-1 dark:bg-white">
+            <canvas
+              ref={canvasRef}
+              width={DRAWING_WIDTH}
+              height={DRAWING_HEIGHT}
+              className={[
+                "block touch-none",
+                drawDisabled ? "cursor-default" : "cursor-crosshair",
+              ].join(" ")}
+              style={{ width: displaySize, height: displaySize }}
+              onPointerDown={drawDisabled ? undefined : onPointerDown}
+              onPointerMove={drawDisabled ? undefined : onPointerMove}
+              onPointerUp={drawDisabled ? undefined : onPointerUp}
+              onPointerLeave={drawDisabled ? undefined : onPointerUp}
+              onPointerCancel={drawDisabled ? undefined : onPointerUp}
+            />
+          </div>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col max-h-56 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 sm:max-h-none sm:overflow-y-auto sm:self-stretch">
+          <MusicSequencer
+            score={resizeSoundtrack(data.soundtrack ?? emptyScore(frameCount), frameCount)}
+            onChange={setSoundtrack}
+            disabled={disabled || playing}
+            compact
+            activeStep={playing ? safeIndex : -1}
+            stepHeaderLabel={(step) => `F${step + 1}`}
           />
         </div>
       </div>

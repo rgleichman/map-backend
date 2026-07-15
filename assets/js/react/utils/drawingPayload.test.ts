@@ -4,11 +4,15 @@ import {
   MAX_DRAWING_FRAMES,
   drawingHasContent,
   emptyDrawing,
+  insertSoundtrackColumn,
   onionNeighborIndexes,
   parseDrawing,
+  removeSoundtrackColumn,
+  resizeSoundtrack,
   serializeDrawing,
   strokeCount,
 } from "./drawingPayload"
+import { emptyScore } from "./musicScore"
 
 describe("drawingPayload", () => {
   it("parses empty payload", () => {
@@ -106,5 +110,58 @@ describe("drawingPayload", () => {
     expect(onionNeighborIndexes(3, 2)).toEqual({ prev: 1, next: null })
     expect(onionNeighborIndexes(3, -1)).toEqual({ prev: null, next: 1 })
     expect(onionNeighborIndexes(3, 99)).toEqual({ prev: 1, next: null })
+  })
+
+  it("round-trips soundtrack aligned to frames", () => {
+    const soundtrack = emptyScore(2)
+    soundtrack.rows[0].hits[0] = true
+    soundtrack.rows[2].hits[1] = true
+    const data = {
+      ...emptyDrawing(),
+      frames: [emptyDrawing().frames[0], emptyDrawing().frames[0]],
+      soundtrack,
+    }
+    const parsed = parseDrawing(serializeDrawing(data))
+    expect(parsed.soundtrack.steps).toBe(2)
+    expect(parsed.soundtrack.rows[0].hits[0]).toBe(true)
+    expect(parsed.soundtrack.rows[2].hits[1]).toBe(true)
+  })
+
+  it("synthesizes empty soundtrack when missing on parse", () => {
+    const payload = JSON.stringify({
+      version: 2,
+      width: 256,
+      height: 256,
+      fps: 4,
+      frames: [{ strokes: [] }, { strokes: [] }, { strokes: [] }],
+    })
+    const parsed = parseDrawing(payload)
+    expect(parsed.soundtrack.steps).toBe(3)
+    expect(parsed.soundtrack.rows.every((row) => row.hits.every((h) => !h))).toBe(true)
+  })
+
+  it("resizes soundtrack columns to match frame count", () => {
+    const score = emptyScore(2)
+    score.rows[0].hits[0] = true
+    score.rows[0].hits[1] = true
+    const grown = resizeSoundtrack(score, 4)
+    expect(grown.steps).toBe(4)
+    expect(grown.rows[0].hits).toEqual([true, true, false, false])
+    const shrunk = resizeSoundtrack(score, 1)
+    expect(shrunk.steps).toBe(1)
+    expect(shrunk.rows[0].hits).toEqual([true])
+  })
+
+  it("inserts and removes soundtrack columns", () => {
+    const score = emptyScore(2)
+    score.rows[0].hits[0] = true
+    score.rows[0].hits[1] = true
+    const inserted = insertSoundtrackColumn(score, 1)
+    expect(inserted.steps).toBe(3)
+    expect(inserted.rows[0].hits).toEqual([true, false, true])
+    const removed = removeSoundtrackColumn(inserted, 1)
+    expect(removed.steps).toBe(2)
+    expect(removed.rows[0].hits).toEqual([true, true])
+    expect(removeSoundtrackColumn(emptyScore(1), 0).steps).toBe(1)
   })
 })

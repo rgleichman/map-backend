@@ -728,10 +728,11 @@ export default function MapCanvas({
 
     const handlePopupClick = (e: Event) => {
       const target = e.target as HTMLElement
-      if (target.matches('[data-pin-action]')) {
+      const actionEl = target.closest<HTMLElement>('[data-pin-action]')
+      if (actionEl) {
         e.stopPropagation()
-        const action = target.dataset.pinAction
-        const pinId = parseInt(target.dataset.pinId || '0', 10)
+        const action = actionEl.dataset.pinAction
+        const pinId = parseInt(actionEl.dataset.pinId || '0', 10)
         if (action === 'edit') {
           onEditRef.current(pinId)
         } else if (action === 'delete') {
@@ -740,15 +741,17 @@ export default function MapCanvas({
           const pin = pinsByIdRef.current.get(pinId)
           const url = pin ? pinMapUrl(pin) : `${window.location.origin}/map?pin=${pinId}`
           navigator.clipboard.writeText(url).then(() => {
-            const btn = target
-            const originalText = btn.textContent
-            btn.textContent = 'Copied!'
-            setTimeout(() => { btn.textContent = originalText }, 1500)
+            const originalText = actionEl.textContent
+            actionEl.textContent = 'Copied!'
+            setTimeout(() => { actionEl.textContent = originalText }, 1500)
           })
         }
-      } else if (target.matches('[data-tag]')) {
+        return
+      }
+      const tagEl = target.closest<HTMLElement>('[data-tag]')
+      if (tagEl) {
         e.stopPropagation()
-        const tag = target.dataset.tag
+        const tag = tagEl.dataset.tag
         if (tag) {
           const communityFromTag = communityUrlFromTag(tag)
           if (communityFromTag) {

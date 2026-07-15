@@ -68,6 +68,39 @@ export function playNotePreview(ctx: AudioContext, note: string, durationMs = 18
   }, durationMs + 30)
 }
 
+/** Play all active notes in one soundtrack column (e.g. one drawing frame). */
+export function playScoreStep(
+  ctx: AudioContext,
+  score: MusicScore,
+  stepIndex: number,
+  durationMs = 180
+): void {
+  if (stepIndex < 0 || stepIndex >= score.steps) return
+  const durationSec = Math.max(0.08, Math.min(0.8, durationMs / 1000))
+  const start = ctx.currentTime + 0.02
+  for (const row of score.rows) {
+    if (!row.hits[stepIndex]) continue
+    const hz = noteToHz(row.note)
+    if (!hz) continue
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    gain.connect(ctx.destination)
+    const osc = playToneAt(ctx, hz, start, durationSec, gain)
+    window.setTimeout(() => {
+      try {
+        osc.disconnect()
+      } catch {
+        // ignore
+      }
+      try {
+        gain.disconnect()
+      } catch {
+        // ignore
+      }
+    }, durationMs + 40)
+  }
+}
+
 function scheduleSequential(
   ctx: AudioContext,
   tempo: number,

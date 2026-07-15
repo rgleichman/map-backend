@@ -1,3 +1,12 @@
+import {
+  DEFAULT_NOTES,
+  DEFAULT_TEMPO,
+  MUSIC_SCORE_VERSION,
+  cloneScore,
+  emptyScore,
+  type MusicScore,
+} from "./musicScore"
+
 export const DRAWING_WIDTH = 256
 export const DRAWING_HEIGHT = 256
 
@@ -46,13 +55,15 @@ export type DrawingFrame = {
   strokes: DrawingStroke[]
 }
 
-/** In-memory drawing is always normalized to v2 with frames. */
+/** In-memory drawing is always normalized to v2 with frames + soundtrack. */
 export type DrawingData = {
   version: 2
   width: number
   height: number
   fps: number
   frames: DrawingFrame[]
+  /** Sequencer grid; `steps` always equals `frames.length` after normalize. */
+  soundtrack: MusicScore
 }
 
 export function emptyFrame(): DrawingFrame {
@@ -66,7 +77,80 @@ export function emptyDrawing(): DrawingData {
     height: DRAWING_HEIGHT,
     fps: DEFAULT_DRAWING_FPS,
     frames: [emptyFrame()],
+    soundtrack: emptyScore(1),
   }
+}
+
+/**
+ * Resize soundtrack columns to match frame count (1–MAX_DRAWING_FRAMES).
+ * Preserves existing hits by index; pads or truncates as needed.
+ */
+export function resizeSoundtrack(score: MusicScore, frameCount: number): MusicScore {
+  const steps = Math.max(1, Math.min(MAX_DRAWING_FRAMES, Math.round(frameCount)))
+  const tempo =
+    typeof score.tempo === "number" && score.tempo > 0 ? Math.round(score.tempo) : DEFAULT_TEMPO
+  const next = emptyScore(steps, DEFAULT_NOTES, tempo)
+  const rowByNote = new Map(next.rows.map((row, idx) => [row.note.toUpperCase(), idx]))
+  for (const row of score.rows) {
+    const idx = rowByNote.get(row.note.toUpperCase())
+    if (idx == null) continue
+    for (let i = 0; i < Math.min(steps, row.hits.length); i++) {
+      next.rows[idx].hits[i] = row.hits[i] === true
+    }
+  }
+  return next
+}
+
+/** Insert an empty hits column at `at` (0-based), then clamp to max frames. */
+export function insertSoundtrackColumn(score: MusicScore, at: number): MusicScore {
+  const next = cloneScore(score)
+  const index = Math.max(0, Math.min(next.steps, at))
+  for (const row of next.rows) {
+    row.hits.splice(index, 0, false)
+  }
+  next.steps = next.rows[0]?.hits.length ?? next.steps + 1
+  return resizeSoundtrack(next, Math.min(MAX_DRAWING_FRAMES, next.steps))
+}
+
+/** Remove hits column at `at`; keeps at least one column. */
+export function removeSoundtrackColumn(score: MusicScore, at: number): MusicScore {
+  if (score.steps <= 1) return resizeSoundtrack(score, 1)
+  const next = cloneScore(score)
+  const index = Math.max(0, Math.min(next.steps - 1, at))
+  for (const row of next.rows) {
+    row.hits.splice(index, 1)
+  }
+  next.steps = next.rows[0]?.hits.length ?? Math.max(1, next.steps - 1)
+  return resizeSoundtrack(next, next.steps)
+}
+
+function normalizeSoundtrack(raw: unknown, frameCount: number): MusicScore {
+  const steps = Math.max(1, Math.min(MAX_DRAWING_FRAMES, frameCount))
+  if (raw == null || typeof raw !== "object") return emptyScore(steps)
+
+  const obj = raw as Record<string, unknown>
+  const tempo =
+    typeof obj.tempo === "number" && obj.tempo > 0 ? Math.round(obj.tempo) : DEFAULT_TEMPO
+  const base = emptyScore(steps, DEFAULT_NOTES, tempo)
+
+  if (obj.version !== MUSIC_SCORE_VERSION || !Array.isArray(obj.rows)) {
+    return base
+  }
+
+  const rowByNote = new Map(base.rows.map((row, idx) => [row.note.toUpperCase(), idx]))
+  for (const entry of obj.rows) {
+    if (entry == null || typeof entry !== "object") continue
+    const rec = entry as Record<string, unknown>
+    const note = typeof rec.note === "string" ? rec.note.trim() : ""
+    if (!note) continue
+    const idx = rowByNote.get(note.toUpperCase())
+    if (idx == null) continue
+    const hits = Array.isArray(rec.hits) ? rec.hits : []
+    for (let i = 0; i < Math.min(steps, hits.length); i++) {
+      base.rows[idx].hits[i] = hits[i] === true
+    }
+  }
+  return base
 }
 
 export function frameHasContent(frame: DrawingFrame | undefined): boolean {
@@ -126,6 +210,7 @@ export function parseDrawing(payload: string): DrawingData {
       fps?: number
       strokes?: unknown
       frames?: unknown
+      soundtrack?: unknown
     }
     const width = typeof parsed.width === "number" ? parsed.width : DRAWING_WIDTH
     const height = typeof parsed.height === "number" ? parsed.height : DRAWING_HEIGHT
@@ -134,22 +219,26 @@ export function parseDrawing(payload: string): DrawingData {
     )
 
     if (parsed.version === 1 && Array.isArray(parsed.strokes)) {
+      const frames = [{ strokes: normalizeStrokes(parsed.strokes) }]
       return {
         version: 2,
         width,
         height,
         fps: DEFAULT_DRAWING_FPS,
-        frames: [{ strokes: normalizeStrokes(parsed.strokes) }],
+        frames,
+        soundtrack: normalizeSoundtrack(undefined, frames.length),
       }
     }
 
     if (parsed.version === 2 && Array.isArray(parsed.frames)) {
+      const frames = normalizeFrames(parsed.frames)
       return {
         version: 2,
         width,
         height,
         fps,
-        frames: normalizeFrames(parsed.frames),
+        frames,
+        soundtrack: normalizeSoundtrack(parsed.soundtrack, frames.length),
       }
     }
 
@@ -160,14 +249,28 @@ export function parseDrawing(payload: string): DrawingData {
 }
 
 export function serializeDrawing(data: DrawingData): string {
+  const frames = data.frames.slice(0, MAX_DRAWING_FRAMES)
+  const soundtrack = resizeSoundtrack(
+    data.soundtrack ?? emptyScore(frames.length),
+    frames.length
+  )
   return JSON.stringify({
     version: 2,
     width: data.width,
     height: data.height,
     fps: clampDrawingFps(data.fps),
-    frames: data.frames.slice(0, MAX_DRAWING_FRAMES).map((frame) => ({
+    frames: frames.map((frame) => ({
       strokes: frame.strokes,
     })),
+    soundtrack: {
+      version: MUSIC_SCORE_VERSION,
+      tempo: soundtrack.tempo,
+      steps: soundtrack.steps,
+      rows: soundtrack.rows.map((row) => ({
+        note: row.note,
+        hits: row.hits,
+      })),
+    },
   })
 }
 
