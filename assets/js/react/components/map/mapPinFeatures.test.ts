@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 import type { CustomPinType, Pin } from "../../types"
-import { CLEARED_FILTER, DEFAULT_FILTER, createPinFilterMatcher, buildMapFilterSyncKey } from "./filters"
+import {
+  CLEARED_FILTER,
+  DEFAULT_FILTER,
+  TIME_FILTER_NOW,
+  createPinFilterMatcher,
+  buildMapFilterSyncKey,
+} from "./filters"
 import {
   buildPinFeatureSets,
   buildPinGeoJsonSyncKey,
@@ -101,8 +107,9 @@ describe("buildPinGeoJsonSyncKey", () => {
   })
 
   it("changes when filter changes", () => {
+    const activeKey = buildMapFilterSyncKey({ ...DEFAULT_FILTER, time: TIME_FILTER_NOW })
     const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, catalog)
-    const key2 = buildPinGeoJsonSyncKey([pin], defaultKey, catalog)
+    const key2 = buildPinGeoJsonSyncKey([pin], activeKey, catalog)
     expect(key1).not.toBe(key2)
   })
 

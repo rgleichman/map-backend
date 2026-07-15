@@ -28,10 +28,10 @@ export type FilterState = {
   heartedOnly: boolean
 }
 
-/** Map opens with this (open now selected). */
+/** Map opens with no filters active. */
 export const DEFAULT_FILTER: FilterState = {
   tag: null,
-  time: TIME_FILTER_NOW,
+  time: null,
   pinType: null,
   query: "",
   heartedOnly: false,
