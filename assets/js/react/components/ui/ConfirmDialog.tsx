@@ -10,6 +10,9 @@ type Props = {
   confirmLabel?: string
   cancelLabel?: string
   confirming?: boolean
+  /** `danger` for destructive actions (default); `warning` for non-destructive confirms. */
+  tone?: "danger" | "warning"
+  confirmingLabel?: string
   onConfirm: () => void
   onCancel: () => void
 }
@@ -21,11 +24,15 @@ export default function ConfirmDialog({
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
   confirming = false,
+  tone = "danger",
+  confirmingLabel,
   onConfirm,
   onCancel,
 }: Props) {
   const titleId = useId()
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const isDanger = tone === "danger"
+  const busyLabel = confirmingLabel ?? (isDanger ? "Deleting…" : "Working…")
 
   useEffect(() => {
     if (!open) return
@@ -52,7 +59,13 @@ export default function ConfirmDialog({
     >
       <div className="bg-base-100 text-base-content border border-base-300 shadow-xl w-full sm:max-w-md sm:rounded-xl rounded-t-lg p-6 flex flex-col overscroll-contain">
         <div className="flex items-start justify-between gap-3 mb-3">
-          <h2 id={titleId} className="text-lg font-semibold text-error">
+          <h2
+            id={titleId}
+            className={[
+              "text-lg font-semibold",
+              isDanger ? "text-error" : "text-base-content",
+            ].join(" ")}
+          >
             {title}
           </h2>
           <CloseButton aria-label="Close confirmation" onClick={onCancel} disabled={confirming} />
@@ -69,14 +82,14 @@ export default function ConfirmDialog({
             {cancelLabel}
           </Button>
           <Button
-            variant="danger"
+            variant={isDanger ? "danger" : "primary"}
             size="sm"
             onClick={onConfirm}
             disabled={confirming}
             className="inline-flex items-center gap-1.5"
           >
-            <TrashIcon className="size-4" />
-            {confirming ? "Deleting…" : confirmLabel}
+            {isDanger ? <TrashIcon className="size-4" /> : null}
+            {confirming ? busyLabel : confirmLabel}
           </Button>
         </div>
       </div>

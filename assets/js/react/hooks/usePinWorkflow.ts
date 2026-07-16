@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import * as api from "../api/client"
 import { deriveWorkflowUI } from "../pinWorkflow/deriveWorkflowUI"
 import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/reducer"
-import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
+import {
+  validateAndBuildSavePayload,
+  type SavePinAddPayload,
+  type SavePinEditPayload,
+} from "../pinWorkflow/savePin"
 import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
+import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
 import type { CustomPinType, Pin, PinType, SubMap } from "../types"
 import {
   isEscapeCloseableDesktopMode,
@@ -47,6 +52,7 @@ export function usePinWorkflow({
   const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const [saving, setSaving] = useState(false)
   const [pendingDeletePinId, setPendingDeletePinId] = useState<number | null>(null)
+  const [pendingNearLocationSave, setPendingNearLocationSave] = useState<SavePinAddPayload | null>(null)
 
   const modalRef = useRef(modal)
   modalRef.current = modal
@@ -170,6 +176,49 @@ export function usePinWorkflow({
     dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
   }, [modal])
 
+  const persistSaveResult = useCallback(
+    async (result: SavePinAddPayload | SavePinEditPayload) => {
+      setSaving(true)
+      try {
+        if (result.mode === "add") {
+          const { data: pinData } = communityUrl
+            ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
+            : await api.createPin(csrfToken, result.payload)
+          const pinWithBlobs =
+            Object.keys(result.blobDrafts).length > 0
+              ? await uploadBlobDrafts(csrfToken, pinData, result.blobDrafts)
+              : pinData
+          updateOrAddPin(pinWithBlobs)
+          dispatch({ type: "after_add_saved" })
+          setPendingNearLocationSave(null)
+        } else {
+          const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
+          const pinWithBlobs =
+            Object.keys(result.blobDrafts).length > 0
+              ? await uploadBlobDrafts(csrfToken, data, result.blobDrafts)
+              : data
+          updateOrAddPin(pinWithBlobs)
+          dispatch({ type: "after_edit_saved", pin: pinWithBlobs })
+        }
+      } catch (err) {
+        const raw = err instanceof Error ? err.message : ""
+        const linkedPinMessage = parseApiErrorMessage(raw, "linked_pin_ids")
+        const message =
+          linkedPinMessage ??
+          parseApiErrorMessage(raw) ??
+          (raw || "Save failed. Please try again.")
+        if (linkedPinMessage) {
+          dispatch({ type: "set_form_error", formError: message })
+        } else {
+          setApiError(message)
+        }
+      } finally {
+        setSaving(false)
+      }
+    },
+    [communityUrl, csrfToken, setApiError, updateOrAddPin],
+  )
+
   const onSave = useCallback(async () => {
     if (!modal || (modal.mode !== "add" && modal.mode !== "edit")) return
     dispatch({ type: "clear_time_error" })
@@ -183,43 +232,25 @@ export function usePinWorkflow({
       return
     }
 
-    setSaving(true)
-    try {
-      if (result.mode === "add") {
-        const { data: pinData } = communityUrl
-          ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
-          : await api.createPin(csrfToken, result.payload)
-        const pinWithBlobs =
-          Object.keys(result.blobDrafts).length > 0
-            ? await uploadBlobDrafts(csrfToken, pinData, result.blobDrafts)
-            : pinData
-        updateOrAddPin(pinWithBlobs)
-        dispatch({ type: "after_add_saved" })
-      } else {
-        const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
-        const pinWithBlobs =
-          Object.keys(result.blobDrafts).length > 0
-            ? await uploadBlobDrafts(csrfToken, data, result.blobDrafts)
-            : data
-        updateOrAddPin(pinWithBlobs)
-        dispatch({ type: "after_edit_saved", pin: pinWithBlobs })
+    if (result.mode === "add") {
+      const near = await isPinNearDeviceLocation(result.payload.latitude, result.payload.longitude)
+      if (near) {
+        setPendingNearLocationSave(result)
+        return
       }
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : ""
-      const linkedPinMessage = parseApiErrorMessage(raw, "linked_pin_ids")
-      const message =
-        linkedPinMessage ??
-        parseApiErrorMessage(raw) ??
-        (raw || "Save failed. Please try again.")
-      if (linkedPinMessage) {
-        dispatch({ type: "set_form_error", formError: message })
-      } else {
-        setApiError(message)
-      }
-    } finally {
-      setSaving(false)
     }
-  }, [modal, draft, showPromoteToWorld, catalog, csrfToken, updateOrAddPin, communityUrl, setApiError])
+
+    await persistSaveResult(result)
+  }, [modal, draft, showPromoteToWorld, catalog, setApiError, persistSaveResult])
+
+  const cancelNearLocationSave = useCallback(() => {
+    setPendingNearLocationSave(null)
+  }, [])
+
+  const confirmNearLocationSave = useCallback(async () => {
+    if (pendingNearLocationSave == null) return
+    await persistSaveResult(pendingNearLocationSave)
+  }, [pendingNearLocationSave, persistSaveResult])
 
   const canDelete = useMemo(() => modal && modal.mode === "edit" && modal.pin.is_owner, [modal]) as boolean | undefined
 
@@ -269,6 +300,9 @@ export function usePinWorkflow({
     pendingDeletePinId,
     cancelPendingDelete,
     confirmPendingDelete,
+    pendingNearLocationSave,
+    cancelNearLocationSave,
+    confirmNearLocationSave,
     onStartPickOnMap,
     onPlacementMapClick,
     onSelectPinType,

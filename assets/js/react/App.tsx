@@ -118,6 +118,9 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     pendingDeletePinId,
     cancelPendingDelete,
     confirmPendingDelete,
+    pendingNearLocationSave,
+    cancelNearLocationSave,
+    confirmNearLocationSave,
     saving,
     pendingLocation,
     pendingPinType,
@@ -328,6 +331,18 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
             confirming={saving && pendingDeletePinId != null}
             onCancel={cancelPendingDelete}
             onConfirm={() => void confirmPendingDelete()}
+          />
+
+          <ConfirmDialog
+            open={pendingNearLocationSave != null}
+            tone="warning"
+            title="This pin is near your location"
+            body="Posting here may reveal where you are right now. Move the pin first, or post anyway."
+            confirmLabel="Post anyway"
+            confirmingLabel="Adding…"
+            confirming={saving && pendingNearLocationSave != null}
+            onCancel={cancelNearLocationSave}
+            onConfirm={() => void confirmNearLocationSave()}
           />
 
           <Button
