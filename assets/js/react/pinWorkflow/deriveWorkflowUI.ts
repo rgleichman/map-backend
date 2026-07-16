@@ -9,6 +9,7 @@ export type WorkflowUIDerivation = {
   showPlacementOverlay: boolean
   showEditForm: boolean
   showAddForm: boolean
+  showViewDetail: boolean
   pinModalLat: number
   pinModalLng: number
   locationAlreadySetFromPlacement: boolean
@@ -57,6 +58,7 @@ export function deriveWorkflowUI({
   const showPlacementOverlay = placement !== null
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
   const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
+  const showViewDetail = modal?.mode === "view"
 
   const pinModalLat =
     modal?.mode === "add"
@@ -79,6 +81,7 @@ export function deriveWorkflowUI({
     showPlacementOverlay,
     showEditForm,
     showAddForm,
+    showViewDetail,
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,

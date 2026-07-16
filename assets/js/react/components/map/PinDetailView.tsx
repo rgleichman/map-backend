@@ -7,16 +7,17 @@ import { CustomFieldDisplay, PinIdProvider } from "../CustomPinFields"
 import { isCustomFieldEmpty } from "../../utils/customFieldValue"
 import { usePinTypes } from "../../context/PinTypesContext"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
-import { communityUrlFromTag } from "../../utils/pinMapUrl"
+import { communityUrlFromTag, pinMapUrl } from "../../utils/pinMapUrl"
 import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 import PinReportDialog from "./PinReportDialog"
 import PinComments from "./PinComments"
 import PinHeartButton from "./PinHeartButton"
 import type { ToggleHeartResult } from "../../types"
 import Button from "../ui/Button"
+import CloseButton from "../ui/CloseButton"
 import { PencilIcon, TrashIcon } from "../ui/icons"
 
-const popupContentClasses = "text-sm text-base-content"
+const detailContentClasses = "text-sm text-base-content"
 
 type Props = {
   pin: Pin
@@ -28,11 +29,30 @@ type Props = {
   communityUrl?: string
   onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
+  onTagFilter?: (tag: string) => void
+  onEdit?: (pinId: number) => void
+  onDelete?: (pinId: number) => void
+  onClose?: () => void
   hearted?: boolean
   onToggleHeart?: () => Promise<ToggleHeartResult>
 }
 
-export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, communityUrl, onSelectCommunity, onNavigateToPin, hearted = false, onToggleHeart }: Props) {
+export default function PinDetailView({
+  pin,
+  pins,
+  csrfToken,
+  userId,
+  userMuted,
+  communityUrl,
+  onSelectCommunity,
+  onNavigateToPin,
+  onTagFilter,
+  onEdit,
+  onDelete,
+  onClose,
+  hearted = false,
+  onToggleHeart,
+}: Props) {
   const { catalog } = usePinTypes()
   const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
   const customFields = schemaFields(customType)
@@ -44,6 +64,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
   const [reportOpen, setReportOpen] = useState(false)
   const [doneMessage, setDoneMessage] = useState<string | null>(null)
   const [backlinks, setBacklinks] = useState<PinLink[] | null>(null)
+  const [copyLabel, setCopyLabel] = useState("Copy link")
 
   useEffect(() => {
     let cancelled = false
@@ -81,15 +102,37 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
     pin
   )
 
+  const handleCopyLink = () => {
+    const url = pinMapUrl(pin)
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopyLabel("Copied!")
+      window.setTimeout(() => setCopyLabel("Copy link"), 1500)
+    })
+  }
+
+  const handleTagClick = (tag: string) => {
+    const communityFromTag = communityUrlFromTag(tag)
+    if (communityFromTag) {
+      onSelectCommunity?.(communityFromTag)
+      return
+    }
+    onTagFilter?.(tag)
+  }
+
   return (
     <div>
-      <h2 className="text-xl font-bold">{pin.title}</h2>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="text-xl font-bold flex-1 min-w-0">{pin.title}</h2>
+        {onClose ? (
+          <CloseButton aria-label="Close pin details" onClick={onClose} className="shrink-0" />
+        ) : null}
+      </div>
       {pin.description ? (
         <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
       ) : null}
       {customFieldsWithValues.length > 0 ? (
         <PinIdProvider pinId={pin.id}>
-          <dl className={`${popupContentClasses} my-2 space-y-2`}>
+          <dl className={`${detailContentClasses} my-2 space-y-2`}>
             {customFieldsWithValues.map((field) => (
               <div key={field.key}>
                 <dt className="font-semibold">{field.label}</dt>
@@ -102,7 +145,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         </PinIdProvider>
       ) : null}
       {(pin.start_time || pin.end_time) && (
-        <div className={`${popupContentClasses} my-2`}>
+        <div className={`${detailContentClasses} my-2`}>
           <span>
             <b>Start:</b> {formatDateTime(pin.start_time)}
           </span>
@@ -113,14 +156,14 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         </div>
       )}
       {pin.schedule_rrule && (
-        <div className={`${popupContentClasses} my-2`}>
+        <div className={`${detailContentClasses} my-2`}>
           <span>
             <b>Schedule:</b> {rruleToHumanReadable(pin.schedule_rrule)}
           </span>
         </div>
       )}
       {pin.schedule_timezone && (
-        <div className={`${popupContentClasses} my-2`}>
+        <div className={`${detailContentClasses} my-2`}>
           <span>Timezone: {pin.schedule_timezone}</span>
         </div>
       )}
@@ -137,12 +180,12 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
       ) : null}
       {displayTags.length > 0 && (
         <div className="flex flex-wrap gap-x-1 gap-y-1 items-center my-2">
-          <span className={popupContentClasses}>Tags:</span>
+          <span className={detailContentClasses}>Tags:</span>
           {displayTags.map((tag) => (
             <button
               key={tag}
               type="button"
-              data-tag={tag}
+              onClick={() => handleTagClick(tag)}
               className="rounded px-2 py-0.5 text-[0.95em] border-none cursor-pointer bg-base-200 text-base-content hover:opacity-90"
             >
               {tag}
@@ -152,13 +195,13 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
       )}
       {relatedLinks.length > 0 ? (
         <div className="my-2">
-          <p className={`${popupContentClasses} font-semibold mb-1`}>Related pins</p>
+          <p className={`${detailContentClasses} font-semibold mb-1`}>Related pins</p>
           <PinLinkChips links={relatedLinks} pins={pins} onNavigate={onNavigateToPin} />
         </div>
       ) : null}
       {backlinks && backlinks.length > 0 ? (
         <div className="my-2">
-          <p className={`${popupContentClasses} font-semibold mb-1`}>Linked from</p>
+          <p className={`${detailContentClasses} font-semibold mb-1`}>Linked from</p>
           <PinLinkChips links={backlinks} pins={pins} onNavigate={onNavigateToPin} showSourceHint={false} />
         </div>
       ) : null}
@@ -173,8 +216,8 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         >
           Get directions
         </Button>
-        <Button type="button" data-pin-action="copy-link" data-pin-id={pin.id} variant="ghost" size="sm">
-          Copy link
+        <Button type="button" onClick={handleCopyLink} variant="ghost" size="sm">
+          {copyLabel}
         </Button>
         {onToggleHeart && (
           <PinHeartButton
@@ -200,8 +243,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
         <div className="mt-2 flex gap-2">
           <Button
             type="button"
-            data-pin-action="edit"
-            data-pin-id={pin.id}
+            onClick={() => onEdit?.(pin.id)}
             variant="primary"
             size="sm"
             className="inline-flex items-center gap-1.5"
@@ -211,8 +253,7 @@ export default function PopupContent({ pin, pins, csrfToken, userId, userMuted, 
           </Button>
           <Button
             type="button"
-            data-pin-action="delete"
-            data-pin-id={pin.id}
+            onClick={() => onDelete?.(pin.id)}
             variant="danger"
             size="sm"
             className="inline-flex items-center gap-1.5"

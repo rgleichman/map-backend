@@ -39,14 +39,12 @@ import {
   writeShowConnectionsPreference,
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
-import PopupContent from "./map/PopupContent"
+import PinMiniPopup from "./map/PinMiniPopup"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
 import Button from "./ui/Button"
 import { mapShellOverlayBottomAboveHelp, mapShellTopRightOverlayTop } from "../utils/siteLayout"
-import type { ToggleHeartResult } from "../types"
-import { communityUrlFromTag, pinMapUrl } from "../utils/pinMapUrl"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -73,9 +71,15 @@ type Props = {
   initialPinId?: number | null
   /** Bumped on each in-app pin link navigation so repeat clicks to the same pin still focus it. */
   pinFocusSeq?: number
+  isDesktop?: boolean
+  /** Pin id currently shown in the detail panel (view or edit); drives desktop mini popup. */
+  detailPinId?: number | null
+  /** Hide the mini popup while placing a pin. */
+  hideMiniPopup?: boolean
   onMapClick: (lng: number, lat: number) => void
-  onEdit: (pinId: number) => void
-  onDelete: (pinId: number) => void
+  onOpenPin: (pinId: number) => void
+  /** Dismiss pin detail panel / mini popup (e.g. empty map click). */
+  onDismissPinDetail?: () => void
   /** When set, map shows the actual pin (highlighted) at this location and flies to it. */
   pendingLocation?: { lat: number; lng: number } | null
   /** Pin type for the pending marker (add: selected or default; edit: pin's type). */
@@ -84,19 +88,11 @@ type Props = {
   editingPinId?: number | null
   /** When set, map clicks call this (picking location: desktop = set and done, mobile = move pin). */
   onPlacementMapClick?: (lng: number, lat: number) => void
-  onPopupOpen?: (pinId: number) => void
-  onPopupClose?: () => void
   filter: FilterState
   setFilter: Dispatch<SetStateAction<FilterState>>
-  csrfToken?: string
   userId?: number
-  userMuted?: boolean
-  communityUrl?: string
-  onSelectCommunity?: (communityUrl: string) => void
   onNavigateToPin?: (pinId: number) => void
   heartedPinIds?: ReadonlySet<number>
-  isPinHearted?: (pinId: number) => boolean
-  onTogglePinHeart?: (pinId: number) => Promise<ToggleHeartResult>
   pinHeartsLoading?: boolean
 }
 
@@ -106,26 +102,21 @@ export default function MapCanvas({
   pins,
   initialPinId = null,
   pinFocusSeq = 0,
+  isDesktop = false,
+  detailPinId = null,
+  hideMiniPopup = false,
   onMapClick,
-  onEdit,
-  onDelete,
+  onOpenPin,
+  onDismissPinDetail,
   pendingLocation = null,
   pendingPinType = null,
   editingPinId = null,
   onPlacementMapClick,
-  onPopupOpen,
-  onPopupClose,
   filter,
   setFilter,
-  csrfToken,
   userId,
-  userMuted,
-  communityUrl,
-  onSelectCommunity,
   onNavigateToPin,
   heartedPinIds = new Set(),
-  isPinHearted,
-  onTogglePinHeart,
   pinHeartsLoading = false,
 }: Props) {
   const { catalog, enabledBuiltins } = usePinTypes()
@@ -142,18 +133,14 @@ export default function MapCanvas({
   const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
   onPlacementMapClickRef.current = onPlacementMapClick
-  const onEditRef = useRef(onEdit)
-  onEditRef.current = onEdit
-  const onDeleteRef = useRef(onDelete)
-  onDeleteRef.current = onDelete
-  const onPopupOpenRef = useRef(onPopupOpen)
-  onPopupOpenRef.current = onPopupOpen
-  const onPopupCloseRef = useRef(onPopupClose)
-  onPopupCloseRef.current = onPopupClose
+  const onOpenPinRef = useRef(onOpenPin)
+  onOpenPinRef.current = onOpenPin
   const onMapClickRef = useRef(onMapClick)
   onMapClickRef.current = onMapClick
-  const onSelectCommunityRef = useRef(onSelectCommunity)
-  onSelectCommunityRef.current = onSelectCommunity
+  const detailPinIdRef = useRef(detailPinId)
+  detailPinIdRef.current = detailPinId
+  const onDismissPinDetailRef = useRef(onDismissPinDetail)
+  onDismissPinDetailRef.current = onDismissPinDetail
   const openPopupRef = useRef<Popup | null>(null)
   const openPopupPinIdRef = useRef<number | null>(null)
   const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
@@ -170,7 +157,7 @@ export default function MapCanvas({
   const [focusedBacklinks, setFocusedBacklinks] = useState<PinLink[] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchActive, setSearchActive] = useState(false)
-  const searchActiveRef = useRef(false)
+  const searchActiveRef = useRef(searchActive)
   searchActiveRef.current = searchActive
   const filterPanelOpenRef = useRef<{ open(): void } | null>(null)
   const searchDismissingClickRef = useRef(false)
@@ -194,10 +181,6 @@ export default function MapCanvas({
   onNavigateToPinRef.current = onNavigateToPin
   const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
   const customImageVisualKeysRef = useRef<Map<string, string>>(new Map())
-  const isPinHeartedRef = useRef(isPinHearted)
-  isPinHeartedRef.current = isPinHearted
-  const onTogglePinHeartRef = useRef(onTogglePinHeart)
-  onTogglePinHeartRef.current = onTogglePinHeart
 
   const pinsForMap =
     editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
@@ -253,6 +236,54 @@ export default function MapCanvas({
     popupRootRef.current = null
     root?.unmount()
     popup?.remove()
+  }
+
+  function renderMiniPopupContent(pin: Pin) {
+    return (
+      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
+        <PinMiniPopup pin={pin} />
+      </PinTypesProvider>
+    )
+  }
+
+  function showDesktopMiniPopup(map: MLMap, pin: Pin): void {
+    if (openPopupRef.current) {
+      closeOpenPopup()
+    }
+    const container = document.createElement("div")
+    const root = createRoot(container)
+    root.render(renderMiniPopupContent(pin))
+    const popup = new Popup({
+      closeButton: false,
+      locationOccludedOpacity: 0.7,
+      maxWidth: "20rem",
+      closeOnClick: false,
+    })
+      .setLngLat([pin.longitude, pin.latitude])
+      .setDOMContent(container)
+      .addTo(map)
+    openPopupRef.current = popup
+    openPopupPinIdRef.current = pin.id
+    setOpenPopupPinId(pin.id)
+    popupRootRef.current = root
+    popup.on("close", () => {
+      if (openPopupRef.current === popup) {
+        openPopupRef.current = null
+        openPopupPinIdRef.current = null
+        setOpenPopupPinId(null)
+        setFocusedBacklinks(null)
+        popupRootRef.current = null
+        root.unmount()
+      }
+    })
+  }
+
+  function selectPin(map: MLMap, pin: Pin, opts?: { flyTo?: boolean }): void {
+    focusedPinIdRef.current = pin.id
+    if (opts?.flyTo) {
+      map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
+    }
+    onOpenPinRef.current(pin.id)
   }
 
   function syncPinGeoJsonToMap(): void {
@@ -400,14 +431,17 @@ export default function MapCanvas({
           return
         }
 
-        const hasVisiblePopup = document.querySelector(".maplibregl-popup") !== null
-        if (hasVisiblePopup) return
-
         // Ignore clicks on pins / clusters / link lines (handled by layer click handlers)
         const hit = map.queryRenderedFeatures(e.point, {
           layers: [...PIN_INTERACTIVE_LAYER_IDS, PIN_LINKS_LAYER_ID],
         })
         if (hit.length > 0) return
+
+        // Empty map click dismisses open pin detail (panel + mini popup)
+        if (detailPinIdRef.current != null) {
+          onDismissPinDetailRef.current?.()
+          return
+        }
 
         onMapClickRef.current(e.lngLat.lng, e.lngLat.lat)
       })
@@ -531,7 +565,7 @@ export default function MapCanvas({
             if (pinId == null) return
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) return
-            openPinPopup(map, pin)
+            selectPin(map, pin)
           }
 
           const handleClusterClick = (e: maplibregl.MapLayerMouseEvent) => {
@@ -552,8 +586,7 @@ export default function MapCanvas({
             const pin = pinsByIdRef.current.get(otherPinId)
             if (!pin) return
             onNavigateToPinRef.current?.(otherPinId)
-            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
-            openPinPopup(map, pin)
+            selectPin(map, pin, { flyTo: true })
           }
 
           const setPointerCursor = () => {
@@ -721,120 +754,49 @@ export default function MapCanvas({
     }
   }, [pendingLocation, pendingPinType, mapReady])
 
-  // Set up event delegation for popup buttons
+  // Sync desktop mini popup with detail panel pin.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
-    const handlePopupClick = (e: Event) => {
-      const target = e.target as HTMLElement
-      const actionEl = target.closest<HTMLElement>('[data-pin-action]')
-      if (actionEl) {
-        e.stopPropagation()
-        const action = actionEl.dataset.pinAction
-        const pinId = parseInt(actionEl.dataset.pinId || '0', 10)
-        if (action === 'edit') {
-          onEditRef.current(pinId)
-        } else if (action === 'delete') {
-          onDeleteRef.current(pinId)
-        } else if (action === 'copy-link') {
-          const pin = pinsByIdRef.current.get(pinId)
-          const url = pin ? pinMapUrl(pin) : `${window.location.origin}/map?pin=${pinId}`
-          navigator.clipboard.writeText(url).then(() => {
-            const originalText = actionEl.textContent
-            actionEl.textContent = 'Copied!'
-            setTimeout(() => { actionEl.textContent = originalText }, 1500)
-          })
-        }
-        return
+    const shouldShow = isDesktop && !hideMiniPopup && detailPinId != null
+
+    if (!shouldShow) {
+      if (openPopupRef.current) closeOpenPopup()
+      if (detailPinId != null) {
+        setOpenPopupPinId(detailPinId)
+        openPopupPinIdRef.current = detailPinId
+        focusedPinIdRef.current = detailPinId
+      } else {
+        setOpenPopupPinId(null)
+        openPopupPinIdRef.current = null
+        setFocusedBacklinks(null)
       }
-      const tagEl = target.closest<HTMLElement>('[data-tag]')
-      if (tagEl) {
-        e.stopPropagation()
-        const tag = tagEl.dataset.tag
-        if (tag) {
-          const communityFromTag = communityUrlFromTag(tag)
-          if (communityFromTag) {
-            onSelectCommunityRef.current?.(communityFromTag)
-            return
-          }
-          setFilter((f) => ({ ...f, tag }))
-          filterPanelOpenRef.current?.open()
-          closeOpenPopup()
-          onPopupCloseRef.current?.()
-        }
-      }
+      return
     }
 
-    // Add event listener to map container for delegation
-    map.getContainer().addEventListener('click', handlePopupClick)
-
-    return () => {
-      map.getContainer().removeEventListener('click', handlePopupClick)
+    const pin = pins.find((p) => p.id === detailPinId)
+    if (!pin) {
+      closeOpenPopup()
+      return
     }
-  }, [mapReady])
+
+    focusedPinIdRef.current = pin.id
+
+    if (openPopupRef.current && openPopupPinIdRef.current === pin.id && popupRootRef.current) {
+      popupRootRef.current.render(renderMiniPopupContent(pin))
+      openPopupRef.current.setLngLat([pin.longitude, pin.latitude])
+      setOpenPopupPinId(pin.id)
+      return
+    }
+
+    showDesktopMiniPopup(map, pin)
+  }, [detailPinId, hideMiniPopup, isDesktop, pins, mapReady, catalog, enabledBuiltins])
 
   const savedFilterEmptyOnMap =
     filter.heartedOnly &&
     heartedPinIds.size > 0 &&
     !pinsForMap.some((p) => heartedPinIds.has(p.id))
-
-  function renderPopupContent(pin: Pin) {
-    return (
-      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
-        <PopupContent
-          pin={pin}
-          pins={pins}
-          csrfToken={csrfToken}
-          userId={userId}
-          userMuted={userMuted}
-          communityUrl={communityUrl}
-          onSelectCommunity={onSelectCommunity}
-          onNavigateToPin={onNavigateToPin}
-          hearted={isPinHeartedRef.current?.(pin.id) ?? false}
-          onToggleHeart={
-            onTogglePinHeartRef.current
-              ? () => onTogglePinHeartRef.current!(pin.id)
-              : undefined
-          }
-        />
-      </PinTypesProvider>
-    )
-  }
-
-  function openPinPopup(map: MLMap, pin: Pin): void {
-    if (openPopupRef.current) {
-      closeOpenPopup()
-    }
-    focusedPinIdRef.current = pin.id
-    onPopupOpenRef.current?.(pin.id)
-    const container = document.createElement("div")
-    const root = createRoot(container)
-    root.render(renderPopupContent(pin))
-    const popup = new Popup({
-      closeButton: false,
-      locationOccludedOpacity: 0.7,
-      maxWidth: "80%",
-    })
-      .setLngLat([pin.longitude, pin.latitude])
-      .setDOMContent(container)
-      .addTo(map)
-    openPopupRef.current = popup
-    openPopupPinIdRef.current = pin.id
-    setOpenPopupPinId(pin.id)
-    popupRootRef.current = root
-    popup.on("close", () => {
-      if (openPopupRef.current === popup) {
-        openPopupRef.current = null
-        openPopupPinIdRef.current = null
-        setOpenPopupPinId(null)
-        setFocusedBacklinks(null)
-        popupRootRef.current = null
-        root.unmount()
-        onPopupCloseRef.current?.()
-      }
-    })
-  }
 
   // Register custom marker images (normal + new), then sync GeoJSON so icons exist first.
   useEffect(() => {
@@ -884,19 +846,6 @@ export default function MapCanvas({
     }
   }, [pinGeoJsonSyncKey, catalog, mapReady])
 
-  // Refresh open popup content when pin data or popup props change.
-  useEffect(() => {
-    if (openPopupRef.current == null || openPopupPinIdRef.current == null || popupRootRef.current == null) {
-      return
-    }
-    const pin = pins.find((p) => p.id === openPopupPinIdRef.current)
-    if (pin) {
-      popupRootRef.current.render(renderPopupContent(pin))
-    } else {
-      closeOpenPopup()
-    }
-  }, [pins, mapReady, csrfToken, userId, userMuted, communityUrl, catalog, enabledBuiltins, onSelectCommunity, onNavigateToPin, heartedPinIds, isPinHearted, onTogglePinHeart])
-
   // Deep-link / repeat navigation to a specific pin.
   useEffect(() => {
     const map = mapRef.current
@@ -906,8 +855,8 @@ export default function MapCanvas({
     const pinChanged = initialPinId !== focusedPinIdRef.current
     if (!focusRequested && !pinChanged) return
 
-    // Do not hijack an open popup when pins refresh from remote marker_updated events.
-    if (!focusRequested && openPopupRef.current != null) return
+    // Do not re-open when pins refresh from remote marker_updated events while focused.
+    if (!focusRequested && detailPinId === initialPinId) return
 
     if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
     const pin = pins.find((p) => p.id === initialPinId)
@@ -915,10 +864,8 @@ export default function MapCanvas({
 
     // clear all filters in case the pin is not shown in the initial filters
     setFilter(CLEARED_FILTER)
-    focusedPinIdRef.current = initialPinId
-    map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
-    openPinPopup(map, pin)
-  }, [initialPinId, pinFocusSeq, pins, mapReady, setFilter])
+    selectPin(map, pin, { flyTo: true })
+  }, [initialPinId, pinFocusSeq, pins, mapReady, setFilter, detailPinId])
 
   return (
     <div className="relative w-full h-full">
@@ -987,8 +934,7 @@ export default function MapCanvas({
           onSelectPin={(pin) => {
             const map = mapRef.current
             if (!map) return
-            map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
-            openPinPopup(map, pin)
+            selectPin(map, pin, { flyTo: true })
           }}
           onSelectPlace={(place: PlaceSuggestion) => {
             const map = mapRef.current

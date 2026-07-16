@@ -1,8 +1,10 @@
-import React from "react"
+import React, { useId } from "react"
 import PinComposer from "./PinComposer"
 import PinTypeModal from "./PinTypeModal"
+import PinDetailView from "./map/PinDetailView"
 import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
+import type { ToggleHeartResult } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
 import Button from "./ui/Button"
@@ -10,10 +12,30 @@ import Button from "./ui/Button"
 type Props = {
   isDesktop: boolean
   workflow: PinWorkflow
+  communityUrl?: string
+  userId?: number
+  userMuted?: boolean
+  onSelectCommunity?: (communityUrl: string) => void
+  onNavigateToPin?: (pinId: number) => void
+  onTagFilter?: (tag: string) => void
+  isPinHearted?: (pinId: number) => boolean
+  onTogglePinHeart?: (pinId: number) => Promise<ToggleHeartResult>
 }
 
-export default function PinFlowUI({ isDesktop, workflow }: Props) {
+export default function PinFlowUI({
+  isDesktop,
+  workflow,
+  communityUrl,
+  userId,
+  userMuted,
+  onSelectCommunity,
+  onNavigateToPin,
+  onTagFilter,
+  isPinHearted,
+  onTogglePinHeart,
+}: Props) {
   const { showPromoteToWorld } = useSubMap()
+  const viewHeadingId = useId()
   const {
     csrfToken,
     modal,
@@ -23,11 +45,15 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     onSelectPinType,
     onStartPickOnMap,
     onSave,
+    onEdit,
     onDelete,
+    onCancelEdit,
+    onCloseView,
     canDelete,
     showPlacementOverlay,
     showEditForm,
     showAddForm,
+    showViewDetail,
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,
@@ -68,19 +94,48 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
     dispatch,
     onStartPickOnMap,
     mode: modal.mode,
-    onCancel: () => dispatch({ type: "close_all" }),
+    onCancel: modal.mode === "edit" ? onCancelEdit : () => dispatch({ type: "close_all" }),
     onSave,
     onDelete: modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined,
     canDelete,
     saving,
   } : null
 
+  const viewPin = modal?.mode === "view" ? modal.pin : null
+
+  const detailView = viewPin ? (
+    <PinDetailView
+      pin={viewPin}
+      pins={pins}
+      csrfToken={csrfToken}
+      userId={userId}
+      userMuted={userMuted}
+      communityUrl={communityUrl}
+      onSelectCommunity={onSelectCommunity}
+      onNavigateToPin={onNavigateToPin}
+      onTagFilter={onTagFilter}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onClose={onCloseView}
+      hearted={isPinHearted?.(viewPin.id) ?? false}
+      onToggleHeart={
+        onTogglePinHeart ? () => onTogglePinHeart(viewPin.id) : undefined
+      }
+    />
+  ) : null
+
+  const showDesktopPanel =
+    isDesktop &&
+    !placement &&
+    modal &&
+    (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit" || modal.mode === "view")
+
   return (
     <>
-      {isDesktop && !placement && modal && (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit") && (
+      {showDesktopPanel && (
         <div className={`fixed right-0 w-full max-w-md bg-base-100 border-l border-base-300 shadow-xl z-40 flex flex-col overflow-hidden ${SITE_HEADER_FIXED_PANEL_CLASSES}`}>
           <div className="p-4 overflow-y-auto flex-1">
-            {modal.mode === "select-type" && (
+            {modal?.mode === "select-type" && (
               <PinTypeModal
                 layout="panel"
                 onSelectType={onSelectPinType}
@@ -90,6 +145,7 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
             {composerProps && (
               <PinComposer layout="panel" {...composerProps} />
             )}
+            {detailView}
           </div>
         </div>
       )}
@@ -162,6 +218,24 @@ export default function PinFlowUI({ isDesktop, workflow }: Props) {
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
           {...composerProps}
         />
+      )}
+      {!isDesktop && showViewDetail && detailView && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={viewHeadingId}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCloseView()
+          }}
+        >
+          <div className="bg-base-100 rounded-box shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-4">
+            <span id={viewHeadingId} className="sr-only">
+              Pin details
+            </span>
+            {detailView}
+          </div>
+        </div>
       )}
     </>
   )

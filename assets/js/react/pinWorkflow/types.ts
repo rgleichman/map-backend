@@ -11,6 +11,7 @@ export type Placement =
 
 export type ModalState =
   | null
+  | { mode: "view"; pin: Pin }
   | { mode: "select-type"; lng: number; lat: number }
   | { mode: "add"; lng: number; lat: number; pinType: PinType }
   | { mode: "edit"; pin: Pin }
@@ -52,10 +53,12 @@ export type PinWorkflowAction =
   | { type: "close_all" }
   | { type: "begin_add_at"; lat: number; lng: number }
   | { type: "after_add_saved" }
-  | { type: "after_edit_saved" }
+  | { type: "after_edit_saved"; pin: Pin }
+  | { type: "open_view"; pin: Pin }
   | { type: "open_select_type"; lat: number; lng: number; resetDraft: boolean }
   | { type: "open_add"; lat: number; lng: number; pinType: PinType }
   | { type: "open_edit"; pin: Pin }
+  | { type: "cancel_edit" }
   | { type: "set_placement"; placement: Placement | null }
   | { type: "set_add_location"; lat: number; lng: number }
   | { type: "set_edit_location"; lat: number; lng: number }

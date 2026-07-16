@@ -61,11 +61,19 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
     case "after_edit_saved":
       return {
         ...state,
-        modal: null,
+        modal: { mode: "view", pin: action.pin },
         placement: null,
         timeError: "",
         formError: "",
         draft: { ...state.draft, editLocation: null },
+      }
+    case "open_view":
+      return {
+        ...state,
+        modal: { mode: "view", pin: action.pin },
+        placement: null,
+        timeError: "",
+        formError: "",
       }
     case "open_select_type": {
       return {
@@ -126,6 +134,16 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
           linkedPinIds: explicitLinkedPinIds(action.pin),
           editLocation: null,
         },
+      }
+    case "cancel_edit":
+      if (state.modal?.mode !== "edit") return state
+      return {
+        ...state,
+        modal: { mode: "view", pin: state.modal.pin },
+        placement: null,
+        timeError: "",
+        formError: "",
+        draft: { ...state.draft, editLocation: null },
       }
     case "set_placement":
       return { ...state, placement: action.placement }

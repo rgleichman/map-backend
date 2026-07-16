@@ -52,7 +52,7 @@ export function usePinWorkflow({
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
       const { modal: m, isDesktop: desktop, dispatch: d } = escapePanelRef.current
-      if (desktop && m?.mode === "select-type") {
+      if (desktop && (m?.mode === "select-type" || m?.mode === "view")) {
         e.preventDefault()
         e.stopPropagation()
         d({ type: "close_all" })
@@ -84,6 +84,20 @@ export function usePinWorkflow({
     if (!pin) return
     dispatch({ type: "open_edit", pin })
   }, [pins])
+
+  const onView = useCallback((pinId: number) => {
+    const pin = pins.find((p) => p.id === pinId)
+    if (!pin) return
+    dispatch({ type: "open_view", pin })
+  }, [pins])
+
+  const onCancelEdit = useCallback(() => {
+    dispatch({ type: "cancel_edit" })
+  }, [])
+
+  const onCloseView = useCallback(() => {
+    dispatch({ type: "close_all" })
+  }, [])
 
   const onDelete = useCallback((pinId: number) => {
     const pin = pins.find((p) => p.id === pinId)
@@ -182,7 +196,7 @@ export function usePinWorkflow({
             ? await uploadBlobDrafts(csrfToken, data, result.blobDrafts)
             : data
         updateOrAddPin(pinWithBlobs)
-        dispatch({ type: "after_edit_saved" })
+        dispatch({ type: "after_edit_saved", pin: pinWithBlobs })
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : ""
@@ -214,10 +228,20 @@ export function usePinWorkflow({
     showPlacementOverlay,
     showEditForm,
     showAddForm,
+    showViewDetail,
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,
   } = workflowUI
+
+  // Keep view modal pin in sync when pins list updates (e.g. realtime).
+  useEffect(() => {
+    if (modal?.mode !== "view") return
+    const fresh = pins.find((p) => p.id === modal.pin.id)
+    if (fresh && fresh !== modal.pin) {
+      dispatch({ type: "open_view", pin: fresh })
+    }
+  }, [pins, modal])
 
   return {
     csrfToken,
@@ -229,7 +253,10 @@ export function usePinWorkflow({
     dispatch: dispatch as React.Dispatch<PinWorkflowAction>,
     saving,
     onMapClick,
+    onView,
     onEdit,
+    onCancelEdit,
+    onCloseView,
     onDelete,
     pendingDeletePinId,
     cancelPendingDelete,
@@ -245,6 +272,7 @@ export function usePinWorkflow({
     showPlacementOverlay,
     showEditForm,
     showAddForm,
+    showViewDetail,
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,

@@ -95,6 +95,24 @@ describe("deriveWorkflowUI", () => {
     expect(ui.pendingLocation).toBeNull()
     expect(ui.pendingPinType).toBeNull()
     expect(ui.editingPinId).toBeNull()
+    expect(ui.showViewDetail).toBe(false)
+  })
+
+  it("shows view detail without pending placement marker", () => {
+    const pin = minimalPin()
+    const ui = deriveWorkflowUI({
+      modal: { mode: "view", pin },
+      placement: null,
+      addLocation: null,
+      editLocation: null,
+      pinType: null,
+      isDesktop: true,
+    })
+
+    expect(ui.showViewDetail).toBe(true)
+    expect(ui.pendingLocation).toBeNull()
+    expect(ui.editingPinId).toBeNull()
+    expect(ui.showEditForm).toBe(false)
   })
 
   it("keeps workflow UI stable when only unrelated draft fields change", () => {

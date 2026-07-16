@@ -103,8 +103,29 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     setApiError,
   })
 
-  const { modal, placement, timeError, formError, dispatch, onMapClick, onEdit, onDelete, pendingDeletePinId, cancelPendingDelete, confirmPendingDelete, saving, pendingLocation, pendingPinType, editingPinId, onPlacementMapClick } = workflow
+  const {
+    modal,
+    placement,
+    timeError,
+    formError,
+    dispatch,
+    onMapClick,
+    onView,
+    onEdit,
+    onDelete,
+    pendingDeletePinId,
+    cancelPendingDelete,
+    confirmPendingDelete,
+    saving,
+    pendingLocation,
+    pendingPinType,
+    editingPinId,
+    onPlacementMapClick,
+  } = workflow
   onScopeChangeRef.current = dispatch
+
+  const detailPinId =
+    modal?.mode === "view" || modal?.mode === "edit" ? modal.pin.id : null
 
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
@@ -138,22 +159,37 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     if (modal === null) setApiError(null)
   }, [modal, setApiError])
 
-  const onPopupOpen = useCallback((pinId: number) => {
-    legendCloseRef.current?.close()
-    setInitialPinId(pinId)
+  const syncPinUrl = useCallback((pinId: number | null) => {
     const path = window.location.pathname || "/map"
+    if (pinId == null) {
+      setInitialPinId(null)
+      window.history.replaceState(null, "", path)
+      return
+    }
+    setInitialPinId(pinId)
     window.history.replaceState(null, "", `${path}?pin=${pinId}`)
   }, [setInitialPinId])
 
-  const onPopupClose = useCallback(() => {
-    requestAnimationFrame(() => {
-      if (document.querySelector(".maplibregl-popup") === null) {
-        setInitialPinId(null)
-        const path = window.location.pathname || "/map"
-        window.history.replaceState(null, "", path)
-      }
-    })
-  }, [setInitialPinId])
+  const onOpenPin = useCallback((pinId: number) => {
+    legendCloseRef.current?.close()
+    onView(pinId)
+    syncPinUrl(pinId)
+  }, [onView, syncPinUrl])
+
+  const prevDetailPinIdRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (detailPinId != null) {
+      syncPinUrl(detailPinId)
+    } else if (prevDetailPinIdRef.current != null) {
+      syncPinUrl(null)
+    }
+    prevDetailPinIdRef.current = detailPinId
+  }, [detailPinId, syncPinUrl])
+
+  const handleTagFilter = useCallback((tag: string) => {
+    setFilter((f) => ({ ...f, tag }))
+    dispatch({ type: "close_all" })
+  }, [setFilter, dispatch])
 
   const toggleMapPinTypeFilter = useCallback((pinType: PinType) => {
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
@@ -215,26 +251,23 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   pins={pins}
                   initialPinId={initialPinId}
                   pinFocusSeq={pinFocusSeq}
+                  isDesktop={isDesktop}
+                  detailPinId={detailPinId}
+                  hideMiniPopup={placement != null}
                   onMapClick={onMapClick}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
+                  onOpenPin={onOpenPin}
+                  onDismissPinDetail={
+                    modal?.mode === "view" ? () => dispatch({ type: "close_all" }) : undefined
+                  }
                   pendingLocation={pendingLocation}
                   pendingPinType={pendingPinType}
                   editingPinId={editingPinId}
                   onPlacementMapClick={placement ? onPlacementMapClick : undefined}
-                  onPopupOpen={onPopupOpen}
-                  onPopupClose={onPopupClose}
                   filter={filter}
                   setFilter={setFilter}
-                  csrfToken={csrfToken}
                   userId={userId}
-                  userMuted={userMuted}
-                  communityUrl={communityUrl}
-                  onSelectCommunity={onSelectCommunity}
                   onNavigateToPin={handleNavigateToPin}
                   heartedPinIds={heartedPinIds}
-                  isPinHearted={isHearted}
-                  onTogglePinHeart={handleTogglePinHeart}
                   pinHeartsLoading={pinHeartsLoading}
                 />
                 <PinTypeLegend
@@ -282,7 +315,18 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
             ?
           </Button>
 
-          <PinFlowUI isDesktop={isDesktop} workflow={workflow} />
+          <PinFlowUI
+            isDesktop={isDesktop}
+            workflow={workflow}
+            communityUrl={communityUrl}
+            userId={userId}
+            userMuted={userMuted}
+            onSelectCommunity={onSelectCommunity}
+            onNavigateToPin={handleNavigateToPin}
+            onTagFilter={handleTagFilter}
+            isPinHearted={isHearted}
+            onTogglePinHeart={handleTogglePinHeart}
+          />
 
           {timeError && <ErrorToast message={timeError} prefix="⏰ " />}
           {formError && <ErrorToast message={formError} />}
