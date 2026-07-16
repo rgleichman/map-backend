@@ -10,6 +10,45 @@
 4. Run `./scripts/install-git-hooks` from WSL (not Git for Windows / PowerShell).
 5. Start the server with `mix phx.server` in WSL, then open [`http://localhost:4000`](http://localhost:4000) in your Windows browser (WSL forwards localhost).
 
+## Prerequisites (macOS)
+
+1. **Install Xcode Command Line Tools** (needed for native Elixir deps such as `bcrypt_elixir`):
+   ```bash
+   xcode-select --install
+   ```
+
+2. **Install Elixir 1.20+**: Follow the [official installation guide](https://elixir-lang.org/install.html) (Homebrew, asdf, or mise).
+
+3. **Install PostgreSQL** (Homebrew):
+   ```bash
+   brew install postgresql@16
+   brew services start postgresql@16
+   ```
+   Use another supported major version if you prefer; keep the service running for local development.
+
+4. **Set up PostgreSQL user** to match `config/dev.exs` (`postgres` / `postgres`):
+   ```bash
+   psql postgres
+   ```
+   Then in the PostgreSQL prompt (create the role if it does not exist, or alter it if it does):
+   ```sql
+   CREATE USER postgres WITH PASSWORD 'postgres' SUPERUSER;
+   -- or, if the role already exists:
+   -- ALTER USER postgres WITH PASSWORD 'postgres' SUPERUSER;
+   \q
+   ```
+
+5. **Install Node.js 22** (same major version as CI), then install asset dependencies:
+   ```bash
+   cd assets
+   npm install
+   cd ..
+   ```
+
+6. **File watching**: do **not** install `inotify-tools`. On macOS, Phoenix LiveReload uses FSEvents automatically.
+
+7. **MapTiler API key**: same steps as [Prerequisites (Ubuntu)](#prerequisites-ubuntu) (set `MAPTILER_API_KEY` in `.env`).
+
 ## Prerequisites (Ubuntu)
 
 1. **Install Elixir**: Follow the [official installation guide](https://elixir-lang.org/install.html)
@@ -53,7 +92,7 @@
 
 ## Setup
 
-To start your Phoenix server:
+Once prerequisites are installed (macOS, Linux/Ubuntu, or WSL2), start your Phoenix server:
 
 * Run `mix setup` to install and setup dependencies
 * Run `mix tz_world.install --include-oceans` once to install timezone boundary data (required for pin schedule timezone lookup). Without `GITHUB_TOKEN`, this falls back to the unauthenticated upstream task.
