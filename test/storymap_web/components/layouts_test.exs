@@ -59,5 +59,16 @@ defmodule StorymapWeb.LayoutsTest do
       assert about_html =~ "bg-base-200/80"
       assert about_html =~ "border-base-300"
     end
+
+    test "only footer links capture pointer events so gaps pass through to the map", %{conn: conn} do
+      html = html_response(get(conn, ~p"/"), 200)
+
+      assert html =~ ~s(data-footer-chrome-map=)
+      assert html =~ "pointer-events-auto"
+      # Nav must not capture the whole row (gaps / copyright stay click-through).
+      assert html =~ ~s(aria-label="Site links")
+      refute html =~ ~r/aria-label="Site links"[^>]*pointer-events-auto/
+      assert html =~ ~r/<nav[^>]*class="[^"]*pointer-events-none[^"]*"/
+    end
   end
 end

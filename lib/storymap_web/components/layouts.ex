@@ -456,25 +456,34 @@ defmodule StorymapWeb.Layouts do
       |> assign(:help_active?, assigns.current_path == "/help")
       |> assign(:map_page?, map_full_bleed_path?(assigns.current_path))
 
-    footer_link_map =
+    footer_link_map_visual =
       "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
         "text-white drop-shadow-md shadow-md hover:shadow-lg transition-shadow transition-opacity hover:opacity-80 " <>
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-0 " <>
         "text-shadow-map-ui " <>
         "bg-black/15"
 
-    footer_link_content =
+    footer_link_content_visual =
       "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium " <>
         "text-base-content bg-base-200/80 border border-base-300 " <>
         "hover:bg-base-300 transition-colors " <>
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-0"
 
+    # pointer-events-auto on links only; nav stays pointer-events-none so gaps
+    # and the copyright span pass clicks through to the map.
+    footer_link_map = footer_link_map_visual <> " pointer-events-auto"
+    footer_link_content = footer_link_content_visual <> " pointer-events-auto"
+
     footer_link_base =
       if assigns.map_page?, do: footer_link_map, else: footer_link_content
+
+    footer_link_visual =
+      if assigns.map_page?, do: footer_link_map_visual, else: footer_link_content_visual
 
     assigns =
       assigns
       |> assign(:footer_link_base, footer_link_base)
+      |> assign(:footer_link_visual, footer_link_visual)
       |> assign(:footer_link_map, footer_link_map)
       |> assign(:footer_link_content, footer_link_content)
 
@@ -494,7 +503,7 @@ defmodule StorymapWeb.Layouts do
       ]}
     >
       <nav
-        class="pointer-events-auto flex flex-wrap items-center justify-center gap-2 sm:gap-4"
+        class="pointer-events-none flex flex-wrap items-center justify-center gap-2 sm:gap-4"
         aria-label="Site links"
       >
         <.link
@@ -565,7 +574,7 @@ defmodule StorymapWeb.Layouts do
         >
           Privacy Policy
         </.link>
-        <span class={[@footer_link_base, "cursor-default select-none opacity-80"]}>
+        <span class={[@footer_link_visual, "cursor-default select-none opacity-80"]}>
           © {current_year()} Map Garden
         </span>
       </nav>

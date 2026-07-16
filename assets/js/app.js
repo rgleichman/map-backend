@@ -198,7 +198,11 @@ const initFooterNavActive = () => {
     const allChrome = `${mapChrome} ${contentChrome}`.split(/\s+/).filter(Boolean)
     footer.querySelectorAll("a, span").forEach((node) => {
       allChrome.forEach((cls) => node.classList.remove(cls))
-      chromeClasses.forEach((cls) => node.classList.add(cls))
+      chromeClasses.forEach((cls) => {
+        // Copyright span must stay click-through to the map.
+        if (node.tagName === "SPAN" && cls === "pointer-events-auto") return
+        node.classList.add(cls)
+      })
     })
     footer.classList.toggle(FOOTER_LEGEND_PAD, mapPage)
   }
