@@ -52,7 +52,7 @@ export async function isPinNearDeviceLocation(
   }
 
   const { latitude, longitude, accuracy } = position.coords
-  if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy > 2 * thresholdM) {
+  if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy > 4 * thresholdM) {
     return false
   }
 
