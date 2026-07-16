@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseInitialPinIdFromSearch, parseMapPinLink } from "./mapRoute"
+import { parsePinIdFromSearch, parseMapPinLink } from "./mapRoute"
 
 const ORIGIN = "https://mapgarden.net"
 
@@ -36,13 +36,13 @@ describe("parseMapPinLink", () => {
   })
 })
 
-describe("parseInitialPinIdFromSearch", () => {
+describe("parsePinIdFromSearch", () => {
   it("parses a valid pin id", () => {
-    expect(parseInitialPinIdFromSearch("?pin=42")).toBe(42)
+    expect(parsePinIdFromSearch("?pin=42")).toBe(42)
   })
 
   it("returns null when pin is missing or invalid", () => {
-    expect(parseInitialPinIdFromSearch("")).toBeNull()
-    expect(parseInitialPinIdFromSearch("?pin=abc")).toBeNull()
+    expect(parsePinIdFromSearch("")).toBeNull()
+    expect(parsePinIdFromSearch("?pin=abc")).toBeNull()
   })
 })

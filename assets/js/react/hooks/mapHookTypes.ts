@@ -5,6 +5,12 @@ import type { SetCommunityScopeOptions } from "../mapRoute"
 
 export type NavigateToPin = (pinId: number, pins: Pin[]) => Promise<void>
 
+/** One-shot request to open/focus a pin (boot, popstate, or in-app navigate). */
+export type PinFocusIntent = {
+  pinId: number
+  token: number
+}
+
 export type UseMapScopeParams = {
   datasetCommunityUrl?: string
 }
@@ -14,20 +20,20 @@ export type UseMapScopeResult = {
   setCommunityScope: (url: string | null, options?: SetCommunityScopeOptions) => void
   onSelectWorld: () => void
   onSelectCommunity: (url: string) => void
-  initialPinId: number | null
-  setInitialPinId: Dispatch<SetStateAction<number | null>>
-  pinFocusSeq: number
+  focusIntent: PinFocusIntent | null
+  consumeFocusIntent: () => void
+  /** Bumped on browser back/forward when the URL has no `?pin=` (close detail). */
+  historyCloseSeq: number
   navigateToPin: NavigateToPin
   resolvingPinIdsRef: MutableRefObject<Set<number>>
 }
 
 export type UseMapDataParams = {
   communityUrl?: string
-  setInitialPinId: Dispatch<SetStateAction<number | null>>
   onScopeChange?: () => void
   navigateToPin: NavigateToPin
   resolvingPinIdsRef: MutableRefObject<Set<number>>
-  initialPinId: number | null
+  focusIntent: PinFocusIntent | null
 }
 
 export type UseMapDataResult = {

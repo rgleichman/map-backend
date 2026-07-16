@@ -3,7 +3,6 @@ import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "../types"
 import { BUILTIN_PIN_TYPES } from "../utils/builtinPinType"
 import { DEFAULT_FILTER, type FilterState } from "../components/map/filters"
 import { loadMapData } from "../loadMapData"
-import { parseInitialPinIdFromSearch } from "../mapRoute"
 import { usePinChannelSync } from "./usePinChannelSync"
 import type { UseMapDataParams, UseMapDataResult } from "./mapHookTypes"
 
@@ -11,11 +10,10 @@ export type { UseMapDataParams, UseMapDataResult } from "./mapHookTypes"
 
 export function useMapData({
   communityUrl,
-  setInitialPinId,
   onScopeChange,
   navigateToPin,
   resolvingPinIdsRef,
-  initialPinId,
+  focusIntent,
 }: UseMapDataParams): UseMapDataResult {
   const onScopeChangeRef = useRef(onScopeChange)
   onScopeChangeRef.current = onScopeChange
@@ -56,7 +54,6 @@ export function useMapData({
     setEnabledBuiltinTypes(BUILTIN_PIN_TYPES)
     setLoading(true)
     setApiError(null)
-    setInitialPinId(parseInitialPinIdFromSearch())
 
     let cancelled = false
     loadMapData(communityUrl)
@@ -88,20 +85,20 @@ export function useMapData({
     return () => {
       cancelled = true
     }
-  }, [communityUrl, setInitialPinId])
+  }, [communityUrl])
 
   const navigateToPinRef = useRef(navigateToPin)
   navigateToPinRef.current = navigateToPin
 
   useEffect(() => {
-    if (loading || initialPinId === null) return
-    if (pins.some((p) => p.id === initialPinId)) {
-      resolvingPinIdsRef.current.delete(initialPinId)
+    if (loading || focusIntent == null) return
+    if (pins.some((p) => p.id === focusIntent.pinId)) {
+      resolvingPinIdsRef.current.delete(focusIntent.pinId)
       return
     }
 
-    void navigateToPinRef.current(initialPinId, pins)
-  }, [loading, initialPinId, pins, resolvingPinIdsRef])
+    void navigateToPinRef.current(focusIntent.pinId, pins)
+  }, [loading, focusIntent, pins, resolvingPinIdsRef])
 
   usePinChannelSync({
     onUpsertPin: updateOrAddPin,

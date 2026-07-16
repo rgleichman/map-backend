@@ -10,7 +10,9 @@ import {
   getPinTypeMarkerImageId,
 } from "../utils/pinTypeIcons"
 import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
-import { CLEARED_FILTER, buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
+import { buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
+import type { PinFocusIntent } from "../hooks/mapHookTypes"
+import { parsePinIdFromSearch } from "../mapRoute"
 import type { PlaceSuggestion } from "../utils/placeSearch"
 import {
   expandClusterAtPoint,
@@ -79,9 +81,9 @@ type Props = {
   mapScopeKey?: string
   styleUrl: string
   pins: Pin[]
-  initialPinId?: number | null
-  /** Bumped on each in-app pin link navigation so repeat clicks to the same pin still focus it. */
-  pinFocusSeq?: number
+  /** One-shot flyTo after App opens a pin from URL/nav (does not call onOpenPin). */
+  cameraRequest?: PinFocusIntent | null
+  onCameraRequestConsumed?: () => void
   isDesktop?: boolean
   /** Pin id currently shown in the detail panel (view or edit); drives desktop mini popup. */
   detailPinId?: number | null
@@ -113,8 +115,8 @@ export default function MapCanvas({
   mapScopeKey = "world",
   styleUrl,
   pins,
-  initialPinId = null,
-  pinFocusSeq = 0,
+  cameraRequest = null,
+  onCameraRequestConsumed,
   isDesktop = false,
   detailPinId = null,
   pinPanelOpen = false,
@@ -142,7 +144,9 @@ export default function MapCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
   const focusedPinIdRef = useRef<number | null>(null)
-  const lastPinFocusSeqRef = useRef(0)
+  const lastCameraRequestTokenRef = useRef(0)
+  const onCameraRequestConsumedRef = useRef(onCameraRequestConsumed)
+  onCameraRequestConsumedRef.current = onCameraRequestConsumed
   const pinLayersAddedRef = useRef(false)
   const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
   const pinsRef = useRef(pins)
@@ -417,17 +421,18 @@ export default function MapCanvas({
     return { top: 0, bottom: 0, left: 0, right }
   }
 
+  /** Fly to a pin, padding for the desktop panel so it centers in the visible area. */
+  function flyToPin(map: MLMap, pin: Pin): void {
+    map.flyTo({
+      center: [pin.longitude, pin.latitude],
+      zoom: PIN_FOCUS_ZOOM,
+      padding: mapPaddingForPinPanel(map, isDesktopRef.current),
+    })
+  }
+
   function selectPin(map: MLMap, pin: Pin, opts?: { flyTo?: boolean }): void {
     focusedPinIdRef.current = pin.id
-    if (opts?.flyTo) {
-      // Opening a pin shows the desktop panel; include padding so the pin centers
-      // in the visible area (even before pinPanelOpen prop updates).
-      map.flyTo({
-        center: [pin.longitude, pin.latitude],
-        zoom: PIN_FOCUS_ZOOM,
-        padding: mapPaddingForPinPanel(map, isDesktopRef.current),
-      })
-    }
+    if (opts?.flyTo) flyToPin(map, pin)
     onOpenPinRef.current(pin.id)
   }
 
@@ -507,7 +512,7 @@ export default function MapCanvas({
 
   useEffect(() => {
     focusedPinIdRef.current = null
-    lastPinFocusSeqRef.current = 0
+    lastCameraRequestTokenRef.current = 0
     lastPinGeoJsonSyncKeyRef.current = ""
     lastPinLinkSyncKeyRef.current = ""
     setLastVisitWatermark(takeLastVisitWatermark(mapScopeKey))
@@ -867,7 +872,12 @@ export default function MapCanvas({
   // Use flyTo instead of GeolocateControl.trigger() — fitBounds from the initial globe
   // view (zoom 2) can overshoot maxZoom; the button path starts from a regional zoom.
   useEffect(() => {
-    if (!mapReady || initialPinId != null || initialGeolocateTriggeredRef.current) return
+    if (!mapReady || initialGeolocateTriggeredRef.current) return
+    // Landing on ?pin= or a pending camera request: never auto-geolocate this session.
+    if (cameraRequest != null || parsePinIdFromSearch() != null) {
+      initialGeolocateTriggeredRef.current = true
+      return
+    }
     const map = mapRef.current
     if (!map || !navigator.geolocation) return
 
@@ -889,7 +899,7 @@ export default function MapCanvas({
     return () => {
       cancelled = true
     }
-  }, [mapReady, initialPinId])
+  }, [mapReady, cameraRequest])
 
   // Pending location: actual pin (highlighted) + flyTo
   const pendingPinTypeRef = useRef<PinType | null>(null)
@@ -1156,30 +1166,20 @@ export default function MapCanvas({
     }
   }, [pinGeoJsonSyncKey, catalog, mapReady])
 
-  // Deep-link / repeat navigation to a specific pin.
+  // One-shot camera for URL/nav focus (App already opened the pin via onView).
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapReady || initialPinId == null) return
+    if (!map || !mapReady || cameraRequest == null) return
+    if (lastCameraRequestTokenRef.current === cameraRequest.token) return
 
-    const focusRequested = pinFocusSeq !== lastPinFocusSeqRef.current
-    const pinChanged = initialPinId !== focusedPinIdRef.current
-    if (!focusRequested && !pinChanged) return
-
-    // Do not re-open when pins refresh from remote marker_updated events while focused.
-    if (!focusRequested && detailPinId === initialPinId) return
-
-    // detailPinId already moved (click/tooltip) while initialPinId is stale — URL sync
-    // must not yank selection back to the previous pin.
-    if (!focusRequested && detailPinId != null && detailPinId !== initialPinId) return
-
-    if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
-    const pin = pins.find((p) => p.id === initialPinId)
+    const pin = pins.find((p) => p.id === cameraRequest.pinId)
     if (!pin) return
 
-    // clear all filters in case the pin is not shown in the initial filters
-    setFilter(CLEARED_FILTER)
-    selectPin(map, pin, { flyTo: true })
-  }, [initialPinId, pinFocusSeq, pins, mapReady, setFilter, detailPinId])
+    lastCameraRequestTokenRef.current = cameraRequest.token
+    focusedPinIdRef.current = pin.id
+    flyToPin(map, pin)
+    onCameraRequestConsumedRef.current?.()
+  }, [cameraRequest, pins, mapReady])
 
   return (
     <div className="relative w-full h-full">

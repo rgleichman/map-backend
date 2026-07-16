@@ -16,10 +16,13 @@ import { usePinHearts } from "./hooks/usePinHearts"
 import { useIsDesktop } from "./hooks/useMediaQuery"
 import { useMapScope } from "./hooks/useMapScope"
 import { useMapData } from "./hooks/useMapData"
+import type { PinFocusIntent } from "./hooks/mapHookTypes"
 import type { PinType } from "./types"
 import type { PinWorkflowAction } from "./pinWorkflow/types"
+import { CLEARED_FILTER } from "./components/map/filters"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
+import { shouldApplyFocusIntent } from "./pinFocusIntent"
 import * as api from "./api/client"
 
 type Props = {
@@ -43,11 +46,11 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     communityUrl,
     onSelectWorld,
     onSelectCommunity,
-    initialPinId,
-    pinFocusSeq,
+    focusIntent,
+    consumeFocusIntent,
+    historyCloseSeq,
     navigateToPin,
     resolvingPinIdsRef,
-    setInitialPinId,
   } = useMapScope({ datasetCommunityUrl })
 
   const {
@@ -66,11 +69,10 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     setPins,
   } = useMapData({
     communityUrl,
-    setInitialPinId,
     onScopeChange,
     navigateToPin,
     resolvingPinIdsRef,
-    initialPinId,
+    focusIntent,
   })
 
   const { heartedPinIds, isHearted, toggleHeart, loading: pinHeartsLoading, loadError: pinHeartsLoadError } =
@@ -129,6 +131,9 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
+  const [cameraRequest, setCameraRequest] = useState<PinFocusIntent | null>(null)
+  const lastAppliedFocusTokenRef = useRef(0)
+  const lastHistoryCloseSeqRef = useRef(0)
 
   useEffect(() => {
     try {
@@ -162,19 +167,43 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const syncPinUrl = useCallback((pinId: number | null) => {
     const path = window.location.pathname || "/map"
     if (pinId == null) {
-      setInitialPinId(null)
       window.history.replaceState(null, "", path)
       return
     }
-    // Only update the address bar. Do not setInitialPinId here — that races the
-    // MapCanvas deep-link effect against detailPinId and can flip between pins.
+    // Address bar only — never creates a focus intent (avoids MapCanvas ↔ detail races).
     window.history.replaceState(null, "", `${path}?pin=${pinId}`)
-  }, [setInitialPinId])
+  }, [])
 
   const onOpenPin = useCallback((pinId: number) => {
     legendCloseRef.current?.close()
     onView(pinId)
   }, [onView])
+
+  // Apply one-shot focus intent into workflow + camera (not via MapCanvas selectPin).
+  useEffect(() => {
+    if (!shouldApplyFocusIntent(
+      focusIntent,
+      lastAppliedFocusTokenRef.current,
+      loading,
+      focusIntent != null && pins.some((p) => p.id === focusIntent.pinId),
+    )) {
+      return
+    }
+    if (focusIntent == null) return
+
+    lastAppliedFocusTokenRef.current = focusIntent.token
+    setFilter(CLEARED_FILTER)
+    legendCloseRef.current?.close()
+    onView(focusIntent.pinId)
+    setCameraRequest(focusIntent)
+    consumeFocusIntent()
+  }, [focusIntent, loading, pins, onView, setFilter, consumeFocusIntent])
+
+  useEffect(() => {
+    if (historyCloseSeq === lastHistoryCloseSeqRef.current) return
+    lastHistoryCloseSeqRef.current = historyCloseSeq
+    if (historyCloseSeq > 0) onCloseView()
+  }, [historyCloseSeq, onCloseView])
 
   const prevDetailPinIdRef = useRef<number | null>(null)
   useEffect(() => {
@@ -249,8 +278,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   mapScopeKey={communityUrl ?? "world"}
                   styleUrl={styleUrl}
                   pins={pins}
-                  initialPinId={initialPinId}
-                  pinFocusSeq={pinFocusSeq}
+                  cameraRequest={cameraRequest}
+                  onCameraRequestConsumed={() => setCameraRequest(null)}
                   isDesktop={isDesktop}
                   detailPinId={detailPinId}
                   pinPanelOpen={showDesktopPanel}

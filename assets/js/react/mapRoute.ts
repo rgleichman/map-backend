@@ -41,7 +41,7 @@ export type SetCommunityScopeOptions = {
 }
 
 /** Pin id from a `?pin=` query string, or null if absent or invalid. */
-export function parseInitialPinIdFromSearch(
+export function parsePinIdFromSearch(
   search: string = typeof window !== "undefined" ? window.location.search : "",
 ): number | null {
   const p = new URLSearchParams(search).get("pin")
