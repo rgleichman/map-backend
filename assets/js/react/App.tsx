@@ -165,7 +165,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
       window.history.replaceState(null, "", path)
       return
     }
-    setInitialPinId(pinId)
+    // Only update the address bar. Do not setInitialPinId here — that races the
+    // MapCanvas deep-link effect against detailPinId and can flip between pins.
     window.history.replaceState(null, "", `${path}?pin=${pinId}`)
   }, [setInitialPinId])
 

@@ -40,6 +40,8 @@ import {
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
 import PinMiniPopup from "./map/PinMiniPopup"
+import PinHoverTooltip from "./map/PinHoverTooltip"
+import { shouldShowPinHoverTooltip } from "./map/pinHoverVisibility"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
@@ -139,11 +141,22 @@ export default function MapCanvas({
   onMapClickRef.current = onMapClick
   const detailPinIdRef = useRef(detailPinId)
   detailPinIdRef.current = detailPinId
+  const isDesktopRef = useRef(isDesktop)
+  isDesktopRef.current = isDesktop
+  const hideMiniPopupRef = useRef(hideMiniPopup)
+  hideMiniPopupRef.current = hideMiniPopup
   const onDismissPinDetailRef = useRef(onDismissPinDetail)
   onDismissPinDetailRef.current = onDismissPinDetail
   const openPopupRef = useRef<Popup | null>(null)
   const openPopupPinIdRef = useRef<number | null>(null)
   const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
+  const hoverPopupRef = useRef<Popup | null>(null)
+  const hoverPinIdRef = useRef<number | null>(null)
+  const hoverRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
+  const clearHoverTooltipRef = useRef<() => void>(() => { })
+  const onHoverPopupLeave = useRef(() => {
+    clearHoverTooltipRef.current()
+  }).current
   const geolocateControlRef = useRef<InstanceType<typeof maplibregl.GeolocateControl> | null>(null)
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
@@ -165,6 +178,8 @@ export default function MapCanvas({
   const pinLayerHandlersRef = useRef<{
     handlePinIconClick: (e: maplibregl.MapLayerMouseEvent) => void
     handleClusterClick: (e: maplibregl.MapLayerMouseEvent) => void
+    handlePinHoverMove: (e: maplibregl.MapMouseEvent) => void
+    handleCanvasMouseLeave: (e: MouseEvent) => void
     setPointerCursor: () => void
     clearPointerCursor: () => void
   } | null>(null)
@@ -242,6 +257,27 @@ export default function MapCanvas({
     popup?.remove()
   }
 
+  function clearHoverTooltip(): void {
+    const root = hoverRootRef.current
+    const popup = hoverPopupRef.current
+    const el = popup?.getElement()
+    if (el) {
+      el.removeEventListener("mouseleave", onHoverPopupLeave)
+    }
+    hoverPopupRef.current = null
+    hoverPinIdRef.current = null
+    hoverRootRef.current = null
+    root?.unmount()
+    popup?.remove()
+  }
+  clearHoverTooltipRef.current = clearHoverTooltip
+
+  function isPointerOverHoverPopup(target: EventTarget | null): boolean {
+    if (!(target instanceof Node)) return false
+    const el = hoverPopupRef.current?.getElement()
+    return el != null && el.contains(target)
+  }
+
   function trackFocusedPin(pinId: number | null): void {
     openPopupPinIdRef.current = pinId
     setOpenPopupPinId(pinId)
@@ -260,7 +296,76 @@ export default function MapCanvas({
     )
   }
 
+  function renderHoverTooltipContent(pin: Pin, onReady?: () => void) {
+    return (
+      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
+        <PinHoverTooltip
+          pin={pin}
+          onReady={onReady}
+          onOpen={() => {
+            const map = mapRef.current
+            if (!map) return
+            selectPin(map, pin)
+          }}
+        />
+      </PinTypesProvider>
+    )
+  }
+
+  function showHoverTooltip(map: MLMap, pin: Pin): void {
+    if (
+      !shouldShowPinHoverTooltip({
+        isDesktop: isDesktopRef.current,
+        hideMiniPopup: hideMiniPopupRef.current,
+        detailPinId: detailPinIdRef.current ?? null,
+        hoverPinId: pin.id,
+      })
+    ) {
+      clearHoverTooltip()
+      return
+    }
+
+    if (hoverPopupRef.current && hoverPinIdRef.current === pin.id && hoverRootRef.current) {
+      hoverRootRef.current.render(renderHoverTooltipContent(pin))
+      hoverPopupRef.current.setLngLat([pin.longitude, pin.latitude])
+      return
+    }
+
+    clearHoverTooltip()
+
+    const container = document.createElement("div")
+    const root = createRoot(container)
+    // Anchor top so the tooltip hangs below the pin and stays out of the drag path.
+    const popup = new Popup({
+      className: "pin-hover-popup",
+      closeButton: false,
+      locationOccludedOpacity: 0.7,
+      maxWidth: "20rem",
+      closeOnClick: false,
+      anchor: "top",
+    })
+      .setLngLat([pin.longitude, pin.latitude])
+      .setDOMContent(container)
+      .addTo(map)
+    // Hide empty MapLibre chrome until React has painted the full tooltip.
+    const popupEl = popup.getElement()
+    if (popupEl) {
+      popupEl.style.visibility = "hidden"
+      popupEl.addEventListener("mouseleave", onHoverPopupLeave)
+    }
+    root.render(
+      renderHoverTooltipContent(pin, () => {
+        if (hoverPopupRef.current !== popup) return
+        popupEl?.style.removeProperty("visibility")
+      }),
+    )
+    hoverPopupRef.current = popup
+    hoverPinIdRef.current = pin.id
+    hoverRootRef.current = root
+  }
+
   function showDesktopMiniPopup(map: MLMap, pin: Pin): void {
+    clearHoverTooltip()
     if (openPopupRef.current) {
       closeOpenPopup()
     }
@@ -603,9 +708,38 @@ export default function MapCanvas({
             map.getCanvas().style.cursor = ""
           }
 
+          // Single map-level handler avoids matching↔dimmed mouseleave races that
+          // schedule hide after the other layer already claimed a new pin.
+          const handlePinHoverMove = (e: maplibregl.MapMouseEvent) => {
+            if (!isDesktopRef.current || hideMiniPopupRef.current) {
+              if (hoverPinIdRef.current != null) clearHoverTooltip()
+              return
+            }
+            const pinId = pinIdFromTopFeatureAt(map, e.point)
+            if (pinId == null) {
+              clearHoverTooltip()
+              return
+            }
+            const pin = pinsByIdRef.current.get(pinId)
+            if (!pin) {
+              clearHoverTooltip()
+              return
+            }
+            map.getCanvas().style.cursor = "pointer"
+            showHoverTooltip(map, pin)
+          }
+
+          const handleCanvasMouseLeave = (e: MouseEvent) => {
+            // Keep tooltip if the pointer moved onto it; otherwise close immediately.
+            if (isPointerOverHoverPopup(e.relatedTarget)) return
+            clearHoverTooltip()
+          }
+
           pinLayerHandlersRef.current = {
             handlePinIconClick,
             handleClusterClick,
+            handlePinHoverMove,
+            handleCanvasMouseLeave,
             setPointerCursor,
             clearPointerCursor,
           }
@@ -620,10 +754,8 @@ export default function MapCanvas({
           map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
           map.on("click", "pin-clusters-layer", handleClusterClick)
           map.on("click", "pin-cluster-count-layer", handleClusterClick)
-          map.on("mouseenter", "pin-icons-layer", setPointerCursor)
-          map.on("mouseleave", "pin-icons-layer", clearPointerCursor)
-          map.on("mouseenter", "pin-icons-dimmed-layer", setPointerCursor)
-          map.on("mouseleave", "pin-icons-dimmed-layer", clearPointerCursor)
+          map.on("mousemove", handlePinHoverMove)
+          map.getCanvas().addEventListener("mouseleave", handleCanvasMouseLeave)
           map.on("mouseenter", "pin-clusters-layer", setPointerCursor)
           map.on("mouseleave", "pin-clusters-layer", clearPointerCursor)
           map.on("mouseenter", "pin-cluster-count-layer", setPointerCursor)
@@ -669,10 +801,8 @@ export default function MapCanvas({
         map.off("click", "pin-icons-dimmed-layer", pinHandlers.handlePinIconClick)
         map.off("click", "pin-clusters-layer", pinHandlers.handleClusterClick)
         map.off("click", "pin-cluster-count-layer", pinHandlers.handleClusterClick)
-        map.off("mouseenter", "pin-icons-layer", pinHandlers.setPointerCursor)
-        map.off("mouseleave", "pin-icons-layer", pinHandlers.clearPointerCursor)
-        map.off("mouseenter", "pin-icons-dimmed-layer", pinHandlers.setPointerCursor)
-        map.off("mouseleave", "pin-icons-dimmed-layer", pinHandlers.clearPointerCursor)
+        map.off("mousemove", pinHandlers.handlePinHoverMove)
+        map.getCanvas().removeEventListener("mouseleave", pinHandlers.handleCanvasMouseLeave)
         map.off("mouseenter", "pin-clusters-layer", pinHandlers.setPointerCursor)
         map.off("mouseleave", "pin-clusters-layer", pinHandlers.clearPointerCursor)
         map.off("mouseenter", "pin-cluster-count-layer", pinHandlers.setPointerCursor)
@@ -686,6 +816,7 @@ export default function MapCanvas({
         map.off("mouseleave", PIN_LINKS_LAYER_ID, pinLinkHandlers.clearPointerCursor)
         pinLinkLayerHandlersRef.current = null
       }
+      clearHoverTooltip()
       closeOpenPopup()
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
@@ -785,6 +916,7 @@ export default function MapCanvas({
     focusedPinIdRef.current = pin.id
 
     if (openPopupRef.current && openPopupPinIdRef.current === pin.id && popupRootRef.current) {
+      clearHoverTooltip()
       popupRootRef.current.render(renderMiniPopupContent(pin))
       openPopupRef.current.setLngLat([pin.longitude, pin.latitude])
       setOpenPopupPinId(pin.id)
@@ -793,6 +925,17 @@ export default function MapCanvas({
 
     showDesktopMiniPopup(map, pin)
   }, [detailPinId, hideMiniPopup, isDesktop, pins, mapReady, catalog, enabledBuiltins])
+
+  // Drop hover tooltip when desktop/placement/selection suppress it.
+  useEffect(() => {
+    if (!isDesktop || hideMiniPopup) {
+      clearHoverTooltip()
+      return
+    }
+    if (detailPinId != null && hoverPinIdRef.current === detailPinId) {
+      clearHoverTooltip()
+    }
+  }, [isDesktop, hideMiniPopup, detailPinId])
 
   const savedFilterEmptyOnMap =
     filter.heartedOnly &&
@@ -858,6 +1001,10 @@ export default function MapCanvas({
 
     // Do not re-open when pins refresh from remote marker_updated events while focused.
     if (!focusRequested && detailPinId === initialPinId) return
+
+    // detailPinId already moved (click/tooltip) while initialPinId is stale — URL sync
+    // must not yank selection back to the previous pin.
+    if (!focusRequested && detailPinId != null && detailPinId !== initialPinId) return
 
     if (focusRequested) lastPinFocusSeqRef.current = pinFocusSeq
     const pin = pins.find((p) => p.id === initialPinId)

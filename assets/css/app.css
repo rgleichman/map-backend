@@ -152,6 +152,11 @@
   border: 1px solid var(--color-base-300) !important;
 }
 
+/* Hover pin tooltip: no tip arrow (stays below the pin for map dragging). */
+.pin-hover-popup .maplibregl-popup-tip {
+  display: none;
+}
+
 /* Pin modal content to adapt to browser theme */
 .pin-modal-content {
   background: var(--color-base-100) !important;

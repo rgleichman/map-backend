@@ -43,19 +43,22 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
     setCommunityScope(url)
   }, [setCommunityScope])
 
-  useEffect(() => {
-    const onPopState = () => {
-      setCommunityUrl(communityUrlFromPathname(window.location.pathname))
-      setInitialPinId(parseInitialPinIdFromSearch())
-    }
-    window.addEventListener("popstate", onPopState)
-    return () => window.removeEventListener("popstate", onPopState)
-  }, [])
-
   const bumpPinFocus = useCallback(() => {
     pinFocusSeqRef.current += 1
     setPinFocusSeq(pinFocusSeqRef.current)
   }, [])
+
+  useEffect(() => {
+    const onPopState = () => {
+      setCommunityUrl(communityUrlFromPathname(window.location.pathname))
+      setInitialPinId(parseInitialPinIdFromSearch())
+      // So MapCanvas treats browser back/forward as intentional pin focus, not a
+      // stale initialPinId vs detailPinId race.
+      bumpPinFocus()
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [bumpPinFocus])
 
   const navigateToPin = useCallback<UseMapScopeResult["navigateToPin"]>(async (pinId, pins) => {
     const focusPin = () => {
