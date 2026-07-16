@@ -1,6 +1,6 @@
 import type { PinType } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import type { DraftState, ModalState, Placement } from "./types"
+import { isDesktopPanelMode, type DraftState, type ModalState, type Placement } from "./types"
 
 export type WorkflowUIDerivation = {
   pendingLocation: { lat: number; lng: number } | null
@@ -8,6 +8,8 @@ export type WorkflowUIDerivation = {
   editingPinId: number | null
   /** Pin shown in the detail panel (view or edit); drives map focus / mini popup. */
   detailPinId: number | null
+  /** Desktop right-rail panel is visible (shifts map padding). */
+  showDesktopPanel: boolean
   showPlacementOverlay: boolean
   showEditForm: boolean
   showAddForm: boolean
@@ -59,6 +61,7 @@ export function deriveWorkflowUI({
   const detailPinId =
     modal?.mode === "view" || modal?.mode === "edit" ? modal.pin.id : null
 
+  const showDesktopPanel = isDesktop && placement == null && isDesktopPanelMode(modal)
   const showPlacementOverlay = placement !== null
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
   const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
@@ -83,6 +86,7 @@ export function deriveWorkflowUI({
     pendingPinType,
     editingPinId,
     detailPinId,
+    showDesktopPanel,
     showPlacementOverlay,
     showEditForm,
     showAddForm,

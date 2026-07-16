@@ -6,7 +6,6 @@ import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import { isDesktopPanelMode } from "../pinWorkflow/types"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
 import Button from "./ui/Button"
 
@@ -55,6 +54,7 @@ export default function PinFlowUI({
     showEditForm,
     showAddForm,
     showViewDetail,
+    showDesktopPanel,
     pinModalLat,
     pinModalLng,
     locationAlreadySetFromPlacement,
@@ -124,8 +124,6 @@ export default function PinFlowUI({
       }
     />
   ) : null
-
-  const showDesktopPanel = isDesktop && !placement && isDesktopPanelMode(modal)
 
   return (
     <>

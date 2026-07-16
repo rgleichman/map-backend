@@ -99,6 +99,30 @@ export function mapShellFiltersMaxHeight(): string {
 }
 
 /**
+ * Desktop pin detail / composer / type-picker right rail (`max-w-md` = 28rem).
+ * Keep in sync with PinFlowUI panel classes and FieldEditorModal `md:right-[28rem]`.
+ */
+export const DESKTOP_PIN_PANEL_MAX_WIDTH_PX = 448
+
+/** Duration for MapLibre easeTo when shifting the globe for the pin panel. */
+export const DESKTOP_PIN_PANEL_PADDING_DURATION_MS = 300
+
+/**
+ * MapLibre right padding so the camera focal area sits in the unobscured map
+ * when the desktop pin panel is open. Caps at viewport width when the panel is full-bleed.
+ */
+export function desktopPinPanelMapPaddingRight(
+  viewportWidthPx: number,
+  panelOpen: boolean,
+): number {
+  if (!panelOpen) return 0
+  if (!Number.isFinite(viewportWidthPx) || viewportWidthPx <= 0) {
+    return DESKTOP_PIN_PANEL_MAX_WIDTH_PX
+  }
+  return Math.min(DESKTOP_PIN_PANEL_MAX_WIDTH_PX, viewportWidthPx)
+}
+
+/**
  * Form vs overlay: inputs that affect pin save (title, tags, community options, etc.)
  * belong in PinModal / PinComposer — not in floating MapShell overlays. Overlays are for
  * map chrome only (legend, filters, toolbar). See PinComposer / PinFlowUI.

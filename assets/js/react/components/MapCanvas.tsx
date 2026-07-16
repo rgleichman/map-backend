@@ -46,7 +46,16 @@ import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
 import Button from "./ui/Button"
-import { mapShellOverlayBottomAboveHelp, mapShellTopRightOverlayTop } from "../utils/siteLayout"
+import {
+  DESKTOP_PIN_PANEL_PADDING_DURATION_MS,
+  desktopPinPanelMapPaddingRight,
+  mapShellOverlayBottomAboveHelp,
+  mapShellTopRightOverlayTop,
+} from "../utils/siteLayout"
+import {
+  PIN_PANEL_EDGE_MARGIN_PX,
+  zoomToKeepPointInPaddedViewport,
+} from "./map/pinPanelCamera"
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -76,6 +85,8 @@ type Props = {
   isDesktop?: boolean
   /** Pin id currently shown in the detail panel (view or edit); drives desktop mini popup. */
   detailPinId?: number | null
+  /** Desktop right-rail open — shifts MapLibre padding so the globe sits in the visible area. */
+  pinPanelOpen?: boolean
   /** Hide the mini popup while placing a pin. */
   hideMiniPopup?: boolean
   onMapClick: (lng: number, lat: number) => void
@@ -106,6 +117,7 @@ export default function MapCanvas({
   pinFocusSeq = 0,
   isDesktop = false,
   detailPinId = null,
+  pinPanelOpen = false,
   hideMiniPopup = false,
   onMapClick,
   onOpenPin,
@@ -133,6 +145,8 @@ export default function MapCanvas({
   const lastPinFocusSeqRef = useRef(0)
   const pinLayersAddedRef = useRef(false)
   const pinsByIdRef = useRef<Map<number, Pin>>(new Map())
+  const pinsRef = useRef(pins)
+  pinsRef.current = pins
   const onPlacementMapClickRef = useRef(onPlacementMapClick)
   onPlacementMapClickRef.current = onPlacementMapClick
   const onOpenPinRef = useRef(onOpenPin)
@@ -141,6 +155,14 @@ export default function MapCanvas({
   onMapClickRef.current = onMapClick
   const detailPinIdRef = useRef(detailPinId)
   detailPinIdRef.current = detailPinId
+  const pinPanelOpenRef = useRef(pinPanelOpen)
+  pinPanelOpenRef.current = pinPanelOpen
+  const panelCameraBackupRef = useRef<{
+    center: maplibregl.LngLat
+    zoom: number
+    bearing: number
+    pitch: number
+  } | null>(null)
   const isDesktopRef = useRef(isDesktop)
   isDesktopRef.current = isDesktop
   const hideMiniPopupRef = useRef(hideMiniPopup)
@@ -390,10 +412,21 @@ export default function MapCanvas({
     })
   }
 
+  function mapPaddingForPinPanel(map: MLMap, panelOpen: boolean): maplibregl.PaddingOptions {
+    const right = desktopPinPanelMapPaddingRight(map.getContainer().clientWidth, panelOpen)
+    return { top: 0, bottom: 0, left: 0, right }
+  }
+
   function selectPin(map: MLMap, pin: Pin, opts?: { flyTo?: boolean }): void {
     focusedPinIdRef.current = pin.id
     if (opts?.flyTo) {
-      map.flyTo({ center: [pin.longitude, pin.latitude], zoom: PIN_FOCUS_ZOOM })
+      // Opening a pin shows the desktop panel; include padding so the pin centers
+      // in the visible area (even before pinPanelOpen prop updates).
+      map.flyTo({
+        center: [pin.longitude, pin.latitude],
+        zoom: PIN_FOCUS_ZOOM,
+        padding: mapPaddingForPinPanel(map, isDesktopRef.current),
+      })
     }
     onOpenPinRef.current(pin.id)
   }
@@ -865,7 +898,11 @@ export default function MapCanvas({
     if (!map || !mapReady) return
 
     if (pendingLocation) {
-      map.flyTo({ center: [pendingLocation.lng, pendingLocation.lat], zoom: PIN_FOCUS_ZOOM })
+      map.flyTo({
+        center: [pendingLocation.lng, pendingLocation.lat],
+        zoom: PIN_FOCUS_ZOOM,
+        padding: mapPaddingForPinPanel(map, pinPanelOpenRef.current),
+      })
       const pinType: PinType = pendingPinType ?? DEFAULT_BUILTIN_PIN_TYPE
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
@@ -891,6 +928,135 @@ export default function MapCanvas({
       pendingMarkerRef.current = null
     }
   }, [pendingLocation, pendingPinType, mapReady])
+
+  // Shift the globe left when the desktop pin panel covers the right side.
+  // Zoom out if the focused pin would leave the visible area; restore zoom on close.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const zeroPadding = { top: 0, bottom: 0, left: 0, right: 0 }
+
+    const focusLngLat = (): [number, number] | null => {
+      if (detailPinId != null) {
+        const pin =
+          pinsByIdRef.current.get(detailPinId) ??
+          pinsRef.current.find((p) => p.id === detailPinId)
+        if (pin) return [pin.longitude, pin.latitude]
+      }
+      if (pendingLocation) return [pendingLocation.lng, pendingLocation.lat]
+      return null
+    }
+
+    const applyPanelCamera = (animate: boolean) => {
+      const padding = mapPaddingForPinPanel(map, true)
+      const mapWidth = map.getContainer().clientWidth
+      const mapHeight = map.getContainer().clientHeight
+      const panelPadding = {
+        top: padding.top ?? 0,
+        right: padding.right ?? 0,
+        bottom: padding.bottom ?? 0,
+        left: padding.left ?? 0,
+      }
+
+      let zoom = map.getZoom()
+      const lngLat = focusLngLat()
+      if (lngLat) {
+        const sample = {
+          center: map.getCenter(),
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+          padding: map.getPadding(),
+        }
+        // Sample with the real globe transform (jumpTo is sync; restore before paint).
+        zoom = zoomToKeepPointInPaddedViewport({
+          mapWidth,
+          mapHeight,
+          padding: panelPadding,
+          margin: PIN_PANEL_EDGE_MARGIN_PX,
+          currentZoom: sample.zoom,
+          minZoom: map.getMinZoom(),
+          projectAtZoom: (z) => {
+            map.jumpTo({
+              center: sample.center,
+              zoom: z,
+              bearing: sample.bearing,
+              pitch: sample.pitch,
+              padding: panelPadding,
+            })
+            const p = map.project(lngLat)
+            return { x: p.x, y: p.y }
+          },
+        })
+        map.jumpTo({
+          center: sample.center,
+          zoom: sample.zoom,
+          bearing: sample.bearing,
+          pitch: sample.pitch,
+          padding: sample.padding,
+        })
+      }
+
+      const current = map.getPadding()
+      const samePadding =
+        Math.abs((current.top ?? 0) - panelPadding.top) < 1 &&
+        Math.abs((current.right ?? 0) - panelPadding.right) < 1 &&
+        Math.abs((current.bottom ?? 0) - panelPadding.bottom) < 1 &&
+        Math.abs((current.left ?? 0) - panelPadding.left) < 1
+      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
+      if (samePadding && sameZoom) return
+
+      if (animate) {
+        map.easeTo({ padding: panelPadding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
+      } else {
+        map.jumpTo({ padding: panelPadding, zoom })
+      }
+    }
+
+    const clearPanelCamera = (animate: boolean) => {
+      const backup = panelCameraBackupRef.current
+      panelCameraBackupRef.current = null
+      const padding = zeroPadding
+      const zoom = backup?.zoom ?? map.getZoom()
+      const current = map.getPadding()
+      const samePadding =
+        Math.abs((current.top ?? 0) - padding.top) < 1 &&
+        Math.abs((current.right ?? 0) - padding.right) < 1 &&
+        Math.abs((current.bottom ?? 0) - padding.bottom) < 1 &&
+        Math.abs((current.left ?? 0) - padding.left) < 1
+      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
+      if (samePadding && sameZoom) return
+
+      if (animate) {
+        map.easeTo({ padding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
+      } else {
+        map.jumpTo({ padding, zoom })
+      }
+    }
+
+    if (pinPanelOpen) {
+      if (!panelCameraBackupRef.current) {
+        panelCameraBackupRef.current = {
+          center: map.getCenter(),
+          zoom: map.getZoom(),
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+        }
+      }
+      applyPanelCamera(true)
+    } else {
+      clearPanelCamera(true)
+    }
+
+    const onResize = () => {
+      if (pinPanelOpenRef.current) applyPanelCamera(false)
+    }
+    map.on("resize", onResize)
+    return () => {
+      map.off("resize", onResize)
+    }
+  }, [pinPanelOpen, mapReady, detailPinId, pendingLocation])
 
   // Sync desktop mini popup with detail panel pin.
   useEffect(() => {
@@ -1087,16 +1253,30 @@ export default function MapCanvas({
           onSelectPlace={(place: PlaceSuggestion) => {
             const map = mapRef.current
             if (!map) return
+            const panelPadding = mapPaddingForPinPanel(map, pinPanelOpenRef.current)
             if (place.bbox) {
               map.fitBounds(
                 [
                   [place.bbox[0], place.bbox[1]],
                   [place.bbox[2], place.bbox[3]],
                 ],
-                { padding: 48, maxZoom: PIN_FOCUS_ZOOM, duration: 1000 },
+                {
+                  padding: {
+                    top: 48 + panelPadding.top,
+                    bottom: 48 + panelPadding.bottom,
+                    left: 48 + panelPadding.left,
+                    right: 48 + panelPadding.right,
+                  },
+                  maxZoom: PIN_FOCUS_ZOOM,
+                  duration: 1000,
+                },
               )
             } else {
-              map.flyTo({ center: [place.longitude, place.latitude], zoom: PIN_FOCUS_ZOOM })
+              map.flyTo({
+                center: [place.longitude, place.latitude],
+                zoom: PIN_FOCUS_ZOOM,
+                padding: panelPadding,
+              })
             }
           }}
         />

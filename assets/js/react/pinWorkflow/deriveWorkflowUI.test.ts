@@ -61,6 +61,7 @@ describe("deriveWorkflowUI", () => {
     expect(ui.showAddForm).toBe(true)
     expect(ui.showEditForm).toBe(false)
     expect(ui.showPlacementOverlay).toBe(false)
+    expect(ui.showDesktopPanel).toBe(true)
     expect(ui.pinModalLat).toBe(30.1)
     expect(ui.pinModalLng).toBe(-97.1)
   })
@@ -80,6 +81,7 @@ describe("deriveWorkflowUI", () => {
     expect(ui.pendingPinType).toBe("scheduled")
     expect(ui.showEditForm).toBe(false)
     expect(ui.showPlacementOverlay).toBe(true)
+    expect(ui.showDesktopPanel).toBe(false)
   })
 
   it("returns null pending state when workflow is closed", () => {
@@ -97,6 +99,7 @@ describe("deriveWorkflowUI", () => {
     expect(ui.editingPinId).toBeNull()
     expect(ui.showViewDetail).toBe(false)
     expect(ui.detailPinId).toBeNull()
+    expect(ui.showDesktopPanel).toBe(false)
   })
 
   it("shows view detail without pending placement marker", () => {
@@ -115,8 +118,23 @@ describe("deriveWorkflowUI", () => {
     expect(ui.pendingLocation).toBeNull()
     expect(ui.editingPinId).toBeNull()
     expect(ui.showEditForm).toBe(false)
+    expect(ui.showDesktopPanel).toBe(true)
   })
 
+  it("hides desktop panel for view modal on mobile", () => {
+    const pin = minimalPin()
+    const ui = deriveWorkflowUI({
+      modal: { mode: "view", pin },
+      placement: null,
+      addLocation: null,
+      editLocation: null,
+      pinType: null,
+      isDesktop: false,
+    })
+
+    expect(ui.showViewDetail).toBe(true)
+    expect(ui.showDesktopPanel).toBe(false)
+  })
   it("keeps workflow UI stable when only unrelated draft fields change", () => {
     let state = pinWorkflowReducer(initialPinWorkflowState, {
       type: "open_add",
