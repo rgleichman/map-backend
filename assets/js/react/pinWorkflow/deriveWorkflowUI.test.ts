@@ -96,6 +96,7 @@ describe("deriveWorkflowUI", () => {
     expect(ui.pendingPinType).toBeNull()
     expect(ui.editingPinId).toBeNull()
     expect(ui.showViewDetail).toBe(false)
+    expect(ui.detailPinId).toBeNull()
   })
 
   it("shows view detail without pending placement marker", () => {
@@ -110,6 +111,7 @@ describe("deriveWorkflowUI", () => {
     })
 
     expect(ui.showViewDetail).toBe(true)
+    expect(ui.detailPinId).toBe(pin.id)
     expect(ui.pendingLocation).toBeNull()
     expect(ui.editingPinId).toBeNull()
     expect(ui.showEditForm).toBe(false)

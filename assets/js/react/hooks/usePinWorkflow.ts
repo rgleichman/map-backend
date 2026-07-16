@@ -6,7 +6,12 @@ import { validateAndBuildSavePayload } from "../pinWorkflow/savePin"
 import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
 import type { CustomPinType, Pin, PinType, SubMap } from "../types"
-import type { ModalState, PinWorkflowAction, Placement } from "../pinWorkflow/types"
+import {
+  isEscapeCloseableDesktopMode,
+  type ModalState,
+  type PinWorkflowAction,
+  type Placement,
+} from "../pinWorkflow/types"
 
 type Params = {
   userId?: number
@@ -52,7 +57,7 @@ export function usePinWorkflow({
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
       const { modal: m, isDesktop: desktop, dispatch: d } = escapePanelRef.current
-      if (desktop && (m?.mode === "select-type" || m?.mode === "view")) {
+      if (desktop && isEscapeCloseableDesktopMode(m)) {
         e.preventDefault()
         e.stopPropagation()
         d({ type: "close_all" })
@@ -61,6 +66,8 @@ export function usePinWorkflow({
     document.addEventListener("keydown", handleKey, true)
     return () => document.removeEventListener("keydown", handleKey, true)
   }, [])
+
+  const findPin = useCallback((pinId: number) => pins.find((p) => p.id === pinId), [pins])
 
   const onMapClick = useCallback((lng: number, lat: number) => {
     if (!userId) {
@@ -80,16 +87,16 @@ export function usePinWorkflow({
   }, [userId, userMuted, subMap, setApiError])
 
   const onEdit = useCallback((pinId: number) => {
-    const pin = pins.find(p => p.id === pinId)
+    const pin = findPin(pinId)
     if (!pin) return
     dispatch({ type: "open_edit", pin })
-  }, [pins])
+  }, [findPin])
 
   const onView = useCallback((pinId: number) => {
-    const pin = pins.find((p) => p.id === pinId)
+    const pin = findPin(pinId)
     if (!pin) return
     dispatch({ type: "open_view", pin })
-  }, [pins])
+  }, [findPin])
 
   const onCancelEdit = useCallback(() => {
     dispatch({ type: "cancel_edit" })
@@ -100,10 +107,9 @@ export function usePinWorkflow({
   }, [])
 
   const onDelete = useCallback((pinId: number) => {
-    const pin = pins.find((p) => p.id === pinId)
-    if (!pin) return
+    if (!findPin(pinId)) return
     setPendingDeletePinId(pinId)
-  }, [pins])
+  }, [findPin])
 
   const cancelPendingDelete = useCallback(() => {
     setPendingDeletePinId(null)
@@ -111,7 +117,7 @@ export function usePinWorkflow({
 
   const confirmPendingDelete = useCallback(async () => {
     if (pendingDeletePinId == null) return
-    const pin = pins.find((p) => p.id === pendingDeletePinId)
+    const pin = findPin(pendingDeletePinId)
     if (!pin) {
       setPendingDeletePinId(null)
       return
@@ -129,7 +135,7 @@ export function usePinWorkflow({
     } finally {
       setSaving(false)
     }
-  }, [csrfToken, pendingDeletePinId, pins, setApiError, setPins])
+  }, [csrfToken, findPin, pendingDeletePinId, setApiError, setPins])
 
   const onStartPickOnMap = useCallback(() => {
     if (modal?.mode === "edit") {
@@ -225,6 +231,7 @@ export function usePinWorkflow({
     pendingLocation,
     pendingPinType,
     editingPinId,
+    detailPinId,
     showPlacementOverlay,
     showEditForm,
     showAddForm,
@@ -237,11 +244,11 @@ export function usePinWorkflow({
   // Keep view modal pin in sync when pins list updates (e.g. realtime).
   useEffect(() => {
     if (modal?.mode !== "view") return
-    const fresh = pins.find((p) => p.id === modal.pin.id)
+    const fresh = findPin(modal.pin.id)
     if (fresh && fresh !== modal.pin) {
       dispatch({ type: "open_view", pin: fresh })
     }
-  }, [pins, modal])
+  }, [findPin, modal])
 
   return {
     csrfToken,
@@ -269,6 +276,7 @@ export function usePinWorkflow({
     pendingLocation,
     pendingPinType,
     editingPinId,
+    detailPinId,
     showPlacementOverlay,
     showEditForm,
     showAddForm,

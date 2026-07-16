@@ -6,6 +6,7 @@ import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
+import { isDesktopPanelMode } from "../pinWorkflow/types"
 import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
 import Button from "./ui/Button"
 
@@ -94,7 +95,7 @@ export default function PinFlowUI({
     dispatch,
     onStartPickOnMap,
     mode: modal.mode,
-    onCancel: modal.mode === "edit" ? onCancelEdit : () => dispatch({ type: "close_all" }),
+    onCancel: modal.mode === "edit" ? onCancelEdit : onCloseView,
     onSave,
     onDelete: modal.mode === "edit" ? () => onDelete(modal.pin.id) : undefined,
     canDelete,
@@ -124,11 +125,7 @@ export default function PinFlowUI({
     />
   ) : null
 
-  const showDesktopPanel =
-    isDesktop &&
-    !placement &&
-    modal &&
-    (modal.mode === "select-type" || modal.mode === "add" || modal.mode === "edit" || modal.mode === "view")
+  const showDesktopPanel = isDesktop && !placement && isDesktopPanelMode(modal)
 
   return (
     <>
@@ -139,7 +136,7 @@ export default function PinFlowUI({
               <PinTypeModal
                 layout="panel"
                 onSelectType={onSelectPinType}
-                onCancel={() => dispatch({ type: "close_all" })}
+                onCancel={onCloseView}
               />
             )}
             {composerProps && (
@@ -209,7 +206,7 @@ export default function PinFlowUI({
         <PinTypeModal
           layout="modal"
           onSelectType={onSelectPinType}
-          onCancel={() => dispatch({ type: "close_all" })}
+          onCancel={onCloseView}
         />
       )}
       {!isDesktop && composerProps && ((showAddForm && modal?.mode === "add") || (showEditForm && modal?.mode === "edit")) && (
@@ -219,7 +216,7 @@ export default function PinFlowUI({
           {...composerProps}
         />
       )}
-      {!isDesktop && showViewDetail && detailView && (
+      {!isDesktop && showViewDetail && detailView ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           role="dialog"
@@ -236,7 +233,7 @@ export default function PinFlowUI({
             {detailView}
           </div>
         </div>
-      )}
+      ) : null}
     </>
   )
 }

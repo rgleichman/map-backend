@@ -17,6 +17,21 @@ export type ModalState =
   | { mode: "edit"; pin: Pin }
   | { mode: "login-required" }
 
+/** Desktop right-rail modes (type picker, view, create, edit). */
+export function isDesktopPanelMode(modal: ModalState): boolean {
+  return (
+    modal?.mode === "select-type" ||
+    modal?.mode === "view" ||
+    modal?.mode === "add" ||
+    modal?.mode === "edit"
+  )
+}
+
+/** Escape closes these desktop panels without going through form Cancel. */
+export function isEscapeCloseableDesktopMode(modal: ModalState): boolean {
+  return modal?.mode === "select-type" || modal?.mode === "view"
+}
+
 export type DraftState = {
   pinType: PinType | null
   title: string

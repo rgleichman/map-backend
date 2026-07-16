@@ -226,8 +226,7 @@ export default function MapCanvas({
     [pinLinkBuildParams],
   )
 
-  function closeOpenPopup(): void {
-    const popup = openPopupRef.current
+  function clearPopupState(): void {
     const root = popupRootRef.current
     openPopupRef.current = null
     openPopupPinIdRef.current = null
@@ -235,7 +234,22 @@ export default function MapCanvas({
     setFocusedBacklinks(null)
     popupRootRef.current = null
     root?.unmount()
+  }
+
+  function closeOpenPopup(): void {
+    const popup = openPopupRef.current
+    clearPopupState()
     popup?.remove()
+  }
+
+  function trackFocusedPin(pinId: number | null): void {
+    openPopupPinIdRef.current = pinId
+    setOpenPopupPinId(pinId)
+    if (pinId != null) {
+      focusedPinIdRef.current = pinId
+    } else {
+      setFocusedBacklinks(null)
+    }
   }
 
   function renderMiniPopupContent(pin: Pin) {
@@ -267,14 +281,7 @@ export default function MapCanvas({
     setOpenPopupPinId(pin.id)
     popupRootRef.current = root
     popup.on("close", () => {
-      if (openPopupRef.current === popup) {
-        openPopupRef.current = null
-        openPopupPinIdRef.current = null
-        setOpenPopupPinId(null)
-        setFocusedBacklinks(null)
-        popupRootRef.current = null
-        root.unmount()
-      }
+      if (openPopupRef.current === popup) clearPopupState()
     })
   }
 
@@ -438,8 +445,8 @@ export default function MapCanvas({
         if (hit.length > 0) return
 
         // Empty map click dismisses open pin detail (panel + mini popup)
-        if (detailPinIdRef.current != null) {
-          onDismissPinDetailRef.current?.()
+        if (detailPinIdRef.current != null && onDismissPinDetailRef.current) {
+          onDismissPinDetailRef.current()
           return
         }
 
@@ -763,15 +770,9 @@ export default function MapCanvas({
 
     if (!shouldShow) {
       if (openPopupRef.current) closeOpenPopup()
-      if (detailPinId != null) {
-        setOpenPopupPinId(detailPinId)
-        openPopupPinIdRef.current = detailPinId
-        focusedPinIdRef.current = detailPinId
-      } else {
-        setOpenPopupPinId(null)
-        openPopupPinIdRef.current = null
-        setFocusedBacklinks(null)
-      }
+      // Keep focus tracking for link highlighting when detail is open without a mini popup
+      // (mobile view modal, or desktop edit).
+      trackFocusedPin(detailPinId)
       return
     }
 

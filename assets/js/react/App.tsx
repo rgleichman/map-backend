@@ -111,7 +111,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     dispatch,
     onMapClick,
     onView,
-    onEdit,
+    onCloseView,
     onDelete,
     pendingDeletePinId,
     cancelPendingDelete,
@@ -120,12 +120,11 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     pendingLocation,
     pendingPinType,
     editingPinId,
+    detailPinId,
+    showViewDetail,
     onPlacementMapClick,
   } = workflow
   onScopeChangeRef.current = dispatch
-
-  const detailPinId =
-    modal?.mode === "view" || modal?.mode === "edit" ? modal.pin.id : null
 
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
@@ -173,8 +172,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const onOpenPin = useCallback((pinId: number) => {
     legendCloseRef.current?.close()
     onView(pinId)
-    syncPinUrl(pinId)
-  }, [onView, syncPinUrl])
+  }, [onView])
 
   const prevDetailPinIdRef = useRef<number | null>(null)
   useEffect(() => {
@@ -188,8 +186,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const handleTagFilter = useCallback((tag: string) => {
     setFilter((f) => ({ ...f, tag }))
-    dispatch({ type: "close_all" })
-  }, [setFilter, dispatch])
+    onCloseView()
+  }, [setFilter, onCloseView])
 
   const toggleMapPinTypeFilter = useCallback((pinType: PinType) => {
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
@@ -256,9 +254,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   hideMiniPopup={placement != null}
                   onMapClick={onMapClick}
                   onOpenPin={onOpenPin}
-                  onDismissPinDetail={
-                    modal?.mode === "view" ? () => dispatch({ type: "close_all" }) : undefined
-                  }
+                  onDismissPinDetail={showViewDetail ? onCloseView : undefined}
                   pendingLocation={pendingLocation}
                   pendingPinType={pendingPinType}
                   editingPinId={editingPinId}

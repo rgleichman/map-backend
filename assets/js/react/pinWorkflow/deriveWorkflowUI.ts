@@ -6,6 +6,8 @@ export type WorkflowUIDerivation = {
   pendingLocation: { lat: number; lng: number } | null
   pendingPinType: PinType | null
   editingPinId: number | null
+  /** Pin shown in the detail panel (view or edit); drives map focus / mini popup. */
+  detailPinId: number | null
   showPlacementOverlay: boolean
   showEditForm: boolean
   showAddForm: boolean
@@ -54,6 +56,8 @@ export function deriveWorkflowUI({
               : DEFAULT_BUILTIN_PIN_TYPE
 
   const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
+  const detailPinId =
+    modal?.mode === "view" || modal?.mode === "edit" ? modal.pin.id : null
 
   const showPlacementOverlay = placement !== null
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
@@ -78,6 +82,7 @@ export function deriveWorkflowUI({
     pendingLocation,
     pendingPinType,
     editingPinId,
+    detailPinId,
     showPlacementOverlay,
     showEditForm,
     showAddForm,
