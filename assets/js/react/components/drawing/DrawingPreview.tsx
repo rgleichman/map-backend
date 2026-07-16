@@ -14,15 +14,23 @@ type Props = {
   data: DrawingData
   className?: string
   size?: number
+  /** When false, keep muted and hide unmute (e.g. pin hover skim). Default true. */
+  showSoundtrackControl?: boolean
 }
 
-export default function DrawingPreview({ data, className, size = 128 }: Props) {
+export default function DrawingPreview({
+  data,
+  className,
+  size = 128,
+  showSoundtrackControl = true,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [frameIndex, setFrameIndex] = useState(0)
   const [muted, setMuted] = useState(true)
   const multiFrame = data.frames.length > 1
   const soundtrack = data.soundtrack
   const hasSoundtrack = scoreHasContent(soundtrack)
+  const audioAllowed = showSoundtrackControl && multiFrame && !muted && hasSoundtrack
 
   useEffect(() => {
     setFrameIndex(0)
@@ -31,7 +39,7 @@ export default function DrawingPreview({ data, className, size = 128 }: Props) {
 
   useDrawingFramePlayback({
     visualLoop: multiFrame,
-    audioEnabled: multiFrame && !muted && hasSoundtrack,
+    audioEnabled: audioAllowed,
     frameCount: data.frames.length,
     setFrameIndex,
     soundtrack,
@@ -56,7 +64,7 @@ export default function DrawingPreview({ data, className, size = 128 }: Props) {
         style={{ width: size, height: size }}
         aria-hidden="true"
       />
-      {hasSoundtrack ? (
+      {showSoundtrackControl && hasSoundtrack ? (
         <Button
           type="button"
           size="xs"
@@ -86,12 +94,26 @@ export default function DrawingPreview({ data, className, size = 128 }: Props) {
 type DisplayProps = {
   payload: string
   className?: string
+  size?: number
+  showSoundtrackControl?: boolean
 }
 
-export function DrawingPreviewFromPayload({ payload, className }: DisplayProps) {
+export function DrawingPreviewFromPayload({
+  payload,
+  className,
+  size = 128,
+  showSoundtrackControl = true,
+}: DisplayProps) {
   const data = parseDrawing(payload)
   if (!drawingHasContent(data)) {
     return <span className={className}>Drawing</span>
   }
-  return <DrawingPreview data={data} className={className} size={128} />
+  return (
+    <DrawingPreview
+      data={data}
+      className={className}
+      size={size}
+      showSoundtrackControl={showSoundtrackControl}
+    />
+  )
 }

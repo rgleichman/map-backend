@@ -225,19 +225,39 @@ type CustomFieldDisplayProps = {
   field: CustomFieldSchema
   value: unknown
   className?: string
+  /** Pin hover skim: silent drawing preview, non-interactive music label. */
+  hoverSkim?: boolean
+  drawingSize?: number
 }
 
-export function CustomFieldDisplay({ field, value, className }: CustomFieldDisplayProps) {
+export function CustomFieldDisplay({
+  field,
+  value,
+  className,
+  hoverSkim = false,
+  drawingSize,
+}: CustomFieldDisplayProps) {
   if (isCustomFieldEmpty(value, field)) {
     return <span className={`text-base-content/50 ${className ?? ""}`.trim()}>—</span>
   }
 
   if (field.type === BlobFieldType.Music) {
+    if (hoverSkim) {
+      return <span className={className}>Music</span>
+    }
     return <MusicFieldDisplay fieldKey={field.key} value={value} className={className} />
   }
 
   if (field.type === BlobFieldType.Drawing) {
-    return <DrawingFieldDisplay fieldKey={field.key} value={value} className={className} />
+    return (
+      <DrawingFieldDisplay
+        fieldKey={field.key}
+        value={value}
+        className={className}
+        showSoundtrackControl={!hoverSkim}
+        size={drawingSize}
+      />
+    )
   }
 
   if (field.type === CustomFieldPrimitiveType.Url && typeof value === "string") {
@@ -304,7 +324,18 @@ function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps
   )
 }
 
-function DrawingFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps) {
+type DrawingFieldDisplayProps = BlobFieldDisplayProps & {
+  showSoundtrackControl?: boolean
+  size?: number
+}
+
+function DrawingFieldDisplay({
+  fieldKey,
+  value,
+  className,
+  showSoundtrackControl = true,
+  size = 128,
+}: DrawingFieldDisplayProps) {
   const pinId = usePinId()
   const refOk = isBlobFieldRef(value)
   const [loading, setLoading] = useState(false)
@@ -341,7 +372,11 @@ function DrawingFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayPro
 
   return (
     <div className={className}>
-      <DrawingPreviewFromPayload payload={payload} />
+      <DrawingPreviewFromPayload
+        payload={payload}
+        size={size}
+        showSoundtrackControl={showSoundtrackControl}
+      />
     </div>
   )
 }

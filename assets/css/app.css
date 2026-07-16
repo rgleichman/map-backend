@@ -152,9 +152,21 @@
   border: 1px solid var(--color-base-300) !important;
 }
 
-/* Hover pin tooltip: no tip arrow (stays below the pin for map dragging). */
+/* Hover pin tooltip: no tip arrow; pointer-events none so hover tracks the pin only. */
+.pin-hover-popup {
+  pointer-events: none;
+}
+
 .pin-hover-popup .maplibregl-popup-tip {
   display: none;
+}
+
+.pin-hover-popup .maplibregl-popup-content {
+  padding: 0.625rem 0.75rem !important;
+  border-radius: 0.75rem !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.08),
+    0 4px 6px -4px rgb(0 0 0 / 0.08) !important;
 }
 
 /* Pin modal content to adapt to browser theme */

@@ -44,6 +44,7 @@ import {
 import PinMiniPopup from "./map/PinMiniPopup"
 import PinHoverTooltip from "./map/PinHoverTooltip"
 import { shouldShowPinHoverTooltip } from "./map/pinHoverVisibility"
+import { hoverPopupMaxSize } from "./map/pinHoverFields"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
@@ -179,10 +180,6 @@ export default function MapCanvas({
   const hoverPopupRef = useRef<Popup | null>(null)
   const hoverPinIdRef = useRef<number | null>(null)
   const hoverRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
-  const clearHoverTooltipRef = useRef<() => void>(() => { })
-  const onHoverPopupLeave = useRef(() => {
-    clearHoverTooltipRef.current()
-  }).current
   const geolocateControlRef = useRef<InstanceType<typeof maplibregl.GeolocateControl> | null>(null)
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
@@ -205,7 +202,7 @@ export default function MapCanvas({
     handlePinIconClick: (e: maplibregl.MapLayerMouseEvent) => void
     handleClusterClick: (e: maplibregl.MapLayerMouseEvent) => void
     handlePinHoverMove: (e: maplibregl.MapMouseEvent) => void
-    handleCanvasMouseLeave: (e: MouseEvent) => void
+    handleCanvasMouseLeave: () => void
     setPointerCursor: () => void
     clearPointerCursor: () => void
   } | null>(null)
@@ -286,22 +283,11 @@ export default function MapCanvas({
   function clearHoverTooltip(): void {
     const root = hoverRootRef.current
     const popup = hoverPopupRef.current
-    const el = popup?.getElement()
-    if (el) {
-      el.removeEventListener("mouseleave", onHoverPopupLeave)
-    }
     hoverPopupRef.current = null
     hoverPinIdRef.current = null
     hoverRootRef.current = null
     root?.unmount()
     popup?.remove()
-  }
-  clearHoverTooltipRef.current = clearHoverTooltip
-
-  function isPointerOverHoverPopup(target: EventTarget | null): boolean {
-    if (!(target instanceof Node)) return false
-    const el = hoverPopupRef.current?.getElement()
-    return el != null && el.contains(target)
   }
 
   function trackFocusedPin(pinId: number | null): void {
@@ -322,17 +308,17 @@ export default function MapCanvas({
     )
   }
 
-  function renderHoverTooltipContent(pin: Pin, onReady?: () => void) {
+  function renderHoverTooltipContent(
+    pin: Pin,
+    opts: { maxWidth: number; maxHeight: number; onReady?: () => void },
+  ) {
     return (
       <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
         <PinHoverTooltip
           pin={pin}
-          onReady={onReady}
-          onOpen={() => {
-            const map = mapRef.current
-            if (!map) return
-            selectPin(map, pin)
-          }}
+          maxWidth={opts.maxWidth}
+          maxHeight={opts.maxHeight}
+          onReady={opts.onReady}
         />
       </PinTypesProvider>
     )
@@ -351,8 +337,16 @@ export default function MapCanvas({
       return
     }
 
+    const containerEl = map.getContainer()
+    const { maxWidth, maxHeight } = hoverPopupMaxSize(
+      containerEl.clientWidth,
+      containerEl.clientHeight,
+    )
+
     if (hoverPopupRef.current && hoverPinIdRef.current === pin.id && hoverRootRef.current) {
-      hoverRootRef.current.render(renderHoverTooltipContent(pin))
+      hoverRootRef.current.render(
+        renderHoverTooltipContent(pin, { maxWidth, maxHeight }),
+      )
       hoverPopupRef.current.setLngLat([pin.longitude, pin.latitude])
       return
     }
@@ -366,7 +360,7 @@ export default function MapCanvas({
       className: "pin-hover-popup",
       closeButton: false,
       locationOccludedOpacity: 0.7,
-      maxWidth: "20rem",
+      maxWidth: `${maxWidth}px`,
       closeOnClick: false,
       anchor: "top",
     })
@@ -377,12 +371,15 @@ export default function MapCanvas({
     const popupEl = popup.getElement()
     if (popupEl) {
       popupEl.style.visibility = "hidden"
-      popupEl.addEventListener("mouseleave", onHoverPopupLeave)
     }
     root.render(
-      renderHoverTooltipContent(pin, () => {
-        if (hoverPopupRef.current !== popup) return
-        popupEl?.style.removeProperty("visibility")
+      renderHoverTooltipContent(pin, {
+        maxWidth,
+        maxHeight,
+        onReady: () => {
+          if (hoverPopupRef.current !== popup) return
+          popupEl?.style.removeProperty("visibility")
+        },
       }),
     )
     hoverPopupRef.current = popup
@@ -767,9 +764,7 @@ export default function MapCanvas({
             showHoverTooltip(map, pin)
           }
 
-          const handleCanvasMouseLeave = (e: MouseEvent) => {
-            // Keep tooltip if the pointer moved onto it; otherwise close immediately.
-            if (isPointerOverHoverPopup(e.relatedTarget)) return
+          const handleCanvasMouseLeave = () => {
             clearHoverTooltip()
           }
 
