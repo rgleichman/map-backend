@@ -11,10 +11,8 @@ import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
 import Button from "./ui/Button"
 import { TrashIcon } from "./ui/icons"
-import { PIN_FLOATING_CARD_CLASSES } from "../utils/siteLayout"
 
 type Props = {
-  layout?: "modal" | "panel"
   /** When true (mobile add from placement), location was just set; can hide or reword "Set location on map". */
   locationAlreadySetFromPlacement?: boolean
   pinType: PinType
@@ -60,7 +58,6 @@ type Props = {
 }
 
 export default function PinModal({
-  layout = "modal",
   locationAlreadySetFromPlacement = false,
   pinType,
   csrfToken,
@@ -116,20 +113,14 @@ export default function PinModal({
   const formatCoord = (n: number) => n.toFixed(5)
 
   useEffect(() => {
-    if (layout !== "modal") return
     const id = window.requestAnimationFrame(() => {
       document.getElementById("pin-title")?.focus()
     })
     return () => window.cancelAnimationFrame(id)
-  }, [layout])
+  }, [])
 
-  const contentClassName =
-    layout === "panel"
-      ? "pin-modal-content w-full"
-      : `pin-modal-content max-h-modal-mobile-90 w-full max-w-lg min-w-[300px] overflow-y-auto overscroll-contain p-6 ${PIN_FLOATING_CARD_CLASSES}`
-
-  const formContent = (
-    <div className={contentClassName}>
+  return (
+    <div className="pin-modal-content w-full">
       <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
       <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
       <input
@@ -293,21 +284,6 @@ export default function PinModal({
           {saving ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save" : "Add")}
         </Button>
       </div>
-    </div>
-  )
-
-  if (layout === "panel") return formContent
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={headingId}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onCancel()
-      }}
-    >
-      {formContent}
     </div>
   )
 }

@@ -1,16 +1,12 @@
 import React, { useId } from "react"
 import PinComposer from "./PinComposer"
+import PinOverlay from "./PinOverlay"
 import PinTypeModal from "./PinTypeModal"
 import PinDetailView from "./map/PinDetailView"
 import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import {
-  DESKTOP_PIN_PANEL_CLASSES,
-  desktopPinPanelFloatingStyle,
-  PIN_FLOATING_CARD_CLASSES,
-} from "../utils/siteLayout"
 import Button from "./ui/Button"
 
 type Props = {
@@ -24,6 +20,21 @@ type Props = {
   onTagFilter?: (tag: string) => void
   isPinHearted?: (pinId: number) => boolean
   onTogglePinHeart?: (pinId: number) => Promise<ToggleHeartResult>
+}
+
+function pinOverlayLabel(mode: string | undefined): string {
+  switch (mode) {
+    case "select-type":
+      return "Choose pin type"
+    case "view":
+      return "Pin details"
+    case "edit":
+      return "Edit pin"
+    case "add":
+      return "Add pin"
+    default:
+      return "Pin"
+  }
 }
 
 export default function PinFlowUI({
@@ -129,25 +140,62 @@ export default function PinFlowUI({
     />
   ) : null
 
+  const showComposer =
+    !!composerProps &&
+    (isDesktop ||
+      (showAddForm && modal?.mode === "add") ||
+      (showEditForm && modal?.mode === "edit"))
+
+  const showMobileOverlay =
+    !isDesktop &&
+    (modal?.mode === "select-type" ||
+      showComposer ||
+      (showViewDetail && !!detailView))
+
+  const showOverlay = showDesktopPanel || showMobileOverlay
+
+  const overlayBody = showOverlay ? (
+    <>
+      {modal?.mode === "select-type" && (
+        <PinTypeModal onSelectType={onSelectPinType} onCancel={onCloseView} />
+      )}
+      {showComposer && composerProps && (
+        <PinComposer
+          locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
+          {...composerProps}
+        />
+      )}
+      {detailView}
+      {modal?.mode === "view" ? (
+        <span id={viewHeadingId} className="sr-only">
+          Pin details
+        </span>
+      ) : null}
+    </>
+  ) : null
+
   return (
     <>
-      {showDesktopPanel && (
-        <div className={DESKTOP_PIN_PANEL_CLASSES} style={desktopPinPanelFloatingStyle()}>
-          <div className="p-4 overflow-y-auto flex-1">
-            {modal?.mode === "select-type" && (
-              <PinTypeModal
-                layout="panel"
-                onSelectType={onSelectPinType}
-                onCancel={onCloseView}
-              />
-            )}
-            {composerProps && (
-              <PinComposer layout="panel" {...composerProps} />
-            )}
-            {detailView}
-          </div>
-        </div>
-      )}
+      {showOverlay && overlayBody ? (
+        <PinOverlay
+          variant={isDesktop ? "panel" : "modal"}
+          onClose={modal?.mode === "edit" ? onCancelEdit : onCloseView}
+          aria-label={
+            modal?.mode === "select-type" || modal?.mode === "view"
+              ? undefined
+              : pinOverlayLabel(modal?.mode)
+          }
+          aria-labelledby={
+            modal?.mode === "select-type"
+              ? "pin-type-modal-title"
+              : modal?.mode === "view"
+                ? viewHeadingId
+                : undefined
+          }
+        >
+          {overlayBody}
+        </PinOverlay>
+      ) : null}
 
       {showPlacementOverlay && placement && (
         <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg">
@@ -203,39 +251,6 @@ export default function PinFlowUI({
           </div>
         </div>
       )}
-
-      {!isDesktop && modal?.mode === "select-type" && (
-        <PinTypeModal
-          layout="modal"
-          onSelectType={onSelectPinType}
-          onCancel={onCloseView}
-        />
-      )}
-      {!isDesktop && composerProps && ((showAddForm && modal?.mode === "add") || (showEditForm && modal?.mode === "edit")) && (
-        <PinComposer
-          layout="modal"
-          locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
-          {...composerProps}
-        />
-      )}
-      {!isDesktop && showViewDetail && detailView ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={viewHeadingId}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onCloseView()
-          }}
-        >
-          <div className={`${PIN_FLOATING_CARD_CLASSES} w-full max-w-md max-h-[90vh] overflow-y-auto p-4`}>
-            <span id={viewHeadingId} className="sr-only">
-              Pin details
-            </span>
-            {detailView}
-          </div>
-        </div>
-      ) : null}
     </>
   )
 }

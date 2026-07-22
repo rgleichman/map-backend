@@ -29,7 +29,7 @@ export const MAP_SHELL_OVERLAY_BOTTOM = "max(1rem, env(safe-area-inset-bottom))"
 
 /**
  * Shared card chrome for floating pin UI (mobile centered modals + desktop right panel).
- * Keep visual sync across PinFlowUI, PinModal, PinTypeModal, FieldEditorModal.
+ * Keep visual sync across PinOverlay, FieldEditorModal, and pin content cards.
  */
 export const PIN_FLOATING_CARD_CLASSES =
   "bg-base-100 rounded-box border border-base-300 shadow-xl"

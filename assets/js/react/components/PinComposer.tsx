@@ -4,7 +4,6 @@ import type { Pin, PinType } from "../types"
 import type { PinWorkflowAction } from "../pinWorkflow/types"
 
 type Props = {
-  layout: "modal" | "panel"
   locationAlreadySetFromPlacement?: boolean
   mode: "add" | "edit"
   csrfToken?: string
@@ -35,7 +34,6 @@ type Props = {
 }
 
 export default function PinComposer({
-  layout,
   locationAlreadySetFromPlacement,
   mode,
   csrfToken,
@@ -66,7 +64,6 @@ export default function PinComposer({
 }: Props) {
   return (
     <PinModal
-      layout={layout}
       locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
       pinType={pinType}
       csrfToken={csrfToken}
