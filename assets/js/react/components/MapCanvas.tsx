@@ -50,6 +50,11 @@ import {
 import PinHoverTooltip from "./map/PinHoverTooltip"
 import { shouldShowPinHoverTooltip } from "./map/pinHoverVisibility"
 import { hoverPopupMaxSize } from "./map/pinHoverFields"
+import {
+  choosePinHoverPopupAnchor,
+  pinHoverPopupOffset,
+  pinHoverPopupPadding,
+} from "./map/pinHoverPopupPosition"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
@@ -298,6 +303,30 @@ export default function MapCanvas({
     )
   }
 
+  function applyHoverPopupAnchor(map: MLMap, popup: Popup, pin: Pin, size: {
+    width: number
+    height: number
+  }): void {
+    const point = map.project([pin.longitude, pin.latitude])
+    const containerEl = map.getContainer()
+    const panelRight = desktopPinPanelMapPaddingRight(
+      containerEl.clientWidth,
+      pinPanelOpenRef.current,
+    )
+    const padding = pinHoverPopupPadding(panelRight)
+    popup.options.padding = padding
+    popup.options.anchor = choosePinHoverPopupAnchor({
+      x: point.x,
+      y: point.y,
+      mapWidth: containerEl.clientWidth,
+      mapHeight: containerEl.clientHeight,
+      popupWidth: size.width,
+      popupHeight: size.height,
+      padding,
+    })
+    popup.setLngLat([pin.longitude, pin.latitude])
+  }
+
   function showHoverTooltip(map: MLMap, pin: Pin): void {
     if (
       !shouldShowPinHoverTooltip({
@@ -312,16 +341,26 @@ export default function MapCanvas({
     }
 
     const containerEl = map.getContainer()
-    const { maxWidth, maxHeight } = hoverPopupMaxSize(
+    const panelRight = desktopPinPanelMapPaddingRight(
       containerEl.clientWidth,
+      pinPanelOpenRef.current,
+    )
+    const visibleWidth = Math.max(0, containerEl.clientWidth - panelRight)
+    const { maxWidth, maxHeight } = hoverPopupMaxSize(
+      visibleWidth,
       containerEl.clientHeight,
     )
+    const padding = pinHoverPopupPadding(panelRight)
 
     if (hoverPopupRef.current && hoverPinIdRef.current === pin.id && hoverRootRef.current) {
       hoverRootRef.current.render(
         renderHoverTooltipContent(pin, { maxWidth, maxHeight }),
       )
-      hoverPopupRef.current.setLngLat([pin.longitude, pin.latitude])
+      const existing = hoverPopupRef.current.getElement()
+      applyHoverPopupAnchor(map, hoverPopupRef.current, pin, {
+        width: existing?.offsetWidth || maxWidth,
+        height: existing?.offsetHeight || maxHeight,
+      })
       return
     }
 
@@ -329,18 +368,19 @@ export default function MapCanvas({
 
     const container = document.createElement("div")
     const root = createRoot(container)
-    // Anchor top so the tooltip hangs below the pin and stays out of the drag path.
+    // Explicit anchor (via applyHoverPopupAnchor) prefers left; flips near edges / panel.
     const popup = new Popup({
       className: "pin-hover-popup",
       closeButton: false,
       locationOccludedOpacity: 0.7,
       maxWidth: `${maxWidth}px`,
       closeOnClick: false,
-      anchor: "top",
+      offset: pinHoverPopupOffset,
+      padding,
     })
-      .setLngLat([pin.longitude, pin.latitude])
       .setDOMContent(container)
       .addTo(map)
+    applyHoverPopupAnchor(map, popup, pin, { width: maxWidth, height: maxHeight })
     // Hide empty MapLibre chrome until React has painted the full tooltip.
     const popupEl = popup.getElement()
     if (popupEl) {
@@ -352,6 +392,11 @@ export default function MapCanvas({
         maxHeight,
         onReady: () => {
           if (hoverPopupRef.current !== popup) return
+          // Reposition with final content size so edge-aware anchoring is accurate.
+          applyHoverPopupAnchor(map, popup, pin, {
+            width: popupEl?.offsetWidth || maxWidth,
+            height: popupEl?.offsetHeight || maxHeight,
+          })
           popupEl?.style.removeProperty("visibility")
         },
       }),
@@ -706,24 +751,28 @@ export default function MapCanvas({
           const handlePinHoverMove = (e: maplibregl.MapMouseEvent) => {
             if (!isDesktopRef.current || placementActiveRef.current) {
               if (hoverPinIdRef.current != null) clearHoverTooltip()
+              clearPointerCursor()
               return
             }
             const pinId = pinIdFromTopFeatureAt(map, e.point)
             if (pinId == null) {
               clearHoverTooltip()
+              clearPointerCursor()
               return
             }
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) {
               clearHoverTooltip()
+              clearPointerCursor()
               return
             }
-            map.getCanvas().style.cursor = "pointer"
+            setPointerCursor()
             showHoverTooltip(map, pin)
           }
 
           const handleCanvasMouseLeave = () => {
             clearHoverTooltip()
+            clearPointerCursor()
           }
 
           pinLayerHandlersRef.current = {
