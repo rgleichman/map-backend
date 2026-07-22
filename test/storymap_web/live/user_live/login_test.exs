@@ -79,6 +79,8 @@ defmodule StorymapWeb.UserLive.LoginTest do
     test "shows login page for sudo (email not stored; field starts empty)", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")
 
+      assert html =~ "Sign in again"
+      refute html =~ "Sign in or create an account"
       assert html =~ "You need to reauthenticate"
       refute html =~ "Happy Planting!"
       assert html =~ "Please remember your email"

@@ -12,7 +12,8 @@ defmodule StorymapWeb.UserLive.Login do
       <div class="mx-auto max-w-sm space-y-4">
         <div class="text-center">
           <.header>
-            <p>Sign in or create an account</p>
+            <p :if={@current_scope}>Sign in again</p>
+            <p :if={is_nil(@current_scope)}>Sign in or create an account</p>
             <:subtitle :if={@current_scope}>
               You need to reauthenticate to perform sensitive actions on your account.
             </:subtitle>
