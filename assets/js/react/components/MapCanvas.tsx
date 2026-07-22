@@ -36,6 +36,7 @@ import {
   suppressOverlappingPinLabels,
 } from "./map/mapPinFeatures"
 import { takeLastVisitWatermark } from "../utils/mapLastVisit"
+import { cacheDeviceLocation } from "../utils/nearUserLocation"
 import {
   buildPinLinkGeoJson,
   buildPinLinkSyncKey,
@@ -511,6 +512,9 @@ export default function MapCanvas({
           maxZoom: GEOLOCATE_MAX_ZOOM,
         },
       })
+      geolocateControl.on("geolocate", (position: GeolocationPosition) => {
+        cacheDeviceLocation(position.coords)
+      })
       map.addControl(geolocateControl, "top-right")
       geolocateControlRef.current = geolocateControl
       mapRef.current = map
@@ -836,6 +840,7 @@ export default function MapCanvas({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        cacheDeviceLocation(position.coords)
         if (cancelled || !mapRef.current) return
         mapRef.current.flyTo({
           center: [position.coords.longitude, position.coords.latitude],

@@ -233,7 +233,7 @@ export function usePinWorkflow({
     }
 
     if (result.mode === "add") {
-      const near = await isPinNearDeviceLocation(result.payload.latitude, result.payload.longitude)
+      const near = isPinNearDeviceLocation(result.payload.latitude, result.payload.longitude)
       if (near) {
         setPendingNearLocationSave(result)
         return

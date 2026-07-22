@@ -1,60 +1,66 @@
 import { isPinNearUserLocation, NEAR_USER_PIN_THRESHOLD_M } from "./geoDistance"
 
-/** Match MapCanvas: reuse a recent fix; avoid a high-accuracy prompt. */
-const POSITION_OPTIONS: PositionOptions = {
-  enableHighAccuracy: false,
-  timeout: 10_000,
-  maximumAge: 20 * 60 * 1000,
+/** Same window as MapCanvas geolocate `maximumAge`. */
+const CACHE_MAX_AGE_MS = 20 * 60 * 1000
+
+type CachedDeviceLocation = {
+  latitude: number
+  longitude: number
+  accuracy: number | null
+  cachedAt: number
 }
 
-async function geolocationPermissionGranted(): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.permissions?.query) {
-    return false
-  }
-  try {
-    const status = await navigator.permissions.query({ name: "geolocation" })
-    return status.state === "granted"
-  } catch {
-    // Missing or unsupported permission name — do not call getCurrentPosition
-    // (that could prompt the user).
-    return false
+let cachedLocation: CachedDeviceLocation | null = null
+
+/**
+ * Store a device fix obtained elsewhere (e.g. MapCanvas auto-center / locate button).
+ * Never sends coordinates to a server.
+ */
+export function cacheDeviceLocation(coords: {
+  latitude: number
+  longitude: number
+  accuracy?: number | null
+}): void {
+  const accuracy =
+    typeof coords.accuracy === "number" && Number.isFinite(coords.accuracy) ? coords.accuracy : null
+  cachedLocation = {
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    accuracy,
+    cachedAt: Date.now(),
   }
 }
 
-function getCurrentPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, POSITION_OPTIONS)
-  })
+/** Test helper: clear the in-memory device location cache. */
+export function clearCachedDeviceLocation(): void {
+  cachedLocation = null
+}
+
+function getCachedDeviceLocation(): CachedDeviceLocation | null {
+  if (cachedLocation == null) return null
+  if (Date.now() - cachedLocation.cachedAt > CACHE_MAX_AGE_MS) {
+    cachedLocation = null
+    return null
+  }
+  return cachedLocation
 }
 
 /**
- * Client-only: whether the pin is near the device location.
- * Returns false when permission is not already granted, geo fails, or accuracy is poor.
- * Never sends coordinates to a server.
+ * Whether the pin is near the last cached device location.
+ * Returns false when there is no recent cache, accuracy is poor, or the pin is far.
+ * Does not request geolocation (avoids prompts and Permissions API gaps on Firefox/Safari).
  */
-export async function isPinNearDeviceLocation(
+export function isPinNearDeviceLocation(
   pinLat: number,
   pinLng: number,
   thresholdM: number = NEAR_USER_PIN_THRESHOLD_M,
-): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return false
-  }
-  if (!(await geolocationPermissionGranted())) {
+): boolean {
+  const loc = getCachedDeviceLocation()
+  if (loc == null) return false
+
+  if (loc.accuracy != null && loc.accuracy > 4 * thresholdM) {
     return false
   }
 
-  let position: GeolocationPosition
-  try {
-    position = await getCurrentPosition()
-  } catch {
-    return false
-  }
-
-  const { latitude, longitude, accuracy } = position.coords
-  if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy > 4 * thresholdM) {
-    return false
-  }
-
-  return isPinNearUserLocation(pinLat, pinLng, latitude, longitude, thresholdM)
+  return isPinNearUserLocation(pinLat, pinLng, loc.latitude, loc.longitude, thresholdM)
 }
