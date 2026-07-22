@@ -6,7 +6,7 @@ export type WorkflowUIDerivation = {
   pendingLocation: { lat: number; lng: number } | null
   pendingPinType: PinType | null
   editingPinId: number | null
-  /** Pin shown in the detail panel (view or edit); drives map focus / mini popup. */
+  /** Pin shown in the detail panel (view or edit); drives map focus / selection highlight. */
   detailPinId: number | null
   /** Desktop right-rail panel is visible (shifts map padding). */
   showDesktopPanel: boolean

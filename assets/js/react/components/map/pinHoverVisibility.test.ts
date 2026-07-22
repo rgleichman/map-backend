@@ -6,7 +6,7 @@ describe("shouldShowPinHoverTooltip", () => {
     expect(
       shouldShowPinHoverTooltip({
         isDesktop: true,
-        hideMiniPopup: false,
+        placementActive: false,
         detailPinId: null,
         hoverPinId: 1,
       }),
@@ -17,7 +17,7 @@ describe("shouldShowPinHoverTooltip", () => {
     expect(
       shouldShowPinHoverTooltip({
         isDesktop: false,
-        hideMiniPopup: false,
+        placementActive: false,
         detailPinId: null,
         hoverPinId: 1,
       }),
@@ -28,7 +28,7 @@ describe("shouldShowPinHoverTooltip", () => {
     expect(
       shouldShowPinHoverTooltip({
         isDesktop: true,
-        hideMiniPopup: true,
+        placementActive: true,
         detailPinId: null,
         hoverPinId: 1,
       }),
@@ -39,7 +39,7 @@ describe("shouldShowPinHoverTooltip", () => {
     expect(
       shouldShowPinHoverTooltip({
         isDesktop: true,
-        hideMiniPopup: false,
+        placementActive: false,
         detailPinId: 42,
         hoverPinId: 42,
       }),
@@ -50,7 +50,7 @@ describe("shouldShowPinHoverTooltip", () => {
     expect(
       shouldShowPinHoverTooltip({
         isDesktop: true,
-        hideMiniPopup: false,
+        placementActive: false,
         detailPinId: 42,
         hoverPinId: 7,
       }),

@@ -27,8 +27,13 @@ import {
   CLUSTER_RADIUS_PX,
   DIMMED_SOURCE_ID,
   FILTER_DIMMED_OPACITY,
+  PIN_ICONS_SELECTED_LAYER_ID,
   pinIconLayout,
+  pinIconsSelectedFilter,
+  pinIconsUnselectedFilter,
+  pinLabelLayout,
   pinLabelsVisibleFilter,
+  suppressOverlappingPinLabels,
 } from "./map/mapPinFeatures"
 import { takeLastVisitWatermark } from "../utils/mapLastVisit"
 import {
@@ -41,7 +46,6 @@ import {
   writeShowConnectionsPreference,
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
-import PinMiniPopup from "./map/PinMiniPopup"
 import PinHoverTooltip from "./map/PinHoverTooltip"
 import { shouldShowPinHoverTooltip } from "./map/pinHoverVisibility"
 import { hoverPopupMaxSize } from "./map/pinHoverFields"
@@ -86,15 +90,15 @@ type Props = {
   cameraRequest?: PinFocusIntent | null
   onCameraRequestConsumed?: () => void
   isDesktop?: boolean
-  /** Pin id currently shown in the detail panel (view or edit); drives desktop mini popup. */
+  /** Pin id currently shown in the detail panel (view or edit); drives selection highlight + link focus. */
   detailPinId?: number | null
   /** Desktop right-rail open — shifts MapLibre padding so the globe sits in the visible area. */
   pinPanelOpen?: boolean
-  /** Hide the mini popup while placing a pin. */
-  hideMiniPopup?: boolean
+  /** True while placing/editing a pin location (suppresses hover tooltips). */
+  placementActive?: boolean
   onMapClick: (lng: number, lat: number) => void
   onOpenPin: (pinId: number) => void
-  /** Dismiss pin detail panel / mini popup (e.g. empty map click). */
+  /** Dismiss pin detail panel (e.g. empty map click). */
   onDismissPinDetail?: () => void
   /** When set, map shows the actual pin (highlighted) at this location and flies to it. */
   pendingLocation?: { lat: number; lng: number } | null
@@ -121,7 +125,7 @@ export default function MapCanvas({
   isDesktop = false,
   detailPinId = null,
   pinPanelOpen = false,
-  hideMiniPopup = false,
+  placementActive = false,
   onMapClick,
   onOpenPin,
   onDismissPinDetail,
@@ -170,13 +174,10 @@ export default function MapCanvas({
   } | null>(null)
   const isDesktopRef = useRef(isDesktop)
   isDesktopRef.current = isDesktop
-  const hideMiniPopupRef = useRef(hideMiniPopup)
-  hideMiniPopupRef.current = hideMiniPopup
+  const placementActiveRef = useRef(placementActive)
+  placementActiveRef.current = placementActive
   const onDismissPinDetailRef = useRef(onDismissPinDetail)
   onDismissPinDetailRef.current = onDismissPinDetail
-  const openPopupRef = useRef<Popup | null>(null)
-  const openPopupPinIdRef = useRef<number | null>(null)
-  const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
   const hoverPopupRef = useRef<Popup | null>(null)
   const hoverPinIdRef = useRef<number | null>(null)
   const hoverRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
@@ -189,7 +190,6 @@ export default function MapCanvas({
     takeLastVisitWatermark(mapScopeKey),
   )
   const [showConnections, setShowConnections] = useState(() => readShowConnectionsPreference())
-  const [openPopupPinId, setOpenPopupPinId] = useState<number | null>(null)
   const [focusedBacklinks, setFocusedBacklinks] = useState<PinLink[] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchActive, setSearchActive] = useState(false)
@@ -240,20 +240,27 @@ export default function MapCanvas({
   const lastVisitWatermarkRef = useRef(lastVisitWatermark)
   lastVisitWatermarkRef.current = lastVisitWatermark
   const pinGeoJsonSyncKey = useMemo(
-    () => buildPinGeoJsonSyncKey(pinsForMap, filterSyncKey, catalog, lastVisitWatermarkMs),
-    [pinsForMap, filterSyncKey, catalog, lastVisitWatermarkMs],
+    () =>
+      buildPinGeoJsonSyncKey(
+        pinsForMap,
+        filterSyncKey,
+        catalog,
+        lastVisitWatermarkMs,
+        detailPinId,
+      ),
+    [pinsForMap, filterSyncKey, catalog, lastVisitWatermarkMs, detailPinId],
   )
   const pinLinkBuildParams = useMemo(
     () => ({
       pins: pinsForMap,
       catalog,
-      focusPinId: openPopupPinId,
+      focusPinId: detailPinId,
       backlinks: focusedBacklinks,
       showConnections,
       pinMatches: pinFilterMatcher,
       filterSyncKey,
     }),
-    [pinsForMap, catalog, openPopupPinId, focusedBacklinks, showConnections, pinFilterMatcher, filterSyncKey],
+    [pinsForMap, catalog, detailPinId, focusedBacklinks, showConnections, pinFilterMatcher, filterSyncKey],
   )
   const pinLinkBuildResult = useMemo(
     () => buildPinLinkGeoJson(pinLinkBuildParams),
@@ -264,22 +271,6 @@ export default function MapCanvas({
     [pinLinkBuildParams],
   )
 
-  function clearPopupState(): void {
-    const root = popupRootRef.current
-    openPopupRef.current = null
-    openPopupPinIdRef.current = null
-    setOpenPopupPinId(null)
-    setFocusedBacklinks(null)
-    popupRootRef.current = null
-    root?.unmount()
-  }
-
-  function closeOpenPopup(): void {
-    const popup = openPopupRef.current
-    clearPopupState()
-    popup?.remove()
-  }
-
   function clearHoverTooltip(): void {
     const root = hoverRootRef.current
     const popup = hoverPopupRef.current
@@ -288,24 +279,6 @@ export default function MapCanvas({
     hoverRootRef.current = null
     root?.unmount()
     popup?.remove()
-  }
-
-  function trackFocusedPin(pinId: number | null): void {
-    openPopupPinIdRef.current = pinId
-    setOpenPopupPinId(pinId)
-    if (pinId != null) {
-      focusedPinIdRef.current = pinId
-    } else {
-      setFocusedBacklinks(null)
-    }
-  }
-
-  function renderMiniPopupContent(pin: Pin) {
-    return (
-      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
-        <PinMiniPopup pin={pin} />
-      </PinTypesProvider>
-    )
   }
 
   function renderHoverTooltipContent(
@@ -328,7 +301,7 @@ export default function MapCanvas({
     if (
       !shouldShowPinHoverTooltip({
         isDesktop: isDesktopRef.current,
-        hideMiniPopup: hideMiniPopupRef.current,
+        placementActive: placementActiveRef.current,
         detailPinId: detailPinIdRef.current ?? null,
         hoverPinId: pin.id,
       })
@@ -387,32 +360,6 @@ export default function MapCanvas({
     hoverRootRef.current = root
   }
 
-  function showDesktopMiniPopup(map: MLMap, pin: Pin): void {
-    clearHoverTooltip()
-    if (openPopupRef.current) {
-      closeOpenPopup()
-    }
-    const container = document.createElement("div")
-    const root = createRoot(container)
-    root.render(renderMiniPopupContent(pin))
-    const popup = new Popup({
-      closeButton: false,
-      locationOccludedOpacity: 0.7,
-      maxWidth: "20rem",
-      closeOnClick: false,
-    })
-      .setLngLat([pin.longitude, pin.latitude])
-      .setDOMContent(container)
-      .addTo(map)
-    openPopupRef.current = popup
-    openPopupPinIdRef.current = pin.id
-    setOpenPopupPinId(pin.id)
-    popupRootRef.current = root
-    popup.on("close", () => {
-      if (openPopupRef.current === popup) clearPopupState()
-    })
-  }
-
   function mapPaddingForPinPanel(map: MLMap, panelOpen: boolean): maplibregl.PaddingOptions {
     const right = desktopPinPanelMapPaddingRight(map.getContainer().clientWidth, panelOpen)
     return { top: 0, bottom: 0, left: 0, right }
@@ -445,6 +392,7 @@ export default function MapCanvas({
       filterSyncKeyRef.current,
       catalogSnapshot,
       watermark?.getTime() ?? null,
+      detailPinIdRef.current ?? null,
     )
     if (syncKey === lastPinGeoJsonSyncKeyRef.current) return
 
@@ -456,10 +404,17 @@ export default function MapCanvas({
       pinFilterMatcherRef.current,
       catalogSnapshot,
       watermark,
+      detailPinIdRef.current ?? null,
+    )
+    const project = (lng: number, lat: number) => map.project([lng, lat])
+    const matching = suppressOverlappingPinLabels(
+      featureSets.matching,
+      detailPinIdRef.current ?? null,
+      project,
     )
       ; (map.getSource(MATCHING_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
-        features: featureSets.matching,
+        features: matching,
       })
       ; (map.getSource(DIMMED_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
         type: "FeatureCollection",
@@ -481,13 +436,13 @@ export default function MapCanvas({
   }, [pinLinkSyncKey, pinLinkBuildResult, mapReady])
 
   useEffect(() => {
-    if (!showConnections || openPopupPinId == null) {
+    if (!showConnections || detailPinId == null) {
       setFocusedBacklinks(null)
       return
     }
     let cancelled = false
     setFocusedBacklinks(null)
-    getPinBacklinks(openPopupPinId)
+    getPinBacklinks(detailPinId)
       .then(({ data }) => {
         if (!cancelled) setFocusedBacklinks(data)
       })
@@ -497,7 +452,7 @@ export default function MapCanvas({
     return () => {
       cancelled = true
     }
-  }, [showConnections, openPopupPinId])
+  }, [showConnections, detailPinId])
 
   const handleConnectionsToggle = () => {
     setShowConnections((prev) => {
@@ -514,7 +469,6 @@ export default function MapCanvas({
     lastPinLinkSyncKeyRef.current = ""
     setLastVisitWatermark(takeLastVisitWatermark(mapScopeKey))
     setFocusedBacklinks(null)
-    closeOpenPopup()
   }, [mapScopeKey])
 
   // Sync with layout drawer (checkbox #drawer-toggle) so we can hide overlays when drawer is open
@@ -584,7 +538,7 @@ export default function MapCanvas({
         })
         if (hit.length > 0) return
 
-        // Empty map click dismisses open pin detail (panel + mini popup)
+        // Empty map click dismisses open pin detail
         if (detailPinIdRef.current != null && onDismissPinDetailRef.current) {
           onDismissPinDetailRef.current()
           return
@@ -597,7 +551,7 @@ export default function MapCanvas({
         if (!map || !isMounted) return
         try {
           for (const pinType of BUILTIN_PIN_TYPES) {
-            for (const outline of [undefined, "new"] as const) {
+            for (const outline of [undefined, "new", "selected"] as const) {
               const dataUrl = createPinTypeMarkerSVG(pinType, [], outline)
               const img = await loadImage(dataUrl)
               if (!isMounted) return
@@ -639,7 +593,7 @@ export default function MapCanvas({
             id: "pin-icons-layer",
             type: "symbol",
             source: MATCHING_SOURCE_ID,
-            filter: ["!", ["has", "point_count"]],
+            filter: pinIconsUnselectedFilter,
             layout: pinIconLayout,
           })
           map.addLayer({
@@ -692,20 +646,20 @@ export default function MapCanvas({
             type: "symbol",
             source: MATCHING_SOURCE_ID,
             filter: pinLabelsVisibleFilter,
-            layout: {
-              "text-field": ["get", "title"],
-              "text-font": ["Open Sans Bold", "sans-serif"],
-              "text-size": 14,
-              "text-anchor": "top",
-              "text-offset": [0, 0],
-              "text-allow-overlap": true,
-              "text-ignore-placement": true,
-            },
+            layout: pinLabelLayout,
             paint: {
               "text-color": "#1f2937",
               "text-halo-color": ["get", "haloColor"],
-              "text-halo-width": 1.7,
+              "text-halo-width": ["get", "haloWidth"],
             },
+          })
+          // Selected marker above labels so overlapping titles cannot show through it.
+          map.addLayer({
+            id: PIN_ICONS_SELECTED_LAYER_ID,
+            type: "symbol",
+            source: MATCHING_SOURCE_ID,
+            filter: pinIconsSelectedFilter,
+            layout: pinIconLayout,
           })
           const handlePinIconClick = (e: maplibregl.MapLayerMouseEvent) => {
             const pinId = pinIdFromTopFeatureAt(map, e.point)
@@ -728,7 +682,7 @@ export default function MapCanvas({
             const otherPinId = resolveOtherPinIdFromLink(
               sourcePinId,
               targetPinId,
-              openPopupPinIdRef.current,
+              detailPinIdRef.current,
             )
             const pin = pinsByIdRef.current.get(otherPinId)
             if (!pin) return
@@ -746,7 +700,7 @@ export default function MapCanvas({
           // Single map-level handler avoids matching↔dimmed mouseleave races that
           // schedule hide after the other layer already claimed a new pin.
           const handlePinHoverMove = (e: maplibregl.MapMouseEvent) => {
-            if (!isDesktopRef.current || hideMiniPopupRef.current) {
+            if (!isDesktopRef.current || placementActiveRef.current) {
               if (hoverPinIdRef.current != null) clearHoverTooltip()
               return
             }
@@ -785,6 +739,7 @@ export default function MapCanvas({
 
           map.on("click", "pin-icons-layer", handlePinIconClick)
           map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
+          map.on("click", PIN_ICONS_SELECTED_LAYER_ID, handlePinIconClick)
           map.on("click", "pin-clusters-layer", handleClusterClick)
           map.on("click", "pin-cluster-count-layer", handleClusterClick)
           map.on("mousemove", handlePinHoverMove)
@@ -832,6 +787,7 @@ export default function MapCanvas({
       if (map && pinHandlers) {
         map.off("click", "pin-icons-layer", pinHandlers.handlePinIconClick)
         map.off("click", "pin-icons-dimmed-layer", pinHandlers.handlePinIconClick)
+        map.off("click", PIN_ICONS_SELECTED_LAYER_ID, pinHandlers.handlePinIconClick)
         map.off("click", "pin-clusters-layer", pinHandlers.handleClusterClick)
         map.off("click", "pin-cluster-count-layer", pinHandlers.handleClusterClick)
         map.off("mousemove", pinHandlers.handlePinHoverMove)
@@ -850,7 +806,6 @@ export default function MapCanvas({
         pinLinkLayerHandlersRef.current = null
       }
       clearHoverTooltip()
-      closeOpenPopup()
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       geolocateControlRef.current = null
@@ -1063,50 +1018,37 @@ export default function MapCanvas({
     }
   }, [pinPanelOpen, mapReady, detailPinId, pendingLocation])
 
-  // Sync desktop mini popup with detail panel pin.
+  // Keep camera focus tracking in sync with the detail panel pin.
   useEffect(() => {
+    focusedPinIdRef.current = detailPinId
+    if (detailPinId == null) setFocusedBacklinks(null)
+  }, [detailPinId])
+
+  // Recompute which labels to hide when the camera moves (screen overlap depends on zoom).
+  useEffect(() => {
+    if (!mapReady || detailPinId == null) return
     const map = mapRef.current
-    if (!map || !mapReady) return
-
-    const shouldShow = isDesktop && !hideMiniPopup && detailPinId != null
-
-    if (!shouldShow) {
-      if (openPopupRef.current) closeOpenPopup()
-      // Keep focus tracking for link highlighting when detail is open without a mini popup
-      // (mobile view modal, or desktop edit).
-      trackFocusedPin(detailPinId)
-      return
+    if (!map) return
+    const refreshLabels = () => {
+      lastPinGeoJsonSyncKeyRef.current = ""
+      syncPinGeoJsonRef.current()
     }
-
-    const pin = pins.find((p) => p.id === detailPinId)
-    if (!pin) {
-      closeOpenPopup()
-      return
+    map.on("moveend", refreshLabels)
+    return () => {
+      map.off("moveend", refreshLabels)
     }
-
-    focusedPinIdRef.current = pin.id
-
-    if (openPopupRef.current && openPopupPinIdRef.current === pin.id && popupRootRef.current) {
-      clearHoverTooltip()
-      popupRootRef.current.render(renderMiniPopupContent(pin))
-      openPopupRef.current.setLngLat([pin.longitude, pin.latitude])
-      setOpenPopupPinId(pin.id)
-      return
-    }
-
-    showDesktopMiniPopup(map, pin)
-  }, [detailPinId, hideMiniPopup, isDesktop, pins, mapReady, catalog, enabledBuiltins])
+  }, [mapReady, detailPinId])
 
   // Drop hover tooltip when desktop/placement/selection suppress it.
   useEffect(() => {
-    if (!isDesktop || hideMiniPopup) {
+    if (!isDesktop || placementActive) {
       clearHoverTooltip()
       return
     }
     if (detailPinId != null && hoverPinIdRef.current === detailPinId) {
       clearHoverTooltip()
     }
-  }, [isDesktop, hideMiniPopup, detailPinId])
+  }, [isDesktop, placementActive, detailPinId])
 
   const savedFilterEmptyOnMap =
     filter.heartedOnly &&
@@ -1127,7 +1069,7 @@ export default function MapCanvas({
       const nextVisualKeys = new Map<string, string>()
       for (const pinType of catalogSnapshot) {
         const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
-        for (const outline of [undefined, "new"] as const) {
+        for (const outline of [undefined, "new", "selected"] as const) {
           const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
           nextIds.add(imageId)
           nextVisualKeys.set(imageId, visualKey)

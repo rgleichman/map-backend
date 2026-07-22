@@ -4,6 +4,7 @@ import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   NEW_PIN_OUTLINE_STROKE,
+  SELECTED_PIN_OUTLINE_STROKE,
 } from "./pinTypeIcons"
 
 function hasDangerouslySetInnerHTML(node: unknown): boolean {
@@ -74,6 +75,14 @@ describe("createPinTypeMarkerSVG", () => {
     const dataUrl = createPinTypeMarkerSVG("scheduled", [], "new")
     const svg = decodeDataUrlBase64(dataUrl)
     expect(svg).toContain(`stroke="${NEW_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain('stroke-width="10"')
+  })
+
+  it("bakes opaque dark-theme primary stroke for selected outline", () => {
+    const dataUrl = createPinTypeMarkerSVG("scheduled", [], "selected")
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain(`stroke="${SELECTED_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain(`fill="${SELECTED_PIN_OUTLINE_STROKE}"`)
     expect(svg).toContain('stroke-width="10"')
   })
 })

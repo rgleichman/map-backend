@@ -286,7 +286,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   isDesktop={isDesktop}
                   detailPinId={detailPinId}
                   pinPanelOpen={showDesktopPanel}
-                  hideMiniPopup={placement != null}
+                  placementActive={placement != null}
                   onMapClick={onMapClick}
                   onOpenPin={onOpenPin}
                   onDismissPinDetail={showViewDetail ? onCloseView : undefined}

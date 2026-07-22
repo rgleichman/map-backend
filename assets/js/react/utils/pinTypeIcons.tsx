@@ -117,15 +117,22 @@ const TEARDROP_PATH =
 /**
  * Teardrop outline styles used when building marker SVGs.
  * - pending: stroke via CSS `currentColor` (DOM placement; see `.pin-marker--pending`)
+ * - selected: baked light green (dark-theme primary) for MapLibre selected-pin images
  * - new: baked amber stroke for MapLibre “new since last visit” images
  */
-export type PinMarkerOutline = "pending" | "new"
+export type PinMarkerOutline = "pending" | "selected" | "new"
 
-/** Only MapLibre image ids use a baked outline variant. */
-export type PinMarkerMapOutline = Extract<PinMarkerOutline, "new">
+/** MapLibre image ids that use a baked outline variant. */
+export type PinMarkerMapOutline = Extract<PinMarkerOutline, "selected" | "new">
 
 /** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
 export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
+
+/**
+ * Selected-pin / label outline: dark-theme primary (`oklch(83% 0.14 139.72)` → `#95dd84`).
+ * Fixed so selection stays a light green in both light and dark themes.
+ */
+export const SELECTED_PIN_OUTLINE_STROKE = "#95dd84"
 
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(
@@ -135,13 +142,16 @@ export function getPinTypeMarkerImageId(
   const base = isCustomPinType(pinType)
     ? customPinTypeMarkerImageId(pinType)
     : `pin-icon-${builtinIconKeyForPinType(pinType)}`
-  return outline === "new" ? `${base}-new` : base
+  if (outline === "selected") return `${base}-selected`
+  if (outline === "new") return `${base}-new`
+  return base
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 
 function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   if (outline === "pending") return "currentColor"
+  if (outline === "selected") return SELECTED_PIN_OUTLINE_STROKE
   if (outline === "new") return NEW_PIN_OUTLINE_STROKE
   return null
 }
@@ -161,11 +171,16 @@ function buildPinMarkerSVGStringFallback(
 
   const stroke = markerOutlineStroke(outline)
   const outlined = stroke != null
+  // “new” / pending stay slightly translucent; selected is fully opaque so map labels cannot show through.
+  const translucent = outline === "new" || outline === "pending"
   const outlinePath = outlined
-    ? `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
+    ? outline === "selected"
+      ? `<path d="${TEARDROP_PATH}" fill="${stroke}" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>
+        <path d="${TEARDROP_PATH}" fill="${config.color}" fill-opacity="1"/>`
+      : `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
     : ""
-  const mainPathFillOpacity = outlined ? "0.72" : "1"
-  const circleFillOpacity = outlined ? "0.85" : "1"
+  const mainPathFillOpacity = translucent ? "0.72" : "1"
+  const circleFillOpacity = translucent ? "0.85" : "1"
   const shadowFilter = outlined ? "" : ' filter="url(#shadow)"'
   const iconPaths = ICON_PATH_DEFS[iconKey]
 
@@ -178,6 +193,13 @@ function buildPinMarkerSVGStringFallback(
     })
     .join("")
 
+  const mainTeardrop =
+    outline === "selected"
+      ? "" // already drawn opaque over the outline fill above
+      : `<path d="${TEARDROP_PATH}"
+              fill="${config.color}"
+              fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>`
+
   return `
     <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="${SVG_NS}">
       <defs>
@@ -187,9 +209,7 @@ function buildPinMarkerSVGStringFallback(
       </defs>
       <g transform="translate(3, 3)">
         ${outlinePath}
-        <path d="${TEARDROP_PATH}"
-              fill="${config.color}"
-              fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>
+        ${mainTeardrop}
         <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
         <g transform="${MARKER_ICON_TRANSFORM}" ${iconGroupAttrs}>
           ${iconMarkup}
@@ -209,8 +229,9 @@ function buildPinMarkerSVGElement(
   const iconKey = builtinIconKeyForPinType(pinType)
   const isStrokeIcon = iconKey === BuiltinPinType.OneTime
   const outlined = outline != null
-  const mainPathFillOpacity = outlined ? "0.72" : "1"
-  const circleFillOpacity = outlined ? "0.85" : "1"
+  const translucent = outline === "new" || outline === "pending"
+  const mainPathFillOpacity = translucent ? "0.72" : "1"
+  const circleFillOpacity = translucent ? "0.85" : "1"
   const iconPaths = ICON_PATH_DEFS[iconKey]
   const stroke = markerOutlineStroke(outline)
 
@@ -247,10 +268,11 @@ function buildPinMarkerSVGElement(
   if (stroke != null) {
     const outlinePath = document.createElementNS(SVG_NS, "path")
     outlinePath.setAttribute("d", TEARDROP_PATH)
-    outlinePath.setAttribute("fill", "none")
     outlinePath.setAttribute("stroke", stroke)
     outlinePath.setAttribute("stroke-width", "10")
     outlinePath.setAttribute("stroke-linejoin", "round")
+    // Selected: opaque fill under the stroke so nothing shows through the halo.
+    outlinePath.setAttribute("fill", outline === "selected" ? stroke : "none")
     rootGroup.appendChild(outlinePath)
   }
 
@@ -295,7 +317,7 @@ function buildPinMarkerSVGElement(
 }
 
 /**
- * MapLibre marker image (data URL). Pass `outline: "new"` for the highlighted variant.
+ * MapLibre marker image (data URL). Pass `outline: "new"` or `"selected"` for outlined variants.
  */
 export function createPinTypeMarkerSVG(
   pinType: PinType,
