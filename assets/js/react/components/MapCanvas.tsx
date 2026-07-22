@@ -1,6 +1,5 @@
 import React, { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react"
-import { createRoot } from "react-dom/client"
-import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl"
+import maplibregl, { Map as MLMap, Marker } from "maplibre-gl"
 import type { Pin, PinLink, PinType } from "../types"
 import { getPinBacklinks } from "../api/client"
 import { BUILTIN_PIN_TYPES, DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
@@ -9,7 +8,7 @@ import {
   createPinTypeMarkerSVG,
   getPinTypeMarkerImageId,
 } from "../utils/pinTypeIcons"
-import { PinTypesProvider, usePinTypes } from "../context/PinTypesContext"
+import { usePinTypes } from "../context/PinTypesContext"
 import { buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
 import type { PinFocusIntent } from "../hooks/mapHookTypes"
 import { parsePinIdFromSearch } from "../mapRoute"
@@ -47,37 +46,17 @@ import {
   writeShowConnectionsPreference,
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
-import PinHoverTooltip from "./map/PinHoverTooltip"
-import { shouldShowPinHoverTooltip } from "./map/pinHoverVisibility"
-import { hoverPopupMaxSize } from "./map/pinHoverFields"
-import {
-  choosePinHoverPopupAnchor,
-  pinHoverPopupOffset,
-  pinHoverPopupPadding,
-} from "./map/pinHoverPopupPosition"
+import { usePinHoverPopup } from "./map/usePinHoverPopup"
+import { mapPaddingForPinPanel, usePinPanelCamera } from "./map/usePinPanelCamera"
+import { loadImage, registerCustomPinImages } from "./map/registerCustomPinImages"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
 import Button from "./ui/Button"
 import {
-  DESKTOP_PIN_PANEL_PADDING_DURATION_MS,
-  desktopPinPanelMapPaddingRight,
   mapShellOverlayBottomAboveHelp,
   mapShellTopRightOverlayTop,
 } from "../utils/siteLayout"
-import {
-  PIN_PANEL_EDGE_MARGIN_PX,
-  zoomToKeepPointInPaddedViewport,
-} from "./map/pinPanelCamera"
-
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error("Failed to load pin image"))
-    img.src = dataUrl
-  })
-}
 
 const GEOLOCATE_MAX_ZOOM = 12
 const PIN_FOCUS_ZOOM = 14
@@ -172,21 +151,27 @@ export default function MapCanvas({
   detailPinIdRef.current = detailPinId
   const pinPanelOpenRef = useRef(pinPanelOpen)
   pinPanelOpenRef.current = pinPanelOpen
-  const panelCameraBackupRef = useRef<{
-    center: maplibregl.LngLat
-    zoom: number
-    bearing: number
-    pitch: number
-  } | null>(null)
   const isDesktopRef = useRef(isDesktop)
   isDesktopRef.current = isDesktop
   const placementActiveRef = useRef(placementActive)
   placementActiveRef.current = placementActive
   const onDismissPinDetailRef = useRef(onDismissPinDetail)
   onDismissPinDetailRef.current = onDismissPinDetail
-  const hoverPopupRef = useRef<Popup | null>(null)
-  const hoverPinIdRef = useRef<number | null>(null)
-  const hoverRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
+  const { showHoverTooltip, clearHoverTooltip } = usePinHoverPopup({
+    catalogRef,
+    enabledBuiltinsRef,
+    isDesktopRef,
+    placementActiveRef,
+    detailPinIdRef,
+    pinPanelOpenRef,
+    isDesktop,
+    placementActive,
+    detailPinId,
+  })
+  const showHoverTooltipRef = useRef(showHoverTooltip)
+  showHoverTooltipRef.current = showHoverTooltip
+  const clearHoverTooltipRef = useRef(clearHoverTooltip)
+  clearHoverTooltipRef.current = clearHoverTooltip
   const geolocateControlRef = useRef<InstanceType<typeof maplibregl.GeolocateControl> | null>(null)
   const initialGeolocateTriggeredRef = useRef(false)
   const [mapReady, setMapReady] = useState(false)
@@ -225,6 +210,8 @@ export default function MapCanvas({
   onNavigateToPinRef.current = onNavigateToPin
   const knownCustomImageIdsRef = useRef<Set<string>>(new Set())
   const customImageVisualKeysRef = useRef<Map<string, string>>(new Map())
+  /** False while custom images are (re)registering; GeoJSON sync must wait. */
+  const customImagesReadyRef = useRef(false)
 
   const pinsForMap =
     editingPinId != null ? pins.filter((p) => p.id !== editingPinId) : pins
@@ -276,140 +263,6 @@ export default function MapCanvas({
     () => buildPinLinkSyncKey(pinLinkBuildParams),
     [pinLinkBuildParams],
   )
-
-  function clearHoverTooltip(): void {
-    const root = hoverRootRef.current
-    const popup = hoverPopupRef.current
-    hoverPopupRef.current = null
-    hoverPinIdRef.current = null
-    hoverRootRef.current = null
-    root?.unmount()
-    popup?.remove()
-  }
-
-  function renderHoverTooltipContent(
-    pin: Pin,
-    opts: { maxWidth: number; maxHeight: number; onReady?: () => void },
-  ) {
-    return (
-      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
-        <PinHoverTooltip
-          pin={pin}
-          maxWidth={opts.maxWidth}
-          maxHeight={opts.maxHeight}
-          onReady={opts.onReady}
-        />
-      </PinTypesProvider>
-    )
-  }
-
-  function applyHoverPopupAnchor(map: MLMap, popup: Popup, pin: Pin, size: {
-    width: number
-    height: number
-  }): void {
-    const point = map.project([pin.longitude, pin.latitude])
-    const containerEl = map.getContainer()
-    const panelRight = desktopPinPanelMapPaddingRight(
-      containerEl.clientWidth,
-      pinPanelOpenRef.current,
-    )
-    const padding = pinHoverPopupPadding(panelRight)
-    popup.options.padding = padding
-    popup.options.anchor = choosePinHoverPopupAnchor({
-      x: point.x,
-      y: point.y,
-      mapWidth: containerEl.clientWidth,
-      mapHeight: containerEl.clientHeight,
-      popupWidth: size.width,
-      popupHeight: size.height,
-      padding,
-    })
-    popup.setLngLat([pin.longitude, pin.latitude])
-  }
-
-  function showHoverTooltip(map: MLMap, pin: Pin): void {
-    if (
-      !shouldShowPinHoverTooltip({
-        isDesktop: isDesktopRef.current,
-        placementActive: placementActiveRef.current,
-        detailPinId: detailPinIdRef.current ?? null,
-        hoverPinId: pin.id,
-      })
-    ) {
-      clearHoverTooltip()
-      return
-    }
-
-    const containerEl = map.getContainer()
-    const panelRight = desktopPinPanelMapPaddingRight(
-      containerEl.clientWidth,
-      pinPanelOpenRef.current,
-    )
-    const visibleWidth = Math.max(0, containerEl.clientWidth - panelRight)
-    const { maxWidth, maxHeight } = hoverPopupMaxSize(
-      visibleWidth,
-      containerEl.clientHeight,
-    )
-    const padding = pinHoverPopupPadding(panelRight)
-
-    if (hoverPopupRef.current && hoverPinIdRef.current === pin.id && hoverRootRef.current) {
-      hoverRootRef.current.render(
-        renderHoverTooltipContent(pin, { maxWidth, maxHeight }),
-      )
-      const existing = hoverPopupRef.current.getElement()
-      applyHoverPopupAnchor(map, hoverPopupRef.current, pin, {
-        width: existing?.offsetWidth || maxWidth,
-        height: existing?.offsetHeight || maxHeight,
-      })
-      return
-    }
-
-    clearHoverTooltip()
-
-    const container = document.createElement("div")
-    const root = createRoot(container)
-    // Explicit anchor (via applyHoverPopupAnchor) prefers left; flips near edges / panel.
-    const popup = new Popup({
-      className: "pin-hover-popup",
-      closeButton: false,
-      locationOccludedOpacity: 0.7,
-      maxWidth: `${maxWidth}px`,
-      closeOnClick: false,
-      offset: pinHoverPopupOffset,
-      padding,
-    })
-      .setDOMContent(container)
-      .addTo(map)
-    applyHoverPopupAnchor(map, popup, pin, { width: maxWidth, height: maxHeight })
-    // Hide empty MapLibre chrome until React has painted the full tooltip.
-    const popupEl = popup.getElement()
-    if (popupEl) {
-      popupEl.style.visibility = "hidden"
-    }
-    root.render(
-      renderHoverTooltipContent(pin, {
-        maxWidth,
-        maxHeight,
-        onReady: () => {
-          if (hoverPopupRef.current !== popup) return
-          // Reposition with final content size so edge-aware anchoring is accurate.
-          applyHoverPopupAnchor(map, popup, pin, {
-            width: popupEl?.offsetWidth || maxWidth,
-            height: popupEl?.offsetHeight || maxHeight,
-          })
-          popupEl?.style.removeProperty("visibility")
-        },
-      }),
-    )
-    hoverPopupRef.current = popup
-    hoverPinIdRef.current = pin.id
-    hoverRootRef.current = root
-  }
-
-  function mapPaddingForPinPanel(map: MLMap, panelOpen: boolean): maplibregl.PaddingOptions {
-    const right = desktopPinPanelMapPaddingRight(map.getContainer().clientWidth, panelOpen)
-    return { top: 0, bottom: 0, left: 0, right }
-  }
 
   /** Fly to a pin, padding for the desktop panel so it centers in the visible area. */
   function flyToPin(map: MLMap, pin: Pin): void {
@@ -750,28 +603,28 @@ export default function MapCanvas({
           // schedule hide after the other layer already claimed a new pin.
           const handlePinHoverMove = (e: maplibregl.MapMouseEvent) => {
             if (!isDesktopRef.current || placementActiveRef.current) {
-              if (hoverPinIdRef.current != null) clearHoverTooltip()
+              clearHoverTooltipRef.current()
               clearPointerCursor()
               return
             }
             const pinId = pinIdFromTopFeatureAt(map, e.point)
             if (pinId == null) {
-              clearHoverTooltip()
+              clearHoverTooltipRef.current()
               clearPointerCursor()
               return
             }
             const pin = pinsByIdRef.current.get(pinId)
             if (!pin) {
-              clearHoverTooltip()
+              clearHoverTooltipRef.current()
               clearPointerCursor()
               return
             }
             setPointerCursor()
-            showHoverTooltip(map, pin)
+            showHoverTooltipRef.current(map, pin)
           }
 
           const handleCanvasMouseLeave = () => {
-            clearHoverTooltip()
+            clearHoverTooltipRef.current()
             clearPointerCursor()
           }
 
@@ -858,12 +711,13 @@ export default function MapCanvas({
         map.off("mouseleave", PIN_LINKS_LAYER_ID, pinLinkHandlers.clearPointerCursor)
         pinLinkLayerHandlersRef.current = null
       }
-      clearHoverTooltip()
+      clearHoverTooltipRef.current()
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
       geolocateControlRef.current = null
       knownCustomImageIdsRef.current = new Set()
       customImageVisualKeysRef.current = new Map()
+      customImagesReadyRef.current = false
       mapRef.current?.remove()
       mapRef.current = null
       setMapReady(false)
@@ -943,134 +797,16 @@ export default function MapCanvas({
     }
   }, [pendingLocation, pendingPinType, mapReady])
 
-  // Shift the globe left when the desktop pin panel covers the right side.
-  // Zoom out if the focused pin would leave the visible area; restore zoom on close.
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady) return
-
-    const zeroPadding = { top: 0, bottom: 0, left: 0, right: 0 }
-
-    const focusLngLat = (): [number, number] | null => {
-      if (detailPinId != null) {
-        const pin =
-          pinsByIdRef.current.get(detailPinId) ??
-          pinsRef.current.find((p) => p.id === detailPinId)
-        if (pin) return [pin.longitude, pin.latitude]
-      }
-      if (pendingLocation) return [pendingLocation.lng, pendingLocation.lat]
-      return null
-    }
-
-    const applyPanelCamera = (animate: boolean) => {
-      const padding = mapPaddingForPinPanel(map, true)
-      const mapWidth = map.getContainer().clientWidth
-      const mapHeight = map.getContainer().clientHeight
-      const panelPadding = {
-        top: padding.top ?? 0,
-        right: padding.right ?? 0,
-        bottom: padding.bottom ?? 0,
-        left: padding.left ?? 0,
-      }
-
-      let zoom = map.getZoom()
-      const lngLat = focusLngLat()
-      if (lngLat) {
-        const sample = {
-          center: map.getCenter(),
-          zoom: map.getZoom(),
-          bearing: map.getBearing(),
-          pitch: map.getPitch(),
-          padding: map.getPadding(),
-        }
-        // Sample with the real globe transform (jumpTo is sync; restore before paint).
-        zoom = zoomToKeepPointInPaddedViewport({
-          mapWidth,
-          mapHeight,
-          padding: panelPadding,
-          margin: PIN_PANEL_EDGE_MARGIN_PX,
-          currentZoom: sample.zoom,
-          minZoom: map.getMinZoom(),
-          projectAtZoom: (z) => {
-            map.jumpTo({
-              center: sample.center,
-              zoom: z,
-              bearing: sample.bearing,
-              pitch: sample.pitch,
-              padding: panelPadding,
-            })
-            const p = map.project(lngLat)
-            return { x: p.x, y: p.y }
-          },
-        })
-        map.jumpTo({
-          center: sample.center,
-          zoom: sample.zoom,
-          bearing: sample.bearing,
-          pitch: sample.pitch,
-          padding: sample.padding,
-        })
-      }
-
-      const current = map.getPadding()
-      const samePadding =
-        Math.abs((current.top ?? 0) - panelPadding.top) < 1 &&
-        Math.abs((current.right ?? 0) - panelPadding.right) < 1 &&
-        Math.abs((current.bottom ?? 0) - panelPadding.bottom) < 1 &&
-        Math.abs((current.left ?? 0) - panelPadding.left) < 1
-      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
-      if (samePadding && sameZoom) return
-
-      if (animate) {
-        map.easeTo({ padding: panelPadding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
-      } else {
-        map.jumpTo({ padding: panelPadding, zoom })
-      }
-    }
-
-    const clearPanelCamera = (animate: boolean) => {
-      const backup = panelCameraBackupRef.current
-      panelCameraBackupRef.current = null
-      const padding = zeroPadding
-      const zoom = backup?.zoom ?? map.getZoom()
-      const current = map.getPadding()
-      const samePadding =
-        Math.abs((current.top ?? 0) - padding.top) < 1 &&
-        Math.abs((current.right ?? 0) - padding.right) < 1 &&
-        Math.abs((current.bottom ?? 0) - padding.bottom) < 1 &&
-        Math.abs((current.left ?? 0) - padding.left) < 1
-      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
-      if (samePadding && sameZoom) return
-
-      if (animate) {
-        map.easeTo({ padding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
-      } else {
-        map.jumpTo({ padding, zoom })
-      }
-    }
-
-    if (pinPanelOpen) {
-      if (!panelCameraBackupRef.current) {
-        panelCameraBackupRef.current = {
-          center: map.getCenter(),
-          zoom: map.getZoom(),
-          bearing: map.getBearing(),
-          pitch: map.getPitch(),
-        }
-      }
-      applyPanelCamera(true)
-    } else {
-      clearPanelCamera(true)
-    }
-
-    const onResize = () => {
-      if (pinPanelOpenRef.current) applyPanelCamera(false)
-    }
-    map.on("resize", onResize)
-    return () => {
-      map.off("resize", onResize)
-    }
-  }, [pinPanelOpen, mapReady, detailPinId, pendingLocation])
+  usePinPanelCamera({
+    mapRef,
+    mapReady,
+    pinPanelOpen,
+    pinPanelOpenRef,
+    detailPinId,
+    pendingLocation,
+    pinsByIdRef,
+    pinsRef,
+  })
 
   // Keep camera focus tracking in sync with the detail panel pin.
   useEffect(() => {
@@ -1093,69 +829,51 @@ export default function MapCanvas({
     }
   }, [mapReady, detailPinId])
 
-  // Drop hover tooltip when desktop/placement/selection suppress it.
-  useEffect(() => {
-    if (!isDesktop || placementActive) {
-      clearHoverTooltip()
-      return
-    }
-    if (detailPinId != null && hoverPinIdRef.current === detailPinId) {
-      clearHoverTooltip()
-    }
-  }, [isDesktop, placementActive, detailPinId])
-
   const savedFilterEmptyOnMap =
     filter.heartedOnly &&
     heartedPinIds.size > 0 &&
     !pinsForMap.some((p) => heartedPinIds.has(p.id))
 
-  // Register custom marker images (normal + new), then sync GeoJSON so icons exist first.
+  // Register custom marker images (normal + new + selected) so icons exist before GeoJSON sync.
   useEffect(() => {
     if (!mapReady || !pinLayersAddedRef.current) return
     const map = mapRef.current
     if (!map) return
 
+    // Block the GeoJSON effect until this run finishes (same commit: this effect runs first).
+    customImagesReadyRef.current = false
     let cancelled = false
 
     const run = async () => {
-      const catalogSnapshot = catalogRef.current
-      const nextIds = new Set<string>()
-      const nextVisualKeys = new Map<string, string>()
-      for (const pinType of catalogSnapshot) {
-        const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
-        for (const outline of [undefined, "new", "selected"] as const) {
-          const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
-          nextIds.add(imageId)
-          nextVisualKeys.set(imageId, visualKey)
-          const visualChanged = customImageVisualKeysRef.current.get(imageId) !== visualKey
-          if (map.hasImage(imageId) && !visualChanged) continue
-          try {
-            const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalogSnapshot, outline)
-            const img = await loadImage(dataUrl)
-            if (cancelled || mapRef.current !== map) return
-            if (map.hasImage(imageId)) map.removeImage(imageId)
-            map.addImage(imageId, img)
-          } catch {
-            // ignore failed custom marker images
-          }
-        }
-      }
-      if (cancelled) return
-      for (const imageId of knownCustomImageIdsRef.current) {
-        if (!nextIds.has(imageId) && map.hasImage(imageId)) {
-          map.removeImage(imageId)
-        }
-      }
-      knownCustomImageIdsRef.current = nextIds
-      customImageVisualKeysRef.current = nextVisualKeys
+      const result = await registerCustomPinImages({
+        map,
+        catalog: catalogRef.current,
+        knownCustomImageIds: knownCustomImageIdsRef.current,
+        customImageVisualKeys: customImageVisualKeysRef.current,
+        isCancelled: () => cancelled || mapRef.current !== map,
+      })
+      if (!result || cancelled) return
+      knownCustomImageIdsRef.current = result.knownCustomImageIds
+      customImageVisualKeysRef.current = result.customImageVisualKeys
+      customImagesReadyRef.current = true
+      // Sync after icons exist (covers catalog change and any GeoJSON sync skipped while pending).
+      lastPinGeoJsonSyncKeyRef.current = ""
       syncPinGeoJsonRef.current()
     }
 
     void run()
     return () => {
       cancelled = true
+      customImagesReadyRef.current = false
     }
-  }, [pinGeoJsonSyncKey, catalog, mapReady])
+  }, [catalog, mapReady])
+
+  // Sync pin GeoJSON when pin/filter/selection data changes (after custom images are ready).
+  useEffect(() => {
+    if (!mapReady || !pinLayersAddedRef.current) return
+    if (!customImagesReadyRef.current) return
+    syncPinGeoJsonRef.current()
+  }, [pinGeoJsonSyncKey, mapReady])
 
   // One-shot camera for URL/nav focus (App already opened the pin via onView).
   useEffect(() => {
@@ -1253,10 +971,10 @@ export default function MapCanvas({
                 ],
                 {
                   padding: {
-                    top: 48 + panelPadding.top,
-                    bottom: 48 + panelPadding.bottom,
-                    left: 48 + panelPadding.left,
-                    right: 48 + panelPadding.right,
+                    top: 48 + (panelPadding.top ?? 0),
+                    bottom: 48 + (panelPadding.bottom ?? 0),
+                    left: 48 + (panelPadding.left ?? 0),
+                    right: 48 + (panelPadding.right ?? 0),
                   },
                   maxZoom: PIN_FOCUS_ZOOM,
                   duration: 1000,
