@@ -281,7 +281,7 @@ export default function PinModal({
           </Button>
         )}
         <Button type="button" variant="primary" onClick={onSave} disabled={saving}>
-          {saving ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save" : "Add")}
+          {saving ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save Pin" : "Add Pin")}
         </Button>
       </div>
     </div>
