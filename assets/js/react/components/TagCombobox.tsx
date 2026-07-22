@@ -135,7 +135,7 @@ export default function TagCombobox({
         />
         {allowCreate ? (
           <Button type="button" variant="primary" size="sm" className="shrink-0" onClick={() => tryCreate()}>
-            Add
+            Add tag
           </Button>
         ) : null}
       </div>
