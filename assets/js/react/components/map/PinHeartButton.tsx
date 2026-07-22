@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import LoginRequiredModal from "../LoginRequiredModal"
+import LoginRequiredModal, { LoginLink } from "../LoginRequiredModal"
 import HeartIcon from "../HeartIcon"
 import type { ToggleHeartResult } from "../../types"
 
@@ -49,7 +49,11 @@ export default function PinHeartButton({ hearted, disabled = false, onToggle }: 
       </button>
       {loginOpen && (
         <LoginRequiredModal
-          message="Log in to save pins."
+          message={
+            <>
+              <LoginLink>Log in</LoginLink> to save pins.
+            </>
+          }
           onClose={() => setLoginOpen(false)}
         />
       )}

@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { usePinComments } from "../../hooks/usePinComments"
 import PinCommentItem from "./PinCommentItem"
 import CommentComposer from "./CommentComposer"
-import LoginRequiredModal from "../LoginRequiredModal"
+import LoginRequiredModal, { LoginLink } from "../LoginRequiredModal"
 
 type Props = {
   pinId: number
@@ -127,7 +127,11 @@ export default function PinComments({
 
       {loginOpen ? (
         <LoginRequiredModal
-          message="You must be logged in to comment on pins."
+          message={
+            <>
+              You must <LoginLink /> to comment on pins.
+            </>
+          }
           onClose={() => setLoginOpen(false)}
         />
       ) : null}

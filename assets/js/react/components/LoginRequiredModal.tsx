@@ -1,13 +1,25 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, type ReactNode } from "react"
 import Button from "./ui/Button"
 import CloseButton from "./ui/CloseButton"
 
+export function LoginLink({ children = "log in" }: { children?: ReactNode }) {
+  return (
+    <a href="/users/log-in" className="link link-primary font-medium">
+      {children}
+    </a>
+  )
+}
+
 export default function LoginRequiredModal({
   onClose,
-  message = "You must be logged in to add new locations to the map.",
+  message = (
+    <>
+      You must <LoginLink /> to add new locations to the map.
+    </>
+  ),
 }: {
   onClose: () => void
-  message?: string
+  message?: ReactNode
 }) {
   const signInRef = useRef<HTMLAnchorElement>(null)
 
