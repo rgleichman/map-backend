@@ -184,11 +184,17 @@ defmodule StorymapWeb.Router do
     # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
+    # Mailbox must stay unauthenticated so magic-link login works in local dev.
+    scope "/dev" do
+      pipe_through :browser
+
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+
     scope "/dev" do
       pipe_through [:browser, :require_authenticated_user, :require_admin_api]
 
       live_dashboard "/dashboard", metrics: StorymapWeb.Telemetry
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 
