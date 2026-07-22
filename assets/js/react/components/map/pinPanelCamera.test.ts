@@ -81,7 +81,7 @@ describe("zoomToKeepPointInPaddedViewport", () => {
     expect(zoom).toBe(8)
   })
 
-  it("clamps to minZoom when the point never enters the viewport", () => {
+  it("keeps current zoom when the point never enters the viewport", () => {
     const zoom = zoomToKeepPointInPaddedViewport({
       mapWidth: 1200,
       mapHeight: 800,
@@ -91,6 +91,6 @@ describe("zoomToKeepPointInPaddedViewport", () => {
       minZoom: 3,
       projectAtZoom: () => ({ x: -1_000_000, y: 400 }),
     })
-    expect(zoom).toBe(3)
+    expect(zoom).toBe(12)
   })
 })

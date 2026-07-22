@@ -60,8 +60,7 @@ export function zoomToKeepPointInPaddedViewport(options: {
     return pointInPaddedViewport(x, y, mapWidth, mapHeight, padding, margin)
   }
 
-  if (visibleAt(currentZoom)) return currentZoom
-  if (!visibleAt(minZoom)) return minZoom
+  if (visibleAt(currentZoom) || !(visibleAt(minZoom))) return currentZoom
 
   // Max zoom in [minZoom, currentZoom] that keeps the point visible.
   let lo = minZoom
