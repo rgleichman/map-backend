@@ -6,7 +6,11 @@ import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../utils/siteLayout"
+import {
+  DESKTOP_PIN_PANEL_CLASSES,
+  desktopPinPanelFloatingStyle,
+  PIN_FLOATING_CARD_CLASSES,
+} from "../utils/siteLayout"
 import Button from "./ui/Button"
 
 type Props = {
@@ -128,7 +132,7 @@ export default function PinFlowUI({
   return (
     <>
       {showDesktopPanel && (
-        <div className={`fixed right-0 w-full max-w-md bg-base-100 border-l border-base-300 shadow-xl z-40 flex flex-col overflow-hidden ${SITE_HEADER_FIXED_PANEL_CLASSES}`}>
+        <div className={DESKTOP_PIN_PANEL_CLASSES} style={desktopPinPanelFloatingStyle()}>
           <div className="p-4 overflow-y-auto flex-1">
             {modal?.mode === "select-type" && (
               <PinTypeModal
@@ -224,7 +228,7 @@ export default function PinFlowUI({
             if (e.key === "Escape") onCloseView()
           }}
         >
-          <div className="bg-base-100 rounded-box shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-4">
+          <div className={`${PIN_FLOATING_CARD_CLASSES} w-full max-w-md max-h-[90vh] overflow-y-auto p-4`}>
             <span id={viewHeadingId} className="sr-only">
               Pin details
             </span>

@@ -3,6 +3,7 @@ import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { builtinIconKeyForPinType } from "../utils/builtinPinType"
 import PinTypeIcon from "./PinTypeIcon"
+import { PIN_FLOATING_CARD_CLASSES } from "../utils/siteLayout"
 import Button from "./ui/Button"
 import { getPinTypeConfig, resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
@@ -26,7 +27,7 @@ export default function PinTypeModal({ layout = "modal", onSelectType, onCancel 
   const shellClassName =
     layout === "panel"
       ? "w-full flex flex-col"
-      : "bg-base-100 rounded-lg shadow-lg max-w-md w-full border border-base-300 max-h-modal-mobile-90 flex flex-col overflow-hidden"
+      : `${PIN_FLOATING_CARD_CLASSES} max-w-md w-full max-h-modal-mobile-90 flex flex-col overflow-hidden`
 
   const listClassName =
     layout === "panel"

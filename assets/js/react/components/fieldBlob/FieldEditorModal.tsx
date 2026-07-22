@@ -1,6 +1,9 @@
 import React, { useEffect } from "react"
 import { createPortal } from "react-dom"
-import { SITE_HEADER_FIXED_PANEL_CLASSES } from "../../utils/siteLayout"
+import {
+  DESKTOP_FIELD_EDITOR_CLASSES,
+  desktopFieldEditorFloatingStyle,
+} from "../../utils/siteLayout"
 import Button from "../ui/Button"
 
 type Props = {
@@ -39,12 +42,13 @@ export default function FieldEditorModal({
   if (!open) return null
 
   const panelClasses = isDesktop
-    ? `fixed left-0 z-[60] flex flex-col bg-base-100 border-r border-base-300 shadow-xl ${SITE_HEADER_FIXED_PANEL_CLASSES} md:right-[28rem]`
+    ? DESKTOP_FIELD_EDITOR_CLASSES
     : "fixed inset-0 z-[60] flex flex-col bg-base-100"
 
   return createPortal(
     <div
       className={panelClasses}
+      style={isDesktop ? desktopFieldEditorFloatingStyle() : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={`Edit ${fieldLabel}`}

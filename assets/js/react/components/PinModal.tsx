@@ -11,6 +11,7 @@ import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
 import Button from "./ui/Button"
 import { TrashIcon } from "./ui/icons"
+import { PIN_FLOATING_CARD_CLASSES } from "../utils/siteLayout"
 
 type Props = {
   layout?: "modal" | "panel"
@@ -125,7 +126,7 @@ export default function PinModal({
   const contentClassName =
     layout === "panel"
       ? "pin-modal-content w-full"
-      : "pin-modal-content max-h-modal-mobile-90 w-full max-w-lg min-w-[300px] rounded-lg overflow-y-auto overscroll-contain shadow-xl p-6 bg-base-100 border border-base-300"
+      : `pin-modal-content max-h-modal-mobile-90 w-full max-w-lg min-w-[300px] overflow-y-auto overscroll-contain p-6 ${PIN_FLOATING_CARD_CLASSES}`
 
   const formContent = (
     <div className={contentClassName}>
