@@ -120,7 +120,7 @@ export default function PinDetailView({
   }
 
   return (
-    <div>
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-xl font-bold flex-1 min-w-0">{pin.title}</h2>
         {onClose ? (

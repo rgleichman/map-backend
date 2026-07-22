@@ -16,9 +16,12 @@ type Props = {
   children: React.ReactNode
 }
 
+/** Shared shell content area: children own scroll + padding (e.g. composer footer). */
+const CONTENT_SHELL_CLASSES = "flex min-h-0 flex-1 flex-col overflow-hidden"
+
 const MODAL_CARD_CLASSES = [
   PIN_FLOATING_CARD_CLASSES,
-  "w-full max-w-md max-h-modal-mobile-90 overflow-y-auto overscroll-contain p-4",
+  "flex min-h-0 w-full max-w-md max-h-modal-mobile-90 flex-col overflow-hidden",
 ].join(" ")
 
 function handleEscape(
@@ -55,7 +58,7 @@ export default function PinOverlay({
         tabIndex={-1}
         onKeyDown={(e) => handleEscape(e, onClose)}
       >
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
+        <div className={CONTENT_SHELL_CLASSES}>{children}</div>
       </div>
     )
   }

@@ -15,7 +15,7 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
   const { catalog, selectableTypes } = usePinTypes()
 
   return (
-    <div className="flex w-full flex-col">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain p-4">
       <div className="border-b border-base-300 pb-4">
         <h2 id="pin-type-modal-title" className="text-lg font-semibold text-base-content">
           What type of pin is this?

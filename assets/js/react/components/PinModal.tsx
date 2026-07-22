@@ -120,151 +120,153 @@ export default function PinModal({
   }, [])
 
   return (
-    <div className="pin-modal-content w-full">
-      <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
-      <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
-      <input
-        id="pin-title"
-        name="title"
-        type="text"
-        placeholder="Title…"
-        autoComplete="off"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="input input-bordered w-full mb-4"
-      />
-      <label htmlFor="pin-description" className="block font-medium mb-1">Description</label>
-      <textarea
-        id="pin-description"
-        name="description"
-        placeholder="Description… (example.com or [label](url))"
-        autoComplete="off"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="textarea textarea-bordered w-full mb-4"
-      />
+    <div className="pin-modal-content flex min-h-0 w-full flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
+        <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
+        <input
+          id="pin-title"
+          name="title"
+          type="text"
+          placeholder="Title…"
+          autoComplete="off"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="input input-bordered w-full mb-4"
+        />
+        <label htmlFor="pin-description" className="block font-medium mb-1">Description</label>
+        <textarea
+          id="pin-description"
+          name="description"
+          placeholder="Description… (example.com or [label](url))"
+          autoComplete="off"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="textarea textarea-bordered w-full mb-4"
+        />
 
-      {isCustom && customType && setCustomData ? (
-        <div className="mb-4">
-          <CustomPinFields
-            fields={schemaFields(customType)}
-            values={customData}
-            onChange={setCustomData}
-            csrfToken={csrfToken}
-            pinId={pinId}
-          />
-        </div>
-      ) : null}
-
-      <div className="mb-4">
-        <p id={locationLabelId} className="block font-medium mb-1">
-          Location
-        </p>
-        <p className="text-sm text-base-content/80 mb-2" aria-labelledby={locationLabelId}>
-          {formatCoord(latitude)}, {formatCoord(longitude)}
-        </p>
-        <div className="flex flex-wrap gap-2 mb-2">
-          <Button type="button" size="sm" variant="ghost" onClick={onStartPickOnMap}>
-            {(locationAlreadySetFromPlacement || mode === "edit") ? "Change location on map" : "Set location on map"}
-          </Button>
-        </div>
-      </div>
-
-      {(isFoodBank && setOpen24_7) && (
-        <div className="mb-4">
-          <label htmlFor={open247Id} className="flex items-center gap-2 cursor-pointer">
-            <input
-              id={open247Id}
-              type="checkbox"
-              checked={open24_7}
-              onChange={e => setOpen24_7(e.target.checked)}
-              className="checkbox checkbox-sm"
+        {isCustom && customType && setCustomData ? (
+          <div className="mb-4">
+            <CustomPinFields
+              fields={schemaFields(customType)}
+              values={customData}
+              onChange={setCustomData}
+              csrfToken={csrfToken}
+              pinId={pinId}
             />
-            <span className="font-medium">Open 24/7</span>
-          </label>
-        </div>
-      )}
-      {showTimeFields && (
+          </div>
+        ) : null}
+
         <div className="mb-4">
-          <label htmlFor="pin-start-time" className="block font-medium mb-1">Start Time</label>
-          <input
-            id="pin-start-time"
-            name="start_time"
-            type={isTimeOnly ? "time" : "datetime-local"}
-            value={startTime}
-            onChange={e => setStartTime(e.target.value)}
-            className="input input-bordered w-full mb-2"
-          />
-          <label htmlFor="pin-end-time" className="block font-medium mb-1">End Time</label>
-          <input
-            id="pin-end-time"
-            name="end_time"
-            type={isTimeOnly ? "time" : "datetime-local"}
-            value={endTime}
-            onChange={e => setEndTime(e.target.value)}
-            className="input input-bordered w-full mb-2"
-          />
-          {isTimeOnly && (
-            <ScheduleRruleBuilder
-              value={scheduleRrule}
-              onChange={setScheduleRrule}
-              timezone={scheduleTimezone}
-            />
-          )}
-        </div>
-      )}
-      <div className="mb-4">
-        <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
-        {tags.length > 0 && (
+          <p id={locationLabelId} className="block font-medium mb-1">
+            Location
+          </p>
+          <p className="text-sm text-base-content/80 mb-2" aria-labelledby={locationLabelId}>
+            {formatCoord(latitude)}, {formatCoord(longitude)}
+          </p>
           <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map((tag) => (
-              <RemovableChip
-                key={tag}
-                removeLabel={`Remove tag: ${tag}`}
-                onRemove={() => handleRemoveTag(tag)}
-              >
-                <span className="min-w-0 truncate pl-0.5">{tag}</span>
-              </RemovableChip>
-            ))}
+            <Button type="button" size="sm" variant="ghost" onClick={onStartPickOnMap}>
+              {(locationAlreadySetFromPlacement || mode === "edit") ? "Change location on map" : "Set location on map"}
+            </Button>
+          </div>
+        </div>
+
+        {(isFoodBank && setOpen24_7) && (
+          <div className="mb-4">
+            <label htmlFor={open247Id} className="flex items-center gap-2 cursor-pointer">
+              <input
+                id={open247Id}
+                type="checkbox"
+                checked={open24_7}
+                onChange={e => setOpen24_7(e.target.checked)}
+                className="checkbox checkbox-sm"
+              />
+              <span className="font-medium">Open 24/7</span>
+            </label>
           </div>
         )}
-        <TagCombobox
-          inputId="pin-tag-input"
-          availableTags={availableTags}
-          excludeTags={tags}
-          omitCommunityTags
-          allowCreate
-          onSelect={handleAddTag}
-          placeholder="Add tag…"
-        />
-      </div>
-      <RelatedPinsEditor
-        pins={pins}
-        linkedPinIds={linkedPinIds}
-        currentPinId={pinId ?? undefined}
-        onAddLinkedPin={onAddLinkedPin}
-        onRemoveLinkedPin={onRemoveLinkedPin}
-      />
-      {showPromoteToWorld && setPromoteToWorld && (
-        <div className="mb-4">
-          <label htmlFor={promoteWorldId} className="flex cursor-pointer items-start gap-2">
+        {showTimeFields && (
+          <div className="mb-4">
+            <label htmlFor="pin-start-time" className="block font-medium mb-1">Start Time</label>
             <input
-              id={promoteWorldId}
-              type="checkbox"
-              checked={promoteToWorld}
-              onChange={(e) => setPromoteToWorld(e.target.checked)}
-              className="checkbox checkbox-sm mt-0.5"
+              id="pin-start-time"
+              name="start_time"
+              type={isTimeOnly ? "time" : "datetime-local"}
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              className="input input-bordered w-full mb-2"
             />
-            <span>
-              <span className="font-medium">Also show on world map</span>
-              <span className="mt-0.5 block text-sm text-base-content/70">
-                Visible on the main world map as well as this community.
-              </span>
-            </span>
-          </label>
+            <label htmlFor="pin-end-time" className="block font-medium mb-1">End Time</label>
+            <input
+              id="pin-end-time"
+              name="end_time"
+              type={isTimeOnly ? "time" : "datetime-local"}
+              value={endTime}
+              onChange={e => setEndTime(e.target.value)}
+              className="input input-bordered w-full mb-2"
+            />
+            {isTimeOnly && (
+              <ScheduleRruleBuilder
+                value={scheduleRrule}
+                onChange={setScheduleRrule}
+                timezone={scheduleTimezone}
+              />
+            )}
+          </div>
+        )}
+        <div className="mb-4">
+          <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map((tag) => (
+                <RemovableChip
+                  key={tag}
+                  removeLabel={`Remove tag: ${tag}`}
+                  onRemove={() => handleRemoveTag(tag)}
+                >
+                  <span className="min-w-0 truncate pl-0.5">{tag}</span>
+                </RemovableChip>
+              ))}
+            </div>
+          )}
+          <TagCombobox
+            inputId="pin-tag-input"
+            availableTags={availableTags}
+            excludeTags={tags}
+            omitCommunityTags
+            allowCreate
+            onSelect={handleAddTag}
+            placeholder="Add tag…"
+          />
         </div>
-      )}
-      <div className="flex gap-2 justify-end">
+        <RelatedPinsEditor
+          pins={pins}
+          linkedPinIds={linkedPinIds}
+          currentPinId={pinId ?? undefined}
+          onAddLinkedPin={onAddLinkedPin}
+          onRemoveLinkedPin={onRemoveLinkedPin}
+        />
+        {showPromoteToWorld && setPromoteToWorld && (
+          <div className="mb-4">
+            <label htmlFor={promoteWorldId} className="flex cursor-pointer items-start gap-2">
+              <input
+                id={promoteWorldId}
+                type="checkbox"
+                checked={promoteToWorld}
+                onChange={(e) => setPromoteToWorld(e.target.checked)}
+                className="checkbox checkbox-sm mt-0.5"
+              />
+              <span>
+                <span className="font-medium">Also show on world map</span>
+                <span className="mt-0.5 block text-sm text-base-content/70">
+                  Visible on the main world map as well as this community.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+      </div>
+      <div className="flex shrink-0 gap-2 justify-end border-t border-base-300 bg-base-100 p-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
