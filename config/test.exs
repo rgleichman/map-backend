@@ -28,6 +28,9 @@ config :storymap, :csp_strict_scripts, false
 # In test we don't send emails
 config :storymap, Storymap.Mailer, adapter: Swoosh.Adapters.Test
 
+# Compile /dev routes so mailbox auth regressions are covered in ConnCase tests.
+config :storymap, dev_routes: true
+
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
