@@ -281,7 +281,7 @@ Pin writes include `sub_map_id` (or nested under sub_map route); world writes re
 ### Map chrome (`/m/:community_url/map`)
 
 - `data-community-url` on `#react-root` for client to fetch scoped pins + channel
-- Breadcrumb: Communities → {name} → Map
+- Community identity chip (name + “Community” label); management actions in a menu (Moderation / Settings / Leave); Join as a primary CTA when not a member
 - Pin form: respect promotion checkbox when `ask`
 - World map `/map`: optional layer filter for promoted sub-map pins (phase 1b); MVP may only show legacy + promoted pins in existing feed
 

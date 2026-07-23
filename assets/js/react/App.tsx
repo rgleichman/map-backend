@@ -44,7 +44,6 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const {
     communityUrl,
-    onSelectWorld,
     onSelectCommunity,
     focusIntent,
     consumeFocusIntent,
@@ -270,7 +269,6 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   userId={userId}
                   onJoin={onJoinCommunity}
                   onLeave={onLeaveCommunity}
-                  onSelectWorld={onSelectWorld}
                 />
               ) : undefined
             }
