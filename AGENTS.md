@@ -65,9 +65,9 @@ The application should work for both **desktop** and **cross-platform mobile web
 
 For **closed, fixed** categorical values on the React/JSON boundary (mirroring backend `Ecto.Enum` wire strings or other stable API literals):
 
-- Define the **string union** in `assets/js/react/types.ts` (e.g. `PinStatus`, `BuiltinPinType`, `CustomFieldPrimitiveType`).
+- Define the **string union** in `assets/js/react/types.ts` (e.g. `PinStatus`, `PinTimeMode`, `CustomFieldPrimitiveType`).
 - Define the **runtime values once** in `assets/js/react/utils/<domain>.ts` as a `const` object (`as const satisfies Record<string, UnionType>`), following `utils/blobFieldType.ts` (`BlobFieldType`, `isBlobFieldType`).
-- Add **shared predicates** in the same util (e.g. `isTimeOnlyBuiltinPinType`, `skipBuiltinTimeValidation`) instead of repeating compound `===` checks in components.
+- Add **shared predicates** in the same util (e.g. `scheduleCapabilities`, `skipScheduleTimeValidation`) instead of repeating compound `===` checks in components.
 
 **Do not** scatter raw wire strings in `switch`, `===`, or ternaries when a util module exists — use `SomeEnum.Member` and the shared helpers. Test fixtures may still use string literals.
 
@@ -75,23 +75,26 @@ For **closed, fixed** categorical values on the React/JSON boundary (mirroring b
 
 - Blob field kinds (`music`, `drawing`): `utils/blobFieldType.ts`
 - Custom field primitives (`text`, `boolean`, …): `utils/customFieldPrimitiveType.ts`
-- Built-in pin types (`one_time`, `scheduled`, …): `utils/builtinPinType.ts` (re-exported from `utils/customPinTypes.ts`)
+- Pin type catalog lookup / selectable slugs: `utils/customPinTypes.ts` (`findPinType`, `listSelectablePinTypes`)
+- Schedule from catalog `time_mode` + `allow_open_24_7`: `utils/scheduleCapabilities.ts` (`PinTimeMode`)
+- Marker glyphs: `utils/pinTypeIcons.ts` (`PinIcon`)
 - `promote_to_world_default`: `utils/promoteToWorldDefault.ts`
 - Map “open now” time filter: `TIME_FILTER_NOW` in `components/map/filters.ts`
 - Drawing canvas tools: `DrawingTool` in `utils/drawingPayload.ts`
 
-**Open-ended** string domains (e.g. `pin_type` as `custom:<slug>`) stay as strings; use `isCustomPinType` / `CUSTOM_PIN_TYPE_PREFIX` from `utils/builtinPinType.ts` (via `customPinTypes.ts`), not ad-hoc `startsWith("custom:")` in new code.
+**Open-ended** string domains (e.g. pin type **slug**, user-defined field keys) stay as strings. Pin identity is always a catalog slug (no `custom:` prefix); resolve rows via `findPinType` / `findPinTypeById` from `utils/customPinTypes.ts`.
 
 When adding a new closed domain: union in `types.ts` → const object + guards in `utils/` → import from utils in components and workflows.
 
 ### Custom pin fields (React)
 
-- Schema and wire types live in `assets/js/react/types.ts` (`CustomFieldSchema`, `CustomFieldPrimitiveType`, blob kinds via `BlobFieldType` in `utils/blobFieldType.ts`).
+- Schema and wire types live in `assets/js/react/types.ts` (`CustomFieldSchema`, `CustomFieldPrimitiveType`, `CatalogPinType`, `AdHocField`; blob kinds via `BlobFieldType` in `utils/blobFieldType.ts`).
 - **Do not** duplicate primitive `field.type` string checks, ad-hoc `typeof value === "object"` guards, or blob-shape checks in new code — use `CustomFieldPrimitiveType`, `BlobFieldType`, and the shared utilities below (see **Wire enums and domain constants**).
 - **Value semantics and display text:** `utils/customFieldValue.ts` — `isCustomFieldEmpty`, `formatCustomFieldValue`, `searchableCustomFieldText`.
 - **Blob field shapes:** `utils/blobFieldValue.ts` — `isBlobFieldRef`, `isBlobFieldDraft`; field kind checks via `isBlobFieldType` / `BlobFieldType`.
-- **Catalog / schema:** `utils/customPinTypes.ts` — `findCustomPinType`, `schemaFields`, `isCustomPinType`.
-- **Search and filtering over `custom_data`:** `utils/customFieldSearch.ts` (builds on the above; do not reimplement).
+- **Catalog / schema:** `utils/customPinTypes.ts` — `findPinType`, `schemaFields`, `listSelectablePinTypes`.
+- **Per-pin extras:** `utils/adHocFields.ts` + `components/AdHocPinFields.tsx` — `pins.ad_hoc_fields` array (not inside `custom_data`).
+- **Search and filtering over `custom_data` / ad-hoc:** `utils/customFieldSearch.ts` (builds on the above; do not reimplement).
 - React components may re-export helpers from `customFieldValue.ts` for convenience, but **utils and non-UI code must import from `utils/`**, not from `components/`.
 
 ### UI/UX & design guidelines
@@ -271,7 +274,7 @@ Use **`Ecto.Enum`** for **closed, fixed sets** of categorical values (e.g. sub-m
 - **At boundaries** (HTML forms, HTTP params, JSON API, TypeScript): keep **strings** with the same spellings (`"open"`, `"approved"`). `Ecto.Enum` casts string params to atoms; JSON views should use explicit `to_string/1` on enum fields for a clear wire contract.
 - **Postgres**: no migration needed when switching from string columns — default `Ecto.Enum` storage uses the atom name as a string (`"open"`).
 - **Schema helpers**: define allowed values once (`@contribution_modes`, `values:` on the field), add `@type` aliases, and expose `*_options/0` for LiveView `<.input type="select">` (label + atom value tuples). Rely on schema defaults instead of duplicating them in `mount/3`.
-- **Do not** use `Ecto.Enum` for **open-ended** string domains — e.g. `pin_type` (`"one_time"` … or `"custom:<slug>"`), JSONB settings lists, or user-defined slugs. Keep those as `:string` with appropriate custom validation.
+- **Do not** use `Ecto.Enum` for **open-ended** string domains — e.g. pin type slug, JSONB settings lists, or user-defined field keys. Keep those as `:string` with appropriate custom validation. Pin types are catalog rows (`pin_types`); pins reference them via `pin_type_id` (wire `pin_type` is the slug).
 - **Tests**: pass **strings** in fixture/API/form attrs; assert **atoms** on loaded structs after insert (`assert pin.status == :pending`).
 - **TypeScript**: mirror closed enums with string union types in `assets/js/react/types.ts` (e.g. `ContributionMode`, `PinStatus`). Use const objects and helpers in `assets/js/react/utils/` for runtime comparisons — see **Wire enums and domain constants** under React guidelines. No code generation required.
 <!-- phoenix:ecto-end -->

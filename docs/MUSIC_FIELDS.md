@@ -12,7 +12,7 @@ Music data is **not** stored inline in `pins.custom_data`. Payloads can be large
 | `pins.custom_data` | Reference only: `{ "song": { "ref": 42 } }` |
 | `pin_field_blobs` | Full score text (`payload`), keyed by pin + field |
 
-Built-in pin types (`one_time`, `scheduled`, etc.) do not use music fields. Only `custom:<slug>` pins whose schema declares a `music` field can attach music.
+Music (and drawing) fields may appear on a type schema or as per-pin ad-hoc fields. Blob `field_key` resolves against the schema key or the ad-hoc field `id`.
 
 ## Storage (`pin_field_blobs`)
 

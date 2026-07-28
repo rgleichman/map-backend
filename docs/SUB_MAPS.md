@@ -92,14 +92,7 @@ Sub-map mods do **not** gain world-map powers unless they are also site admins.
 
 `bounds_enforcement`: `off` | `warn` | `block`.
 
-Custom pin types use separate keys — see [CUSTOM_PIN_TYPES.md](CUSTOM_PIN_TYPES.md):
-
-```json
-{
-  "enabled_builtin_pin_types": ["one_time", "other"],
-  "enabled_custom_pin_types": ["pinball-arcade"]
-}
-```
+Pin type allowlists use the `sub_map_pin_types` join table — see [CUSTOM_PIN_TYPES.md](CUSTOM_PIN_TYPES.md). Sub-map JSON exposes `enabled_pin_types` / `enabled_pin_type_ids` (not settings keys).
 
 #### `sub_map_memberships`
 
