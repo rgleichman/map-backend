@@ -5,71 +5,13 @@
     </p>
     <h1 class="text-3xl font-bold text-base-content mb-6">{@page_title}</h1>
 
-    <.form
-      for={@form}
-      id="pin-type-form"
-      phx-change="validate"
-      phx-submit="save"
-      class="space-y-6"
-    >
-      <.input field={@form[:label]} type="text" label="Label" required />
-      <.input field={@form[:description]} type="textarea" label="Description" />
-      <div>
-        <.input
-          field={@form[:time_mode]}
-          type="select"
-          label="Schedule"
-          options={Storymap.PinTypes.CustomPinType.time_mode_options()}
-        />
-        <p class="text-sm text-base-content/60 mt-1">
-          Changing schedule later does not rewrite existing pins until the pin is saved.
-        </p>
-      </div>
-
-      <% marker_color = @form[:marker_color].value || "#6366f1" %>
-      <div class="flex items-end gap-3">
-        <div class="fieldset mb-2">
-          <label>
-            <span class="label mb-1">Marker color</span>
-            <input
-              type="color"
-              name={@form[:marker_color].name}
-              id={@form[:marker_color].id}
-              value={marker_color}
-              class="h-10 w-14 cursor-pointer rounded border border-base-300 bg-base-100"
-            />
-          </label>
-        </div>
-        <span class="text-sm text-base-content/60 pb-2 font-mono">{marker_color}</span>
-      </div>
-
-      <.input
-        field={@form[:enabled]}
-        type="checkbox"
-        label="Enabled (available for new pins)"
-      />
-
-      <%= if @form[:schema] && @form[:schema].errors != [] do %>
-        <p :for={error <- @form[:schema].errors} class="text-error text-sm">
-          {translate_error(error)}
-        </p>
-      <% end %>
-
-      <.fields_editor fields={@fields} field_errors={@field_errors} />
-
-      <div class="flex flex-wrap gap-3 pt-2">
-        <.button type="submit" variant="primary" id="pin-type-save">Save</.button>
-        <.button
-          type="button"
-          variant="danger_outline"
-          class="inline-flex items-center gap-1.5"
-          phx-click="show_delete_modal"
-        >
-          <.icon name="hero-trash" class="size-4" /> Delete
-        </.button>
-        <.button navigate={~p"/pin-types"} variant="ghost">Cancel</.button>
-      </div>
-    </.form>
+    <.pin_type_form
+      form={@form}
+      fields={@fields}
+      field_errors={@field_errors}
+      show_enabled={true}
+      show_delete={true}
+    />
 
     <.confirm_modal
       :if={@show_delete_modal}

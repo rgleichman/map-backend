@@ -20,7 +20,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
            socket
            |> assign(:page_title, "Edit #{pin_type.label}")
            |> assign(:pin_type, pin_type)
-           |> assign(:fields, fields_from_schema(pin_type.schema))
+           |> assign(:fields, Form.fields_from_schema(pin_type.schema))
            |> assign(:field_errors, %{})
            |> assign(:show_delete_modal, false)
            |> assign_form(pin_type, %{})}
@@ -41,38 +41,36 @@ defmodule StorymapWeb.PinTypeLive.Edit do
 
   @impl true
   def handle_event("add_field", _params, socket) do
-    {:noreply, assign(socket, :fields, socket.assigns.fields ++ [empty_field()])}
+    {:noreply, assign(socket, :fields, Form.add_field(socket.assigns.fields))}
   end
 
   def handle_event("remove_field", %{"index" => index}, socket) do
-    idx = String.to_integer(index)
-
-    fields =
-      socket.assigns.fields
-      |> Enum.with_index()
-      |> Enum.reject(fn {_, i} -> i == idx end)
-      |> Enum.map(fn {field, _} -> field end)
-
-    {:noreply, assign(socket, :fields, fields)}
+    {:noreply,
+     assign(socket, :fields, Form.remove_field(socket.assigns.fields, String.to_integer(index)))}
   end
 
   def handle_event("move_field_up", %{"index" => index}, socket) do
     {:noreply,
-     assign(socket, :fields, move_field(socket.assigns.fields, String.to_integer(index), -1))}
+     assign(
+       socket,
+       :fields,
+       Form.move_field(socket.assigns.fields, String.to_integer(index), -1)
+     )}
   end
 
   def handle_event("move_field_down", %{"index" => index}, socket) do
     {:noreply,
-     assign(socket, :fields, move_field(socket.assigns.fields, String.to_integer(index), 1))}
+     assign(socket, :fields, Form.move_field(socket.assigns.fields, String.to_integer(index), 1))}
   end
 
   def handle_event("validate", %{"pin_type" => params}, socket) do
     field_errors = Form.field_errors_from_params(params)
-    attrs = attrs_from_params(params)
+    attrs = Form.attrs_from_params(params)
 
     changeset =
-      PinTypes.change_pin_type(socket.assigns.pin_type, attrs)
-      |> maybe_add_schema_field_error(field_errors)
+      socket.assigns.pin_type
+      |> PinTypes.change_pin_type(attrs)
+      |> Form.maybe_add_schema_field_error(field_errors)
       |> Map.put(:action, :validate)
 
     {:noreply,
@@ -86,11 +84,12 @@ defmodule StorymapWeb.PinTypeLive.Edit do
     field_errors = Form.field_errors_from_params(params)
 
     if field_errors != %{} do
-      attrs = attrs_from_params(params)
+      attrs = Form.attrs_from_params(params)
 
       changeset =
-        PinTypes.change_pin_type(socket.assigns.pin_type, attrs)
-        |> maybe_add_schema_field_error(field_errors)
+        socket.assigns.pin_type
+        |> PinTypes.change_pin_type(attrs)
+        |> Form.maybe_add_schema_field_error(field_errors)
         |> Map.put(:action, :validate)
 
       {:noreply,
@@ -99,14 +98,14 @@ defmodule StorymapWeb.PinTypeLive.Edit do
        |> assign(:field_errors, field_errors)
        |> assign(form: to_form(changeset, as: :pin_type))}
     else
-      attrs = attrs_from_params(params)
+      attrs = Form.attrs_from_params(params)
 
       case PinTypes.update_pin_type(socket.assigns.current_scope, socket.assigns.pin_type, attrs) do
         {:ok, pin_type} ->
           {:noreply,
            socket
            |> assign(:pin_type, pin_type)
-           |> assign(:fields, fields_from_schema(pin_type.schema))
+           |> assign(:fields, Form.fields_from_schema(pin_type.schema))
            |> assign(:field_errors, %{})
            |> put_flash(:info, "Pin type saved")
            |> assign_form(pin_type, %{})}
@@ -155,7 +154,9 @@ defmodule StorymapWeb.PinTypeLive.Edit do
   end
 
   defp assign_form(socket, %CustomPinType{} = pin_type, params) do
-    attrs = if params == %{}, do: pin_type_to_attrs(pin_type), else: attrs_from_params(params)
+    attrs =
+      if params == %{}, do: pin_type_to_attrs(pin_type), else: Form.attrs_from_params(params)
+
     changeset = PinTypes.change_pin_type(pin_type, attrs)
     assign(socket, form: to_form(changeset, as: :pin_type))
   end
@@ -173,114 +174,15 @@ defmodule StorymapWeb.PinTypeLive.Edit do
     }
   end
 
-  defp attrs_from_params(params) do
-    schema = Form.build_schema_from_params(params)
-
-    params
-    |> Map.take(["label", "description", "marker_color", "icon", "slug", "enabled", "time_mode"])
-    |> Map.put("schema", schema)
-    |> maybe_put_enabled()
-  end
-
-  defp maybe_put_enabled(attrs) do
-    case Map.get(attrs, "enabled") do
-      "true" -> Map.put(attrs, "enabled", true)
-      "false" -> Map.put(attrs, "enabled", false)
-      _ -> Map.delete(attrs, "enabled")
-    end
-  end
-
-  defp fields_from_schema(schema) do
-    schema
-    |> Storymap.PinTypes.Schema.fields()
-    |> Enum.map(&field_to_form/1)
-    |> case do
-      [] -> [empty_field()]
-      fields -> fields
-    end
-  end
-
-  defp field_to_form(%{"key" => key, "label" => label, "type" => type} = field) do
-    %{
-      "key" => key,
-      "label" => label,
-      "type" => type,
-      "required" => field["required"] in [true, "true"],
-      "options" => select_options_to_string(field["options"])
-    }
-  end
-
-  defp field_to_form(%{key: key, label: label, type: type} = field) do
-    field_to_form(%{
-      "key" => key,
-      "label" => label,
-      "type" => type,
-      "required" => Map.get(field, :required),
-      "options" => Map.get(field, :options)
-    })
-  end
-
-  defp select_options_to_string(options) when is_list(options) do
-    options
-    |> Enum.map(fn
-      %{"value" => value, "label" => label} when is_binary(value) and is_binary(label) ->
-        "#{value} | #{label}"
-
-      %{value: value, label: label} when is_binary(value) and is_binary(label) ->
-        "#{value} | #{label}"
-
-      %{"label" => label} ->
-        to_string(label)
-
-      %{label: label} ->
-        to_string(label)
-
-      label when is_binary(label) ->
-        label
-    end)
-    |> Enum.join("\n")
-  end
-
-  defp select_options_to_string(_), do: ""
-
   defp sync_fields(socket, params) do
-    case Form.fields_from_params(params) do
-      nil ->
+    case Form.apply_fields_from_params(socket.assigns.fields, params) do
+      :unchanged ->
         socket
 
-      fields ->
-        fields = Form.merge_field_keys(socket.assigns.fields, fields)
-
+      {fields, field_errors} ->
         socket
         |> assign(:fields, fields)
-        |> assign(:field_errors, Form.field_errors_from_params(params))
+        |> assign(:field_errors, field_errors)
     end
-  end
-
-  defp maybe_add_schema_field_error(changeset, field_errors) when field_errors == %{} do
-    changeset
-  end
-
-  defp maybe_add_schema_field_error(changeset, _field_errors) do
-    Ecto.Changeset.add_error(changeset, :schema, "Fix the field errors below")
-  end
-
-  defp move_field(fields, index, delta) do
-    new_index = index + delta
-
-    if new_index < 0 or new_index >= length(fields) do
-      fields
-    else
-      a = Enum.at(fields, index)
-      b = Enum.at(fields, new_index)
-
-      fields
-      |> List.replace_at(index, b)
-      |> List.replace_at(new_index, a)
-    end
-  end
-
-  defp empty_field do
-    %{"key" => "", "label" => "", "type" => "text", "required" => false, "options" => ""}
   end
 end

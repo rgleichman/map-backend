@@ -30,6 +30,86 @@ defmodule StorymapWeb.PinTypeLive.Form do
   def field_type_description("drawing"), do: "Freehand drawing on the map."
   def field_type_description(_), do: ""
 
+  @spec empty_field() :: field_form()
+  def empty_field do
+    %{"key" => "", "label" => "", "type" => "text", "required" => false, "options" => ""}
+  end
+
+  @spec add_field([field_form()]) :: [field_form()]
+  def add_field(fields) when is_list(fields), do: fields ++ [empty_field()]
+
+  @spec remove_field([field_form()], non_neg_integer()) :: [field_form()]
+  def remove_field(fields, index) when is_list(fields) and is_integer(index) do
+    fields
+    |> Enum.with_index()
+    |> Enum.reject(fn {_, i} -> i == index end)
+    |> Enum.map(fn {field, _} -> field end)
+  end
+
+  @spec move_field([field_form()], non_neg_integer(), integer()) :: [field_form()]
+  def move_field(fields, index, delta) when is_list(fields) and is_integer(index) do
+    new_index = index + delta
+
+    if new_index < 0 or new_index >= length(fields) do
+      fields
+    else
+      a = Enum.at(fields, index)
+      b = Enum.at(fields, new_index)
+
+      fields
+      |> List.replace_at(index, b)
+      |> List.replace_at(new_index, a)
+    end
+  end
+
+  @spec attrs_from_params(map()) :: map()
+  def attrs_from_params(params) when is_map(params) do
+    schema = build_schema_from_params(params)
+
+    params
+    |> Map.take(["label", "description", "marker_color", "icon", "slug", "enabled", "time_mode"])
+    |> Map.put("schema", schema)
+    |> maybe_put_enabled()
+  end
+
+  @spec fields_from_schema(map() | nil) :: [field_form()]
+  def fields_from_schema(schema) do
+    schema
+    |> Schema.fields()
+    |> Enum.map(&field_to_form/1)
+    |> case do
+      [] -> [empty_field()]
+      fields -> fields
+    end
+  end
+
+  @spec maybe_add_schema_field_error(Ecto.Changeset.t(), field_errors()) :: Ecto.Changeset.t()
+  def maybe_add_schema_field_error(changeset, field_errors) when field_errors == %{},
+    do: changeset
+
+  def maybe_add_schema_field_error(changeset, _field_errors) do
+    Ecto.Changeset.add_error(changeset, :schema, "Fix the field errors below")
+  end
+
+  @doc """
+  Merges field params into the current field list.
+
+  Returns `:unchanged` when params have no fields key; otherwise
+  `{fields, field_errors}`.
+  """
+  @spec apply_fields_from_params([field_form()], map()) ::
+          {[field_form()], field_errors()} | :unchanged
+  def apply_fields_from_params(current_fields, params)
+      when is_list(current_fields) and is_map(params) do
+    case fields_from_params(params) do
+      nil ->
+        :unchanged
+
+      fields ->
+        {merge_field_keys(current_fields, fields), field_errors_from_params(params)}
+    end
+  end
+
   @spec validate_fields_from_params(map()) ::
           {:ok, Schema.definition()} | {:error, field_errors()}
   def validate_fields_from_params(params) do
@@ -97,6 +177,57 @@ defmodule StorymapWeb.PinTypeLive.Form do
     |> then(&assign_field_keys(previous_fields, &1))
     |> dedupe_field_keys()
   end
+
+  defp maybe_put_enabled(attrs) do
+    case Map.get(attrs, "enabled") do
+      "true" -> Map.put(attrs, "enabled", true)
+      "false" -> Map.put(attrs, "enabled", false)
+      _ -> Map.delete(attrs, "enabled")
+    end
+  end
+
+  defp field_to_form(%{"key" => key, "label" => label, "type" => type} = field) do
+    %{
+      "key" => key,
+      "label" => label,
+      "type" => type,
+      "required" => field["required"] in [true, "true"],
+      "options" => select_options_to_string(field["options"])
+    }
+  end
+
+  defp field_to_form(%{key: key, label: label, type: type} = field) do
+    field_to_form(%{
+      "key" => key,
+      "label" => label,
+      "type" => type,
+      "required" => Map.get(field, :required),
+      "options" => Map.get(field, :options)
+    })
+  end
+
+  defp select_options_to_string(options) when is_list(options) do
+    options
+    |> Enum.map(fn
+      %{"value" => value, "label" => label} when is_binary(value) and is_binary(label) ->
+        "#{value} | #{label}"
+
+      %{value: value, label: label} when is_binary(value) and is_binary(label) ->
+        "#{value} | #{label}"
+
+      %{"label" => label} ->
+        to_string(label)
+
+      %{label: label} ->
+        to_string(label)
+
+      label when is_binary(label) ->
+        label
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp select_options_to_string(_), do: ""
 
   defp assign_field_keys(previous_fields, fields) do
     fields
