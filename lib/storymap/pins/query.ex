@@ -9,7 +9,7 @@ defmodule Storymap.Pins.Query do
   import Ecto.Query
   alias Storymap.Pins.Pin
 
-  @list_preloads [:tags, :sub_map, :outgoing_references]
+  @list_preloads [:tags, :sub_map, :pin_type, :outgoing_references]
 
   @spec list_preloads() :: [atom()]
   def list_preloads, do: @list_preloads

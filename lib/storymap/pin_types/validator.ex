@@ -4,15 +4,15 @@ defmodule Storymap.PinTypes.Validator do
   import Ecto.Changeset
 
   alias Storymap.Pins.BlobFieldType
-  alias Storymap.PinTypes.{CustomPinType, Schema}
+  alias Storymap.PinTypes.{PinType, Schema}
   alias Storymap.URL
 
   @max_json_bytes 16_384
   @max_string_length 2000
   @max_list_items 50
 
-  @spec validate_custom_data(Ecto.Changeset.t(), CustomPinType.t() | nil) :: Ecto.Changeset.t()
-  def validate_custom_data(changeset, %CustomPinType{} = pin_type) do
+  @spec validate_custom_data(Ecto.Changeset.t(), PinType.t() | nil) :: Ecto.Changeset.t()
+  def validate_custom_data(changeset, %PinType{} = pin_type) do
     data = get_field(changeset, :custom_data) || %{}
     fields = Schema.fields(pin_type.schema)
 
@@ -26,7 +26,7 @@ defmodule Storymap.PinTypes.Validator do
   end
 
   def validate_custom_data(changeset, nil) do
-    add_error(changeset, :pin_type, "references an unknown custom pin type")
+    add_error(changeset, :pin_type, "references an unknown pin type")
   end
 
   defp check_json_size(data) do

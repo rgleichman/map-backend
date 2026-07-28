@@ -136,7 +136,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
     alias Storymap.Accounts.Scope
 
     pin_type =
-      custom_pin_type_fixture(
+      pin_type_fixture(
         %{
           "schema" => %{
             "fields" => [
@@ -180,7 +180,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
           "title" => "Pending song",
           "latitude" => 30.0,
           "longitude" => -97.0,
-          "pin_type" => "custom:#{pin_type.slug}",
+          "pin_type" => "#{pin_type.slug}",
           "custom_data" => %{"status" => "working"}
         }
       )
@@ -192,7 +192,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
     import Storymap.PinTypesFixtures
 
     pin_type =
-      custom_pin_type_fixture(
+      pin_type_fixture(
         %{
           "schema" => %{
             "fields" => [
@@ -215,7 +215,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
 
     pin_fixture(
       %{
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type" => "#{pin_type.slug}",
         "custom_data" => %{"status" => "working"}
       },
       user
@@ -226,7 +226,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
     import Storymap.PinTypesFixtures
 
     pin_type =
-      custom_pin_type_fixture(
+      pin_type_fixture(
         %{
           "schema" => %{
             "fields" => [
@@ -249,7 +249,7 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
 
     pin_fixture(
       %{
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type" => "#{pin_type.slug}",
         "custom_data" => %{"status" => "working"}
       },
       user

@@ -7,7 +7,7 @@ defmodule StorymapWeb.PinTypeLive.New do
   import StorymapWeb.PinTypeLive.FieldsEditor
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
   alias StorymapWeb.PinTypeLive.Form
 
   @impl true
@@ -58,7 +58,7 @@ defmodule StorymapWeb.PinTypeLive.New do
     attrs = Form.attrs_from_params(params)
 
     changeset =
-      %CustomPinType{}
+      %PinType{}
       |> PinTypes.change_pin_type(attrs)
       |> Form.maybe_add_schema_field_error(field_errors)
       |> Map.put(:action, :validate)
@@ -77,7 +77,7 @@ defmodule StorymapWeb.PinTypeLive.New do
       attrs = Form.attrs_from_params(params)
 
       changeset =
-        %CustomPinType{}
+        %PinType{}
         |> PinTypes.change_pin_type(attrs)
         |> Form.maybe_add_schema_field_error(field_errors)
         |> Map.put(:action, :validate)
@@ -121,7 +121,7 @@ defmodule StorymapWeb.PinTypeLive.New do
 
   defp assign_form(socket, params) do
     attrs = Form.attrs_from_params(params)
-    changeset = PinTypes.change_pin_type(%CustomPinType{}, attrs)
+    changeset = PinTypes.change_pin_type(%PinType{}, attrs)
     assign(socket, form: to_form(changeset, as: :pin_type))
   end
 end

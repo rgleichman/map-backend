@@ -6,7 +6,7 @@ defmodule Storymap.Pins.References do
   import Ecto.Query, only: [from: 2]
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.Pins.{Pin, PinReference, ReferenceParser, Visibility}
   alias Storymap.Repo
@@ -111,10 +111,10 @@ defmodule Storymap.Pins.References do
     |> Enum.uniq_by(fn {target_id, _} -> target_id end)
   end
 
-  defp custom_text_field_refs(%Pin{pin_type: "custom:" <> _} = pin, origin) do
-    case PinTypes.get_by_pin_type(pin.pin_type) do
-      %CustomPinType{} = custom_type ->
-        PinTypeSchema.fields(custom_type.schema)
+  defp custom_text_field_refs(%Pin{} = pin, origin) do
+    case pin_type(pin) do
+      %PinType{} = pin_type ->
+        PinTypeSchema.fields(pin_type.schema)
         |> Enum.flat_map(fn field ->
           key = field_key(field)
           type = field_type(field)
@@ -138,7 +138,9 @@ defmodule Storymap.Pins.References do
     end
   end
 
-  defp custom_text_field_refs(_pin, _origin), do: []
+  defp pin_type(%Pin{pin_type: %PinType{} = pin_type}), do: pin_type
+  defp pin_type(%Pin{pin_type_id: id}) when is_integer(id), do: PinTypes.get_pin_type(id)
+  defp pin_type(_), do: nil
 
   defp validate_reference_rows(%Pin{id: source_pin_id} = source_pin, rows) do
     explicit_count = Enum.count(rows, &(&1.kind == :explicit))

@@ -8,7 +8,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
   alias Storymap.PinTypes.Validator
 
   test "validates required custom fields" do
-    pin_type = custom_pin_type_fixture()
+    pin_type = pin_type_fixture()
 
     changeset =
       %Pin{}
@@ -16,7 +16,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"cost" => 1},
         "user_id" => 1
       })
@@ -26,7 +26,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
   end
 
   test "accepts valid custom data" do
-    pin_type = custom_pin_type_fixture()
+    pin_type = pin_type_fixture()
 
     changeset =
       %Pin{}
@@ -34,7 +34,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"status" => "working", "cost" => 1},
         "user_id" => 1
       })
@@ -50,18 +50,18 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:missing",
+        "pin_type_id" => 0,
         "custom_data" => %{},
         "user_id" => 1
       })
       |> Validator.validate_custom_data(nil)
 
-    assert "references an unknown custom pin type" in errors_on(changeset).pin_type
+    assert "references an unknown pin type" in errors_on(changeset).pin_type
   end
 
   test "rejects custom_data that exceeds JSON size limit" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{"key" => "notes", "label" => "Notes", "type" => "text", "required" => false}
@@ -77,7 +77,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"notes" => oversized},
         "user_id" => 1
       })
@@ -88,7 +88,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects text fields that are too long" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{"key" => "notes", "label" => "Notes", "type" => "text", "required" => true}
@@ -102,7 +102,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"notes" => String.duplicate("a", 2001)},
         "user_id" => 1
       })
@@ -113,7 +113,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid URL fields" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{"key" => "website", "label" => "Website", "type" => "url", "required" => true}
@@ -127,7 +127,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"website" => "not a valid url"},
         "user_id" => 1
       })
@@ -139,7 +139,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
   end
 
   test "rejects invalid select option" do
-    pin_type = custom_pin_type_fixture()
+    pin_type = pin_type_fixture()
 
     changeset =
       %Pin{}
@@ -147,7 +147,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"status" => "unknown", "cost" => 1},
         "user_id" => 1
       })
@@ -158,7 +158,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid list values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{"key" => "tags", "label" => "Tags", "type" => "list", "required" => true}
@@ -170,7 +170,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
       "title" => "Arcade",
       "latitude" => 30.0,
       "longitude" => -97.0,
-      "pin_type" => "custom:#{pin_type.slug}",
+      "pin_type_id" => pin_type.id || 1,
       "user_id" => 1
     }
 
@@ -200,7 +200,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid blob references" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{"key" => "song", "label" => "Song", "type" => "music", "required" => false}
@@ -212,7 +212,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
       "title" => "Arcade",
       "latitude" => 30.0,
       "longitude" => -97.0,
-      "pin_type" => "custom:#{pin_type.slug}",
+      "pin_type_id" => pin_type.id || 1,
       "user_id" => 1
     }
 
@@ -235,7 +235,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     import Storymap.PinTypesFixtures
 
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [
             %{
@@ -259,7 +259,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"status" => "working"},
         "user_id" => 1
       })
@@ -269,24 +269,24 @@ defmodule Storymap.PinTypes.ValidatorTest do
     assert get_field(changeset, :custom_data) == %{"status" => "working"}
   end
 
-  test "rejects unknown custom pin type" do
+  test "rejects unknown pin type" do
     changeset =
       %Pin{}
       |> Pin.changeset(%{
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:missing",
+        "pin_type_id" => 0,
         "custom_data" => %{},
         "user_id" => 1
       })
       |> Validator.validate_custom_data(nil)
 
-    assert "references an unknown custom pin type" in errors_on(changeset).pin_type
+    assert "references an unknown pin type" in errors_on(changeset).pin_type
   end
 
   test "rejects custom data exceeding JSON size limit" do
-    pin_type = custom_pin_type_fixture()
+    pin_type = pin_type_fixture()
 
     huge = String.duplicate("x", 20_000)
 
@@ -296,7 +296,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"status" => "working", "cost" => huge},
         "user_id" => 1
       })
@@ -307,7 +307,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects text field that is too long" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "note", "label" => "Note", "type" => "text"}]
         }
@@ -319,7 +319,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"note" => String.duplicate("a", 2001)},
         "user_id" => 1
       })
@@ -330,7 +330,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects non-text text field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "note", "label" => "Note", "type" => "text"}]
         }
@@ -342,7 +342,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"note" => 123},
         "user_id" => 1
       })
@@ -353,7 +353,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid URL field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "link", "label" => "Link", "type" => "url"}]
         }
@@ -365,7 +365,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"link" => "not a valid url!!!"},
         "user_id" => 1
       })
@@ -376,7 +376,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "accepts valid URL field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "link", "label" => "Link", "type" => "url"}]
         }
@@ -388,7 +388,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"link" => "https://example.com"},
         "user_id" => 1
       })
@@ -398,7 +398,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
   end
 
   test "rejects non-string select values" do
-    pin_type = custom_pin_type_fixture()
+    pin_type = pin_type_fixture()
 
     changeset =
       %Pin{}
@@ -406,7 +406,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"status" => 1, "cost" => 1},
         "user_id" => 1
       })
@@ -417,7 +417,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid list field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "tags", "label" => "Tags", "type" => "list"}]
         }
@@ -429,7 +429,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"tags" => [1, 2]},
         "user_id" => 1
       })
@@ -440,7 +440,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects list with too many items" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "tags", "label" => "Tags", "type" => "list"}]
         }
@@ -452,7 +452,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"tags" => Enum.map(1..51, &"tag#{&1}")},
         "user_id" => 1
       })
@@ -463,7 +463,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid blob reference" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "song", "label" => "Song", "type" => "music"}]
         }
@@ -475,7 +475,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"song" => "bad"},
         "user_id" => 1
       })
@@ -486,7 +486,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "accepts integer blob reference" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "song", "label" => "Song", "type" => "music"}]
         }
@@ -498,7 +498,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"song" => 42},
         "user_id" => 1
       })
@@ -510,7 +510,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid boolean field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "open", "label" => "Open", "type" => "boolean"}]
         }
@@ -522,7 +522,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"open" => "yes"},
         "user_id" => 1
       })
@@ -533,7 +533,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
   test "rejects invalid number field values" do
     pin_type =
-      custom_pin_type_fixture(%{
+      pin_type_fixture(%{
         "schema" => %{
           "fields" => [%{"key" => "cost", "label" => "Cost", "type" => "number"}]
         }
@@ -545,7 +545,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => %{"cost" => "free"},
         "user_id" => 1
       })
@@ -561,7 +561,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
         "title" => "Arcade",
         "latitude" => 30.0,
         "longitude" => -97.0,
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type_id" => pin_type.id || 1,
         "custom_data" => custom_data,
         "user_id" => 1
       })
@@ -569,7 +569,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     end
 
     test "accepts atom-key schema field types" do
-      pin_type = %Storymap.PinTypes.CustomPinType{
+      pin_type = %Storymap.PinTypes.PinType{
         slug: "atom-fields",
         schema: %{
           fields: [
@@ -617,7 +617,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     end
 
     test "rejects non-text for text fields" do
-      pin_type = %Storymap.PinTypes.CustomPinType{
+      pin_type = %Storymap.PinTypes.PinType{
         slug: "text-only",
         schema: %{fields: [%{key: "note", label: "Note", type: "text"}]}
       }
@@ -628,7 +628,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
     test "rejects list that is not a list" do
       pin_type =
-        custom_pin_type_fixture(%{
+        pin_type_fixture(%{
           "schema" => %{"fields" => [%{"key" => "tags", "label" => "Tags", "type" => "list"}]}
         })
 
@@ -637,7 +637,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     end
 
     test "accepts drawing ref map with atom ref key" do
-      pin_type = %Storymap.PinTypes.CustomPinType{
+      pin_type = %Storymap.PinTypes.PinType{
         slug: "drawing-ref",
         schema: %{fields: [%{key: "sketch", label: "Sketch", type: "drawing"}]}
       }
@@ -648,7 +648,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
     end
 
     test "rejects unknown field type" do
-      pin_type = %Storymap.PinTypes.CustomPinType{
+      pin_type = %Storymap.PinTypes.PinType{
         slug: "bad-type",
         schema: %{fields: [%{key: "x", label: "X", type: "widget"}]}
       }
@@ -659,7 +659,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
     test "strips unknown keys from custom_data" do
       pin_type =
-        custom_pin_type_fixture(%{
+        pin_type_fixture(%{
           "schema" => %{"fields" => [%{"key" => "note", "label" => "Note", "type" => "text"}]}
         })
 
@@ -670,7 +670,7 @@ defmodule Storymap.PinTypes.ValidatorTest do
 
     test "treats empty string as missing required field" do
       pin_type =
-        custom_pin_type_fixture(%{
+        pin_type_fixture(%{
           "schema" => %{
             "fields" => [
               %{"key" => "note", "label" => "Note", "type" => "text", "required" => true}

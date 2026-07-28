@@ -2,26 +2,25 @@ defmodule StorymapWeb.SubMapLive.PinTypeForm do
   @moduledoc false
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
   alias Storymap.SubMaps.PinTypeSettings
+  alias Storymap.SubMaps.SubMap
 
-  def assign_pin_types(socket, settings) do
+  def assign_pin_types(socket, %SubMap{} = sub_map) do
     socket
-    |> Phoenix.Component.assign(:pin_type_settings, PinTypeSettings.normalize_settings(settings))
-    |> Phoenix.Component.assign(:custom_pin_types, PinTypes.list_enabled_pin_types())
-    |> Phoenix.Component.assign(:builtin_pin_types, CustomPinType.builtin_pin_types())
+    |> Phoenix.Component.assign(:pin_types, PinTypes.list_enabled_pin_types())
+    |> Phoenix.Component.assign(
+      :enabled_pin_type_ids,
+      PinTypeSettings.enabled_pin_type_ids(sub_map)
+    )
+  end
+
+  def assign_pin_types(socket, _sub_map) do
+    socket
+    |> Phoenix.Component.assign(:pin_types, PinTypes.list_enabled_pin_types())
+    |> Phoenix.Component.assign(:enabled_pin_type_ids, [])
   end
 
   def attrs_from(params) when is_map(params) do
-    %{
-      "enabled_builtin_pin_types" => selected_list(params, "enabled_builtin_pin_types"),
-      "enabled_custom_pin_types" => selected_list(params, "enabled_custom_pin_types")
-    }
-  end
-
-  defp selected_list(params, key) do
-    params
-    |> Map.get(key, [])
-    |> List.wrap()
+    %{"enabled_pin_type_ids" => params |> Map.get("enabled_pin_type_ids", []) |> List.wrap()}
   end
 end

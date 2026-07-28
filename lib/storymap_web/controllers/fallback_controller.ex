@@ -48,8 +48,8 @@ defmodule StorymapWeb.FallbackController do
     |> render(:"401")
   end
 
-  @spec call(Plug.Conn.t(), {:error, :in_use}) :: Plug.Conn.t()
-  def call(conn, {:error, :in_use}) do
+  @spec call(Plug.Conn.t(), {:error, :in_use | :system_type}) :: Plug.Conn.t()
+  def call(conn, {:error, reason}) when reason in [:in_use, :system_type] do
     conn
     |> put_status(:unprocessable_entity)
     |> put_view(json: StorymapWeb.ErrorJSON)

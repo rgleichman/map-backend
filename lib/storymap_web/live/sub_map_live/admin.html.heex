@@ -17,7 +17,9 @@
         <div class="card-body flex-row flex-wrap items-center justify-between gap-4">
           <div>
             <h2 class="font-semibold">{pin.title}</h2>
-            <p class="text-sm text-base-content/60">{pin.pin_type}</p>
+            <p class="text-sm text-base-content/60">
+              {if pin.pin_type, do: pin.pin_type.label}
+            </p>
           </div>
           <div class="flex gap-2">
             <.button

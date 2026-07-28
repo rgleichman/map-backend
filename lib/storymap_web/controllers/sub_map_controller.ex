@@ -63,11 +63,12 @@ defmodule StorymapWeb.SubMapController do
   end
 
   @spec update_pin_type_settings(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def update_pin_type_settings(conn, %{"pin_type_settings" => params}) do
+  def update_pin_type_settings(conn, params) do
     scope = conn.assigns.current_scope
     sub_map = conn.assigns.sub_map
+    attrs = Map.get(params, "pin_type_settings") || params
 
-    case SubMaps.update_pin_type_settings(scope, sub_map, params) do
+    case SubMaps.update_pin_type_settings(scope, sub_map, attrs) do
       {:ok, sub_map} -> render_show(conn, sub_map)
       other -> other
     end

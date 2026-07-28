@@ -10,7 +10,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
   describe "GET /api/pin_types" do
     test "lists enabled custom pin types", %{conn: conn} do
-      pin_type = custom_pin_type_fixture()
+      pin_type = pin_type_fixture()
 
       conn = get(conn, ~p"/api/pin_types")
       slugs = Enum.map(json_response(conn, 200)["data"], & &1["slug"])
@@ -20,7 +20,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
   describe "GET /api/pin_types/:slug" do
     test "shows enabled custom pin type", %{conn: conn} do
-      pin_type = custom_pin_type_fixture()
+      pin_type = pin_type_fixture()
 
       conn = get(conn, ~p"/api/pin_types/#{pin_type.slug}")
       data = json_response(conn, 200)["data"]
@@ -31,7 +31,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
     end
 
     test "returns 404 for disabled custom pin type", %{conn: conn} do
-      pin_type = custom_pin_type_fixture()
+      pin_type = pin_type_fixture()
 
       pin_type
       |> Ecto.Changeset.change(%{enabled: false})
@@ -63,7 +63,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
       data = json_response(conn, 201)["data"]
       assert data["slug"]
-      assert data["pin_type"] == "custom:#{data["slug"]}"
+      assert data["pin_type"] == "#{data["slug"]}"
       assert data["time_mode"] == "none"
     end
 
@@ -105,7 +105,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
     setup :register_and_log_in_user
 
     test "updates a custom pin type", %{conn: conn, user: user} do
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
 
       conn =
         patch(conn, ~p"/api/pin_types/#{pin_type.id}", %{
@@ -117,7 +117,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
     test "forbids update for non-owner", %{conn: conn} do
       owner = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, owner)
+      pin_type = pin_type_fixture(%{}, owner)
 
       conn =
         patch(conn, ~p"/api/pin_types/#{pin_type.id}", %{
@@ -128,7 +128,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
     end
 
     test "forbids update when user is muted", %{conn: conn, user: user} do
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       user = muted_user_fixture(user)
       conn = log_in_user(conn, user)
 
@@ -145,7 +145,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
     setup :register_and_log_in_user
 
     test "deletes an unused custom pin type", %{conn: conn, user: user} do
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
 
       conn = delete(conn, ~p"/api/pin_types/#{pin_type.id}")
       assert response(conn, 204) == ""
@@ -154,14 +154,14 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
     test "forbids delete for non-owner", %{conn: conn} do
       owner = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, owner)
+      pin_type = pin_type_fixture(%{}, owner)
 
       conn = delete(conn, ~p"/api/pin_types/#{pin_type.id}")
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
     test "returns 422 when pin type is in use", %{conn: conn, user: user} do
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
 
       assert {:ok, _} =
                Storymap.Pins.create_pin(
@@ -169,7 +169,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
                    "title" => "Machine",
                    "latitude" => 30.0,
                    "longitude" => -97.0,
-                   "pin_type" => Storymap.PinTypes.CustomPinType.pin_type_value(pin_type),
+                   "pin_type" => pin_type.slug,
                    "custom_data" => %{"status" => "working"}
                  },
                  user.id
@@ -180,7 +180,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
     end
 
     test "forbids delete when user is muted", %{conn: conn, user: user} do
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       user = muted_user_fixture(user)
       conn = log_in_user(conn, user)
 

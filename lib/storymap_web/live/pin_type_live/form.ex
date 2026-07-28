@@ -67,9 +67,19 @@ defmodule StorymapWeb.PinTypeLive.Form do
     schema = build_schema_from_params(params)
 
     params
-    |> Map.take(["label", "description", "marker_color", "icon", "slug", "enabled", "time_mode"])
+    |> Map.take([
+      "label",
+      "description",
+      "marker_color",
+      "icon",
+      "slug",
+      "enabled",
+      "time_mode",
+      "allow_open_24_7"
+    ])
     |> Map.put("schema", schema)
     |> maybe_put_enabled()
+    |> maybe_put_boolean("allow_open_24_7")
   end
 
   @spec fields_from_schema(map() | nil) :: [field_form()]
@@ -183,6 +193,14 @@ defmodule StorymapWeb.PinTypeLive.Form do
       "true" -> Map.put(attrs, "enabled", true)
       "false" -> Map.put(attrs, "enabled", false)
       _ -> Map.delete(attrs, "enabled")
+    end
+  end
+
+  defp maybe_put_boolean(attrs, key) do
+    case Map.get(attrs, key) do
+      value when value in ["true", true, "on"] -> Map.put(attrs, key, true)
+      value when value in ["false", false] -> Map.put(attrs, key, false)
+      _ -> Map.delete(attrs, key)
     end
   end
 

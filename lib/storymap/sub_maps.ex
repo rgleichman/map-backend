@@ -158,11 +158,12 @@ defmodule Storymap.SubMaps do
       Repo.transaction(fn ->
         with {:ok, sub_map} <-
                %SubMap{}
-               |> SubMap.changeset(attrs)
+               |> SubMap.changeset(normalize_sub_map_settings(attrs))
                |> Ecto.Changeset.put_change(:owner_user_id, user.id)
                |> Repo.insert(),
              {:ok, _membership} <-
                insert_membership(sub_map.id, user.id, "owner", "active") do
+          sync_enabled_pin_types(sub_map, attrs)
           sub_map
         else
           {:error, reason} -> Repo.rollback(reason)
@@ -176,28 +177,58 @@ defmodule Storymap.SubMaps do
   def update_sub_map(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
     if Policy.can_edit_sub_map?(user, sub_map) do
       sub_map
-      |> SubMap.changeset(stringify_keys(attrs))
+      |> SubMap.changeset(attrs |> stringify_keys() |> normalize_sub_map_settings())
       |> Repo.update()
     else
       {:error, :forbidden}
     end
   end
 
+  @doc """
+  Replaces the community pin type allowlist.
+
+  Accepts `enabled_pin_type_ids` (catalog ids) or `enabled_pin_types` (slugs).
+  """
   @spec update_pin_type_settings(Scope.t(), SubMap.t(), map()) ::
           Types.ecto_result(SubMap.t()) | Types.forbidden()
   def update_pin_type_settings(%Scope{user: user}, %SubMap{} = sub_map, attrs) do
     membership = get_membership(sub_map.id, user.id)
 
     if Policy.can_moderate?(user, sub_map, membership) do
-      settings =
-        sub_map.settings
-        |> PinTypeSettings.merge_pin_type_settings(attrs)
+      attrs = stringify_keys(attrs)
+      settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})
 
-      sub_map
-      |> Ecto.Changeset.change(%{settings: settings})
-      |> Repo.update()
+      with {:ok, sub_map} <-
+             sub_map
+             |> Ecto.Changeset.change(%{settings: settings})
+             |> Repo.update() do
+        sync_enabled_pin_types(sub_map, attrs)
+        {:ok, sub_map}
+      end
     else
       {:error, :forbidden}
+    end
+  end
+
+  @spec enabled_pin_types(SubMap.t()) :: [Storymap.PinTypes.PinType.t()]
+  def enabled_pin_types(%SubMap{} = sub_map) do
+    Storymap.PinTypes.list_pin_types_for_sub_map(sub_map)
+  end
+
+  defp sync_enabled_pin_types(%SubMap{} = sub_map, attrs) do
+    case PinTypeSettings.pin_type_ids_from_attrs(attrs) do
+      nil -> :ok
+      ids -> PinTypeSettings.replace_enabled_pin_types(sub_map, ids)
+    end
+  end
+
+  defp normalize_sub_map_settings(attrs) when is_map(attrs) do
+    case Map.get(attrs, "settings") do
+      settings when is_map(settings) ->
+        Map.put(attrs, "settings", PinTypeSettings.normalize_settings(settings))
+
+      _ ->
+        attrs
     end
   end
 

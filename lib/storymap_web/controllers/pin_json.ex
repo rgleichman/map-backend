@@ -5,13 +5,14 @@ defmodule StorymapWeb.PinJSON do
   alias Storymap.Pins.Pin
   alias Storymap.Pins.Authorizer
   alias Storymap.Pins.PinReference
+  alias Storymap.PinTypes.PinType
   alias Storymap.SubMaps.SubMap
   alias StorymapWeb.JSON.DateTime, as: JSONDateTime
 
   # Pin schema fields (no user_id) plus view-only keys: tags, community, is_owner /
   # created_by_me (computed for the authenticated viewer only).
   @pin_data_keys Pin.public_json_fields() ++
-                   [:tags, :community, :is_owner, :created_by_me, :linked_pins]
+                   [:pin_type, :tags, :community, :is_owner, :created_by_me, :linked_pins]
 
   @spec index(map()) :: map()
   def index(%{pins: pins, current_user: %{} = current_user} = assigns) do
@@ -51,10 +52,25 @@ defmodule StorymapWeb.PinJSON do
     end)
     |> Map.new()
     |> Map.put(:tags, (pin.tags || []) |> Enum.map(& &1.name))
+    |> put_pin_type_slug(pin)
     |> put_community(pin)
     |> Map.put(:linked_pins, linked_pins_data(pin))
     |> Map.take(@pin_data_keys -- [:is_owner, :created_by_me])
   end
+
+  # Wire `pin_type` is always the catalog slug.
+  defp put_pin_type_slug(map, %Pin{pin_type: %PinType{slug: slug}}) do
+    Map.put(map, :pin_type, slug)
+  end
+
+  defp put_pin_type_slug(map, %Pin{pin_type_id: id}) when is_integer(id) do
+    case Storymap.PinTypes.get_pin_type(id) do
+      %PinType{slug: slug} -> Map.put(map, :pin_type, slug)
+      nil -> Map.put(map, :pin_type, nil)
+    end
+  end
+
+  defp put_pin_type_slug(map, _pin), do: Map.put(map, :pin_type, nil)
 
   defp put_community(map, %Pin{sub_map: %SubMap{community_url: url, name: name}}) do
     Map.put(map, :community, %{community_url: url, name: name})

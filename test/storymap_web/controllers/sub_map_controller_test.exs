@@ -24,26 +24,28 @@ defmodule StorymapWeb.SubMapControllerTest do
       import Storymap.PinTypesFixtures
 
       owner = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, owner)
+      pin_type = pin_type_fixture(%{}, owner)
+      other = Storymap.PinTypes.get_by_slug("other")
       sub_map = sub_map_fixture(%{"community_url" => "wire-keys-show"}, owner)
 
-      {:ok, sub_map} =
+      {:ok, _sub_map} =
         Storymap.SubMaps.update_pin_type_settings(
           %Storymap.Accounts.Scope{user: owner},
           sub_map,
-          %{
-            "enabled_builtin_pin_types" => ["other"],
-            "enabled_custom_pin_types" => [pin_type.slug]
-          }
+          %{"enabled_pin_type_ids" => [other.id, pin_type.id]}
         )
 
       conn = get(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
       data = json_response(conn, 200)["data"]
 
-      assert data["enabled_builtin_pin_types"] == ["other"]
-      assert data["enabled_custom_pin_types"] == [pin_type.slug]
-      assert is_list(data["available_custom_pin_types"])
-      refute Map.has_key?(data, "enabled_custom_slugs")
+      assert Enum.sort(data["enabled_pin_type_ids"]) == Enum.sort([other.id, pin_type.id])
+
+      assert Enum.map(data["enabled_pin_types"], & &1["slug"]) |> Enum.sort() ==
+               Enum.sort([other.slug, pin_type.slug])
+
+      refute Map.has_key?(data, "enabled_builtin_pin_types")
+      refute Map.has_key?(data, "enabled_custom_pin_types")
+      refute Map.has_key?(data, "available_custom_pin_types")
     end
 
     test "omits pending_count for anonymous viewers", %{conn: conn} do
@@ -179,20 +181,20 @@ defmodule StorymapWeb.SubMapControllerTest do
     test "owner updates pin type settings", %{conn: conn, user: user} do
       import Storymap.PinTypesFixtures
 
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
+      other = Storymap.PinTypes.get_by_slug("other")
       sub_map = sub_map_fixture(%{"community_url" => "pin-type-settings-ok"}, user)
 
       conn =
         patch(conn, ~p"/api/sub_maps/#{sub_map.community_url}/pin_type_settings", %{
-          pin_type_settings: %{
-            enabled_builtin_pin_types: ["other"],
-            enabled_custom_pin_types: [pin_type.slug]
-          }
+          pin_type_settings: %{enabled_pin_type_ids: [other.id, pin_type.id]}
         })
 
       data = json_response(conn, 200)["data"]
-      assert data["enabled_builtin_pin_types"] == ["other"]
-      assert data["enabled_custom_pin_types"] == [pin_type.slug]
+      assert Enum.sort(data["enabled_pin_type_ids"]) == Enum.sort([other.id, pin_type.id])
+
+      assert Enum.map(data["enabled_pin_types"], & &1["slug"]) |> Enum.sort() ==
+               Enum.sort([other.slug, pin_type.slug])
     end
 
     test "forbids update for non-moderators", %{conn: conn, user: member} do
@@ -202,7 +204,7 @@ defmodule StorymapWeb.SubMapControllerTest do
 
       conn =
         patch(conn, ~p"/api/sub_maps/#{sub_map.community_url}/pin_type_settings", %{
-          pin_type_settings: %{enabled_builtin_pin_types: ["other"]}
+          pin_type_settings: %{enabled_pin_type_ids: [1]}
         })
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"

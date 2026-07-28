@@ -40,21 +40,25 @@ defmodule Storymap.PinsTest do
       assert pin.title == "some title"
       assert pin.latitude == 120.5
       assert pin.longitude == 120.5
+      assert pin.pin_type.slug == "one_time"
     end
 
-    test "create_pin/2 with pin_type other clears time and schedule fields" do
+    test "create_pin/2 with time_mode none clears time and schedule fields" do
       user = user_fixture()
+      pin_type = pin_type_fixture(%{"time_mode" => "none", "schema" => %{"fields" => []}}, user)
 
       attrs =
-        Map.merge(@valid_attrs, %{
-          "pin_type" => "other",
+        @valid_attrs
+        |> Map.drop(["pin_type"])
+        |> Map.merge(%{
+          "pin_type_id" => pin_type.id,
           "start_time" => "2025-01-01T12:00:00Z",
           "end_time" => "2025-01-01T13:00:00Z",
           "schedule_rrule" => "FREQ=WEEKLY;BYDAY=MO"
         })
 
       assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
-      assert pin.pin_type == "other"
+      assert pin.pin_type.slug == pin_type.slug
       assert is_nil(pin.start_time)
       assert is_nil(pin.end_time)
       assert is_nil(pin.schedule_rrule)
@@ -63,11 +67,11 @@ defmodule Storymap.PinsTest do
 
     test "create_pin/2 with custom time_mode none clears schedule fields" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{"time_mode" => "none"}, user)
+      pin_type = pin_type_fixture(%{"time_mode" => "none"}, user)
 
       attrs =
         Map.merge(@valid_attrs, %{
-          "pin_type" => "custom:#{pin_type.slug}",
+          "pin_type" => "#{pin_type.slug}",
           "custom_data" => %{"status" => "working"},
           "start_time" => "2025-01-01T12:00:00Z",
           "end_time" => "2025-01-01T13:00:00Z",
@@ -83,13 +87,13 @@ defmodule Storymap.PinsTest do
 
     test "create_pin/2 with custom time_mode one_time keeps times and clears rrule" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{"time_mode" => "one_time"}, user)
+      pin_type = pin_type_fixture(%{"time_mode" => "one_time"}, user)
 
       attrs =
         Map.merge(@valid_attrs, %{
           "latitude" => 30.27,
           "longitude" => -97.74,
-          "pin_type" => "custom:#{pin_type.slug}",
+          "pin_type" => "#{pin_type.slug}",
           "custom_data" => %{"status" => "working"},
           "start_time" => "2026-08-01T12:00:00Z",
           "end_time" => "2026-08-01T13:00:00Z",
@@ -105,13 +109,13 @@ defmodule Storymap.PinsTest do
 
     test "create_pin/2 with custom time_mode hours keeps schedule fields" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{"time_mode" => "hours"}, user)
+      pin_type = pin_type_fixture(%{"time_mode" => "hours"}, user)
 
       attrs =
         Map.merge(@valid_attrs, %{
           "latitude" => 30.27,
           "longitude" => -97.74,
-          "pin_type" => "custom:#{pin_type.slug}",
+          "pin_type" => "#{pin_type.slug}",
           "custom_data" => %{"status" => "working"},
           "start_time" => "2000-01-01T09:00:00Z",
           "end_time" => "2000-01-01T17:00:00Z",
@@ -167,6 +171,9 @@ defmodule Storymap.PinsTest do
           owner
         )
 
+      pin_type = simple_pin_type_fixture(%{}, owner)
+      :ok = Storymap.SubMaps.PinTypeSettings.replace_enabled_pin_types(sub_map, [pin_type.id])
+
       {:ok, pin} =
         SubMaps.create_pin_in_sub_map(
           %Scope{user: owner},
@@ -175,7 +182,7 @@ defmodule Storymap.PinsTest do
             "title" => "Spot",
             "latitude" => 30.0,
             "longitude" => -97.0,
-            "pin_type" => "other",
+            "pin_type_id" => pin_type.id,
             "tags" => ["bbq"]
           }
         )

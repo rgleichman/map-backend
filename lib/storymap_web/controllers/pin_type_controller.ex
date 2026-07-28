@@ -2,7 +2,7 @@ defmodule StorymapWeb.PinTypeController do
   use StorymapWeb, :controller
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
 
   action_fallback StorymapWeb.FallbackController
 
@@ -15,10 +15,10 @@ defmodule StorymapWeb.PinTypeController do
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"slug" => slug}) do
     case PinTypes.get_by_slug(slug) do
-      %CustomPinType{enabled: true} = pin_type ->
+      %PinType{enabled: true} = pin_type ->
         render(conn, :show, pin_type: pin_type)
 
-      %CustomPinType{} ->
+      %PinType{} ->
         conn |> put_status(:not_found) |> render_not_found()
 
       nil ->

@@ -3,11 +3,12 @@ defmodule Storymap.Pins do
   The Pins context.
   """
 
-  import Ecto.Changeset, only: [add_error: 3, get_field: 2]
+  import Ecto.Changeset, only: [add_error: 3]
   import Ecto.Query
   alias Storymap.Repo
 
   alias Storymap.Pins.{
+    AdHocFields,
     BlobFieldType,
     Pin,
     PinFieldBlob,
@@ -18,7 +19,7 @@ defmodule Storymap.Pins do
   }
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.{CustomPinType, Validator}
+  alias Storymap.PinTypes.{PinType, Validator}
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, SubMap}
@@ -89,16 +90,20 @@ defmodule Storymap.Pins do
 
     tags = Map.get(attrs_with_user, "tags", [])
 
+    {pin_type, type_error} = resolve_pin_type_for(%Pin{}, attrs_with_user)
+    attrs_with_user = put_pin_type_id(attrs_with_user, pin_type)
+
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
         Repo.transaction(fn ->
           with {:ok, pin} <-
                  %Pin{}
                  |> Pin.changeset(attrs_with_user)
+                 |> maybe_add_pin_type_error(type_error)
                  |> maybe_put_privileged_create_fields(sub_map, attrs_with_user)
-                 |> maybe_validate_custom_pin_data()
-                 |> maybe_normalize_custom_schedule()
-                 |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
+                 |> validate_custom_pin_data(pin_type)
+                 |> normalize_schedule(pin_type)
+                 |> maybe_validate_sub_map_rules(sub_map, attrs_with_user, pin_type)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
                  |> Repo.insert(),
                {:ok, pin} <- References.sync(pin, attrs_with_user) do
@@ -126,6 +131,8 @@ defmodule Storymap.Pins do
       |> then(&Visibility.sanitize_attrs_visible_on_world_map(&1, sub_map, pin, user, membership))
 
     tags = Map.get(attrs, "tags", [])
+    {pin_type, type_error} = resolve_pin_type_for(pin, attrs)
+    attrs = put_pin_type_id(attrs, pin_type)
 
     case Storymap.Tags.get_or_create_tags_by_names(tags) do
       {:ok, tag_structs} ->
@@ -133,10 +140,11 @@ defmodule Storymap.Pins do
           with {:ok, pin} <-
                  pin
                  |> Pin.changeset(attrs)
+                 |> maybe_add_pin_type_error(type_error)
                  |> maybe_put_visible_on_world_map(attrs)
-                 |> maybe_validate_custom_pin_data()
-                 |> maybe_normalize_custom_schedule()
-                 |> maybe_validate_sub_map_rules(sub_map, attrs)
+                 |> validate_custom_pin_data(pin_type)
+                 |> normalize_schedule(pin_type)
+                 |> maybe_validate_sub_map_rules(sub_map, attrs, pin_type)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
                  |> Repo.update(),
                {:ok, pin} <- References.sync(pin, attrs) do
@@ -183,7 +191,7 @@ defmodule Storymap.Pins do
           Types.ecto_ok(blob_upsert_result()) | Types.ecto_err() | blob_error()
   def upsert_field_blob(%Pin{} = pin, field_key, type, attrs)
       when is_binary(field_key) and type in @blob_field_types and is_map(attrs) do
-    with :ok <- validate_blob_field_key(pin, field_key, type) do
+    with {:ok, target} <- resolve_blob_field(pin, field_key, type) do
       format = BlobFieldType.default_format(type)
       version = Map.get(attrs, "version") || Map.get(attrs, :version) || 1
       payload = Map.get(attrs, "payload") || Map.get(attrs, :payload)
@@ -215,11 +223,7 @@ defmodule Storymap.Pins do
             returning: true
           )
 
-        new_custom_data =
-          (pin.custom_data || %{})
-          |> Map.put(field_key, %{"ref" => blob.id})
-
-        {:ok, pin} = update_pin_custom_data(pin, new_custom_data)
+        {:ok, pin} = put_blob_ref(pin, target, field_key, blob.id)
 
         %{pin: pin, blob: blob}
       end)
@@ -239,7 +243,7 @@ defmodule Storymap.Pins do
           Types.ecto_ok(Pin.t()) | Types.ecto_err() | blob_error()
   def delete_field_blob(%Pin{} = pin, field_key, type)
       when is_binary(field_key) and type in @blob_field_types do
-    with :ok <- validate_blob_field_key(pin, field_key, type),
+    with {:ok, target} <- resolve_blob_field(pin, field_key, type),
          :ok <- validate_blob_field_not_required(pin, field_key, type) do
       Repo.transaction(fn ->
         _ =
@@ -248,11 +252,7 @@ defmodule Storymap.Pins do
           )
           |> Repo.delete_all()
 
-        new_custom_data =
-          (pin.custom_data || %{})
-          |> Map.delete(field_key)
-
-        {:ok, pin} = update_pin_custom_data(pin, new_custom_data)
+        {:ok, pin} = clear_blob_ref(pin, target, field_key)
         pin
       end)
       |> case do
@@ -275,55 +275,74 @@ defmodule Storymap.Pins do
   def delete_music_blob(%Pin{} = pin, field_key),
     do: delete_field_blob(pin, field_key, :music)
 
-  defp update_pin_custom_data(%Pin{} = pin, custom_data) when is_map(custom_data) do
+  defp update_pin_fields(%Pin{} = pin, attrs) do
+    {pin_type, _error} = existing_pin_type(pin)
+
     pin
-    |> Pin.changeset(%{"custom_data" => custom_data})
-    |> maybe_validate_custom_pin_data()
+    |> Pin.changeset(attrs)
+    |> validate_custom_pin_data(pin_type)
     |> Repo.update()
   end
 
-  defp validate_blob_field_key(%Pin{pin_type: "custom:" <> _} = pin, field_key, type)
-       when type in @blob_field_types do
-    case PinTypes.get_by_pin_type(pin.pin_type) do
-      %CustomPinType{} = custom_type ->
-        fields = PinTypeSchema.fields(custom_type.schema)
+  defp put_blob_ref(%Pin{} = pin, :custom_data, field_key, blob_id) do
+    custom_data = Map.put(pin.custom_data || %{}, field_key, %{"ref" => blob_id})
+    update_pin_fields(pin, %{"custom_data" => custom_data})
+  end
 
-        if Enum.any?(fields, fn f ->
-             field_key(f) == field_key and field_type(f) == to_string(type)
-           end) do
-          :ok
-        else
-          {:error, :invalid_blob_field}
-        end
+  defp put_blob_ref(%Pin{} = pin, :ad_hoc, field_key, blob_id) do
+    fields = AdHocFields.put_blob_ref(pin.ad_hoc_fields || [], field_key, blob_id)
+    update_pin_fields(pin, %{"ad_hoc_fields" => fields})
+  end
 
-      _ ->
-        {:error, :invalid_blob_field}
+  defp clear_blob_ref(%Pin{} = pin, :custom_data, field_key) do
+    custom_data = Map.delete(pin.custom_data || %{}, field_key)
+    update_pin_fields(pin, %{"custom_data" => custom_data})
+  end
+
+  defp clear_blob_ref(%Pin{} = pin, :ad_hoc, field_key) do
+    fields = AdHocFields.clear_blob_ref(pin.ad_hoc_fields || [], field_key)
+    update_pin_fields(pin, %{"ad_hoc_fields" => fields})
+  end
+
+  # A blob field key may name a field in the pin type schema or an ad-hoc field id.
+  defp resolve_blob_field(%Pin{} = pin, field_key, type) when type in @blob_field_types do
+    cond do
+      schema_blob_field(pin, field_key, type) != nil -> {:ok, :custom_data}
+      ad_hoc_blob_field?(pin, field_key, type) -> {:ok, :ad_hoc}
+      true -> {:error, :invalid_blob_field}
     end
   end
 
-  defp validate_blob_field_key(_pin, _field_key, _type), do: {:error, :invalid_blob_field}
-
-  defp validate_blob_field_not_required(%Pin{pin_type: "custom:" <> _} = pin, field_key, type)
-       when type in @blob_field_types do
-    case PinTypes.get_by_pin_type(pin.pin_type) do
-      %CustomPinType{} = custom_type ->
-        fields = PinTypeSchema.fields(custom_type.schema)
-
-        if Enum.any?(fields, fn f ->
-             field_key(f) == field_key and field_type(f) == to_string(type) and
-               required_field?(f)
-           end) do
-          {:error, :required_blob_field}
-        else
-          :ok
-        end
+  defp schema_blob_field(%Pin{} = pin, field_key, type) do
+    case existing_pin_type(pin) do
+      {%PinType{} = pin_type, _} ->
+        pin_type.schema
+        |> PinTypeSchema.fields()
+        |> Enum.find(fn f ->
+          field_key(f) == field_key and field_type(f) == to_string(type)
+        end)
 
       _ ->
-        :ok
+        nil
     end
   end
 
-  defp validate_blob_field_not_required(_pin, _field_key, _type), do: :ok
+  defp ad_hoc_blob_field?(%Pin{ad_hoc_fields: fields}, field_key, type) when is_list(fields) do
+    case AdHocFields.find_field(fields, field_key) do
+      nil -> false
+      field -> field_type(field) == to_string(type)
+    end
+  end
+
+  defp ad_hoc_blob_field?(_pin, _field_key, _type), do: false
+
+  defp validate_blob_field_not_required(%Pin{} = pin, field_key, type)
+       when type in @blob_field_types do
+    case schema_blob_field(pin, field_key, type) do
+      nil -> :ok
+      field -> if required_field?(field), do: {:error, :required_blob_field}, else: :ok
+    end
+  end
 
   defp field_key(%{"key" => key}) when is_binary(key), do: key
   defp field_key(%{key: key}) when is_binary(key), do: key
@@ -337,88 +356,89 @@ defmodule Storymap.Pins do
   defp required_field?(%{required: true}), do: true
   defp required_field?(_), do: false
 
-  defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs) do
+  @doc """
+  Resolves the catalog type for the given attrs, falling back to the pin's current type.
+
+  Returns `{pin_type_or_nil, error_reason_or_nil}`.
+  """
+  @spec resolve_pin_type_for(Pin.t(), map()) :: {PinType.t() | nil, atom() | nil}
+  def resolve_pin_type_for(%Pin{} = pin, attrs) do
+    case PinTypes.resolve_pin_type(attrs) do
+      {:ok, %PinType{} = pin_type} -> {pin_type, nil}
+      {:error, :missing} -> existing_pin_type(pin)
+      {:error, _} -> {nil, :not_found}
+    end
+  end
+
+  defp existing_pin_type(%Pin{pin_type_id: nil}), do: {nil, nil}
+
+  defp existing_pin_type(%Pin{pin_type: %PinType{} = pin_type}), do: {pin_type, nil}
+
+  defp existing_pin_type(%Pin{pin_type_id: id}) do
+    case PinTypes.get_pin_type(id) do
+      %PinType{} = pin_type -> {pin_type, nil}
+      nil -> {nil, :not_found}
+    end
+  end
+
+  defp put_pin_type_id(attrs, %PinType{id: id}), do: Map.put(attrs, "pin_type_id", id)
+  defp put_pin_type_id(attrs, nil), do: Map.delete(attrs, "pin_type_id")
+
+  defp maybe_add_pin_type_error(changeset, :not_found),
+    do: add_error(changeset, :pin_type, "is invalid")
+
+  defp maybe_add_pin_type_error(changeset, _error), do: changeset
+
+  defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs, pin_type) do
     settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})
     tag_names = Map.get(attrs, "tags", [])
 
     changeset
-    |> validate_pin_type_allowed(settings)
+    |> validate_pin_type_allowed(sub_map, pin_type)
     |> validate_required_tags(settings, tag_names)
     |> validate_description_required(settings)
   end
 
-  defp maybe_validate_sub_map_rules(changeset, nil, attrs) do
-    validate_world_pin_type_allowed(changeset, attrs)
+  defp maybe_validate_sub_map_rules(changeset, nil, _attrs, pin_type) do
+    validate_world_pin_type_allowed(changeset, pin_type)
   end
 
-  defp maybe_validate_custom_pin_data(changeset) do
-    case get_field(changeset, :pin_type) do
-      "custom:" <> _slug ->
-        case PinTypes.get_by_pin_type(get_field(changeset, :pin_type)) do
-          %CustomPinType{enabled: true} = custom_type ->
-            Validator.validate_custom_data(changeset, custom_type)
-
-          %CustomPinType{enabled: false} ->
-            add_error(changeset, :pin_type, "uses a disabled custom pin type")
-
-          nil ->
-            add_error(changeset, :pin_type, "references an unknown custom pin type")
-        end
-
-      _ ->
-        changeset
-    end
+  defp validate_custom_pin_data(changeset, %PinType{enabled: true} = pin_type) do
+    Validator.validate_custom_data(changeset, pin_type)
   end
 
-  defp maybe_normalize_custom_schedule(changeset) do
-    case get_field(changeset, :pin_type) do
-      "custom:" <> _ ->
-        case PinTypes.get_by_pin_type(get_field(changeset, :pin_type)) do
-          %CustomPinType{time_mode: :hours} ->
-            changeset
-
-          %CustomPinType{time_mode: :one_time} ->
-            Pin.clear_schedule_rrule(changeset)
-
-          %CustomPinType{time_mode: :none} ->
-            Pin.clear_schedule_fields(changeset)
-
-          nil ->
-            Pin.clear_schedule_fields(changeset)
-        end
-
-      _ ->
-        changeset
-    end
+  defp validate_custom_pin_data(changeset, %PinType{}) do
+    add_error(changeset, :pin_type, "uses a disabled pin type")
   end
 
-  defp validate_world_pin_type_allowed(changeset, _attrs) do
-    pin_type = get_field(changeset, :pin_type)
+  defp validate_custom_pin_data(changeset, nil), do: changeset
 
-    cond do
-      pin_type in Pin.builtin_pin_types() ->
-        changeset
+  defp normalize_schedule(changeset, %PinType{time_mode: :hours}), do: changeset
 
-      match?("custom:" <> _, pin_type) ->
-        case PinTypes.get_by_pin_type(pin_type) do
-          %CustomPinType{enabled: true} -> changeset
-          _ -> add_error(changeset, :pin_type, "is not allowed")
-        end
+  defp normalize_schedule(changeset, %PinType{time_mode: :one_time}),
+    do: Pin.clear_schedule_rrule(changeset)
 
-      true ->
-        add_error(changeset, :pin_type, "is not allowed")
-    end
-  end
+  defp normalize_schedule(changeset, %PinType{time_mode: :none}),
+    do: Pin.clear_schedule_fields(changeset)
 
-  defp validate_pin_type_allowed(changeset, settings) do
-    pin_type = get_field(changeset, :pin_type)
+  defp normalize_schedule(changeset, nil), do: changeset
 
-    if PinTypeSettings.pin_type_allowed?(settings, pin_type) do
+  defp validate_world_pin_type_allowed(changeset, %PinType{enabled: true}), do: changeset
+
+  defp validate_world_pin_type_allowed(changeset, %PinType{}),
+    do: add_error(changeset, :pin_type, "is not allowed")
+
+  defp validate_world_pin_type_allowed(changeset, nil), do: changeset
+
+  defp validate_pin_type_allowed(changeset, %SubMap{} = sub_map, %PinType{} = pin_type) do
+    if pin_type.enabled and PinTypeSettings.pin_type_allowed?(sub_map, pin_type.id) do
       changeset
     else
       add_error(changeset, :pin_type, "is not allowed in this community")
     end
   end
+
+  defp validate_pin_type_allowed(changeset, _sub_map, nil), do: changeset
 
   defp validate_required_tags(changeset, %{"required_tags" => required}, tag_names)
        when is_list(required) and required != [] do

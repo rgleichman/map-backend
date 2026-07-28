@@ -8,6 +8,7 @@ defmodule StorymapWeb.PinLive.Index do
   alias Storymap.Pins
   alias Storymap.Pins.PinTypeColors
   alias Storymap.Pins.Policy
+  alias Storymap.PinTypes.PinType
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,6 +23,15 @@ defmodule StorymapWeb.PinLive.Index do
      |> assign(:is_admin, is_admin)
      |> stream(:pins, pins)}
   end
+
+  def pin_type_label(%{pin_type: %PinType{label: label}}), do: label
+  def pin_type_label(_pin), do: "Pin"
+
+  def pin_type_color(%{pin_type: %PinType{marker_color: color, slug: slug}}) do
+    color || PinTypeColors.color(slug)
+  end
+
+  def pin_type_color(_pin), do: PinTypeColors.color(nil)
 
   defp get_current_user(socket) do
     case socket.assigns[:current_scope] do

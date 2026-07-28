@@ -5,7 +5,7 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
 
   import StorymapWeb.CoreComponents
 
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
   alias StorymapWeb.PinTypeLive.Form
 
   attr :form, Phoenix.HTML.Form, required: true
@@ -30,12 +30,19 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
           field={@form[:time_mode]}
           type="select"
           label="Schedule"
-          options={CustomPinType.time_mode_options()}
+          options={PinType.time_mode_options()}
         />
         <p class="text-sm text-base-content/60 mt-1">
           Changing schedule later does not rewrite existing pins until the pin is saved.
         </p>
       </div>
+
+      <.input
+        :if={@form[:time_mode].value in [:hours, "hours"]}
+        field={@form[:allow_open_24_7]}
+        type="checkbox"
+        label="Allow pins of this type to be marked open 24/7"
+      />
 
       <% marker_color = @form[:marker_color].value || "#6366f1" %>
       <div class="flex items-end gap-3">

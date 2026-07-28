@@ -10,7 +10,7 @@
       fields={@fields}
       field_errors={@field_errors}
       show_enabled={true}
-      show_delete={true}
+      show_delete={not @pin_type.is_system}
     />
 
     <.confirm_modal

@@ -7,6 +7,7 @@ defmodule Storymap.Pins.VisibilityTest do
 
   alias Storymap.Pins.Pin
   alias Storymap.Pins.Visibility
+  alias Storymap.PinTypes.PinType
   alias Storymap.Repo
 
   describe "world_visible?/1" do
@@ -31,6 +32,8 @@ defmodule Storymap.Pins.VisibilityTest do
           owner
         )
 
+      other_type = Repo.get_by!(PinType, slug: "other")
+
       pin =
         %Pin{
           status: :approved,
@@ -39,7 +42,7 @@ defmodule Storymap.Pins.VisibilityTest do
           title: "Promoted",
           latitude: 30.0,
           longitude: -97.0,
-          pin_type: "other",
+          pin_type_id: other_type.id,
           user_id: owner.id
         }
         |> Repo.insert!()
@@ -56,6 +59,8 @@ defmodule Storymap.Pins.VisibilityTest do
           owner
         )
 
+      other_type = Repo.get_by!(PinType, slug: "other")
+
       pin =
         %Pin{
           status: :approved,
@@ -64,7 +69,7 @@ defmodule Storymap.Pins.VisibilityTest do
           title: "Local",
           latitude: 30.0,
           longitude: -97.0,
-          pin_type: "other",
+          pin_type_id: other_type.id,
           user_id: owner.id
         }
         |> Repo.insert!()
@@ -129,6 +134,8 @@ defmodule Storymap.Pins.VisibilityTest do
           owner
         )
 
+      other_type = Repo.get_by!(PinType, slug: "other")
+
       pin =
         %Pin{
           status: :approved,
@@ -137,7 +144,7 @@ defmodule Storymap.Pins.VisibilityTest do
           title: "Local",
           latitude: 30.0,
           longitude: -97.0,
-          pin_type: "other",
+          pin_type_id: other_type.id,
           user_id: owner.id
         }
         |> Repo.insert!()

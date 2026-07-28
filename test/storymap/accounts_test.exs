@@ -292,7 +292,7 @@ defmodule Storymap.AccountsTest do
       user = user_fixture()
 
       pin_type =
-        custom_pin_type_fixture(
+        pin_type_fixture(
           %{
             "schema" => %{
               "fields" => [
@@ -317,7 +317,7 @@ defmodule Storymap.AccountsTest do
       pin =
         pin_fixture(
           %{
-            "pin_type" => "custom:#{pin_type.slug}",
+            "pin_type" => "#{pin_type.slug}",
             "custom_data" => %{"status" => "working"}
           },
           user

@@ -33,7 +33,7 @@ defmodule StorymapWeb.SubMapJSON do
 
   defp data(%SubMap{} = sub_map) do
     settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})
-    available_custom = PinTypes.available_pin_types_for_settings(settings)
+    enabled_pin_types = PinTypes.list_pin_types_for_sub_map(sub_map)
 
     %{
       community_url: sub_map.community_url,
@@ -45,9 +45,8 @@ defmodule StorymapWeb.SubMapJSON do
       visibility: to_string(sub_map.visibility),
       bounds: sub_map.bounds,
       settings: settings,
-      enabled_builtin_pin_types: PinTypeSettings.enabled_builtin_types(settings),
-      enabled_custom_pin_types: PinTypeSettings.enabled_custom_slugs(settings),
-      available_custom_pin_types: Enum.map(available_custom, &PinTypeJSON.data/1),
+      enabled_pin_types: Enum.map(enabled_pin_types, &PinTypeJSON.data/1),
+      enabled_pin_type_ids: Enum.map(enabled_pin_types, & &1.id),
       inserted_at: sub_map.inserted_at,
       updated_at: sub_map.updated_at,
       pin_count: sub_map.pin_count,

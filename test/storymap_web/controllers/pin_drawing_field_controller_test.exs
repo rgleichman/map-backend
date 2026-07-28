@@ -260,7 +260,7 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
     import Storymap.PinTypesFixtures
 
     pin_type =
-      custom_pin_type_fixture(
+      pin_type_fixture(
         %{
           "schema" => %{
             "fields" => [
@@ -304,7 +304,7 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
           "title" => "Pending sketch",
           "latitude" => 30.0,
           "longitude" => -97.0,
-          "pin_type" => "custom:#{pin_type.slug}",
+          "pin_type" => "#{pin_type.slug}",
           "custom_data" => %{"status" => "working"}
         }
       )
@@ -316,7 +316,7 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
     import Storymap.PinTypesFixtures
 
     pin_type =
-      custom_pin_type_fixture(
+      pin_type_fixture(
         %{
           "schema" => %{
             "fields" => [
@@ -339,7 +339,7 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
 
     pin_fixture(
       %{
-        "pin_type" => "custom:#{pin_type.slug}",
+        "pin_type" => "#{pin_type.slug}",
         "custom_data" => %{"status" => "working"}
       },
       user

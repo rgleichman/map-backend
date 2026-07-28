@@ -5,7 +5,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
   import StorymapWeb.PinTypeLive.FieldsEditor
 
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
   alias Storymap.PinTypes.Policy
   alias StorymapWeb.PinTypeLive.Form
 
@@ -150,10 +150,16 @@ defmodule StorymapWeb.PinTypeLive.Edit do
          socket
          |> assign(:show_delete_modal, false)
          |> put_flash(:error, "You cannot delete this pin type")}
+
+      {:error, :system_type} ->
+        {:noreply,
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, "Built-in pin types cannot be deleted")}
     end
   end
 
-  defp assign_form(socket, %CustomPinType{} = pin_type, params) do
+  defp assign_form(socket, %PinType{} = pin_type, params) do
     attrs =
       if params == %{}, do: pin_type_to_attrs(pin_type), else: Form.attrs_from_params(params)
 
@@ -161,7 +167,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
     assign(socket, form: to_form(changeset, as: :pin_type))
   end
 
-  defp pin_type_to_attrs(%CustomPinType{} = pin_type) do
+  defp pin_type_to_attrs(%PinType{} = pin_type) do
     %{
       "label" => pin_type.label,
       "description" => pin_type.description,
@@ -169,6 +175,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
       "icon" => pin_type.icon,
       "slug" => pin_type.slug,
       "time_mode" => pin_type.time_mode,
+      "allow_open_24_7" => pin_type.allow_open_24_7,
       "enabled" => pin_type.enabled,
       "schema" => pin_type.schema
     }

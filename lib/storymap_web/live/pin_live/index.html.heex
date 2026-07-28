@@ -26,7 +26,7 @@
                   <%= if pin.icon_url do %>
                     <img
                       src={pin.icon_url}
-                      alt={pin.pin_type}
+                      alt={pin_type_label(pin)}
                       class="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
                   <% end %>
@@ -45,9 +45,9 @@
                   <span class="inline-flex items-center">
                     <span
                       class="inline-block w-2 h-2 rounded-full mr-2"
-                      style={"background-color: #{PinTypeColors.color(pin.pin_type)}"}
+                      style={"background-color: #{pin_type_color(pin)}"}
                     ></span>
-                    <span class="capitalize">{String.replace(pin.pin_type, "_", " ")}</span>
+                    <span>{pin_type_label(pin)}</span>
                   </span>
 
                   <%= if pin.latitude && pin.longitude do %>

@@ -6,14 +6,14 @@ defmodule Storymap.PinTypesTest do
 
   alias Storymap.Accounts.Scope
   alias Storymap.PinTypes
-  alias Storymap.PinTypes.CustomPinType
+  alias Storymap.PinTypes.PinType
 
   describe "create_pin_type/2" do
     test "creates a global custom pin type" do
       user = user_fixture()
       scope = %Scope{user: user}
 
-      assert {:ok, %CustomPinType{slug: slug}} =
+      assert {:ok, %PinType{slug: slug}} =
                PinTypes.create_pin_type(scope, %{
                  "label" => "Food Truck",
                  "schema" => %{
@@ -66,7 +66,7 @@ defmodule Storymap.PinTypesTest do
   describe "update_pin_type/3 and delete_pin_type/2" do
     test "forbids muted owner" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       muted = muted_user_fixture(user)
       scope = %Scope{user: muted}
 
@@ -81,7 +81,7 @@ defmodule Storymap.PinTypesTest do
     test "blocks delete when pins use the type" do
       user = user_fixture()
       scope = %Scope{user: user}
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
 
       assert {:ok, _} =
                Storymap.Pins.create_pin(
@@ -89,7 +89,7 @@ defmodule Storymap.PinTypesTest do
                    "title" => "Machine",
                    "latitude" => 30.0,
                    "longitude" => -97.0,
-                   "pin_type" => CustomPinType.pin_type_value(pin_type),
+                   "pin_type" => pin_type.slug,
                    "custom_data" => %{"status" => "working"}
                  },
                  user.id
@@ -103,7 +103,7 @@ defmodule Storymap.PinTypesTest do
     test "list_all_pin_types/0 includes disabled types" do
       user = user_fixture()
       scope = %Scope{user: user}
-      enabled = custom_pin_type_fixture(%{}, user)
+      enabled = pin_type_fixture(%{}, user)
 
       {:ok, disabled} =
         PinTypes.create_pin_type(scope, %{
@@ -121,8 +121,36 @@ defmodule Storymap.PinTypesTest do
       assert PinTypes.get_by_slug(nil) == nil
     end
 
-    test "get_by_pin_type/1 returns nil for builtin types" do
-      assert PinTypes.get_by_pin_type("one_time") == nil
+    test "resolve_pin_type/1 accepts slug or id and reports misses" do
+      pin_type = pin_type_fixture()
+
+      assert {:ok, resolved} = PinTypes.resolve_pin_type(%{"pin_type" => pin_type.slug})
+      assert resolved.id == pin_type.id
+
+      assert {:ok, resolved} = PinTypes.resolve_pin_type(%{"pin_type_id" => pin_type.id})
+      assert resolved.id == pin_type.id
+
+      assert {:ok, resolved} =
+               PinTypes.resolve_pin_type(%{"pin_type_id" => to_string(pin_type.id)})
+
+      assert resolved.id == pin_type.id
+
+      assert {:error, :missing} = PinTypes.resolve_pin_type(%{})
+      assert {:error, :not_found} = PinTypes.resolve_pin_type(%{"pin_type" => "nope"})
+      assert {:error, :not_found} = PinTypes.resolve_pin_type(%{"pin_type_id" => 0})
+    end
+
+    test "delete_pin_type/2 refuses system types" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+      pin_type = pin_type_fixture(%{}, user)
+
+      {:ok, system} =
+        pin_type
+        |> Ecto.Changeset.change(%{is_system: true})
+        |> Storymap.Repo.update()
+
+      assert {:error, :system_type} = PinTypes.delete_pin_type(scope, system)
     end
 
     test "create_pin_type/2 unauthorized without scope user" do
@@ -135,7 +163,7 @@ defmodule Storymap.PinTypesTest do
 
     test "update_pin_type/3 success" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       scope = %Scope{user: user}
 
       assert {:ok, updated} =
@@ -146,7 +174,7 @@ defmodule Storymap.PinTypesTest do
 
     test "update_pin_type/3 accepts atom keys" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       scope = %Scope{user: user}
 
       assert {:ok, updated} =
@@ -157,7 +185,7 @@ defmodule Storymap.PinTypesTest do
 
     test "delete_pin_type/2 success when unused" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
       scope = %Scope{user: user}
 
       assert {:ok, deleted} = PinTypes.delete_pin_type(scope, pin_type)
@@ -165,15 +193,16 @@ defmodule Storymap.PinTypesTest do
       refute PinTypes.get_by_slug(pin_type.slug)
     end
 
-    test "available_pin_types_for_settings/1 filters enabled slugs" do
+    test "list_pin_types_for_sub_map/1 returns the community allowlist" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
-      other = custom_pin_type_fixture(%{}, user)
+      sub_map = Storymap.SubMapsFixtures.sub_map_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
+      other = pin_type_fixture(%{}, user)
 
-      available =
-        PinTypes.available_pin_types_for_settings(%{
-          "enabled_custom_pin_types" => [pin_type.slug]
-        })
+      :ok =
+        Storymap.SubMaps.PinTypeSettings.replace_enabled_pin_types(sub_map, [pin_type.id])
+
+      available = PinTypes.list_pin_types_for_sub_map(sub_map)
 
       assert Enum.map(available, & &1.slug) == [pin_type.slug]
       refute other.slug in Enum.map(available, & &1.slug)
@@ -181,13 +210,13 @@ defmodule Storymap.PinTypesTest do
 
     test "available_pin_types_for_world/0 returns enabled types" do
       user = user_fixture()
-      pin_type = custom_pin_type_fixture(%{}, user)
+      pin_type = pin_type_fixture(%{}, user)
 
       assert pin_type.slug in Enum.map(PinTypes.available_pin_types_for_world(), & &1.slug)
     end
 
     test "change_pin_type/2 returns a changeset" do
-      pin_type = custom_pin_type_fixture()
+      pin_type = pin_type_fixture()
       changeset = PinTypes.change_pin_type(pin_type, %{"label" => "Draft"})
       assert %Ecto.Changeset{} = changeset
       assert Ecto.Changeset.get_change(changeset, :label) == "Draft"

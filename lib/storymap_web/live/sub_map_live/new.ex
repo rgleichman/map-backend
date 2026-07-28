@@ -5,7 +5,7 @@ defmodule StorymapWeb.SubMapLive.New do
   on_mount {StorymapWeb.UserAuth, :require_not_muted}
 
   alias Storymap.SubMaps
-  alias Storymap.SubMaps.{PinTypeSettings, SubMap}
+  alias Storymap.SubMaps.SubMap
   alias StorymapWeb.SubMapLive.PinTypeForm
 
   @impl true
@@ -16,7 +16,7 @@ defmodule StorymapWeb.SubMapLive.New do
      socket
      |> assign(:page_title, "Create community")
      |> assign(:form, to_form(changeset, as: :sub_map))
-     |> PinTypeForm.assign_pin_types(%{})}
+     |> PinTypeForm.assign_pin_types(nil)}
   end
 
   @impl true
@@ -31,10 +31,7 @@ defmodule StorymapWeb.SubMapLive.New do
 
   def handle_event("save", params, socket) do
     sub_map_params = Map.get(params, "sub_map", %{})
-    pin_type_attrs = PinTypeForm.attrs_from(params)
-
-    settings = PinTypeSettings.merge_pin_type_settings(%{}, pin_type_attrs)
-    attrs = Map.put(sub_map_params, "settings", settings)
+    attrs = Map.merge(sub_map_params, PinTypeForm.attrs_from(params))
 
     case SubMaps.create_sub_map(socket.assigns.current_scope, attrs) do
       {:ok, sub_map} ->

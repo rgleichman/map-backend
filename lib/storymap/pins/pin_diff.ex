@@ -17,7 +17,7 @@ defmodule Storymap.Pins.PinDiff do
     :title,
     :latitude,
     :longitude,
-    :pin_type,
+    :pin_type_id,
     :description,
     :icon_url,
     :start_time,

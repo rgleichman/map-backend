@@ -35,11 +35,7 @@
         options={SubMap.promote_default_options()}
       />
 
-      <.pin_type_fields
-        settings={@pin_type_settings}
-        builtin_types={@builtin_pin_types}
-        custom_types={@custom_pin_types}
-      />
+      <.pin_type_fields pin_types={@pin_types} enabled_pin_type_ids={@enabled_pin_type_ids} />
 
       <div class="flex gap-3 pt-2">
         <.button type="submit" variant="primary" id="sub-map-create-submit">
