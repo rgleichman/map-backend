@@ -70,5 +70,14 @@ defmodule StorymapWeb.LayoutsTest do
       refute html =~ ~r/aria-label="Site links"[^>]*pointer-events-auto/
       assert html =~ ~r/<nav[^>]*class="[^"]*pointer-events-none[^"]*"/
     end
+
+    test "footer includes About and Help but not Vision or Privacy", %{conn: conn} do
+      html = html_response(get(conn, ~p"/about"), 200)
+
+      assert html =~ ~s(data-footer-path="/about")
+      assert html =~ ~s(data-footer-path="/help")
+      refute html =~ ~s(data-footer-path="/vision")
+      refute html =~ ~s(data-footer-path="/privacy-policy")
+    end
   end
 end

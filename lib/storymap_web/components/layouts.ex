@@ -111,7 +111,6 @@ defmodule StorymapWeb.Layouts do
       assigns
       |> assign(:github_url, @github_repo)
       |> assign(:github_issues_new_url, @github_issues_new)
-      |> assign(:privacy_active?, path == "/privacy-policy")
       |> assign(:settings_active?, String.starts_with?(path, "/users/settings"))
       |> assign(:saved_active?, path == "/saved")
       |> assign(:user_profile_active?, user_profile_active?(path, assigns.current_scope))
@@ -120,7 +119,6 @@ defmodule StorymapWeb.Layouts do
       |> assign(:admin_reports_active?, String.starts_with?(path, "/admin/reports"))
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
       |> assign(:about_active?, path == "/about")
-      |> assign(:vision_active?, path == "/vision")
       |> assign(:help_active?, path == "/help")
       |> assign(:communities_active?, path == "/m" || String.starts_with?(path, "/m/"))
 
@@ -214,18 +212,6 @@ defmodule StorymapWeb.Layouts do
         </.link>
       </li>
       <li>
-        <.link
-          navigate={~p"/vision"}
-          class={[
-            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
-            @vision_active? && "bg-base-300 font-medium"
-          ]}
-          aria-current={if(@vision_active?, do: "page")}
-        >
-          Vision
-        </.link>
-      </li>
-      <li>
         <a
           href={@github_issues_new_url}
           class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
@@ -244,18 +230,6 @@ defmodule StorymapWeb.Layouts do
         >
           GitHub
         </a>
-      </li>
-      <li>
-        <.link
-          navigate={~p"/privacy-policy"}
-          class={[
-            "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
-            @privacy_active? && "bg-base-300 font-medium"
-          ]}
-          aria-current={if(@privacy_active?, do: "page")}
-        >
-          Privacy Policy
-        </.link>
       </li>
     <% end %>
     <%= if @current_scope do %>
@@ -441,7 +415,76 @@ defmodule StorymapWeb.Layouts do
   end
 
   @doc """
-  Desktop-only floating GitHub and Privacy links at the bottom of the viewport.
+  Secondary nav for the About content cluster (About / Vision / Help / Privacy).
+  """
+  attr :current_path, :string, required: true
+
+  def about_secondary_nav(assigns) do
+    path = assigns.current_path
+
+    assigns =
+      assigns
+      |> assign(:about_active?, path == "/about")
+      |> assign(:vision_active?, path == "/vision")
+      |> assign(:help_active?, path == "/help")
+      |> assign(:privacy_active?, path == "/privacy-policy")
+
+    ~H"""
+    <nav
+      id="about-secondary-nav"
+      class="flex flex-wrap items-center gap-1 border-b border-base-300 pb-3 mb-4"
+      aria-label="About pages"
+    >
+      <.link
+        navigate={~p"/about"}
+        class={[
+          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          "hover:bg-base-200 text-base-content/70",
+          @about_active? && "bg-base-200 text-base-content font-semibold"
+        ]}
+        aria-current={if(@about_active?, do: "page")}
+      >
+        About
+      </.link>
+      <.link
+        navigate={~p"/vision"}
+        class={[
+          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          "hover:bg-base-200 text-base-content/70",
+          @vision_active? && "bg-base-200 text-base-content font-semibold"
+        ]}
+        aria-current={if(@vision_active?, do: "page")}
+      >
+        Vision
+      </.link>
+      <.link
+        navigate={~p"/help"}
+        class={[
+          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          "hover:bg-base-200 text-base-content/70",
+          @help_active? && "bg-base-200 text-base-content font-semibold"
+        ]}
+        aria-current={if(@help_active?, do: "page")}
+      >
+        Help
+      </.link>
+      <.link
+        navigate={~p"/privacy-policy"}
+        class={[
+          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          "hover:bg-base-200 text-base-content/70",
+          @privacy_active? && "bg-base-200 text-base-content font-semibold"
+        ]}
+        aria-current={if(@privacy_active?, do: "page")}
+      >
+        Privacy
+      </.link>
+    </nav>
+    """
+  end
+
+  @doc """
+  Desktop-only floating site links at the bottom of the viewport.
   """
   attr :current_path, :string, required: true
 
@@ -450,9 +493,7 @@ defmodule StorymapWeb.Layouts do
       assigns
       |> assign(:github_url, @github_repo)
       |> assign(:github_issues_new_url, @github_issues_new)
-      |> assign(:privacy_active?, assigns.current_path == "/privacy-policy")
       |> assign(:about_active?, assigns.current_path == "/about")
-      |> assign(:vision_active?, assigns.current_path == "/vision")
       |> assign(:help_active?, assigns.current_path == "/help")
       |> assign(:map_page?, map_full_bleed_path?(assigns.current_path))
 
@@ -520,19 +561,6 @@ defmodule StorymapWeb.Layouts do
           About
         </.link>
         <.link
-          navigate={~p"/vision"}
-          class={[
-            @footer_link_base,
-            @vision_active? && @footer_active_classes
-          ]}
-          data-footer-nav
-          data-footer-path="/vision"
-          data-footer-active-classes={@footer_active_classes}
-          aria-current={if(@vision_active?, do: "page")}
-        >
-          Vision
-        </.link>
-        <.link
           navigate={~p"/help"}
           class={[
             @footer_link_base,
@@ -561,19 +589,6 @@ defmodule StorymapWeb.Layouts do
         >
           GitHub
         </a>
-        <.link
-          navigate={~p"/privacy-policy"}
-          class={[
-            @footer_link_base,
-            @privacy_active? && @footer_active_classes
-          ]}
-          data-footer-nav
-          data-footer-path="/privacy-policy"
-          data-footer-active-classes={@footer_active_classes}
-          aria-current={if(@privacy_active?, do: "page")}
-        >
-          Privacy Policy
-        </.link>
         <span class={[@footer_link_visual, "cursor-default select-none opacity-80"]}>
           © {current_year()} Map Garden
         </span>

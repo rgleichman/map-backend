@@ -1,5 +1,7 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="max-w-3xl mx-auto px-4 py-10">
+  <div class="max-w-3xl mx-auto px-4 pb-10">
+    <Layouts.about_secondary_nav current_path="/help" />
+
     <div class="space-y-2 mb-8">
       <h1 class="text-3xl font-bold text-base-content">Help</h1>
       <p class="text-base-content/70">
@@ -145,15 +147,6 @@
             </a>.
           </p>
         <% end %>
-      </section>
-
-      <section class="space-y-3" aria-labelledby="help-more">
-        <h2 id="help-more" class="text-xl font-semibold">More</h2>
-        <ul class="list-disc pl-5 space-y-2 text-base-content/80">
-          <li><.link navigate={~p"/about"} class="link">About Map Garden</.link></li>
-          <li><.link navigate={~p"/vision"} class="link">Our vision</.link></li>
-          <li><.link navigate={~p"/privacy-policy"} class="link">Privacy Policy</.link></li>
-        </ul>
       </section>
     </div>
   </div>
