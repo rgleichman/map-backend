@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest"
 import type { CustomPinType } from "../types"
 import {
   CustomPinTimeMode,
+  canWriteScheduleFromCatalog,
   scheduleCapabilities,
   showScheduleTimeFields,
   skipScheduleTimeValidation,
+  usesOpenNowDatetimeWindow,
 } from "./scheduleCapabilities"
 
 const catalog: CustomPinType[] = [
@@ -82,5 +84,48 @@ describe("scheduleCapabilities", () => {
     expect(skipScheduleTimeValidation(scheduleCapabilities("other"), false)).toBe(true)
     expect(skipScheduleTimeValidation(scheduleCapabilities("food_bank"), true)).toBe(true)
     expect(skipScheduleTimeValidation(scheduleCapabilities("scheduled"), false)).toBe(false)
+  })
+
+  it("canWriteScheduleFromCatalog requires explicit custom time_mode", () => {
+    expect(canWriteScheduleFromCatalog("one_time")).toBe(true)
+    expect(canWriteScheduleFromCatalog("custom:missing", catalog)).toBe(false)
+    expect(canWriteScheduleFromCatalog("custom:event", [])).toBe(false)
+    expect(canWriteScheduleFromCatalog("custom:event", catalog)).toBe(true)
+    expect(
+      canWriteScheduleFromCatalog("custom:legacy", [
+        {
+          id: 9,
+          slug: "legacy",
+          label: "Legacy",
+          pin_type: "custom:legacy",
+          enabled: true,
+          schema: { fields: [] },
+        },
+      ])
+    ).toBe(false)
+  })
+
+  it("usesOpenNowDatetimeWindow falls back when catalog is missing", () => {
+    expect(
+      usesOpenNowDatetimeWindow(
+        {
+          pin_type: "custom:event",
+          start_time: "2026-06-01T10:00:00",
+          end_time: "2026-06-01T12:00:00",
+        },
+        []
+      )
+    ).toBe(true)
+    expect(
+      usesOpenNowDatetimeWindow(
+        {
+          pin_type: "custom:shop",
+          start_time: "2000-01-01T09:00:00",
+          schedule_rrule: "FREQ=DAILY",
+        },
+        []
+      )
+    ).toBe(false)
+    expect(usesOpenNowDatetimeWindow({ pin_type: "other" }, [])).toBe(false)
   })
 })

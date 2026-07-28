@@ -349,4 +349,67 @@ describe("validateAndBuildSavePayload", () => {
       throw new Error("expected add payload")
     }
   })
+
+  it("omits schedule nulls on edit when custom type is missing from catalog", () => {
+    const pin = minimalPin({
+      pin_type: "custom:shop",
+      start_time: "2000-01-01T09:00:00",
+      end_time: "2000-01-01T17:00:00",
+      schedule_rrule: "FREQ=DAILY",
+    })
+    const result = validateAndBuildSavePayload(
+      { mode: "edit", pin },
+      minimalDraft({
+        pinType: "custom:shop",
+        title: "Renamed",
+        customData: {},
+      }),
+      false,
+      []
+    )
+    if ("changes" in result) {
+      expect(result.changes.title).toBe("Renamed")
+      expect(result.changes).not.toHaveProperty("start_time")
+      expect(result.changes).not.toHaveProperty("end_time")
+      expect(result.changes).not.toHaveProperty("schedule_rrule")
+    } else {
+      throw new Error("expected edit payload")
+    }
+  })
+
+  it("omits schedule nulls on edit when catalog entry lacks time_mode", () => {
+    const pin = minimalPin({
+      pin_type: "custom:shop",
+      start_time: "2000-01-01T09:00:00",
+      end_time: "2000-01-01T17:00:00",
+      schedule_rrule: "FREQ=DAILY",
+    })
+    const catalog: CustomPinType[] = [
+      {
+        id: 1,
+        slug: "shop",
+        label: "Shop",
+        pin_type: "custom:shop",
+        enabled: true,
+        schema: { fields: [] },
+      },
+    ]
+    const result = validateAndBuildSavePayload(
+      { mode: "edit", pin },
+      minimalDraft({
+        pinType: "custom:shop",
+        title: "Renamed",
+        customData: {},
+      }),
+      false,
+      catalog
+    )
+    if ("changes" in result) {
+      expect(result.changes).not.toHaveProperty("start_time")
+      expect(result.changes).not.toHaveProperty("end_time")
+      expect(result.changes).not.toHaveProperty("schedule_rrule")
+    } else {
+      throw new Error("expected edit payload")
+    }
+  })
 })

@@ -155,6 +155,28 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
     expect(result.map((p) => p.id)).toEqual([openSoon.id])
   })
 
+  it("custom one_time: still filters by datetime when catalog is missing", () => {
+    const openSoon = minimalPin({
+      pin_type: "custom:event",
+      schedule_timezone: tz,
+      start_time: `${baseDate}T11:00:00`,
+      end_time: `${baseDate}T12:00:00`,
+    })
+    const tooLate = minimalPin({
+      id: 2,
+      pin_type: "custom:event",
+      schedule_timezone: tz,
+      start_time: `${baseDate}T12:30:00`,
+      end_time: `${baseDate}T13:00:00`,
+    })
+    const result = filterPins(
+      [openSoon, tooLate],
+      { tag: null, time: "now", pinType: null, query: "", heartedOnly: false, mineOnly: false },
+      []
+    )
+    expect(result.map((p) => p.id)).toEqual([openSoon.id])
+  })
+
   it("one-time: now 23:00, event 01:00–02:00 next day (within 2h) is included", () => {
     vi.mocked(datetime.getNowInTimezone).mockReturnValue({
       ...NOW_PARTS,

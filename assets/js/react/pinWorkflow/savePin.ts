@@ -4,6 +4,7 @@ import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/custo
 import { validateCustomFields } from "../utils/customFieldValue"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import {
+  canWriteScheduleFromCatalog,
   isTimeOnlySchedule,
   scheduleCapabilities,
   skipScheduleTimeValidation,
@@ -33,14 +34,17 @@ export function validateAndBuildSavePayload(
   const caps = scheduleCapabilities(effectiveType, catalog)
   const isTimeOnly = isTimeOnlySchedule(caps)
   const skipTimeValidation = skipScheduleTimeValidation(caps, open24_7)
-  const timeFields = buildPinTimeFields(
-    effectiveType,
-    open24_7,
-    startTime,
-    endTime,
-    scheduleRrule,
-    catalog
-  )
+  const writeSchedule = canWriteScheduleFromCatalog(effectiveType, catalog)
+  const timeFields = writeSchedule
+    ? buildPinTimeFields(
+      effectiveType,
+      open24_7,
+      startTime,
+      endTime,
+      scheduleRrule,
+      catalog
+    )
+    : {}
 
   if (isCustom) {
     const customType = findCustomPinType(effectiveType, catalog)

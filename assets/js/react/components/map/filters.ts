@@ -1,7 +1,7 @@
 import { RRule } from "rrule"
 import type { CustomPinType, Pin, PinType } from "../../types"
 import { getPinTypeLabel } from "../../utils/pinTypeIcons"
-import { scheduleCapabilities } from "../../utils/scheduleCapabilities"
+import { usesOpenNowDatetimeWindow } from "../../utils/scheduleCapabilities"
 import {
   addHoursToParts,
   getNowInTimezone,
@@ -263,7 +263,7 @@ export function pinMatchesFilter(
 
   const nowPlus2hParts = addHoursToParts(nowParts, 2)
 
-  if (scheduleCapabilities(p.pin_type, catalog).kind === "one_time") {
+  if (usesOpenNowDatetimeWindow(p, catalog)) {
     const startParts = p.start_time ? parseDateTimeFromISO(p.start_time) : null
     const endParts = p.end_time ? parseDateTimeFromISO(p.end_time) : null
     if (!startParts && !endParts) return true
