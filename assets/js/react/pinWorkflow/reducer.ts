@@ -1,5 +1,8 @@
 import { dateToLocalInputValue, isoToLocalInputValue, isoToTimeOnly } from "../utils/datetime"
-import { BuiltinPinType, isCustomPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
+import {
+  isTimeOnlySchedule,
+  scheduleCapabilities,
+} from "../utils/scheduleCapabilities"
 import { explicitLinkedPinIds } from "../utils/pinLinks"
 import type { DraftState, PinWorkflowAction, PinWorkflowState } from "./types"
 
@@ -30,6 +33,21 @@ export const initialPinWorkflowState: PinWorkflowState = {
   draft: makeDefaultDraft(),
   timeError: "",
   formError: "",
+}
+
+function draftDefaultsForPinType(
+  pinType: DraftState["pinType"],
+  catalog: Parameters<typeof scheduleCapabilities>[1]
+): Partial<DraftState> {
+  if (!pinType) return {}
+  const caps = scheduleCapabilities(pinType, catalog)
+  if (caps.allowOpen247) {
+    return { open24_7: true, startTime: "09:00", endTime: "17:00" }
+  }
+  if (caps.kind === "recurring") {
+    return { startTime: "09:00", endTime: "17:00", open24_7: false }
+  }
+  return {}
 }
 
 export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowAction): PinWorkflowState {
@@ -85,7 +103,8 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         draft: action.resetDraft ? makeDefaultDraft() : state.draft,
       }
     }
-    case "open_add":
+    case "open_add": {
+      const catalog = action.catalog ?? []
       return {
         ...state,
         modal: { mode: "add", lat: action.lat, lng: action.lng, pinType: action.pinType },
@@ -95,14 +114,14 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
         draft: {
           ...state.draft,
           pinType: action.pinType,
-          ...(action.pinType === BuiltinPinType.FoodBank
-            ? { open24_7: true }
-            : action.pinType === BuiltinPinType.Scheduled
-              ? { startTime: "09:00", endTime: "17:00" }
-              : {}),
+          ...draftDefaultsForPinType(action.pinType, catalog),
         },
       }
-    case "open_edit":
+    }
+    case "open_edit": {
+      const catalog = action.catalog ?? []
+      const caps = scheduleCapabilities(action.pin.pin_type, catalog)
+      const isTimeOnly = isTimeOnlySchedule(caps)
       return {
         ...state,
         modal: { mode: "edit", pin: action.pin },
@@ -114,19 +133,21 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
           title: action.pin.title,
           description: action.pin.description || "",
           tags: action.pin.tags || [],
-          startTime: isCustomPinType(action.pin.pin_type)
-            ? ""
-            : isTimeOnlyBuiltinPinType(action.pin.pin_type)
-              ? isoToTimeOnly(action.pin.start_time)
-              : isoToLocalInputValue(action.pin.start_time),
-          endTime: isCustomPinType(action.pin.pin_type)
-            ? ""
-            : isTimeOnlyBuiltinPinType(action.pin.pin_type)
-              ? isoToTimeOnly(action.pin.end_time)
-              : isoToLocalInputValue(action.pin.end_time),
+          startTime:
+            caps.kind === "none"
+              ? ""
+              : isTimeOnly
+                ? isoToTimeOnly(action.pin.start_time)
+                : isoToLocalInputValue(action.pin.start_time),
+          endTime:
+            caps.kind === "none"
+              ? ""
+              : isTimeOnly
+                ? isoToTimeOnly(action.pin.end_time)
+                : isoToLocalInputValue(action.pin.end_time),
           scheduleRrule: action.pin.schedule_rrule ?? "",
           scheduleTimezone: action.pin.schedule_timezone ?? "",
-          open24_7: action.pin.pin_type === BuiltinPinType.FoodBank
+          open24_7: caps.allowOpen247
             ? !(action.pin.start_time || action.pin.end_time || action.pin.schedule_rrule)
             : state.draft.open24_7,
           visibleOnWorldMap: action.pin.visible_on_world_map ?? false,
@@ -135,6 +156,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
           editLocation: null,
         },
       }
+    }
     case "cancel_edit":
       if (state.modal?.mode !== "edit") return state
       return {

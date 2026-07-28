@@ -167,6 +167,8 @@ defmodule StorymapWeb.PinTypeLive.Edit do
       "marker_color" => pin_type.marker_color,
       "icon" => pin_type.icon,
       "slug" => pin_type.slug,
+      "time_mode" => pin_type.time_mode,
+      "enabled" => pin_type.enabled,
       "schema" => pin_type.schema
     }
   end
@@ -175,7 +177,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
     schema = Form.build_schema_from_params(params)
 
     params
-    |> Map.take(["label", "description", "marker_color", "icon", "slug", "enabled"])
+    |> Map.take(["label", "description", "marker_color", "icon", "slug", "enabled", "time_mode"])
     |> Map.put("schema", schema)
     |> maybe_put_enabled()
   end

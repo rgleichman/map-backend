@@ -33,4 +33,46 @@ describe("buildPinTimeFields", () => {
       schedule_rrule: undefined,
     })
   })
+
+  it("uses catalog time_mode for custom hours pins", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "shop",
+        label: "Shop",
+        pin_type: "custom:shop" as const,
+        enabled: true,
+        time_mode: "hours" as const,
+        schema: { fields: [] },
+      },
+    ]
+    expect(
+      buildPinTimeFields("custom:shop", false, "09:00", "17:00", "FREQ=DAILY", catalog)
+    ).toEqual({
+      start_time: "2000-01-01T09:00:00",
+      end_time: "2000-01-01T17:00:00",
+      schedule_rrule: "FREQ=DAILY",
+    })
+  })
+
+  it("clears times for custom hours when open 24/7", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "shop",
+        label: "Shop",
+        pin_type: "custom:shop" as const,
+        enabled: true,
+        time_mode: "hours" as const,
+        schema: { fields: [] },
+      },
+    ]
+    expect(
+      buildPinTimeFields("custom:shop", true, "09:00", "17:00", "FREQ=DAILY", catalog)
+    ).toEqual({
+      start_time: null,
+      end_time: null,
+      schedule_rrule: null,
+    })
+  })
 })

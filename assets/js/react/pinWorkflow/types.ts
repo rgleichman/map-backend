@@ -1,4 +1,4 @@
-import type { Pin, PinType } from "../types"
+import type { CustomPinType, Pin, PinType } from "../types"
 
 /**
  * When the user is picking a new location on the map, we enter a temporary
@@ -71,8 +71,8 @@ export type PinWorkflowAction =
   | { type: "after_edit_saved"; pin: Pin }
   | { type: "open_view"; pin: Pin }
   | { type: "open_select_type"; lat: number; lng: number; resetDraft: boolean }
-  | { type: "open_add"; lat: number; lng: number; pinType: PinType }
-  | { type: "open_edit"; pin: Pin }
+  | { type: "open_add"; lat: number; lng: number; pinType: PinType; catalog?: CustomPinType[] }
+  | { type: "open_edit"; pin: Pin; catalog?: CustomPinType[] }
   | { type: "cancel_edit" }
   | { type: "set_placement"; placement: Placement | null }
   | { type: "set_add_location"; lat: number; lng: number }

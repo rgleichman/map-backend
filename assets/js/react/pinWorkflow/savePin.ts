@@ -1,12 +1,13 @@
 import type { CustomPinType, NewPin, PinType, UpdatePin } from "../types"
-import {
-  DEFAULT_BUILTIN_PIN_TYPE,
-  isTimeOnlyBuiltinPinType,
-  skipBuiltinTimeValidation,
-} from "../utils/builtinPinType"
+import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
 import { validateCustomFields } from "../utils/customFieldValue"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
+import {
+  isTimeOnlySchedule,
+  scheduleCapabilities,
+  skipScheduleTimeValidation,
+} from "../utils/scheduleCapabilities"
 import { buildPinTimeFields } from "./buildPinPayload"
 import type { DraftState, ModalState } from "./types"
 import { linkedPinAddErrorMessage, MAX_EXPLICIT_LINKED_PINS } from "../utils/linkedPinValidation"
@@ -29,8 +30,17 @@ export function validateAndBuildSavePayload(
   const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const effectiveType: PinType = modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type
   const isCustom = isCustomPinType(effectiveType)
-  const isTimeOnly = isTimeOnlyBuiltinPinType(effectiveType)
-  const skipTimeValidation = skipBuiltinTimeValidation(effectiveType, { isCustom, open24_7 })
+  const caps = scheduleCapabilities(effectiveType, catalog)
+  const isTimeOnly = isTimeOnlySchedule(caps)
+  const skipTimeValidation = skipScheduleTimeValidation(caps, open24_7)
+  const timeFields = buildPinTimeFields(
+    effectiveType,
+    open24_7,
+    startTime,
+    endTime,
+    scheduleRrule,
+    catalog
+  )
 
   if (isCustom) {
     const customType = findCustomPinType(effectiveType, catalog)
@@ -81,7 +91,8 @@ export function validateAndBuildSavePayload(
       longitude: loc.lng,
       tags,
       linked_pin_ids: linkedPinIds,
-      ...(isCustom ? { custom_data: cleanedCustomData } : buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule)),
+      ...timeFields,
+      ...(isCustom ? { custom_data: cleanedCustomData } : {}),
       ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
     }
     return { mode: "add", payload, blobDrafts }
@@ -98,7 +109,8 @@ export function validateAndBuildSavePayload(
     description,
     tags,
     linked_pin_ids: linkedPinIds,
-    ...(isCustom ? { custom_data: cleanedCustomData } : buildPinTimeFields(effectiveType, open24_7, startTime, endTime, scheduleRrule)),
+    ...timeFields,
+    ...(isCustom ? { custom_data: cleanedCustomData } : {}),
     latitude: lat,
     longitude: lng,
     ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),

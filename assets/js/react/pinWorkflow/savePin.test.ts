@@ -314,4 +314,39 @@ describe("validateAndBuildSavePayload", () => {
       throw new Error("expected add payload")
     }
   })
+
+  it("includes time fields for custom hours pins", () => {
+    const catalog: CustomPinType[] = [
+      {
+        id: 1,
+        slug: "shop",
+        label: "Shop",
+        pin_type: "custom:shop",
+        enabled: true,
+        time_mode: "hours",
+        schema: { fields: [] },
+      },
+    ]
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "custom:shop" },
+      minimalDraft({
+        pinType: "custom:shop",
+        startTime: "09:00",
+        endTime: "17:00",
+        scheduleRrule: "FREQ=DAILY",
+        open24_7: false,
+        customData: {},
+      }),
+      false,
+      catalog
+    )
+    if ("payload" in result) {
+      expect(result.payload.start_time).toBe("2000-01-01T09:00:00")
+      expect(result.payload.end_time).toBe("2000-01-01T17:00:00")
+      expect(result.payload.schedule_rrule).toBe("FREQ=DAILY")
+      expect(result.payload.custom_data).toEqual({})
+    } else {
+      throw new Error("expected add payload")
+    }
+  })
 })

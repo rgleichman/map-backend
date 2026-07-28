@@ -5,8 +5,12 @@ import RelatedPinsEditor from "./RelatedPinsEditor"
 import TagCombobox from "./TagCombobox"
 import type { Pin, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { BuiltinPinType, isTimeOnlyBuiltinPinType } from "../utils/builtinPinType"
 import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
+import {
+  isTimeOnlySchedule,
+  scheduleCapabilities,
+  showScheduleTimeFields,
+} from "../utils/scheduleCapabilities"
 import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
 import Button from "./ui/Button"
@@ -32,7 +36,7 @@ type Props = {
   setScheduleRrule: (s: string) => void
   scheduleTimezone: string
   setScheduleTimezone: (s: string) => void
-  /** Only for food_bank: when true, open 24/7 (time/schedule fields hidden). */
+  /** When true (food_bank or custom hours): open 24/7 (time/schedule fields hidden). */
   open24_7?: boolean
   setOpen24_7?: (v: boolean) => void
   /** Community maps with promote_to_world_default "ask": optional world-map visibility. */
@@ -91,12 +95,12 @@ export default function PinModal({
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
   const availableTags = useMemo(() => deriveMapTags(pins), [pins])
-  const isTimeOnly = isTimeOnlyBuiltinPinType(pinType)
-  const isFoodBank = pinType === BuiltinPinType.FoodBank
-  const isOther = pinType === BuiltinPinType.Other
   const isCustom = isCustomPinType(pinType)
   const customType = isCustom ? findCustomPinType(pinType, catalog) : undefined
-  const showTimeFields = !isOther && !isCustom && !(isFoodBank && open24_7)
+  const caps = scheduleCapabilities(pinType, catalog)
+  const isTimeOnly = isTimeOnlySchedule(caps)
+  const showTimeFields = showScheduleTimeFields(caps, open24_7)
+  const showOpen247 = caps.allowOpen247 && !!setOpen24_7
 
   const handleAddTag = (newTag: string) => {
     const trimmed = newTag.trim()
@@ -171,7 +175,7 @@ export default function PinModal({
           </div>
         </div>
 
-        {(isFoodBank && setOpen24_7) && (
+        {showOpen247 && (
           <div className="mb-4">
             <label htmlFor={open247Id} className="flex items-center gap-2 cursor-pointer">
               <input

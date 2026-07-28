@@ -27,6 +27,7 @@ defmodule StorymapWeb.PinTypeControllerTest do
 
       assert data["slug"] == pin_type.slug
       assert data["enabled"] == true
+      assert data["time_mode"] == "none"
     end
 
     test "returns 404 for disabled custom pin type", %{conn: conn} do
@@ -63,6 +64,23 @@ defmodule StorymapWeb.PinTypeControllerTest do
       data = json_response(conn, 201)["data"]
       assert data["slug"]
       assert data["pin_type"] == "custom:#{data["slug"]}"
+      assert data["time_mode"] == "none"
+    end
+
+    test "creates a custom pin type with time_mode hours", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/pin_types", %{
+          pin_type: %{
+            label: "Clinic Hours",
+            time_mode: "hours",
+            schema: %{
+              fields: [%{key: "notes", label: "Notes", type: "text"}]
+            }
+          }
+        })
+
+      data = json_response(conn, 201)["data"]
+      assert data["time_mode"] == "hours"
     end
 
     test "forbids create when user is muted", %{conn: conn, user: user} do

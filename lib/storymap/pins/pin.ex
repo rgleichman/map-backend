@@ -153,19 +153,29 @@ defmodule Storymap.Pins.Pin do
 
     changeset =
       case get_field(changeset, :pin_type) do
-        "other" ->
-          clear_schedule_fields(changeset)
-
-        "custom:" <> _ ->
-          clear_schedule_fields(changeset)
-
-        _ ->
-          changeset
+        "other" -> clear_schedule_fields(changeset)
+        _ -> changeset
       end
 
     changeset
     |> validate_required([:user_id])
     |> foreign_key_constraint(:user_id)
+  end
+
+  @doc false
+  @spec clear_schedule_fields(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  def clear_schedule_fields(changeset) do
+    changeset
+    |> put_change(:start_time, nil)
+    |> put_change(:end_time, nil)
+    |> put_change(:schedule_rrule, nil)
+    |> put_change(:schedule_timezone, nil)
+  end
+
+  @doc false
+  @spec clear_schedule_rrule(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  def clear_schedule_rrule(changeset) do
+    put_change(changeset, :schedule_rrule, nil)
   end
 
   @doc """
@@ -186,14 +196,6 @@ defmodule Storymap.Pins.Pin do
     do: String.starts_with?(pin_type, "custom:")
 
   def custom_pin_type?(_), do: false
-
-  defp clear_schedule_fields(changeset) do
-    changeset
-    |> put_change(:start_time, nil)
-    |> put_change(:end_time, nil)
-    |> put_change(:schedule_rrule, nil)
-    |> put_change(:schedule_timezone, nil)
-  end
 
   defp validate_pin_type(changeset) do
     case get_field(changeset, :pin_type) do

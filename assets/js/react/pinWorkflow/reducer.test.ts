@@ -55,6 +55,51 @@ describe("pinWorkflowReducer", () => {
     expect(next.draft.open24_7).toBe(true)
   })
 
+  it("open_add sets custom hours open24_7 from catalog", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "shop",
+        label: "Shop",
+        pin_type: "custom:shop" as const,
+        enabled: true,
+        time_mode: "hours" as const,
+        schema: { fields: [] },
+      },
+    ]
+    const next = pinWorkflowReducer(initialPinWorkflowState, {
+      type: "open_add",
+      lat: 1,
+      lng: 2,
+      pinType: "custom:shop",
+      catalog,
+    })
+    expect(next.draft.open24_7).toBe(true)
+    expect(next.draft.startTime).toBe("09:00")
+  })
+
+  it("open_edit hydrates custom one_time times from catalog", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "event",
+        label: "Event",
+        pin_type: "custom:event" as const,
+        enabled: true,
+        time_mode: "one_time" as const,
+        schema: { fields: [] },
+      },
+    ]
+    const pin = minimalPin({
+      pin_type: "custom:event",
+      start_time: "2026-06-01T10:00:00",
+      end_time: "2026-06-01T12:00:00",
+    })
+    const next = pinWorkflowReducer(initialPinWorkflowState, { type: "open_edit", pin, catalog })
+    expect(next.draft.startTime).toContain("2026")
+    expect(next.draft.endTime).toContain("2026")
+  })
+
   it("open_edit hydrates draft from pin including visibleOnWorldMap", () => {
     const pin = minimalPin({ visible_on_world_map: true, tags: ["x", "y"] })
     const next = pinWorkflowReducer(initialPinWorkflowState, { type: "open_edit", pin })

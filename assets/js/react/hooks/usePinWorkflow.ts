@@ -95,8 +95,13 @@ export function usePinWorkflow({
   const onEdit = useCallback((pinId: number) => {
     const pin = findPin(pinId)
     if (!pin) return
-    dispatch({ type: "open_edit", pin })
-  }, [findPin])
+    dispatch({ type: "open_edit", pin, catalog })
+  }, [findPin, catalog])
+
+  const onSelectPinType = useCallback((selectedType: PinType) => {
+    if (modal?.mode !== "select-type") return
+    dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType, catalog })
+  }, [modal, catalog])
 
   const onView = useCallback((pinId: number) => {
     const pin = findPin(pinId)
@@ -170,11 +175,6 @@ export function usePinWorkflow({
     },
     [placement]
   )
-
-  const onSelectPinType = useCallback((selectedType: PinType) => {
-    if (modal?.mode !== "select-type") return
-    dispatch({ type: "open_add", lat: modal.lat, lng: modal.lng, pinType: selectedType })
-  }, [modal])
 
   const persistSaveResult = useCallback(
     async (result: SavePinAddPayload | SavePinEditPayload) => {

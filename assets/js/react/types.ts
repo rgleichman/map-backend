@@ -11,6 +11,9 @@ export type BuiltinPinType = "one_time" | "scheduled" | "food_bank" | "other"
 /** Built-in enum or `custom:<slug>` from the global catalog. */
 export type PinType = BuiltinPinType | `custom:${string}`
 
+/** Custom pin type schedule capability (wire values match backend Ecto.Enum). */
+export type CustomPinTimeMode = "none" | "one_time" | "hours"
+
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 
 export type CustomFieldPrimitiveType =
@@ -39,6 +42,7 @@ export type CustomPinType = {
   marker_color?: string | null
   icon?: string | null
   schema: { fields: CustomFieldSchema[] }
+  time_mode?: CustomPinTimeMode
   pin_type: `custom:${string}`
   enabled: boolean
 }

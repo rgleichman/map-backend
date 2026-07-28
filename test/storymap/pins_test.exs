@@ -6,6 +6,7 @@ defmodule Storymap.PinsTest do
   import Storymap.PinsFixtures
   import Storymap.AccountsFixtures
   import Storymap.SubMapsFixtures
+  import Storymap.PinTypesFixtures
 
   alias Storymap.Accounts.Scope
   alias Storymap.SubMaps
@@ -58,6 +59,70 @@ defmodule Storymap.PinsTest do
       assert is_nil(pin.end_time)
       assert is_nil(pin.schedule_rrule)
       assert is_nil(pin.schedule_timezone)
+    end
+
+    test "create_pin/2 with custom time_mode none clears schedule fields" do
+      user = user_fixture()
+      pin_type = custom_pin_type_fixture(%{"time_mode" => "none"}, user)
+
+      attrs =
+        Map.merge(@valid_attrs, %{
+          "pin_type" => "custom:#{pin_type.slug}",
+          "custom_data" => %{"status" => "working"},
+          "start_time" => "2025-01-01T12:00:00Z",
+          "end_time" => "2025-01-01T13:00:00Z",
+          "schedule_rrule" => "FREQ=WEEKLY;BYDAY=MO"
+        })
+
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
+      assert is_nil(pin.start_time)
+      assert is_nil(pin.end_time)
+      assert is_nil(pin.schedule_rrule)
+      assert is_nil(pin.schedule_timezone)
+    end
+
+    test "create_pin/2 with custom time_mode one_time keeps times and clears rrule" do
+      user = user_fixture()
+      pin_type = custom_pin_type_fixture(%{"time_mode" => "one_time"}, user)
+
+      attrs =
+        Map.merge(@valid_attrs, %{
+          "latitude" => 30.27,
+          "longitude" => -97.74,
+          "pin_type" => "custom:#{pin_type.slug}",
+          "custom_data" => %{"status" => "working"},
+          "start_time" => "2026-08-01T12:00:00Z",
+          "end_time" => "2026-08-01T13:00:00Z",
+          "schedule_rrule" => "FREQ=WEEKLY;BYDAY=MO"
+        })
+
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
+      assert pin.start_time
+      assert pin.end_time
+      assert is_nil(pin.schedule_rrule)
+      assert pin.schedule_timezone
+    end
+
+    test "create_pin/2 with custom time_mode hours keeps schedule fields" do
+      user = user_fixture()
+      pin_type = custom_pin_type_fixture(%{"time_mode" => "hours"}, user)
+
+      attrs =
+        Map.merge(@valid_attrs, %{
+          "latitude" => 30.27,
+          "longitude" => -97.74,
+          "pin_type" => "custom:#{pin_type.slug}",
+          "custom_data" => %{"status" => "working"},
+          "start_time" => "2000-01-01T09:00:00Z",
+          "end_time" => "2000-01-01T17:00:00Z",
+          "schedule_rrule" => "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+        })
+
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
+      assert pin.start_time
+      assert pin.end_time
+      assert pin.schedule_rrule == "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+      assert pin.schedule_timezone
     end
 
     test "create_pin/2 with invalid data returns error changeset" do

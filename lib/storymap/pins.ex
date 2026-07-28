@@ -97,6 +97,7 @@ defmodule Storymap.Pins do
                  |> Pin.changeset(attrs_with_user)
                  |> maybe_put_privileged_create_fields(sub_map, attrs_with_user)
                  |> maybe_validate_custom_pin_data()
+                 |> maybe_normalize_custom_schedule()
                  |> maybe_validate_sub_map_rules(sub_map, attrs_with_user)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
                  |> Repo.insert(),
@@ -134,6 +135,7 @@ defmodule Storymap.Pins do
                  |> Pin.changeset(attrs)
                  |> maybe_put_visible_on_world_map(attrs)
                  |> maybe_validate_custom_pin_data()
+                 |> maybe_normalize_custom_schedule()
                  |> maybe_validate_sub_map_rules(sub_map, attrs)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
                  |> Repo.update(),
@@ -361,6 +363,28 @@ defmodule Storymap.Pins do
 
           nil ->
             add_error(changeset, :pin_type, "references an unknown custom pin type")
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp maybe_normalize_custom_schedule(changeset) do
+    case get_field(changeset, :pin_type) do
+      "custom:" <> _ ->
+        case PinTypes.get_by_pin_type(get_field(changeset, :pin_type)) do
+          %CustomPinType{time_mode: :hours} ->
+            changeset
+
+          %CustomPinType{time_mode: :one_time} ->
+            Pin.clear_schedule_rrule(changeset)
+
+          %CustomPinType{time_mode: :none} ->
+            Pin.clear_schedule_fields(changeset)
+
+          nil ->
+            Pin.clear_schedule_fields(changeset)
         end
 
       _ ->

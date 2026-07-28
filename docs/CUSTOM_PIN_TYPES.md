@@ -6,7 +6,18 @@ Global, user-defined pin templates with flexible field schemas. See also [SUB_MA
 
 - **Catalog:** `custom_pin_types` table (global, not per-community)
 - **Pin identity:** `pins.pin_type = custom:<slug>` with values in `pins.custom_data` (jsonb)
-- **Built-in types:** `one_time`, `scheduled`, `food_bank`, `other` (unchanged columns)
+- **Schedule:** optional `time_mode` on the type (`none` | `one_time` | `hours`); times live on pin columns (`start_time`, `end_time`, `schedule_rrule`, `schedule_timezone`), not in `custom_data`
+- **Built-in types:** `one_time`, `scheduled`, `food_bank`, `other` (unchanged)
+
+## Time mode
+
+| `time_mode` | Pin form | Notes |
+|-------------|----------|--------|
+| `none` (default) | No schedule UI | Schedule columns cleared on save |
+| `one_time` | Datetime start/end | Like builtin `one_time` |
+| `hours` | Time-only + RRULE + Open 24/7 | Like builtin `food_bank`; unchecked 24/7 matches `scheduled` |
+
+Changing `time_mode` on a type does not rewrite existing pins until each pin is saved again.
 
 ## Who can do what
 

@@ -132,7 +132,7 @@ defmodule StorymapWeb.PinTypeLive.New do
     schema = Form.build_schema_from_params(params)
 
     params
-    |> Map.take(["label", "description", "marker_color", "icon", "slug"])
+    |> Map.take(["label", "description", "marker_color", "icon", "slug", "time_mode"])
     |> Map.put("schema", schema)
   end
 

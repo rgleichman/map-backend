@@ -14,6 +14,17 @@
     >
       <.input field={@form[:label]} type="text" label="Label" required />
       <.input field={@form[:description]} type="textarea" label="Description" />
+      <div>
+        <.input
+          field={@form[:time_mode]}
+          type="select"
+          label="Schedule"
+          options={Storymap.PinTypes.CustomPinType.time_mode_options()}
+        />
+        <p class="text-sm text-base-content/60 mt-1">
+          Changing schedule later does not rewrite existing pins until the pin is saved.
+        </p>
+      </div>
 
       <% marker_color = @form[:marker_color].value || "#6366f1" %>
       <div class="flex items-end gap-3">

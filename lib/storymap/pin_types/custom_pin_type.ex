@@ -7,7 +7,10 @@ defmodule Storymap.PinTypes.CustomPinType do
   alias Storymap.PinTypes.Slug
 
   @builtin_pin_types ~w(one_time scheduled food_bank other)
+  @time_modes [:none, :one_time, :hours]
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
+
+  @type time_mode :: :none | :one_time | :hours
 
   @type t :: %__MODULE__{
           id: integer() | nil,
@@ -17,6 +20,7 @@ defmodule Storymap.PinTypes.CustomPinType do
           marker_color: String.t() | nil,
           icon: String.t() | nil,
           schema: map(),
+          time_mode: time_mode(),
           enabled: boolean(),
           created_by_user_id: integer() | nil,
           inserted_at: DateTime.t() | nil,
@@ -30,6 +34,7 @@ defmodule Storymap.PinTypes.CustomPinType do
     field :marker_color, :string
     field :icon, :string
     field :schema, :map, default: %{}
+    field :time_mode, Ecto.Enum, values: @time_modes, default: :none
     field :enabled, :boolean, default: true
 
     belongs_to :created_by, User, foreign_key: :created_by_user_id
@@ -40,10 +45,31 @@ defmodule Storymap.PinTypes.CustomPinType do
   @spec builtin_pin_types() :: [String.t()]
   def builtin_pin_types, do: @builtin_pin_types
 
+  @spec time_modes() :: [time_mode()]
+  def time_modes, do: @time_modes
+
+  @spec time_mode_options() :: [{String.t(), time_mode()}]
+  def time_mode_options do
+    [
+      {"None (no schedule)", :none},
+      {"One-time event (date and time)", :one_time},
+      {"Hours (recurring + optional 24/7)", :hours}
+    ]
+  end
+
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(custom_pin_type, attrs) do
     custom_pin_type
-    |> cast(attrs, [:slug, :label, :description, :marker_color, :icon, :schema, :enabled])
+    |> cast(attrs, [
+      :slug,
+      :label,
+      :description,
+      :marker_color,
+      :icon,
+      :schema,
+      :time_mode,
+      :enabled
+    ])
     |> validate_required([:label, :schema])
     |> put_slug()
     |> normalize_marker_color()

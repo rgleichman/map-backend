@@ -23,6 +23,7 @@ defmodule StorymapWeb.PinTypeJSON do
       marker_color: pin_type.marker_color,
       icon: pin_type.icon,
       schema: pin_type.schema || %{},
+      time_mode: to_string(pin_type.time_mode),
       pin_type: CustomPinType.pin_type_value(pin_type),
       enabled: pin_type.enabled,
       inserted_at: pin_type.inserted_at,
