@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType, Pin } from "../../types"
+import type { CatalogPinType, Pin } from "../../types"
 import { BlobFieldType } from "../../utils/blobFieldType"
 import { buildPinHoverRows, hoverPopupMaxSize } from "./pinHoverFields"
 
@@ -10,13 +10,14 @@ function basePin(overrides: Partial<Pin> = {}): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
   }
 }
 
-const catalog: CustomPinType[] = [
+const catalog: CatalogPinType[] = [
   {
     id: 10,
     slug: "spot",
@@ -29,7 +30,7 @@ const catalog: CustomPinType[] = [
         { key: "emptyish", label: "Empty", type: "text" },
       ],
     },
-    pin_type: "custom:spot",
+    pin_type: "spot",
     enabled: true,
   },
 ]
@@ -47,7 +48,7 @@ describe("hoverPopupMaxSize", () => {
 describe("buildPinHoverRows", () => {
   it("orders description, custom fields, times, then schedule", () => {
     const pin = basePin({
-      pin_type: "custom:spot",
+      pin_type: "spot",
       description: "A nice place",
       custom_data: {
         notes: "Bring cash",
@@ -88,7 +89,7 @@ describe("buildPinHoverRows", () => {
 
   it("skips empty custom fields and empty description", () => {
     const pin = basePin({
-      pin_type: "custom:spot",
+      pin_type: "spot",
       description: "   ",
       custom_data: { notes: "", sketch: { ref: 1 } },
     })

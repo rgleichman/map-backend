@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType, Pin } from "../../types"
+import type { CatalogPinType, Pin } from "../../types"
 import { CLEARED_FILTER, createPinFilterMatcher, buildMapFilterSyncKey } from "./filters"
 import {
   buildPinLinkGeoJson,
@@ -13,6 +13,7 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -28,7 +29,7 @@ describe("undirectedEdgeKey", () => {
 
 describe("buildPinLinkGeoJson", () => {
   const baseParams = {
-    catalog: [] as CustomPinType[],
+    catalog: [] as CatalogPinType[],
     focusPinId: null as number | null,
     backlinks: null as null,
     showConnections: true,

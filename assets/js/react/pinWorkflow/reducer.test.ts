@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import { initialPinWorkflowState, pinWorkflowReducer } from "./reducer"
 
 function minimalPin(overrides: Partial<Pin> = {}): Pin {
@@ -9,6 +9,7 @@ function minimalPin(overrides: Partial<Pin> = {}): Pin {
     latitude: 40,
     longitude: -74,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: ["a"],
     description: "desc",
@@ -18,6 +19,38 @@ function minimalPin(overrides: Partial<Pin> = {}): Pin {
     ...overrides,
   }
 }
+
+
+const systemCatalog: CatalogPinType[] = [
+  {
+    id: 1,
+    slug: "one_time",
+    label: "One-time event",
+    pin_type: "one_time",
+    enabled: true,
+    time_mode: "one_time",
+    schema: { fields: [] },
+  },
+  {
+    id: 2,
+    slug: "scheduled",
+    label: "Scheduled recurring",
+    pin_type: "scheduled",
+    enabled: true,
+    time_mode: "hours",
+    schema: { fields: [] },
+  },
+  {
+    id: 3,
+    slug: "food_bank",
+    label: "Food bank",
+    pin_type: "food_bank",
+    enabled: true,
+    time_mode: "hours",
+    allow_open_24_7: true,
+    schema: { fields: [] },
+  },
+]
 
 describe("pinWorkflowReducer", () => {
   it("begin_add_at sets placement and seeds addLocation", () => {
@@ -34,6 +67,7 @@ describe("pinWorkflowReducer", () => {
       lat: 1,
       lng: 2,
       pinType: "scheduled",
+      catalog: systemCatalog,
     })
     expect(next.modal).toEqual({ mode: "add", lat: 1, lng: 2, pinType: "scheduled" })
     expect(next.draft.pinType).toBe("scheduled")
@@ -51,6 +85,7 @@ describe("pinWorkflowReducer", () => {
       lat: 1,
       lng: 2,
       pinType: "food_bank",
+      catalog: systemCatalog,
     })
     expect(next.draft.open24_7).toBe(true)
   })
@@ -61,9 +96,10 @@ describe("pinWorkflowReducer", () => {
         id: 1,
         slug: "shop",
         label: "Shop",
-        pin_type: "custom:shop" as const,
+        pin_type: "shop" as const,
         enabled: true,
         time_mode: "hours" as const,
+        allow_open_24_7: true,
         schema: { fields: [] },
       },
     ]
@@ -71,7 +107,7 @@ describe("pinWorkflowReducer", () => {
       type: "open_add",
       lat: 1,
       lng: 2,
-      pinType: "custom:shop",
+      pinType: "shop",
       catalog,
     })
     expect(next.draft.open24_7).toBe(true)
@@ -84,14 +120,14 @@ describe("pinWorkflowReducer", () => {
         id: 1,
         slug: "event",
         label: "Event",
-        pin_type: "custom:event" as const,
+        pin_type: "event" as const,
         enabled: true,
         time_mode: "one_time" as const,
         schema: { fields: [] },
       },
     ]
     const pin = minimalPin({
-      pin_type: "custom:event",
+      pin_type: "event",
       start_time: "2026-06-01T10:00:00",
       end_time: "2026-06-01T12:00:00",
     })

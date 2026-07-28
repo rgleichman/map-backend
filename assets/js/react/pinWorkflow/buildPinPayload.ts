@@ -1,4 +1,4 @@
-import type { CustomPinType, NewPin, PinType } from "../types"
+import type { CatalogPinType, NewPin, PinType } from "../types"
 import { localInputValueToISOString, timeOnlyToISOString } from "../utils/datetime"
 import {
   isTimeOnlySchedule,
@@ -12,7 +12,7 @@ export function buildPinTimeFields(
   startTime: string,
   endTime: string,
   scheduleRrule: string,
-  catalog: CustomPinType[] = []
+  catalog: CatalogPinType[] = []
 ): Pick<NewPin, "start_time" | "end_time" | "schedule_rrule"> & {
   start_time?: string | null
   end_time?: string | null

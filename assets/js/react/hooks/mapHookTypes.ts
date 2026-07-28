@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
-import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "../types"
+import type { CatalogPinType, Pin, SubMap } from "../types"
 import type { FilterState } from "../components/map/filters"
 import type { SetCommunityScopeOptions } from "../mapRoute"
 
@@ -41,8 +41,7 @@ export type UseMapDataResult = {
   setPins: Dispatch<SetStateAction<Pin[]>>
   subMap: SubMap | null
   setSubMap: Dispatch<SetStateAction<SubMap | null>>
-  customPinTypes: CustomPinType[]
-  enabledBuiltinTypes: BuiltinPinType[]
+  pinTypes: CatalogPinType[]
   filter: FilterState
   setFilter: Dispatch<SetStateAction<FilterState>>
   loading: boolean

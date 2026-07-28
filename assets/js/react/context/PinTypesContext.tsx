@@ -1,34 +1,28 @@
 import React, { createContext, useContext, useMemo } from "react"
-import type { BuiltinPinType, CustomPinType } from "../types"
-import { BUILTIN_PIN_TYPES } from "../utils/builtinPinType"
+import type { CatalogPinType, PinType } from "../types"
 import { listSelectablePinTypes } from "../utils/customPinTypes"
 
 type PinTypesContextValue = {
-  catalog: CustomPinType[]
-  enabledBuiltins: BuiltinPinType[]
-  selectableTypes: ReturnType<typeof listSelectablePinTypes>
+  /** Catalog rows enabled on the current map. */
+  catalog: CatalogPinType[]
+  /** Slugs the author can pick, in catalog order. */
+  selectableTypes: PinType[]
 }
 
 const PinTypesContext = createContext<PinTypesContextValue>({
   catalog: [],
-  enabledBuiltins: BUILTIN_PIN_TYPES,
-  selectableTypes: BUILTIN_PIN_TYPES,
+  selectableTypes: [],
 })
 
 type ProviderProps = {
-  catalog: CustomPinType[]
-  enabledBuiltins: BuiltinPinType[]
+  catalog: CatalogPinType[]
   children: React.ReactNode
 }
 
-export function PinTypesProvider({ catalog, enabledBuiltins, children }: ProviderProps) {
+export function PinTypesProvider({ catalog, children }: ProviderProps) {
   const value = useMemo(
-    () => ({
-      catalog,
-      enabledBuiltins,
-      selectableTypes: listSelectablePinTypes(enabledBuiltins, catalog),
-    }),
-    [catalog, enabledBuiltins]
+    () => ({ catalog, selectableTypes: listSelectablePinTypes(catalog) }),
+    [catalog]
   )
 
   return <PinTypesContext.Provider value={value}>{children}</PinTypesContext.Provider>

@@ -1,9 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Pin } from "../types"
-import type { CustomPinType } from "../types"
+import type { CatalogPinType } from "../types"
 import type { DraftState } from "./types"
 import { validateAndBuildSavePayload } from "./savePin"
 import { BlobFieldType } from "../utils/blobFieldType"
+
+const systemCatalog: CatalogPinType[] = [
+  {
+    id: 1,
+    slug: "one_time",
+    label: "One-time event",
+    pin_type: "one_time",
+    enabled: true,
+    time_mode: "one_time",
+    schema: { fields: [] },
+  },
+  {
+    id: 2,
+    slug: "scheduled",
+    label: "Scheduled recurring",
+    pin_type: "scheduled",
+    enabled: true,
+    time_mode: "hours",
+    schema: { fields: [] },
+  },
+]
 
 function minimalDraft(overrides: Partial<DraftState> = {}): DraftState {
   return {
@@ -12,6 +33,7 @@ function minimalDraft(overrides: Partial<DraftState> = {}): DraftState {
     description: "Desc",
     tags: ["tag"],
     customData: {},
+    adHocFields: [],
     startTime: "2026-12-01T10:00",
     endTime: "2026-12-01T12:00",
     scheduleRrule: "",
@@ -32,6 +54,7 @@ function minimalPin(overrides: Partial<Pin> = {}): Pin {
     latitude: 40,
     longitude: -74,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -65,7 +88,8 @@ describe("validateAndBuildSavePayload", () => {
         startTime: "17:00",
         endTime: "09:00",
       }),
-      false
+      false,
+      systemCatalog
     )
     expect(result).toEqual({ kind: "time", message: "End time must be after start time." })
   })
@@ -77,7 +101,8 @@ describe("validateAndBuildSavePayload", () => {
         startTime: "2026-05-01T08:00",
         endTime: "2026-05-01T09:00",
       }),
-      false
+      false,
+      systemCatalog
     )
     expect(result).toEqual({ kind: "time", message: "End time cannot be in the past." })
   })
@@ -125,12 +150,14 @@ describe("validateAndBuildSavePayload", () => {
         editLocation: { lat: 41, lng: -75 },
         visibleOnWorldMap: false,
       }),
-      true
+      true,
+      systemCatalog
     )
     expect(result).toEqual({
       mode: "edit",
       pinId: 42,
       blobDrafts: {},
+      adHocBlobDrafts: {},
       changes: expect.objectContaining({
         title: "Updated",
         latitude: 41,
@@ -152,12 +179,12 @@ describe("validateAndBuildSavePayload", () => {
         },
       ],
     })
-    const catalog: CustomPinType[] = [
+    const catalog: CatalogPinType[] = [
       {
         id: 1,
         slug: "jam-pin",
         label: "Jam Pin",
-        pin_type: "custom:jam-pin",
+        pin_type: "jam-pin",
         enabled: true,
         schema: {
           fields: [{ key: "song", type: BlobFieldType.Music, label: "Song", required: true }],
@@ -165,13 +192,13 @@ describe("validateAndBuildSavePayload", () => {
       },
     ]
     const pin = minimalPin({
-      pin_type: "custom:jam-pin",
+      pin_type: "jam-pin",
       custom_data: { song: { ref: 99 } },
     })
     const result = validateAndBuildSavePayload(
       { mode: "edit", pin },
       minimalDraft({
-        pinType: "custom:jam-pin",
+        pinType: "jam-pin",
         customData: { song: { draft: draftPayload } },
       }),
       false,
@@ -197,12 +224,12 @@ describe("validateAndBuildSavePayload", () => {
         },
       ],
     })
-    const catalog: CustomPinType[] = [
+    const catalog: CatalogPinType[] = [
       {
         id: 1,
         slug: "song-pin",
         label: "Song Pin",
-        pin_type: "custom:song-pin",
+        pin_type: "song-pin",
         enabled: true,
         schema: {
           fields: [{ key: "song", type: BlobFieldType.Music, label: "Song", required: true }],
@@ -210,9 +237,9 @@ describe("validateAndBuildSavePayload", () => {
       },
     ]
     const result = validateAndBuildSavePayload(
-      { mode: "add", lat: 1, lng: 2, pinType: "custom:song-pin" },
+      { mode: "add", lat: 1, lng: 2, pinType: "song-pin" },
       minimalDraft({
-        pinType: "custom:song-pin",
+        pinType: "song-pin",
         customData: { song: { draft: draftPayload } },
       }),
       false,
@@ -239,9 +266,9 @@ describe("validateAndBuildSavePayload", () => {
       ],
     })
     const result = validateAndBuildSavePayload(
-      { mode: "add", lat: 1, lng: 2, pinType: "custom:song-pin" },
+      { mode: "add", lat: 1, lng: 2, pinType: "song-pin" },
       minimalDraft({
-        pinType: "custom:song-pin",
+        pinType: "song-pin",
         customData: { song: { draft: draftPayload } },
       }),
       false,
@@ -263,9 +290,9 @@ describe("validateAndBuildSavePayload", () => {
       strokes: [{ tool: "pen", size: 2, points: [[1, 2], [3, 4]] }],
     })
     const result = validateAndBuildSavePayload(
-      { mode: "add", lat: 1, lng: 2, pinType: "custom:sketch-pin" },
+      { mode: "add", lat: 1, lng: 2, pinType: "sketch-pin" },
       minimalDraft({
-        pinType: "custom:sketch-pin",
+        pinType: "sketch-pin",
         customData: { sketch: { draft: draftPayload } },
       }),
       false,
@@ -286,12 +313,12 @@ describe("validateAndBuildSavePayload", () => {
       height: 256,
       strokes: [{ tool: "pen", size: 2, points: [[1, 2], [3, 4]] }],
     })
-    const catalog: CustomPinType[] = [
+    const catalog: CatalogPinType[] = [
       {
         id: 1,
         slug: "sketch-pin",
         label: "Sketch Pin",
-        pin_type: "custom:sketch-pin",
+        pin_type: "sketch-pin",
         enabled: true,
         schema: {
           fields: [{ key: "sketch", type: BlobFieldType.Drawing, label: "Sketch", required: true }],
@@ -299,9 +326,9 @@ describe("validateAndBuildSavePayload", () => {
       },
     ]
     const result = validateAndBuildSavePayload(
-      { mode: "add", lat: 1, lng: 2, pinType: "custom:sketch-pin" },
+      { mode: "add", lat: 1, lng: 2, pinType: "sketch-pin" },
       minimalDraft({
-        pinType: "custom:sketch-pin",
+        pinType: "sketch-pin",
         customData: { sketch: { draft: draftPayload } },
       }),
       false,
@@ -316,21 +343,21 @@ describe("validateAndBuildSavePayload", () => {
   })
 
   it("includes time fields for custom hours pins", () => {
-    const catalog: CustomPinType[] = [
+    const catalog: CatalogPinType[] = [
       {
         id: 1,
         slug: "shop",
         label: "Shop",
-        pin_type: "custom:shop",
+        pin_type: "shop",
         enabled: true,
         time_mode: "hours",
         schema: { fields: [] },
       },
     ]
     const result = validateAndBuildSavePayload(
-      { mode: "add", lat: 1, lng: 2, pinType: "custom:shop" },
+      { mode: "add", lat: 1, lng: 2, pinType: "shop" },
       minimalDraft({
-        pinType: "custom:shop",
+        pinType: "shop",
         startTime: "09:00",
         endTime: "17:00",
         scheduleRrule: "FREQ=DAILY",
@@ -352,7 +379,7 @@ describe("validateAndBuildSavePayload", () => {
 
   it("omits schedule nulls on edit when custom type is missing from catalog", () => {
     const pin = minimalPin({
-      pin_type: "custom:shop",
+      pin_type: "shop",
       start_time: "2000-01-01T09:00:00",
       end_time: "2000-01-01T17:00:00",
       schedule_rrule: "FREQ=DAILY",
@@ -360,7 +387,7 @@ describe("validateAndBuildSavePayload", () => {
     const result = validateAndBuildSavePayload(
       { mode: "edit", pin },
       minimalDraft({
-        pinType: "custom:shop",
+        pinType: "shop",
         title: "Renamed",
         customData: {},
       }),
@@ -379,17 +406,17 @@ describe("validateAndBuildSavePayload", () => {
 
   it("omits schedule nulls on edit when catalog entry lacks time_mode", () => {
     const pin = minimalPin({
-      pin_type: "custom:shop",
+      pin_type: "shop",
       start_time: "2000-01-01T09:00:00",
       end_time: "2000-01-01T17:00:00",
       schedule_rrule: "FREQ=DAILY",
     })
-    const catalog: CustomPinType[] = [
+    const catalog: CatalogPinType[] = [
       {
         id: 1,
         slug: "shop",
         label: "Shop",
-        pin_type: "custom:shop",
+        pin_type: "shop",
         enabled: true,
         schema: { fields: [] },
       },
@@ -397,7 +424,7 @@ describe("validateAndBuildSavePayload", () => {
     const result = validateAndBuildSavePayload(
       { mode: "edit", pin },
       minimalDraft({
-        pinType: "custom:shop",
+        pinType: "shop",
         title: "Renamed",
         customData: {},
       }),

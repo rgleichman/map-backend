@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+vi.mock("../context/PinTypesContext", () => ({
+  usePinTypes: () => ({ catalog: [], selectableTypes: [] }),
+}))
 import PinTypeIcon from "../components/PinTypeIcon"
 import {
   createPinTypeMarkerElement,
@@ -49,7 +53,7 @@ describe("createPinTypeMarkerSVG", () => {
   })
 
   it("renders custom pin types with the builtin other icon (no injected markup)", () => {
-    const dataUrl = createPinTypeMarkerSVG("custom:example", [
+    const dataUrl = createPinTypeMarkerSVG("example", [
       {
         id: 1,
         slug: "example",
@@ -58,7 +62,7 @@ describe("createPinTypeMarkerSVG", () => {
         marker_color: "#112233",
         icon: null,
         schema: { fields: [] },
-        pin_type: "custom:example",
+        pin_type: "example",
         enabled: true,
         inserted_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",

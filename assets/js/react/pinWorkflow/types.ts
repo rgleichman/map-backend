@@ -1,4 +1,4 @@
-import type { CustomPinType, Pin, PinType } from "../types"
+import type { AdHocField, CatalogPinType, Pin, PinType } from "../types"
 
 /**
  * When the user is picking a new location on the map, we enter a temporary
@@ -38,6 +38,8 @@ export type DraftState = {
   description: string
   tags: string[]
   customData: Record<string, unknown>
+  /** Author-defined fields for this pin only, in display order. */
+  adHocFields: AdHocField[]
   startTime: string
   endTime: string
   scheduleRrule: string
@@ -71,8 +73,8 @@ export type PinWorkflowAction =
   | { type: "after_edit_saved"; pin: Pin }
   | { type: "open_view"; pin: Pin }
   | { type: "open_select_type"; lat: number; lng: number; resetDraft: boolean }
-  | { type: "open_add"; lat: number; lng: number; pinType: PinType; catalog?: CustomPinType[] }
-  | { type: "open_edit"; pin: Pin; catalog?: CustomPinType[] }
+  | { type: "open_add"; lat: number; lng: number; pinType: PinType; catalog?: CatalogPinType[] }
+  | { type: "open_edit"; pin: Pin; catalog?: CatalogPinType[] }
   | { type: "cancel_edit" }
   | { type: "set_placement"; placement: Placement | null }
   | { type: "set_add_location"; lat: number; lng: number }
@@ -88,6 +90,7 @@ export type PinWorkflowAction =
   | { type: "set_open_24_7"; open24_7: boolean }
   | { type: "set_visible_on_world_map"; visibleOnWorldMap: boolean }
   | { type: "set_custom_data"; customData: Record<string, unknown> }
+  | { type: "set_ad_hoc_fields"; adHocFields: AdHocField[] }
   | { type: "add_linked_pin"; pinId: number }
   | { type: "remove_linked_pin"; pinId: number }
   | { type: "set_time_error"; timeError: string }

@@ -15,6 +15,7 @@ function minimalPin(overrides: Partial<Pin> = {}): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,

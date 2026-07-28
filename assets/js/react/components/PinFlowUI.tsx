@@ -6,7 +6,6 @@ import PinDetailView from "./map/PinDetailView"
 import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import Button from "./ui/Button"
 
 type Props = {
@@ -84,6 +83,7 @@ export default function PinFlowUI({
     open24_7,
     visibleOnWorldMap,
     customData,
+    adHocFields,
     linkedPinIds,
     pins,
   } = workflow
@@ -91,7 +91,7 @@ export default function PinFlowUI({
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
     csrfToken,
     pinId: modal.mode === "edit" ? modal.pin.id : null,
-    pinType: modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type,
+    pinType: modal.mode === "add" ? (pinType ?? "") : modal.pin.pin_type,
     title,
     description,
     tags,
@@ -102,6 +102,7 @@ export default function PinFlowUI({
     open24_7,
     visibleOnWorldMap,
     customData,
+    adHocFields,
     linkedPinIds,
     pins,
     showPromoteToWorld,

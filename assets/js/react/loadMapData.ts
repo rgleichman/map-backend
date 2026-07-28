@@ -1,12 +1,11 @@
 import * as api from "./api/client"
-import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "./types"
-import { BUILTIN_PIN_TYPES } from "./utils/builtinPinType"
+import type { CatalogPinType, Pin, SubMap } from "./types"
 
 export type MapData = {
   pins: Pin[]
+  /** Pin types enabled on this map (may be empty until types exist). */
+  pinTypes: CatalogPinType[]
   subMap: SubMap | null
-  customPinTypes: CustomPinType[]
-  enabledBuiltinTypes: BuiltinPinType[]
 }
 
 /** Load pins and optional sub-map metadata for world or community map. */
@@ -20,8 +19,7 @@ export async function loadMapData(communityUrl?: string): Promise<MapData> {
     return {
       pins: pinList.data,
       subMap,
-      customPinTypes: subMap.available_custom_pin_types ?? [],
-      enabledBuiltinTypes: subMap.enabled_builtin_pin_types ?? BUILTIN_PIN_TYPES,
+      pinTypes: subMap.enabled_pin_types ?? [],
     }
   }
 
@@ -29,7 +27,6 @@ export async function loadMapData(communityUrl?: string): Promise<MapData> {
   return {
     pins: pinsRes.data,
     subMap: null,
-    customPinTypes: typesRes.data,
-    enabledBuiltinTypes: BUILTIN_PIN_TYPES,
+    pinTypes: typesRes.data,
   }
 }

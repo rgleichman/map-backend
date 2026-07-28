@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType } from "../types"
+import type { CatalogPinType } from "../types"
 import {
-  CustomPinTimeMode,
+  PinTimeMode,
   canWriteScheduleFromCatalog,
   scheduleCapabilities,
   showScheduleTimeFields,
@@ -9,95 +9,107 @@ import {
   usesOpenNowDatetimeWindow,
 } from "./scheduleCapabilities"
 
-const catalog: CustomPinType[] = [
+const catalog: CatalogPinType[] = [
   {
     id: 1,
     slug: "event",
     label: "Event",
-    pin_type: "custom:event",
+    pin_type: "event",
     enabled: true,
-    time_mode: CustomPinTimeMode.OneTime,
+    time_mode: PinTimeMode.OneTime,
     schema: { fields: [] },
   },
   {
     id: 2,
     slug: "shop",
     label: "Shop",
-    pin_type: "custom:shop",
+    pin_type: "shop",
     enabled: true,
-    time_mode: CustomPinTimeMode.Hours,
+    time_mode: PinTimeMode.Hours,
     schema: { fields: [] },
   },
   {
     id: 3,
     slug: "note",
     label: "Note",
-    pin_type: "custom:note",
+    pin_type: "note",
     enabled: true,
-    time_mode: CustomPinTimeMode.None,
+    time_mode: PinTimeMode.None,
+    schema: { fields: [] },
+  },
+  {
+    id: 4,
+    slug: "pantry",
+    label: "Pantry",
+    pin_type: "pantry",
+    enabled: true,
+    time_mode: PinTimeMode.Hours,
+    allow_open_24_7: true,
     schema: { fields: [] },
   },
 ]
 
 describe("scheduleCapabilities", () => {
-  it("resolves builtins without using custom time_mode enum", () => {
+  it("resolves unknown slugs as none without catalog", () => {
     expect(scheduleCapabilities("other")).toEqual({ kind: "none", allowOpen247: false })
-    expect(scheduleCapabilities("one_time")).toEqual({ kind: "one_time", allowOpen247: false })
-    expect(scheduleCapabilities("scheduled")).toEqual({ kind: "recurring", allowOpen247: false })
-    expect(scheduleCapabilities("food_bank")).toEqual({ kind: "recurring", allowOpen247: true })
+    expect(scheduleCapabilities("one_time")).toEqual({ kind: "none", allowOpen247: false })
   })
 
-  it("resolves custom types from catalog time_mode", () => {
-    expect(scheduleCapabilities("custom:event", catalog)).toEqual({
+  it("resolves catalog time_mode and allow_open_24_7", () => {
+    expect(scheduleCapabilities("event", catalog)).toEqual({
       kind: "one_time",
       allowOpen247: false,
     })
-    expect(scheduleCapabilities("custom:shop", catalog)).toEqual({
+    expect(scheduleCapabilities("shop", catalog)).toEqual({
+      kind: "recurring",
+      allowOpen247: false,
+    })
+    expect(scheduleCapabilities("note", catalog)).toEqual({
+      kind: "none",
+      allowOpen247: false,
+    })
+    expect(scheduleCapabilities("pantry", catalog)).toEqual({
       kind: "recurring",
       allowOpen247: true,
     })
-    expect(scheduleCapabilities("custom:note", catalog)).toEqual({
-      kind: "none",
-      allowOpen247: false,
-    })
   })
 
-  it("treats unknown custom types as none", () => {
-    expect(scheduleCapabilities("custom:missing", catalog)).toEqual({
+  it("treats unknown types as none", () => {
+    expect(scheduleCapabilities("missing", catalog)).toEqual({
       kind: "none",
       allowOpen247: false,
     })
-    expect(scheduleCapabilities("custom:event", [])).toEqual({
+    expect(scheduleCapabilities("event", [])).toEqual({
       kind: "none",
       allowOpen247: false,
     })
   })
 
   it("showScheduleTimeFields hides times for none and open 24/7", () => {
-    expect(showScheduleTimeFields(scheduleCapabilities("other"), false)).toBe(false)
-    expect(showScheduleTimeFields(scheduleCapabilities("food_bank"), true)).toBe(false)
-    expect(showScheduleTimeFields(scheduleCapabilities("food_bank"), false)).toBe(true)
-    expect(showScheduleTimeFields(scheduleCapabilities("custom:shop", catalog), false)).toBe(true)
+    expect(showScheduleTimeFields(scheduleCapabilities("note", catalog), false)).toBe(false)
+    expect(showScheduleTimeFields(scheduleCapabilities("pantry", catalog), true)).toBe(false)
+    expect(showScheduleTimeFields(scheduleCapabilities("pantry", catalog), false)).toBe(true)
+    expect(showScheduleTimeFields(scheduleCapabilities("shop", catalog), false)).toBe(true)
   })
 
   it("skipScheduleTimeValidation for none and open 24/7", () => {
-    expect(skipScheduleTimeValidation(scheduleCapabilities("other"), false)).toBe(true)
-    expect(skipScheduleTimeValidation(scheduleCapabilities("food_bank"), true)).toBe(true)
-    expect(skipScheduleTimeValidation(scheduleCapabilities("scheduled"), false)).toBe(false)
+    expect(skipScheduleTimeValidation(scheduleCapabilities("note", catalog), false)).toBe(true)
+    expect(skipScheduleTimeValidation(scheduleCapabilities("pantry", catalog), true)).toBe(true)
+    expect(skipScheduleTimeValidation(scheduleCapabilities("shop", catalog), false)).toBe(false)
   })
 
-  it("canWriteScheduleFromCatalog requires explicit custom time_mode", () => {
-    expect(canWriteScheduleFromCatalog("one_time")).toBe(true)
-    expect(canWriteScheduleFromCatalog("custom:missing", catalog)).toBe(false)
-    expect(canWriteScheduleFromCatalog("custom:event", [])).toBe(false)
-    expect(canWriteScheduleFromCatalog("custom:event", catalog)).toBe(true)
+  it("canWriteScheduleFromCatalog requires catalog time_mode", () => {
+    expect(canWriteScheduleFromCatalog("one_time")).toBe(false)
+    expect(canWriteScheduleFromCatalog("missing", catalog)).toBe(false)
+    expect(canWriteScheduleFromCatalog("event", [])).toBe(false)
+    expect(canWriteScheduleFromCatalog("event", catalog)).toBe(true)
     expect(
-      canWriteScheduleFromCatalog("custom:legacy", [
+      canWriteScheduleFromCatalog("legacy", [
         {
           id: 9,
           slug: "legacy",
           label: "Legacy",
-          pin_type: "custom:legacy",
+          pin_type: "legacy",
           enabled: true,
           schema: { fields: [] },
         },
@@ -105,27 +117,24 @@ describe("scheduleCapabilities", () => {
     ).toBe(false)
   })
 
-  it("usesOpenNowDatetimeWindow falls back when catalog is missing", () => {
+  it("usesOpenNowDatetimeWindow prefers one_time and falls back without RRULE", () => {
     expect(
       usesOpenNowDatetimeWindow(
-        {
-          pin_type: "custom:event",
-          start_time: "2026-06-01T10:00:00",
-          end_time: "2026-06-01T12:00:00",
-        },
-        []
+        { pin_type: "event", start_time: "2020-01-01T10:00", end_time: "2020-01-01T12:00" },
+        catalog
       )
     ).toBe(true)
     expect(
       usesOpenNowDatetimeWindow(
-        {
-          pin_type: "custom:shop",
-          start_time: "2000-01-01T09:00:00",
-          schedule_rrule: "FREQ=DAILY",
-        },
-        []
+        { pin_type: "shop", start_time: "10:00", end_time: "17:00", schedule_rrule: "FREQ=DAILY" },
+        catalog
       )
     ).toBe(false)
-    expect(usesOpenNowDatetimeWindow({ pin_type: "other" }, [])).toBe(false)
+    expect(
+      usesOpenNowDatetimeWindow(
+        { pin_type: "missing", start_time: "2020-01-01T10:00", end_time: null },
+        catalog
+      )
+    ).toBe(true)
   })
 })

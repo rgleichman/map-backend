@@ -1,5 +1,4 @@
 import type { PinType } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import { isDesktopPanelMode, type DraftState, type ModalState, type Placement } from "./types"
 
 export type WorkflowUIDerivation = {
@@ -52,10 +51,10 @@ export function deriveWorkflowUI({
         : modal?.mode === "select-type"
           ? null
           : modal?.mode === "add"
-            ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE)
+            ? (pinType ?? null)
             : modal?.mode === "edit"
               ? modal.pin.pin_type
-              : DEFAULT_BUILTIN_PIN_TYPE
+              : null
 
   const editingPinId = modal?.mode === "edit" ? modal.pin.id : null
   const detailPinId =

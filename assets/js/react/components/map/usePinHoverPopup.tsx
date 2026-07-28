@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react"
 import { createRoot } from "react-dom/client"
 import { Popup, type Map as MLMap } from "maplibre-gl"
-import type { BuiltinPinType, CustomPinType, Pin } from "../../types"
+import type { CatalogPinType, Pin } from "../../types"
 import { PinTypesProvider } from "../../context/PinTypesContext"
 import { desktopPinPanelMapPaddingRight } from "../../utils/siteLayout"
 import PinHoverTooltip from "./PinHoverTooltip"
@@ -14,8 +14,7 @@ import {
 } from "./pinHoverPopupPosition"
 
 type UsePinHoverPopupArgs = {
-  catalogRef: RefObject<CustomPinType[]>
-  enabledBuiltinsRef: RefObject<BuiltinPinType[]>
+  catalogRef: RefObject<CatalogPinType[]>
   isDesktopRef: RefObject<boolean>
   placementActiveRef: RefObject<boolean>
   detailPinIdRef: RefObject<number | null | undefined>
@@ -32,7 +31,6 @@ export type PinHoverPopupApi = {
 
 export function usePinHoverPopup({
   catalogRef,
-  enabledBuiltinsRef,
   isDesktopRef,
   placementActiveRef,
   detailPinIdRef,
@@ -60,7 +58,7 @@ export function usePinHoverPopup({
       pin: Pin,
       opts: { maxWidth: number; maxHeight: number; onReady?: () => void },
     ) => (
-      <PinTypesProvider catalog={catalogRef.current} enabledBuiltins={enabledBuiltinsRef.current}>
+      <PinTypesProvider catalog={catalogRef.current}>
         <PinHoverTooltip
           pin={pin}
           maxWidth={opts.maxWidth}
@@ -69,7 +67,7 @@ export function usePinHoverPopup({
         />
       </PinTypesProvider>
     ),
-    [catalogRef, enabledBuiltinsRef],
+    [catalogRef],
   )
 
   const applyHoverPopupAnchor = useCallback(

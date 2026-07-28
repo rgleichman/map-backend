@@ -1,5 +1,5 @@
 import { RRule } from "rrule"
-import type { CustomPinType, Pin, PinType } from "../../types"
+import type { CatalogPinType, Pin, PinType } from "../../types"
 import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import { usesOpenNowDatetimeWindow } from "../../utils/scheduleCapabilities"
 import {
@@ -79,7 +79,7 @@ export type ActiveFilterChip = {
 }
 
 /** One chip per active constraint (time, tag, pin type), in stable order. */
-export function listActiveFilterChips(filter: FilterState, catalog: CustomPinType[] = []): ActiveFilterChip[] {
+export function listActiveFilterChips(filter: FilterState, catalog: CatalogPinType[] = []): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = []
   if (filter.time === TIME_FILTER_NOW) {
     chips.push({ dimension: "time", label: TIME_FILTER_LABEL })
@@ -183,7 +183,7 @@ export function isTodayRecurrenceDay(rruleStr: string, ianaTimezone: string): bo
 }
 
 /** True if the pin matches a case-insensitive substring query on title, description, tags, custom fields, or linked pin titles. */
-export function pinMatchesQuery(p: Pin, query: string, catalog?: CustomPinType[], allPins?: Pin[]): boolean {
+export function pinMatchesQuery(p: Pin, query: string, catalog?: CatalogPinType[], allPins?: Pin[]): boolean {
   const q = query.trim().toLowerCase()
   if (q === "") return true
   if (p.title.toLowerCase().includes(q)) return true
@@ -226,7 +226,7 @@ export function pinMapGeoJsonSyncPart(p: Pin): string {
 export function pinMatchesFilter(
   p: Pin,
   filter: FilterState,
-  catalog?: CustomPinType[],
+  catalog?: CatalogPinType[],
   allPins?: Pin[],
   heartedPinIds?: ReadonlySet<number>,
 ): boolean {
@@ -304,7 +304,7 @@ export type PinFilterMatcher = (pin: Pin) => boolean
 export function createPinFilterMatcher(
   pins: Pin[],
   filter: FilterState,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
   heartedPinIds?: ReadonlySet<number>,
 ): PinFilterMatcher {
   return (pin) => pinMatchesFilter(pin, filter, catalog, pins, heartedPinIds)
@@ -313,7 +313,7 @@ export function createPinFilterMatcher(
 export function filterPins(
   pins: Pin[],
   filter: FilterState,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
   heartedPinIds?: ReadonlySet<number>,
 ): Pin[] {
   const matches = createPinFilterMatcher(pins, filter, catalog, heartedPinIds)

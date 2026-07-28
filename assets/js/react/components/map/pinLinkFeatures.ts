@@ -1,5 +1,5 @@
 import type { LineLayerSpecification } from "maplibre-gl"
-import type { CustomPinType, Pin, PinLink } from "../../types"
+import type { CatalogPinType, Pin, PinLink } from "../../types"
 import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
 
 export const PIN_LINKS_SOURCE_ID = "pin-links"
@@ -29,7 +29,7 @@ export type PinLinkFeatureCollection = {
 
 export type BuildPinLinkGeoJsonParams = {
   pins: Pin[]
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
   focusPinId: number | null
   backlinks: PinLink[] | null
   showConnections: boolean

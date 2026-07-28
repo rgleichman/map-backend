@@ -1,12 +1,12 @@
 import React from "react"
-import type { CustomPinType, Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import type { PinSearchExcerpt } from "../utils/pinSearchExcerpt"
 import { HighlightedExcerpt } from "./HighlightedExcerpt"
 import PinTypeBadge from "./PinTypeBadge"
 
 type Props = {
   pin: Pin
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
   excerpt?: PinSearchExcerpt | null
   /** Show community name under the title (PinPicker). Default false. */
   showCommunity?: boolean

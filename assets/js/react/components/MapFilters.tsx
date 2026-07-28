@@ -57,7 +57,7 @@ function ActiveFilterChips({
   className?: string
   /** Shown when there are no chips (single line, no ×). */
   emptyLabel?: string
-  catalog?: import("../types").CustomPinType[]
+  catalog?: import("../types").CatalogPinType[]
 }) {
   const chips = listActiveFilterChips(filter, catalog)
   if (chips.length === 0) {

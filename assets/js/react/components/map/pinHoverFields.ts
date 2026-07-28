@@ -1,7 +1,8 @@
-import type { CustomFieldSchema, CustomPinType, Pin } from "../../types"
+import type { CatalogPinType, CustomFieldSchema, Pin } from "../../types"
+import { adHocFieldSchema } from "../../utils/adHocFields"
 import { BlobFieldType, isBlobFieldType } from "../../utils/blobFieldType"
 import { isCustomFieldEmpty, formatCustomFieldValue } from "../../utils/customFieldValue"
-import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
+import { findPinType, schemaFields } from "../../utils/customPinTypes"
 import { formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 
 export type PinHoverTextRow = {
@@ -44,8 +45,31 @@ export function hoverPopupMaxSize(
   }
 }
 
+function pushFieldRow(
+  rows: PinHoverRow[],
+  field: CustomFieldSchema,
+  value: unknown,
+  idPrefix: string
+): void {
+  if (isCustomFieldEmpty(value, field)) return
+
+  if (field.type === BlobFieldType.Drawing) {
+    rows.push({ kind: "drawing", id: `${idPrefix}${field.key}`, label: field.label, field, value })
+    return
+  }
+  if (field.type === BlobFieldType.Music) {
+    rows.push({ kind: "music", id: `${idPrefix}${field.key}`, label: field.label, field, value })
+    return
+  }
+  if (isBlobFieldType(field.type)) return
+
+  const text = formatCustomFieldValue(field, value)
+  if (!text) return
+  rows.push({ kind: "text", id: `${idPrefix}${field.key}`, label: field.label, text })
+}
+
 /** Ordered hover rows matching detail-panel field order (no tags/actions). */
-export function buildPinHoverRows(pin: Pin, catalog: CustomPinType[]): PinHoverRow[] {
+export function buildPinHoverRows(pin: Pin, catalog: CatalogPinType[]): PinHoverRow[] {
   const rows: PinHoverRow[] = []
 
   const description = pin.description?.trim()
@@ -58,24 +82,13 @@ export function buildPinHoverRows(pin: Pin, catalog: CustomPinType[]): PinHoverR
     })
   }
 
-  const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
-  for (const field of schemaFields(customType)) {
-    const value = pin.custom_data?.[field.key]
-    if (isCustomFieldEmpty(value, field)) continue
+  for (const field of schemaFields(findPinType(pin.pin_type, catalog))) {
+    pushFieldRow(rows, field, pin.custom_data?.[field.key], "field:")
+  }
 
-    if (field.type === BlobFieldType.Drawing) {
-      rows.push({ kind: "drawing", id: `field:${field.key}`, label: field.label, field, value })
-      continue
-    }
-    if (field.type === BlobFieldType.Music) {
-      rows.push({ kind: "music", id: `field:${field.key}`, label: field.label, field, value })
-      continue
-    }
-    if (isBlobFieldType(field.type)) continue
-
-    const text = formatCustomFieldValue(field, value)
-    if (!text) continue
-    rows.push({ kind: "text", id: `field:${field.key}`, label: field.label, text })
+  for (const adHoc of pin.ad_hoc_fields ?? []) {
+    if (adHoc.label.trim() === "") continue
+    pushFieldRow(rows, adHocFieldSchema(adHoc), adHoc.value, "ad_hoc:")
   }
 
   if (pin.start_time && pin.end_time) {

@@ -1,23 +1,14 @@
-import type { BuiltinPinType as BuiltinPinTypeName, CustomPinType, PinType } from "../types"
+import type { CatalogPinType, PinIconName as PinIconNameType, PinType } from "../types"
 import {
+  DEFAULT_PIN_TYPE_COLORS,
   getPinTypeColorEntry,
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
-import {
-  BuiltinPinType,
-  builtinIconKeyForPinType,
-  customPinTypeMarkerImageId,
-  isBuiltinPinType,
-  isCustomPinType,
-} from "./builtinPinType"
-import {
-  customTypeMarkerColor,
-  findCustomPinType,
-} from "./customPinTypes"
+import { findPinType, markerColor } from "./customPinTypes"
 
 /**
- * Pin type icon path data: one_time from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
+ * Pin type icon path data: carrot from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
  * https://github.com/tailwindlabs/heroicons
  */
 type SvgPathDef = {
@@ -26,23 +17,41 @@ type SvgPathDef = {
   clipRule?: "evenodd" | "nonzero"
 }
 
-/** one_time: Lucide carrot (stroke). scheduled/food_bank/other: Heroicons 24 solid (fill). */
-export const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
-  [BuiltinPinType.OneTime]: [
+/** Glyph names a catalog row may reference through `icon`. */
+export const PinIcon = {
+  Carrot: "carrot",
+  Calendar: "calendar",
+  Building: "building",
+  Star: "star",
+} as const satisfies Record<string, PinIconNameType>
+
+export const DEFAULT_PIN_ICON = PinIcon.Star
+
+/** Glyphs for slugs of the seeded system types, used when `icon` is blank. */
+const SLUG_ICON_FALLBACKS: Record<string, PinIconNameType> = {
+  one_time: PinIcon.Carrot,
+  scheduled: PinIcon.Calendar,
+  food_bank: PinIcon.Building,
+  other: PinIcon.Star,
+}
+
+/** carrot: Lucide (stroke). calendar/building/star: Heroicons 24 solid (fill). */
+export const ICON_PATH_DEFS: Record<PinIconNameType, SvgPathDef[]> = {
+  [PinIcon.Carrot]: [
     {
       d: "M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"
     },
     { d: "M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" },
     { d: "M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" },
   ],
-  [BuiltinPinType.Scheduled]: [
+  [PinIcon.Calendar]: [
     {
       d: "M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z",
       fillRule: "evenodd",
       clipRule: "evenodd"
     }
   ],
-  [BuiltinPinType.FoodBank]: [
+  [PinIcon.Building]: [
     {
       d: "M5.223 2.25c-.497 0-.974.198-1.325.55l-1.3 1.298A3.75 3.75 0 0 0 7.5 9.75c.627.47 1.406.75 2.25.75.844 0 1.624-.28 2.25-.75.626.47 1.406.75 2.25.75.844 0 1.623-.28 2.25-.75a3.75 3.75 0 0 0 4.902-5.652l-1.3-1.299a1.875 1.875 0 0 0-1.325-.549H5.223Z"
     },
@@ -52,7 +61,7 @@ export const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
       clipRule: "evenodd"
     }
   ],
-  [BuiltinPinType.Other]: [
+  [PinIcon.Star]: [
     {
       d: "M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.267 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.267-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z",
       fillRule: "evenodd",
@@ -62,50 +71,44 @@ export const ICON_PATH_DEFS: Record<BuiltinPinTypeName, SvgPathDef[]> = {
 }
 
 export type PinTypeConfig = PinTypeColorEntry & {
-  /** Which builtin icon to render for this pin type. */
-  iconKey: PinType
+  /** Which glyph to render for this pin type. */
+  iconKey: PinIconNameType
 }
 
-const pinTypeConfigs: Record<PinType, PinTypeConfig> = Object.fromEntries(
-  (Object.keys(PIN_TYPE_COLORS) as PinType[]).map((pinType) => [
-    pinType,
-    { ...PIN_TYPE_COLORS[pinType], iconKey: pinType }
-  ])
-) as Record<PinType, PinTypeConfig>
+/** Glyph for a catalog row: explicit `icon`, then slug fallback, then default. */
+export function pinIconName(
+  icon: string | null | undefined,
+  slug?: string | null
+): PinIconNameType {
+  if (icon && icon in ICON_PATH_DEFS) return icon as PinIconNameType
+  if (icon && icon in SLUG_ICON_FALLBACKS) return SLUG_ICON_FALLBACKS[icon]
+  if (slug && slug in SLUG_ICON_FALLBACKS) return SLUG_ICON_FALLBACKS[slug]
+  return DEFAULT_PIN_ICON
+}
 
+export function isStrokeIcon(iconKey: PinIconNameType): boolean {
+  return iconKey === PinIcon.Carrot
+}
+
+/** Colors, label, description and glyph for a pin type slug, driven by the catalog. */
 export function resolvePinTypeConfig(
-  pinType: PinType | string | null | undefined,
-  catalog: CustomPinType[] = []
+  pinType: PinType | null | undefined,
+  catalog: CatalogPinType[] = []
 ): PinTypeConfig {
-  if (pinType && isBuiltinPinType(pinType)) {
-    return getPinTypeConfig(pinType)
+  const catalogType = findPinType(pinType, catalog)
+  const hasPalette = pinType != null && pinType in PIN_TYPE_COLORS
+  const palette = hasPalette ? PIN_TYPE_COLORS[pinType as string] : DEFAULT_PIN_TYPE_COLORS
+  const color = markerColor(catalogType)
+  const colors: PinTypeColorEntry = color
+    ? { ...palette, color, backgroundColor: color, borderColor: color }
+    : palette
+
+  return {
+    ...colors,
+    label: catalogType?.label ?? (hasPalette ? palette.label : pinType || palette.label),
+    description: catalogType?.description ?? (hasPalette ? palette.description : ""),
+    iconKey: pinIconName(catalogType?.icon, pinType),
   }
-
-  if (typeof pinType === "string" && isCustomPinType(pinType)) {
-    const custom = findCustomPinType(pinType, catalog)
-    const color = customTypeMarkerColor(custom)
-    const base = getPinTypeConfig(BuiltinPinType.Other)
-    return {
-      ...base,
-      label: custom?.label ?? pinType,
-      description: custom?.description ?? "Custom pin type",
-      color,
-      backgroundColor: color,
-      borderColor: color,
-    }
-  }
-
-  return getPinTypeConfig(pinType as PinType)
-}
-
-/**
- * Get configuration for a pin type including colors and icon.
- * Falls back via builtinIconKeyForPinType when pinType is missing or unknown.
- */
-export function getPinTypeConfig(pinType: PinType | null | undefined): PinTypeConfig {
-  const iconKey = builtinIconKeyForPinType(pinType)
-  const colors = getPinTypeColorEntry(pinType)
-  return { ...colors, iconKey: pinTypeConfigs[iconKey].iconKey }
 }
 
 /** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
@@ -139,9 +142,7 @@ export function getPinTypeMarkerImageId(
   pinType: PinType,
   outline?: PinMarkerMapOutline,
 ): string {
-  const base = isCustomPinType(pinType)
-    ? customPinTypeMarkerImageId(pinType)
-    : `pin-icon-${builtinIconKeyForPinType(pinType)}`
+  const base = `pin-icon-${pinType || DEFAULT_PIN_ICON}`
   if (outline === "selected") return `${base}-selected`
   if (outline === "new") return `${base}-new`
   return base
@@ -159,13 +160,12 @@ function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
 function buildPinMarkerSVGStringFallback(
   pinType: PinType,
   outline: PinMarkerOutline | null,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
-  const iconKey = builtinIconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
-  const iconGroupAttrs = isStrokeIcon
+  const iconKey = config.iconKey
+  const iconGroupAttrs = isStrokeIcon(iconKey)
     ? `fill="none" stroke="${iconFill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="${iconFill}"`
     : `fill="${iconFill}"`
 
@@ -222,12 +222,12 @@ function buildPinMarkerSVGStringFallback(
 function buildPinMarkerSVGElement(
   pinType: PinType,
   outline: PinMarkerOutline | null,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
 ): SVGSVGElement {
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
-  const iconKey = builtinIconKeyForPinType(pinType)
-  const isStrokeIcon = iconKey === BuiltinPinType.OneTime
+  const iconKey = config.iconKey
+  const strokeIcon = isStrokeIcon(iconKey)
   const outlined = outline != null
   const translucent = outline === "new" || outline === "pending"
   const mainPathFillOpacity = translucent ? "0.72" : "1"
@@ -293,7 +293,7 @@ function buildPinMarkerSVGElement(
 
   const iconGroup = document.createElementNS(SVG_NS, "g")
   iconGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)
-  if (isStrokeIcon) {
+  if (strokeIcon) {
     iconGroup.setAttribute("fill", "none")
     iconGroup.setAttribute("stroke", iconFill)
     iconGroup.setAttribute("stroke-width", "2")
@@ -321,7 +321,7 @@ function buildPinMarkerSVGElement(
  */
 export function createPinTypeMarkerSVG(
   pinType: PinType,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
   outline?: PinMarkerMapOutline,
 ): string {
   const resolved = outline ?? null
@@ -341,7 +341,7 @@ export function createPinTypeMarkerSVG(
  */
 export function createPinTypeMarkerElement(
   pinType: PinType,
-  catalog: CustomPinType[] = [],
+  catalog: CatalogPinType[] = [],
   pending = false,
 ): HTMLElement {
   const outline: PinMarkerOutline | null = pending ? "pending" : null
@@ -356,8 +356,8 @@ export function createPinTypeMarkerElement(
  * Get label for a pin type
  */
 export function getPinTypeLabel(
-  pinType: PinType | string | null | undefined,
-  catalog: CustomPinType[] = []
+  pinType: PinType | null | undefined,
+  catalog: CatalogPinType[] = []
 ): string {
   return resolvePinTypeConfig(pinType, catalog).label
 }

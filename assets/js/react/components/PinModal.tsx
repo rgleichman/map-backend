@@ -1,11 +1,12 @@
 import React, { useEffect, useId, useMemo } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
+import AdHocPinFields from "./AdHocPinFields"
 import CustomPinFields from "./CustomPinFields"
 import RelatedPinsEditor from "./RelatedPinsEditor"
 import TagCombobox from "./TagCombobox"
-import type { Pin, PinType } from "../types"
+import type { AdHocField, Pin, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
+import { findPinType, schemaFields } from "../utils/customPinTypes"
 import {
   isTimeOnlySchedule,
   scheduleCapabilities,
@@ -36,7 +37,7 @@ type Props = {
   setScheduleRrule: (s: string) => void
   scheduleTimezone: string
   setScheduleTimezone: (s: string) => void
-  /** When true (food_bank or custom hours): open 24/7 (time/schedule fields hidden). */
+  /** When true (pin types with `allow_open_24_7`): open 24/7 (time/schedule fields hidden). */
   open24_7?: boolean
   setOpen24_7?: (v: boolean) => void
   /** Community maps with promote_to_world_default "ask": optional world-map visibility. */
@@ -59,6 +60,8 @@ type Props = {
   saving?: boolean
   customData?: Record<string, unknown>
   setCustomData?: (data: Record<string, unknown>) => void
+  adHocFields?: AdHocField[]
+  setAdHocFields?: (fields: AdHocField[]) => void
 }
 
 export default function PinModal({
@@ -87,6 +90,8 @@ export default function PinModal({
   mode, onCancel, onSave, onDelete, canDelete, saving = false,
   customData = {},
   setCustomData,
+  adHocFields = [],
+  setAdHocFields,
 }: Props) {
   const { catalog } = usePinTypes()
   const uid = useId()
@@ -95,8 +100,8 @@ export default function PinModal({
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
   const availableTags = useMemo(() => deriveMapTags(pins), [pins])
-  const isCustom = isCustomPinType(pinType)
-  const customType = isCustom ? findCustomPinType(pinType, catalog) : undefined
+  const catalogType = findPinType(pinType, catalog)
+  const customFields = schemaFields(catalogType)
   const caps = scheduleCapabilities(pinType, catalog)
   const isTimeOnly = isTimeOnlySchedule(caps)
   const showTimeFields = showScheduleTimeFields(caps, open24_7)
@@ -149,12 +154,23 @@ export default function PinModal({
           className="textarea textarea-bordered w-full mb-4"
         />
 
-        {isCustom && customType && setCustomData ? (
+        {customFields.length > 0 && setCustomData ? (
           <div className="mb-4">
             <CustomPinFields
-              fields={schemaFields(customType)}
+              fields={customFields}
               values={customData}
               onChange={setCustomData}
+              csrfToken={csrfToken}
+              pinId={pinId}
+            />
+          </div>
+        ) : null}
+
+        {setAdHocFields ? (
+          <div className="mb-4">
+            <AdHocPinFields
+              fields={adHocFields}
+              onChange={setAdHocFields}
               csrfToken={csrfToken}
               pinId={pinId}
             />

@@ -1,6 +1,6 @@
 import React from "react"
 import PinModal from "./PinModal"
-import type { Pin, PinType } from "../types"
+import type { AdHocField, Pin, PinType } from "../types"
 import type { PinWorkflowAction } from "../pinWorkflow/types"
 
 type Props = {
@@ -19,6 +19,7 @@ type Props = {
   open24_7: boolean
   visibleOnWorldMap: boolean
   customData: Record<string, unknown>
+  adHocFields: AdHocField[]
   linkedPinIds: number[]
   pins: Pin[]
   showPromoteToWorld: boolean
@@ -49,6 +50,7 @@ export default function PinComposer({
   open24_7,
   visibleOnWorldMap,
   customData,
+  adHocFields,
   linkedPinIds,
   pins,
   showPromoteToWorld,
@@ -89,6 +91,8 @@ export default function PinComposer({
       setPromoteToWorld={(v) => dispatch({ type: "set_visible_on_world_map", visibleOnWorldMap: v })}
       customData={customData}
       setCustomData={(customData) => dispatch({ type: "set_custom_data", customData })}
+      adHocFields={adHocFields}
+      setAdHocFields={(adHocFields) => dispatch({ type: "set_ad_hoc_fields", adHocFields })}
       linkedPinIds={linkedPinIds}
       pins={pins}
       onAddLinkedPin={(pinId) => dispatch({ type: "add_linked_pin", pinId })}

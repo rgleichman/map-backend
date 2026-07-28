@@ -5,8 +5,9 @@ import LinkifiedText from "../LinkifiedText"
 import PinLinkChips from "../PinLinkChips"
 import { CustomFieldDisplay, PinIdProvider } from "../CustomPinFields"
 import { isCustomFieldEmpty } from "../../utils/customFieldValue"
+import { adHocFieldSchema, isAdHocFieldEmpty } from "../../utils/adHocFields"
 import { usePinTypes } from "../../context/PinTypesContext"
-import { findCustomPinType, isCustomPinType, schemaFields } from "../../utils/customPinTypes"
+import { findPinType, schemaFields } from "../../utils/customPinTypes"
 import { communityUrlFromTag, pinMapUrl } from "../../utils/pinMapUrl"
 import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 import PinReportDialog from "./PinReportDialog"
@@ -54,12 +55,18 @@ export default function PinDetailView({
   onToggleHeart,
 }: Props) {
   const { catalog } = usePinTypes()
-  const customType = isCustomPinType(pin.pin_type) ? findCustomPinType(pin.pin_type, catalog) : undefined
-  const customFields = schemaFields(customType)
+  const customFields = schemaFields(findPinType(pin.pin_type, catalog))
   const customFieldsWithValues = useMemo(
     () =>
       customFields.filter((field) => !isCustomFieldEmpty(pin.custom_data?.[field.key], field)),
     [customFields, pin.custom_data]
+  )
+  const adHocFieldsWithValues = useMemo(
+    () =>
+      (pin.ad_hoc_fields ?? []).filter(
+        (field) => field.label.trim() !== "" && !isAdHocFieldEmpty(field)
+      ),
+    [pin.ad_hoc_fields]
   )
   const [reportOpen, setReportOpen] = useState(false)
   const [doneMessage, setDoneMessage] = useState<string | null>(null)
@@ -130,7 +137,7 @@ export default function PinDetailView({
       {pin.description ? (
         <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
       ) : null}
-      {customFieldsWithValues.length > 0 ? (
+      {customFieldsWithValues.length > 0 || adHocFieldsWithValues.length > 0 ? (
         <PinIdProvider pinId={pin.id}>
           <dl className={`${detailContentClasses} my-2 space-y-2`}>
             {customFieldsWithValues.map((field) => (
@@ -138,6 +145,14 @@ export default function PinDetailView({
                 <dt className="font-semibold">{field.label}</dt>
                 <dd className="mt-0.5 text-base-content/90">
                   <CustomFieldDisplay field={field} value={pin.custom_data?.[field.key]} />
+                </dd>
+              </div>
+            ))}
+            {adHocFieldsWithValues.map((field) => (
+              <div key={field.id}>
+                <dt className="font-semibold">{field.label}</dt>
+                <dd className="mt-0.5 text-base-content/90">
+                  <CustomFieldDisplay field={adHocFieldSchema(field)} value={field.value} />
                 </dd>
               </div>
             ))}

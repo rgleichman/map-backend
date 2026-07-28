@@ -48,6 +48,32 @@ export default function CustomPinFields({ fields, values, onChange, csrfToken, p
   )
 }
 
+type CustomFieldInputProps = {
+  field: CustomFieldSchema
+  value: unknown
+  onValue: (v: unknown) => void
+  csrfToken?: string
+  pinId?: number | null
+  /** Blob storage key; defaults to the schema field key. */
+  fieldKey?: string
+}
+
+/** Editor for a single field value, shared by schema fields and ad-hoc fields. */
+export function CustomFieldInput({
+  field,
+  value,
+  onValue,
+  csrfToken,
+  pinId,
+  fieldKey,
+}: CustomFieldInputProps) {
+  return renderField(field, value, onValue, {
+    csrfToken,
+    pinId,
+    fieldKey: fieldKey ?? field.key,
+  })
+}
+
 function renderField(
   field: CustomFieldSchema,
   value: unknown,

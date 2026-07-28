@@ -1,7 +1,11 @@
-import type { CustomPinType, NewPin, PinType, UpdatePin } from "../types"
-import { DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
-import { findCustomPinType, isCustomPinType, schemaFields } from "../utils/customPinTypes"
+import type { CatalogPinType, NewPin, PinType, UpdatePin } from "../types"
+import { findPinType, schemaFields } from "../utils/customPinTypes"
 import { validateCustomFields } from "../utils/customFieldValue"
+import {
+  pruneEmptyAdHocFields,
+  stripAdHocBlobDrafts,
+  validateAdHocFields,
+} from "../utils/adHocFields"
 import { stripBlobDraftsFromCustomData, type BlobFieldDraftEntry } from "../utils/blobFieldValue"
 import {
   canWriteScheduleFromCatalog,
@@ -17,8 +21,18 @@ export type SavePinValidationError =
   | { kind: "time"; message: string }
   | { kind: "form"; message: string }
 
-export type SavePinAddPayload = { mode: "add"; payload: NewPin; blobDrafts: Record<string, BlobFieldDraftEntry> }
-export type SavePinEditPayload = { mode: "edit"; pinId: number; changes: UpdatePin; blobDrafts: Record<string, BlobFieldDraftEntry> }
+/** Blob payloads uploaded after the pin exists, keyed by field key / ad-hoc field id. */
+export type SavePinBlobDrafts = {
+  blobDrafts: Record<string, BlobFieldDraftEntry>
+  adHocBlobDrafts: Record<string, BlobFieldDraftEntry>
+}
+
+export type SavePinAddPayload = { mode: "add"; payload: NewPin } & SavePinBlobDrafts
+export type SavePinEditPayload = {
+  mode: "edit"
+  pinId: number
+  changes: UpdatePin
+} & SavePinBlobDrafts
 
 export type SavePinResult = SavePinAddPayload | SavePinEditPayload
 
@@ -26,11 +40,11 @@ export function validateAndBuildSavePayload(
   modal: NonNullable<Extract<ModalState, { mode: "add" } | { mode: "edit" }>>,
   draft: DraftState,
   showPromoteToWorld: boolean,
-  catalog: CustomPinType[] = []
+  catalog: CatalogPinType[] = []
 ): SavePinResult | SavePinValidationError {
-  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap, linkedPinIds } = draft
-  const effectiveType: PinType = modal.mode === "add" ? (pinType ?? DEFAULT_BUILTIN_PIN_TYPE) : modal.pin.pin_type
-  const isCustom = isCustomPinType(effectiveType)
+  const { addLocation, editLocation, pinType, title, description, tags, customData, adHocFields, startTime, endTime, scheduleRrule, open24_7, visibleOnWorldMap, linkedPinIds } = draft
+  const effectiveType: PinType = modal.mode === "add" ? (pinType ?? "") : modal.pin.pin_type
+  const catalogType = findPinType(effectiveType, catalog)
   const caps = scheduleCapabilities(effectiveType, catalog)
   const isTimeOnly = isTimeOnlySchedule(caps)
   const skipTimeValidation = skipScheduleTimeValidation(caps, open24_7)
@@ -46,11 +60,11 @@ export function validateAndBuildSavePayload(
     )
     : {}
 
-  if (isCustom) {
-    const customType = findCustomPinType(effectiveType, catalog)
-    const fieldError = validateCustomFields(schemaFields(customType), customData)
-    if (fieldError) return { kind: "form", message: fieldError }
-  }
+  const fieldError = validateCustomFields(schemaFields(catalogType), customData)
+  if (fieldError) return { kind: "form", message: fieldError }
+
+  const adHocError = validateAdHocFields(adHocFields)
+  if (adHocError) return { kind: "form", message: adHocError }
 
   if (!skipTimeValidation && isTimeOnly) {
     if (startTime && endTime && endTime <= startTime) {
@@ -78,15 +92,19 @@ export function validateAndBuildSavePayload(
     return { kind: "form", message: linkedPinAddErrorMessage("self") }
   }
 
+  const { cleaned: cleanedCustomData, drafts: blobDrafts } = stripBlobDraftsFromCustomData(
+    customData,
+    schemaFields(catalogType)
+  )
+  const { cleaned: cleanedAdHocFields, drafts: adHocBlobDrafts } = stripAdHocBlobDrafts(
+    pruneEmptyAdHocFields(adHocFields)
+  )
+
   if (modal.mode === "add") {
     const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
     if (!pinType) {
       return { kind: "form", message: "Please select a pin type" }
     }
-    const customFields = isCustom ? schemaFields(findCustomPinType(effectiveType, catalog)) : []
-    const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
-      ? stripBlobDraftsFromCustomData(customData, customFields)
-      : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }
     const payload: NewPin = {
       title,
       pin_type: pinType,
@@ -96,28 +114,26 @@ export function validateAndBuildSavePayload(
       tags,
       linked_pin_ids: linkedPinIds,
       ...timeFields,
-      ...(isCustom ? { custom_data: cleanedCustomData } : {}),
+      custom_data: cleanedCustomData,
+      ad_hoc_fields: cleanedAdHocFields,
       ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
     }
-    return { mode: "add", payload, blobDrafts }
+    return { mode: "add", payload, blobDrafts, adHocBlobDrafts }
   }
 
   const lat = editLocation?.lat ?? modal.pin.latitude
   const lng = editLocation?.lng ?? modal.pin.longitude
-  const customFields = isCustom ? schemaFields(findCustomPinType(effectiveType, catalog)) : []
-  const { cleaned: cleanedCustomData, drafts: blobDrafts } = isCustom
-    ? stripBlobDraftsFromCustomData(customData, customFields)
-    : { cleaned: customData, drafts: {} as Record<string, BlobFieldDraftEntry> }
   const changes: UpdatePin = {
     title,
     description,
     tags,
     linked_pin_ids: linkedPinIds,
     ...timeFields,
-    ...(isCustom ? { custom_data: cleanedCustomData } : {}),
+    custom_data: cleanedCustomData,
+    ad_hoc_fields: cleanedAdHocFields,
     latitude: lat,
     longitude: lng,
     ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
   }
-  return { mode: "edit", pinId: modal.pin.id, changes, blobDrafts }
+  return { mode: "edit", pinId: modal.pin.id, changes, blobDrafts, adHocBlobDrafts }
 }

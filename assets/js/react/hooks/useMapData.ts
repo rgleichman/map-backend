@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { BuiltinPinType, CustomPinType, Pin, SubMap } from "../types"
-import { BUILTIN_PIN_TYPES } from "../utils/builtinPinType"
+import type { CatalogPinType, Pin, SubMap } from "../types"
 import { DEFAULT_FILTER, type FilterState } from "../components/map/filters"
 import { loadMapData } from "../loadMapData"
 import { usePinChannelSync } from "./usePinChannelSync"
@@ -19,8 +18,7 @@ export function useMapData({
   onScopeChangeRef.current = onScopeChange
   const [pins, setPins] = useState<Pin[]>([])
   const [subMap, setSubMap] = useState<SubMap | null>(null)
-  const [customPinTypes, setCustomPinTypes] = useState<CustomPinType[]>([])
-  const [enabledBuiltinTypes, setEnabledBuiltinTypes] = useState<BuiltinPinType[]>(BUILTIN_PIN_TYPES)
+  const [pinTypes, setPinTypes] = useState<CatalogPinType[]>([])
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER)
   const [loading, setLoading] = useState(true)
   const [mapInitialized, setMapInitialized] = useState(false)
@@ -50,19 +48,17 @@ export function useMapData({
     setFilter(DEFAULT_FILTER)
     setPins([])
     setSubMap(null)
-    setCustomPinTypes([])
-    setEnabledBuiltinTypes(BUILTIN_PIN_TYPES)
+    setPinTypes([])
     setLoading(true)
     setApiError(null)
 
     let cancelled = false
     loadMapData(communityUrl)
-      .then(({ pins: nextPins, subMap: nextSubMap, customPinTypes: nextTypes, enabledBuiltinTypes: nextBuiltins }) => {
+      .then(({ pins: nextPins, subMap: nextSubMap, pinTypes: nextTypes }) => {
         if (cancelled) return
         setPins(nextPins)
         setSubMap(nextSubMap)
-        setCustomPinTypes(nextTypes)
-        setEnabledBuiltinTypes(nextBuiltins)
+        setPinTypes(nextTypes)
       })
       .catch((err) => {
         if (cancelled) return
@@ -112,8 +108,7 @@ export function useMapData({
     setPins,
     subMap,
     setSubMap,
-    customPinTypes,
-    enabledBuiltinTypes,
+    pinTypes,
     filter,
     setFilter,
     loading,

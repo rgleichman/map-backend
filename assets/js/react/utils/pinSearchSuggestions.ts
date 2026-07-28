@@ -1,4 +1,4 @@
-import type { CustomPinType, Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import type { PinFilterMatcher } from "../components/map/filters"
 import { pinMatchesQuery } from "../components/map/filters"
 import { customFieldSearchHits } from "./customFieldSearch"
@@ -10,7 +10,7 @@ export type SearchPinSuggestionsOptions = {
   pinMatches?: PinFilterMatcher
 }
 
-function rankPin(pin: Pin, query: string, catalog: CustomPinType[]): number {
+function rankPin(pin: Pin, query: string, catalog: CatalogPinType[]): number {
   const q = query.trim().toLowerCase()
   const title = pin.title.toLowerCase()
   if (title.startsWith(q)) return 0
@@ -25,7 +25,7 @@ function rankPin(pin: Pin, query: string, catalog: CustomPinType[]): number {
 export function searchPinSuggestions(
   pins: Pin[],
   query: string,
-  catalog: CustomPinType[],
+  catalog: CatalogPinType[],
   options: SearchPinSuggestionsOptions = {},
 ): Pin[] {
   const { limit = PIN_SEARCH_MAX_SUGGESTIONS, pinMatches } = options

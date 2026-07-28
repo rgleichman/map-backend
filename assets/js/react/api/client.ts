@@ -1,6 +1,6 @@
 import type {
   ContentReportPayload,
-  CustomPinType,
+  CatalogPinType,
   MembershipRole,
   MembershipStatus,
   NewPin,
@@ -123,7 +123,7 @@ export function deletePinComment(
   })
 }
 
-export function getPinTypes(): Promise<{ data: CustomPinType[] }> {
+export function getPinTypes(): Promise<{ data: CatalogPinType[] }> {
   return jsonFetch("/api/pin_types")
 }
 

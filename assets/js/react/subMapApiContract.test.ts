@@ -12,14 +12,15 @@ const wireSubMap = {
   promote_to_world_default: "ask",
   visibility: "public",
   settings: {},
-  enabled_builtin_pin_types: ["other"],
-  enabled_custom_pin_types: ["pinball-arcade"],
-  available_custom_pin_types: [],
+  enabled_pin_type_ids: [1],
+  enabled_pin_types: [],
 } satisfies SubMap
 
 describe("SubMap API contract", () => {
   it("types match backend wire keys for pin type settings", () => {
-    expect(wireSubMap.enabled_custom_pin_types).toEqual(["pinball-arcade"])
-    expect(wireSubMap).not.toHaveProperty("enabled_custom_slugs")
+    expect(wireSubMap.enabled_pin_type_ids).toEqual([1])
+    expect(wireSubMap).not.toHaveProperty("enabled_builtin_pin_types")
+    expect(wireSubMap).not.toHaveProperty("enabled_custom_pin_types")
+    expect(wireSubMap).not.toHaveProperty("available_custom_pin_types")
   })
 })

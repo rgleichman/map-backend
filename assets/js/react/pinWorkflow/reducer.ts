@@ -15,6 +15,7 @@ export const makeDefaultDraft = (): DraftState => {
     description: "",
     tags: [],
     customData: {},
+    adHocFields: [],
     startTime: dateToLocalInputValue(now),
     endTime: dateToLocalInputValue(inOneHour),
     scheduleRrule: "",
@@ -152,6 +153,7 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
             : state.draft.open24_7,
           visibleOnWorldMap: action.pin.visible_on_world_map ?? false,
           customData: action.pin.custom_data ?? {},
+          adHocFields: action.pin.ad_hoc_fields ?? [],
           linkedPinIds: explicitLinkedPinIds(action.pin),
           editLocation: null,
         },
@@ -195,6 +197,8 @@ export function pinWorkflowReducer(state: PinWorkflowState, action: PinWorkflowA
       return { ...state, draft: { ...state.draft, visibleOnWorldMap: action.visibleOnWorldMap } }
     case "set_custom_data":
       return { ...state, draft: { ...state.draft, customData: action.customData } }
+    case "set_ad_hoc_fields":
+      return { ...state, draft: { ...state.draft, adHocFields: action.adHocFields } }
     case "add_linked_pin":
       if (state.draft.linkedPinIds.includes(action.pinId)) return state
       return {

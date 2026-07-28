@@ -2,7 +2,6 @@ import React, { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, 
 import maplibregl, { Map as MLMap, Marker } from "maplibre-gl"
 import type { Pin, PinLink, PinType } from "../types"
 import { getPinBacklinks } from "../api/client"
-import { BUILTIN_PIN_TYPES, DEFAULT_BUILTIN_PIN_TYPE } from "../utils/builtinPinType"
 import {
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
@@ -125,11 +124,9 @@ export default function MapCanvas({
   heartedPinIds = new Set(),
   pinHeartsLoading = false,
 }: Props) {
-  const { catalog, enabledBuiltins } = usePinTypes()
+  const { catalog } = usePinTypes()
   const catalogRef = useRef(catalog)
   catalogRef.current = catalog
-  const enabledBuiltinsRef = useRef(enabledBuiltins)
-  enabledBuiltinsRef.current = enabledBuiltins
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
@@ -159,7 +156,6 @@ export default function MapCanvas({
   onDismissPinDetailRef.current = onDismissPinDetail
   const { showHoverTooltip, clearHoverTooltip } = usePinHoverPopup({
     catalogRef,
-    enabledBuiltinsRef,
     isDesktopRef,
     placementActiveRef,
     detailPinIdRef,
@@ -452,14 +448,7 @@ export default function MapCanvas({
         const map = mapRef.current
         if (!map || !isMounted) return
         try {
-          for (const pinType of BUILTIN_PIN_TYPES) {
-            for (const outline of [undefined, "new", "selected"] as const) {
-              const dataUrl = createPinTypeMarkerSVG(pinType, [], outline)
-              const img = await loadImage(dataUrl)
-              if (!isMounted) return
-              map.addImage(getPinTypeMarkerImageId(pinType, outline), img)
-            }
-          }
+          // Catalog marker images are registered asynchronously via registerCustomPinImages.
           map.addSource(MATCHING_SOURCE_ID, {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
@@ -771,7 +760,7 @@ export default function MapCanvas({
         zoom: PIN_FOCUS_ZOOM,
         padding: mapPaddingForPinPanel(map, pinPanelOpenRef.current),
       })
-      const pinType: PinType = pendingPinType ?? DEFAULT_BUILTIN_PIN_TYPE
+      const pinType: PinType = pendingPinType ?? "other"
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
         pendingMarkerRef.current?.remove()
@@ -834,7 +823,14 @@ export default function MapCanvas({
     heartedPinIds.size > 0 &&
     !pinsForMap.some((p) => heartedPinIds.has(p.id))
 
-  // Register custom marker images (normal + new + selected) so icons exist before GeoJSON sync.
+  // Unique pin-type slugs on the map (including types outside the enabled catalog).
+  const pinTypeSlugsKey = useMemo(() => {
+    const slugs = new Set(pinsForMap.map((p) => p.pin_type).filter(Boolean))
+    if (pendingPinType) slugs.add(pendingPinType)
+    return [...slugs].sort().join("\0")
+  }, [pinsForMap, pendingPinType])
+
+  // Register marker images (normal + new + selected) so icons exist before GeoJSON sync.
   useEffect(() => {
     if (!mapReady || !pinLayersAddedRef.current) return
     const map = mapRef.current
@@ -844,10 +840,13 @@ export default function MapCanvas({
     customImagesReadyRef.current = false
     let cancelled = false
 
+    const pinTypeSlugs = pinTypeSlugsKey === "" ? [] : pinTypeSlugsKey.split("\0")
+
     const run = async () => {
       const result = await registerCustomPinImages({
         map,
         catalog: catalogRef.current,
+        pinTypeSlugs,
         knownCustomImageIds: knownCustomImageIdsRef.current,
         customImageVisualKeys: customImageVisualKeysRef.current,
         isCancelled: () => cancelled || mapRef.current !== map,
@@ -856,7 +855,7 @@ export default function MapCanvas({
       knownCustomImageIdsRef.current = result.knownCustomImageIds
       customImageVisualKeysRef.current = result.customImageVisualKeys
       customImagesReadyRef.current = true
-      // Sync after icons exist (covers catalog change and any GeoJSON sync skipped while pending).
+      // Sync after icons exist (covers catalog/pin-type change and any GeoJSON sync skipped while pending).
       lastPinGeoJsonSyncKeyRef.current = ""
       syncPinGeoJsonRef.current()
     }
@@ -866,7 +865,7 @@ export default function MapCanvas({
       cancelled = true
       customImagesReadyRef.current = false
     }
-  }, [catalog, mapReady])
+  }, [catalog, mapReady, pinTypeSlugsKey])
 
   // Sync pin GeoJSON when pin/filter/selection data changes (after custom images are ready).
   useEffect(() => {

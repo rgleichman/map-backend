@@ -30,6 +30,7 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -128,21 +129,21 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
         id: 1,
         slug: "event",
         label: "Event",
-        pin_type: "custom:event" as const,
+        pin_type: "event" as const,
         enabled: true,
         time_mode: "one_time" as const,
         schema: { fields: [] },
       },
     ]
     const openSoon = minimalPin({
-      pin_type: "custom:event",
+      pin_type: "event",
       schedule_timezone: tz,
       start_time: `${baseDate}T11:00:00`,
       end_time: `${baseDate}T12:00:00`,
     })
     const tooLate = minimalPin({
       id: 2,
-      pin_type: "custom:event",
+      pin_type: "event",
       schedule_timezone: tz,
       start_time: `${baseDate}T12:30:00`,
       end_time: `${baseDate}T13:00:00`,
@@ -157,14 +158,14 @@ describe("filterPins with time 'now' (open now or within 2h)", () => {
 
   it("custom one_time: still filters by datetime when catalog is missing", () => {
     const openSoon = minimalPin({
-      pin_type: "custom:event",
+      pin_type: "event",
       schedule_timezone: tz,
       start_time: `${baseDate}T11:00:00`,
       end_time: `${baseDate}T12:00:00`,
     })
     const tooLate = minimalPin({
       id: 2,
-      pin_type: "custom:event",
+      pin_type: "event",
       schedule_timezone: tz,
       start_time: `${baseDate}T12:30:00`,
       end_time: `${baseDate}T13:00:00`,

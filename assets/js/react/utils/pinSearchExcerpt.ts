@@ -1,4 +1,4 @@
-import type { CustomPinType, Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import type { CustomFieldSearchHit } from "./customFieldSearch"
 import { customFieldSearchHits } from "./customFieldSearch"
 
@@ -91,7 +91,7 @@ function customFieldExcerpt(hit: CustomFieldSearchHit, query: string): PinSearch
   }
 }
 
-export function pinSearchExcerpt(pin: Pin, query: string, catalog: CustomPinType[] = []): PinSearchExcerpt | null {
+export function pinSearchExcerpt(pin: Pin, query: string, catalog: CatalogPinType[] = []): PinSearchExcerpt | null {
   const q = query.trim()
   if (q === "" || titleMatchesQuery(pin, q)) return null
 

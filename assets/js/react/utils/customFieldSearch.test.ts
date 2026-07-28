@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType, Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import {
   customFieldSearchHits,
   pinCustomFieldsMatchQuery,
   rawCustomDataSearchTexts,
 } from "./customFieldSearch"
 
-const musicType: CustomPinType = {
+const musicType: CatalogPinType = {
   id: 1,
   slug: "music",
   label: "Music",
-  pin_type: "custom:music",
+  pin_type: "music",
   enabled: true,
   schema: {
     fields: [
@@ -27,7 +27,8 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     title: "Venue",
     latitude: 0,
     longitude: 0,
-    pin_type: "custom:music",
+    pin_type: "music",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -57,7 +58,7 @@ describe("customFieldSearchHits", () => {
   })
 
   it("includes list field values", () => {
-    const listType: CustomPinType = {
+    const listType: CatalogPinType = {
       ...musicType,
       schema: { fields: [{ key: "tags", label: "Tags", type: "list" }] },
     }

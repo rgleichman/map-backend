@@ -5,12 +5,13 @@ import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/redu
 import {
   validateAndBuildSavePayload,
   type SavePinAddPayload,
+  type SavePinBlobDrafts,
   type SavePinEditPayload,
 } from "../pinWorkflow/savePin"
 import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
 import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
-import type { CustomPinType, Pin, PinType, SubMap } from "../types"
+import type { CatalogPinType, Pin, PinType, SubMap } from "../types"
 import {
   isEscapeCloseableDesktopMode,
   type ModalState,
@@ -24,13 +25,24 @@ type Params = {
   csrfToken?: string
   communityUrl?: string
   subMap: SubMap | null
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
   showPromoteToWorld: boolean
   pins: Pin[]
   isDesktop: boolean
   updateOrAddPin: (pin: Pin) => void
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
   setApiError: (error: string | null) => void
+}
+
+function uploadPinBlobDrafts(
+  csrfToken: string | undefined,
+  pin: Pin,
+  drafts: SavePinBlobDrafts
+): Promise<Pin> {
+  const hasDrafts =
+    Object.keys(drafts.blobDrafts).length > 0 || Object.keys(drafts.adHocBlobDrafts).length > 0
+  if (!hasDrafts) return Promise.resolve(pin)
+  return uploadBlobDrafts(csrfToken, pin, drafts.blobDrafts, drafts.adHocBlobDrafts)
 }
 
 export function usePinWorkflow({
@@ -49,7 +61,7 @@ export function usePinWorkflow({
 }: Params) {
   const [state, dispatch] = useReducer(pinWorkflowReducer, initialPinWorkflowState)
   const { modal, placement, draft, timeError, formError } = state
-  const { addLocation, editLocation, pinType, title, description, tags, customData, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, linkedPinIds } = draft
+  const { addLocation, editLocation, pinType, title, description, tags, customData, adHocFields, startTime, endTime, scheduleRrule, scheduleTimezone, open24_7, visibleOnWorldMap, linkedPinIds } = draft
   const [saving, setSaving] = useState(false)
   const [pendingDeletePinId, setPendingDeletePinId] = useState<number | null>(null)
   const [pendingNearLocationSave, setPendingNearLocationSave] = useState<SavePinAddPayload | null>(null)
@@ -184,19 +196,13 @@ export function usePinWorkflow({
           const { data: pinData } = communityUrl
             ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
             : await api.createPin(csrfToken, result.payload)
-          const pinWithBlobs =
-            Object.keys(result.blobDrafts).length > 0
-              ? await uploadBlobDrafts(csrfToken, pinData, result.blobDrafts)
-              : pinData
+          const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, pinData, result)
           updateOrAddPin(pinWithBlobs)
           dispatch({ type: "after_add_saved" })
           setPendingNearLocationSave(null)
         } else {
           const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
-          const pinWithBlobs =
-            Object.keys(result.blobDrafts).length > 0
-              ? await uploadBlobDrafts(csrfToken, data, result.blobDrafts)
-              : data
+          const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, data, result)
           updateOrAddPin(pinWithBlobs)
           dispatch({ type: "after_edit_saved", pin: pinWithBlobs })
         }
@@ -330,6 +336,7 @@ export function usePinWorkflow({
     open24_7,
     visibleOnWorldMap,
     customData,
+    adHocFields,
     linkedPinIds,
     pins,
   }

@@ -1,5 +1,5 @@
 import React from "react"
-import type { CustomPinType, PinType } from "../types"
+import type { CatalogPinType, PinType } from "../types"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import PinTypeIcon from "./PinTypeIcon"
 
@@ -12,7 +12,7 @@ const SIZE: Record<BadgeSize, { box: string; icon: number }> = {
 
 type Props = {
   pinType: PinType | null | undefined
-  catalog?: CustomPinType[]
+  catalog?: CatalogPinType[]
   /** sm matches filter/search chips; md matches the full legend row. */
   size?: BadgeSize
   className?: string
@@ -40,7 +40,7 @@ export default function PinTypeBadge({
         color: config.textColor,
       }}
     >
-      <PinTypeIcon pinType={pinType} size={icon} />
+      <PinTypeIcon pinType={pinType} catalog={catalog} size={icon} />
     </span>
   )
 }

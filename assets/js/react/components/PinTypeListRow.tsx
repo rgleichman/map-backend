@@ -1,12 +1,12 @@
 import React from "react"
-import type { CustomPinType, PinType } from "../types"
+import type { CatalogPinType, PinType } from "../types"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { filterChipToneClass } from "../utils/mapUiClasses"
 import PinTypeBadge from "./PinTypeBadge"
 
 type Props = {
   pinType: PinType
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
   selected?: boolean
   onClick?: () => void
   compact?: boolean

@@ -1,10 +1,10 @@
 import React from "react"
-import type { CustomPinType, PinType } from "../types"
+import type { CatalogPinType, PinType } from "../types"
 import PinTypeListRow from "./PinTypeListRow"
 
 type Props = {
   pinTypes: PinType[]
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
   selectedPinType?: PinType | null
   onTogglePinType: (pinType: PinType) => void
   compact?: boolean

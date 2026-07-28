@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType, Pin } from "../types"
+import type { CatalogPinType, Pin } from "../types"
 import {
   normalizeDescriptionForExcerpt,
   pinSearchExcerpt,
   titleMatchesQuery,
 } from "./pinSearchExcerpt"
 
-const musicType: CustomPinType = {
+const musicType: CatalogPinType = {
   id: 1,
   slug: "music",
   label: "Music",
-  pin_type: "custom:music",
+  pin_type: "music",
   enabled: true,
   schema: {
     fields: [{ key: "artist", label: "Artist", type: "text" }],
@@ -24,6 +24,7 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "other",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -73,7 +74,7 @@ describe("pinSearchExcerpt", () => {
     const pin = minimalPin({
       title: "Place",
       tags: ["brunch"],
-      pin_type: "custom:music",
+      pin_type: "music",
       custom_data: { artist: "brunch band" },
       description: "Great brunch spot on weekends",
     })
@@ -85,7 +86,7 @@ describe("pinSearchExcerpt", () => {
   it("returns custom field excerpt with label prefix", () => {
     const pin = minimalPin({
       title: "Gig",
-      pin_type: "custom:music",
+      pin_type: "music",
       custom_data: { artist: "The Beatles" },
     })
     const excerpt = pinSearchExcerpt(pin, "beatles", [musicType])

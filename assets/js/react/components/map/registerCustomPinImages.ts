@@ -1,5 +1,6 @@
 import type { Map as MLMap } from "maplibre-gl"
-import type { CustomPinType } from "../../types"
+import type { CatalogPinType, PinType } from "../../types"
+import { pinTypeSlug } from "../../utils/customPinTypes"
 import { createPinTypeMarkerSVG, getPinTypeMarkerImageId } from "../../utils/pinTypeIcons"
 
 export function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -12,12 +13,15 @@ export function loadImage(dataUrl: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Register custom marker images (normal + new + selected) on the map.
- * Updates known/visual-key tracking; caller should sync GeoJSON after.
+ * Register marker images (normal + new + selected) for every catalog row and every
+ * pin-type slug currently on the map. Pins may reference types outside the enabled
+ * catalog (disabled, allowlist gap); those still need images so MapLibre can render.
  */
 export async function registerCustomPinImages(options: {
   map: MLMap
-  catalog: CustomPinType[]
+  catalog: CatalogPinType[]
+  /** Slugs present on pins / pending marker (may not be in `catalog`). */
+  pinTypeSlugs?: PinType[]
   knownCustomImageIds: Set<string>
   customImageVisualKeys: Map<string, string>
   isCancelled: () => boolean
@@ -29,16 +33,30 @@ export async function registerCustomPinImages(options: {
   const nextIds = new Set<string>()
   const nextVisualKeys = new Map<string, string>()
 
-  for (const pinType of catalog) {
-    const visualKey = `${pinType.marker_color ?? ""}:${pinType.icon ?? ""}`
+  const catalogBySlug = new Map(
+    catalog.map((row) => [pinTypeSlug(row), row] as const).filter(([slug]) => slug !== ""),
+  )
+
+  const slugs = new Set<string>()
+  for (const row of catalog) {
+    const slug = pinTypeSlug(row)
+    if (slug) slugs.add(slug)
+  }
+  for (const slug of options.pinTypeSlugs ?? []) {
+    if (slug) slugs.add(slug)
+  }
+
+  for (const slug of slugs) {
+    const row = catalogBySlug.get(slug)
+    const visualKey = `${row?.marker_color ?? ""}:${row?.icon ?? ""}`
     for (const outline of [undefined, "new", "selected"] as const) {
-      const imageId = getPinTypeMarkerImageId(pinType.pin_type, outline)
+      const imageId = getPinTypeMarkerImageId(slug, outline)
       nextIds.add(imageId)
       nextVisualKeys.set(imageId, visualKey)
       const visualChanged = options.customImageVisualKeys.get(imageId) !== visualKey
       if (map.hasImage(imageId) && !visualChanged) continue
       try {
-        const dataUrl = createPinTypeMarkerSVG(pinType.pin_type, catalog, outline)
+        const dataUrl = createPinTypeMarkerSVG(slug, catalog, outline)
         const img = await loadImage(dataUrl)
         if (isCancelled()) return null
         if (map.hasImage(imageId)) map.removeImage(imageId)

@@ -1,10 +1,9 @@
 import React from "react"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { builtinIconKeyForPinType } from "../utils/builtinPinType"
 import PinTypeIcon from "./PinTypeIcon"
 import Button from "./ui/Button"
-import { getPinTypeConfig, resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 
 type Props = {
   onSelectType: (type: PinType) => void
@@ -25,12 +24,12 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
       <div className="space-y-3 py-4">
         {selectableTypes.length === 0 ? (
           <p className="text-sm text-base-content/70">
-            No pin types are enabled for this map. Community moderators can enable types in settings.
+            No pin types are enabled for this map. Community moderators can enable types in settings,
+            or create types on the pin types page.
           </p>
         ) : null}
         {selectableTypes.map((type) => {
           const config = resolvePinTypeConfig(type, catalog)
-          const builtinConfig = getPinTypeConfig(builtinIconKeyForPinType(type))
           return (
             <button
               key={type}
@@ -51,9 +50,9 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-base-content">{config.label}</h3>
-                  <p className="mt-1 text-sm text-base-content/80">
-                    {config.description || builtinConfig.description}
-                  </p>
+                  {config.description ? (
+                    <p className="mt-1 text-sm text-base-content/80">{config.description}</p>
+                  ) : null}
                 </div>
               </div>
             </button>

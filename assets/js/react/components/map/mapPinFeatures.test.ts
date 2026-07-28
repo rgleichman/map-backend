@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { CustomPinType, Pin } from "../../types"
+import type { CatalogPinType, Pin } from "../../types"
 import {
   CLEARED_FILTER,
   DEFAULT_FILTER,
@@ -27,6 +27,7 @@ function minimalPin(overrides: Partial<Pin>): Pin {
     latitude: 0,
     longitude: 0,
     pin_type: "one_time",
+    pin_type_id: 1,
     status: "approved",
     tags: [],
     ...overrides,
@@ -131,7 +132,7 @@ describe("buildPinFeatureSets", () => {
 
 describe("buildPinGeoJsonSyncKey", () => {
   const pin = minimalPin({ id: 1, title: "A", latitude: 1, longitude: 2 })
-  const catalog: CustomPinType[] = []
+  const catalog: CatalogPinType[] = []
   const clearedKey = buildMapFilterSyncKey(CLEARED_FILTER)
   const defaultKey = buildMapFilterSyncKey(DEFAULT_FILTER)
 
@@ -159,7 +160,7 @@ describe("buildPinGeoJsonSyncKey", () => {
   })
 
   it("changes when catalog visual fields change", () => {
-    const customType: CustomPinType = {
+    const customType: CatalogPinType = {
       id: 10,
       slug: "cafe",
       label: "Cafe",
@@ -167,7 +168,7 @@ describe("buildPinGeoJsonSyncKey", () => {
       marker_color: "#112233",
       icon: null,
       schema: { fields: [] },
-      pin_type: "custom:cafe",
+      pin_type: "cafe",
       enabled: true,
     }
     const key1 = buildPinGeoJsonSyncKey([pin], clearedKey, [])

@@ -6,13 +6,14 @@ export type SubMapVisibility = "public" | "unlisted"
 export type MembershipRole = "owner" | "moderator" | "member"
 export type MembershipStatus = "active" | "pending" | "banned"
 
-export type BuiltinPinType = "one_time" | "scheduled" | "food_bank" | "other"
+/** Pin type slug from the catalog (no prefixes; every pin type is a catalog row). */
+export type PinType = string
 
-/** Built-in enum or `custom:<slug>` from the global catalog. */
-export type PinType = BuiltinPinType | `custom:${string}`
+/** Pin type schedule capability (wire values match backend Ecto.Enum). */
+export type PinTimeMode = "none" | "one_time" | "hours"
 
-/** Custom pin type schedule capability (wire values match backend Ecto.Enum). */
-export type CustomPinTimeMode = "none" | "one_time" | "hours"
+/** Marker glyphs available to catalog rows via `icon`. */
+export type PinIconName = "carrot" | "calendar" | "building" | "star"
 
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 
@@ -34,7 +35,8 @@ export type CustomFieldSchema = {
   item_type?: "text"
 }
 
-export type CustomPinType = {
+/** A pin type row from the catalog (system or user-created). */
+export type CatalogPinType = {
   id: number
   slug: string
   label: string
@@ -42,9 +44,24 @@ export type CustomPinType = {
   marker_color?: string | null
   icon?: string | null
   schema: { fields: CustomFieldSchema[] }
-  time_mode?: CustomPinTimeMode
-  pin_type: `custom:${string}`
+  time_mode?: PinTimeMode
+  allow_open_24_7?: boolean
+  is_system?: boolean
+  /** Same value as `slug`; present for wire compatibility. */
+  pin_type?: string
   enabled: boolean
+}
+
+/**
+ * Per-pin extra field, defined by the pin author rather than the type schema.
+ * Ordered array; blob fields store `{ ref }` in `value` once uploaded.
+ */
+export type AdHocField = {
+  id: string
+  label: string
+  type: CustomFieldPrimitiveType | BlobFieldType
+  options?: { value: string; label: string }[]
+  value?: unknown
 }
 
 export type PinCommunity = {
@@ -64,10 +81,13 @@ export type Pin = {
   title: string
   latitude: number
   longitude: number
+  /** Catalog slug. */
   pin_type: PinType
+  pin_type_id: number
   description?: string
   icon_url?: string
   custom_data?: Record<string, unknown>
+  ad_hoc_fields?: AdHocField[]
   is_owner?: boolean
   /** True when the authenticated viewer created this pin (not merely can edit). */
   created_by_me?: boolean
@@ -105,13 +125,17 @@ export type PinComment = {
 
 export type NewPin = {
   title: string
+  /** Catalog slug. */
   pin_type: PinType
+  pin_type_id?: number
   description?: string
   latitude: number
   longitude: number
   tags: string[]
-  /** Arbitrary key/value data for custom pin types (`custom:<slug>`). */
+  /** Values for the pin type's schema fields, keyed by field key. */
   custom_data?: Record<string, unknown>
+  /** Author-defined extra fields, in display order. */
+  ad_hoc_fields?: AdHocField[]
   /** ISO datetime-local string (no timezone suffix). */
   start_time?: string
   /** ISO datetime-local string (no timezone suffix). */
@@ -126,9 +150,11 @@ export type NewPin = {
 
 export type UpdatePin = {
   title: string
+  pin_type_id?: number
   description?: string
   tags: string[]
   custom_data?: Record<string, unknown>
+  ad_hoc_fields?: AdHocField[]
   start_time?: string | null
   end_time?: string | null
   schedule_rrule?: string | null
@@ -148,9 +174,9 @@ export type SubMap = {
   promote_to_world_default: PromoteToWorldDefault
   visibility: SubMapVisibility
   settings: Record<string, unknown>
-  enabled_builtin_pin_types?: BuiltinPinType[]
-  enabled_custom_pin_types?: string[]
-  available_custom_pin_types?: CustomPinType[]
+  /** Full catalog rows enabled on this map. */
+  enabled_pin_types?: CatalogPinType[]
+  enabled_pin_type_ids?: number[]
   pin_count?: number
   member_count?: number
   pending_count?: number

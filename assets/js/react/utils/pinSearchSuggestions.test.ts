@@ -9,6 +9,7 @@ const pin = (id: number, title: string, extra: Partial<Pin> = {}): Pin => ({
   latitude: 0,
   longitude: 0,
   pin_type: "other",
+  pin_type_id: 1,
   status: "approved",
   tags: [],
   ...extra,

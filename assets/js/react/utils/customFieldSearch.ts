@@ -1,7 +1,8 @@
-import type { CustomFieldSchema, CustomPinType, Pin } from "../types"
+import type { CatalogPinType, CustomFieldSchema, Pin } from "../types"
+import { adHocFieldSchema, searchableAdHocFieldText } from "./adHocFields"
 import { isBlobFieldDraft, isBlobFieldRef } from "./blobFieldValue"
 import { searchableCustomFieldText } from "./customFieldValue"
-import { findCustomPinType, isCustomPinType, schemaFields } from "./customPinTypes"
+import { findPinType, schemaFields } from "./customPinTypes"
 
 export type CustomFieldSearchHit = {
   field: CustomFieldSchema
@@ -24,37 +25,47 @@ export function rawCustomDataSearchTexts(customData: Record<string, unknown>): s
   return texts
 }
 
-export function customFieldSearchHits(pin: Pin, catalog: CustomPinType[]): CustomFieldSearchHit[] {
-  if (!pin.custom_data || !isCustomPinType(pin.pin_type)) return []
+/** Searchable text from the pin's ad-hoc fields (schema-independent). */
+export function adHocFieldSearchHits(pin: Pin): CustomFieldSearchHit[] {
+  const hits: CustomFieldSearchHit[] = []
+  for (const field of pin.ad_hoc_fields ?? []) {
+    const text = searchableAdHocFieldText(field)
+    if (text) hits.push({ field: adHocFieldSchema(field), text })
+  }
+  return hits
+}
 
-  const customType = findCustomPinType(pin.pin_type, catalog)
-  const fields = schemaFields(customType)
+export function customFieldSearchHits(pin: Pin, catalog: CatalogPinType[]): CustomFieldSearchHit[] {
+  const fields = schemaFields(findPinType(pin.pin_type, catalog))
   const hits: CustomFieldSearchHit[] = []
 
   for (const field of fields) {
-    const text = searchableCustomFieldText(field, pin.custom_data[field.key])
+    const text = searchableCustomFieldText(field, pin.custom_data?.[field.key])
     if (text) hits.push({ field, text })
   }
 
-  return hits
+  return [...hits, ...adHocFieldSearchHits(pin)]
 }
 
 export function pinCustomFieldsMatchQuery(
   pin: Pin,
   query: string,
-  catalog?: CustomPinType[]
+  catalog?: CatalogPinType[]
 ): boolean {
   const q = query.trim().toLowerCase()
-  if (q === "" || !pin.custom_data) return false
+  if (q === "") return false
 
-  if (catalog && isCustomPinType(pin.pin_type)) {
-    const customType = findCustomPinType(pin.pin_type, catalog)
-    if (customType) {
-      for (const { text } of customFieldSearchHits(pin, catalog)) {
-        if (text.toLowerCase().includes(q)) return true
-      }
-      return false
+  for (const { text } of adHocFieldSearchHits(pin)) {
+    if (text.toLowerCase().includes(q)) return true
+  }
+
+  if (!pin.custom_data) return false
+
+  if (catalog && findPinType(pin.pin_type, catalog)) {
+    for (const { text } of customFieldSearchHits(pin, catalog)) {
+      if (text.toLowerCase().includes(q)) return true
     }
+    return false
   }
 
   return rawCustomDataSearchTexts(pin.custom_data).some((text) => text.toLowerCase().includes(q))

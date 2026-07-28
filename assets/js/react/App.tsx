@@ -56,8 +56,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     pins,
     subMap,
     setSubMap,
-    customPinTypes,
-    enabledBuiltinTypes,
+    pinTypes,
     filter,
     setFilter,
     loading,
@@ -95,7 +94,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     csrfToken,
     communityUrl,
     subMap,
-    catalog: customPinTypes,
+    catalog: pinTypes,
     showPromoteToWorld: canChooseWorldVisibility(subMap),
     pins,
     isDesktop,
@@ -253,7 +252,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   }, [communityUrl, csrfToken, refreshSubMap, setApiError])
 
   return (
-    <PinTypesProvider catalog={customPinTypes} enabledBuiltins={enabledBuiltinTypes}>
+    <PinTypesProvider catalog={pinTypes}>
       <SubMapProvider
         subMap={subMap}
         refreshSubMap={refreshSubMap}

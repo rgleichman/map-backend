@@ -1,5 +1,5 @@
 import type maplibregl from "maplibre-gl"
-import type { CustomPinType, Pin, PinType } from "../../types"
+import type { CatalogPinType, Pin, PinType } from "../../types"
 import {
   getPinTypeMarkerImageId,
   resolvePinTypeConfig,
@@ -150,7 +150,7 @@ function mapOutlineForPin(isSelected: boolean, isNew: boolean): PinMarkerMapOutl
 
 export function toPinFeature(
   pin: Pin,
-  catalog: CustomPinType[],
+  catalog: CatalogPinType[],
   lastVisitWatermark: Date | null = null,
   selectedPinId: number | null = null,
 ): PinPointFeature {
@@ -177,7 +177,7 @@ export function toPinFeature(
 export function buildPinFeatureSets(
   pinList: Pin[],
   pinMatches: PinFilterMatcher,
-  catalog: CustomPinType[],
+  catalog: CatalogPinType[],
   lastVisitWatermark: Date | null = null,
   selectedPinId: number | null = null,
 ): PinFeatureSets {
@@ -195,7 +195,7 @@ export function buildPinFeatureSets(
 export function buildPinGeoJsonSyncKey(
   pins: Pin[],
   filterSyncKey: string,
-  catalog: CustomPinType[],
+  catalog: CatalogPinType[],
   lastVisitWatermarkMs: number | null = null,
   selectedPinId: number | null = null,
 ): string {

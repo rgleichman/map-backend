@@ -20,6 +20,7 @@ const wirePin: Pin = {
   title: "Example",
   latitude: 0,
   longitude: 0,
+  pin_type_id: 1,
   pin_type: "other",
   status: "approved",
   tags: [],
