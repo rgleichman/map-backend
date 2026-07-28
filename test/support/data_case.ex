@@ -29,6 +29,7 @@ defmodule Storymap.DataCase do
 
   setup tags do
     Storymap.DataCase.setup_sandbox(tags)
+    Storymap.TestPinTypes.ensure_system_types!()
     :ok
   end
 

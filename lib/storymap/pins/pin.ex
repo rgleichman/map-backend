@@ -6,15 +6,19 @@ defmodule Storymap.Pins.Pin do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Storymap.Pins.AdHocFields
+  alias Storymap.PinTypes.PinType
+
   # Single source of truth for JSON-safe fields (schema fields minus user_id).
   # Used by @derive and by PinJSON so encode and API stay in sync.
   # Associations (e.g. tags) are not included—PinJSON adds those as view-only keys.
+  # `:pin_type` slug is emitted by PinJSON from the association, not this list.
   @public_json_fields [
     :id,
     :title,
     :latitude,
     :longitude,
-    :pin_type,
+    :pin_type_id,
     :description,
     :icon_url,
     :start_time,
@@ -22,6 +26,7 @@ defmodule Storymap.Pins.Pin do
     :schedule_rrule,
     :schedule_timezone,
     :custom_data,
+    :ad_hoc_fields,
     :status,
     :visible_on_world_map,
     :inserted_at,
@@ -29,7 +34,6 @@ defmodule Storymap.Pins.Pin do
   ]
 
   @statuses [:pending, :approved, :rejected, :archived]
-  @builtin_pin_types Storymap.PinTypes.CustomPinType.builtin_pin_types()
 
   @type status :: :pending | :approved | :rejected | :archived
 
@@ -37,6 +41,7 @@ defmodule Storymap.Pins.Pin do
           id: integer() | nil,
           user_id: integer() | nil,
           sub_map_id: integer() | nil,
+          pin_type_id: integer() | nil,
           status: status(),
           visible_on_world_map: boolean(),
           title: String.t() | nil,
@@ -46,10 +51,10 @@ defmodule Storymap.Pins.Pin do
           icon_url: String.t() | nil,
           start_time: DateTime.t() | nil,
           end_time: DateTime.t() | nil,
-          pin_type: String.t() | nil,
           schedule_rrule: String.t() | nil,
           schedule_timezone: String.t() | nil,
           custom_data: map(),
+          ad_hoc_fields: [map()],
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -59,6 +64,7 @@ defmodule Storymap.Pins.Pin do
   schema "pins" do
     belongs_to :user, Storymap.Accounts.User
     belongs_to :sub_map, Storymap.SubMaps.SubMap
+    belongs_to :pin_type, PinType
     field :status, Ecto.Enum, values: @statuses, default: :approved
     field :visible_on_world_map, :boolean, default: true
     field :title, :string
@@ -70,13 +76,13 @@ defmodule Storymap.Pins.Pin do
     field :icon_url, :string
     field :start_time, :utc_datetime
     field :end_time, :utc_datetime
-    field :pin_type, :string
-    # For pin_type "scheduled": iCal RRULE (e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=15;BYMINUTE=0)
+    # For time_mode hours: iCal RRULE (e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=15;BYMINUTE=0)
     field :schedule_rrule, :string
 
     # IANA timezone for schedule (e.g. America/Los_Angeles). Interpret BYHOUR/BYMINUTE in this zone.
     field :schedule_timezone, :string
     field :custom_data, :map, default: %{}
+    field :ad_hoc_fields, {:array, :map}, default: []
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     has_many :outgoing_references, Storymap.Pins.PinReference, foreign_key: :source_pin_id
@@ -102,16 +108,19 @@ defmodule Storymap.Pins.Pin do
         :icon_url,
         :start_time,
         :end_time,
-        :pin_type,
+        :pin_type_id,
         :schedule_rrule,
         :schedule_timezone,
-        :custom_data
+        :custom_data,
+        :ad_hoc_fields
       ])
-      |> validate_required([:title, :latitude, :longitude, :pin_type])
-      |> validate_pin_type()
+      |> validate_required([:title, :latitude, :longitude, :pin_type_id])
       |> validate_icon_url()
       |> validate_length(:description, max: 5000)
       |> put_default_custom_data()
+      |> put_default_ad_hoc_fields()
+      |> AdHocFields.validate()
+      |> foreign_key_constraint(:pin_type_id)
 
     # Set user_id programmatically only for new pins (creation)
     # This prevents users from changing ownership via user input during updates
@@ -151,12 +160,6 @@ defmodule Storymap.Pins.Pin do
           changeset
       end
 
-    changeset =
-      case get_field(changeset, :pin_type) do
-        "other" -> clear_schedule_fields(changeset)
-        _ -> changeset
-      end
-
     changeset
     |> validate_required([:user_id])
     |> foreign_key_constraint(:user_id)
@@ -188,26 +191,16 @@ defmodule Storymap.Pins.Pin do
   @spec statuses() :: [status()]
   def statuses, do: @statuses
 
-  @spec builtin_pin_types() :: [String.t()]
-  def builtin_pin_types, do: @builtin_pin_types
-
-  @spec custom_pin_type?(String.t() | any()) :: boolean()
-  def custom_pin_type?(pin_type) when is_binary(pin_type),
-    do: String.starts_with?(pin_type, "custom:")
-
-  def custom_pin_type?(_), do: false
-
-  defp validate_pin_type(changeset) do
-    case get_field(changeset, :pin_type) do
-      type when type in @builtin_pin_types -> changeset
-      "custom:" <> slug when byte_size(slug) > 0 -> changeset
-      _ -> add_error(changeset, :pin_type, "is invalid")
-    end
-  end
-
   defp put_default_custom_data(changeset) do
     case get_field(changeset, :custom_data) do
       nil -> put_change(changeset, :custom_data, %{})
+      _ -> changeset
+    end
+  end
+
+  defp put_default_ad_hoc_fields(changeset) do
+    case get_field(changeset, :ad_hoc_fields) do
+      nil -> put_change(changeset, :ad_hoc_fields, [])
       _ -> changeset
     end
   end

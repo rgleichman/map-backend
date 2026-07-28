@@ -33,6 +33,7 @@ defmodule StorymapWeb.ConnCase do
 
   setup tags do
     Storymap.DataCase.setup_sandbox(tags)
+    Storymap.TestPinTypes.ensure_system_types!()
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 

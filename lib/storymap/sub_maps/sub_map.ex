@@ -4,7 +4,7 @@ defmodule Storymap.SubMaps.SubMap do
   import Ecto.Changeset
 
   alias Storymap.Accounts.User
-  alias Storymap.SubMaps.{CommunityUrl, Membership}
+  alias Storymap.SubMaps.{CommunityUrl, Membership, SubMapPinType}
 
   @contribution_modes [:open, :members_only, :approval_required]
   @promote_defaults [:never, :ask, :always]
@@ -49,6 +49,8 @@ defmodule Storymap.SubMaps.SubMap do
 
     belongs_to :owner, User, foreign_key: :owner_user_id
     has_many :memberships, Membership
+    has_many :sub_map_pin_types, SubMapPinType
+    has_many :pin_types, through: [:sub_map_pin_types, :pin_type]
 
     timestamps(type: :utc_datetime)
   end

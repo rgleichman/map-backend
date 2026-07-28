@@ -21,7 +21,7 @@ defmodule Storymap.PinTypesFixtures do
     ]
   }
 
-  def custom_pin_type_fixture(attrs \\ %{}, user \\ nil) do
+  def pin_type_fixture(attrs \\ %{}, user \\ nil) do
     user = user || user_fixture()
     scope = %Scope{user: user}
 

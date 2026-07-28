@@ -1,12 +1,13 @@
-defmodule Storymap.PinTypes.CustomPinType do
-  @moduledoc false
+defmodule Storymap.PinTypes.PinType do
+  @moduledoc """
+  Unified pin type catalog row (system seeds + user-defined types).
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
   alias Storymap.Accounts.User
   alias Storymap.PinTypes.Slug
 
-  @builtin_pin_types ~w(one_time scheduled food_bank other)
   @time_modes [:none, :one_time, :hours]
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
 
@@ -21,13 +22,15 @@ defmodule Storymap.PinTypes.CustomPinType do
           icon: String.t() | nil,
           schema: map(),
           time_mode: time_mode(),
+          is_system: boolean(),
+          allow_open_24_7: boolean(),
           enabled: boolean(),
           created_by_user_id: integer() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
 
-  schema "custom_pin_types" do
+  schema "pin_types" do
     field :slug, :string
     field :label, :string
     field :description, :string
@@ -35,15 +38,14 @@ defmodule Storymap.PinTypes.CustomPinType do
     field :icon, :string
     field :schema, :map, default: %{}
     field :time_mode, Ecto.Enum, values: @time_modes, default: :none
+    field :is_system, :boolean, default: false
+    field :allow_open_24_7, :boolean, default: false
     field :enabled, :boolean, default: true
 
     belongs_to :created_by, User, foreign_key: :created_by_user_id
 
     timestamps(type: :utc_datetime)
   end
-
-  @spec builtin_pin_types() :: [String.t()]
-  def builtin_pin_types, do: @builtin_pin_types
 
   @spec time_modes() :: [time_mode()]
   def time_modes, do: @time_modes
@@ -53,13 +55,13 @@ defmodule Storymap.PinTypes.CustomPinType do
     [
       {"None (no schedule)", :none},
       {"One-time event (date and time)", :one_time},
-      {"Hours (recurring + optional 24/7)", :hours}
+      {"Hours (recurring schedule)", :hours}
     ]
   end
 
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
-  def changeset(custom_pin_type, attrs) do
-    custom_pin_type
+  def changeset(pin_type, attrs) do
+    pin_type
     |> cast(attrs, [
       :slug,
       :label,
@@ -68,6 +70,7 @@ defmodule Storymap.PinTypes.CustomPinType do
       :icon,
       :schema,
       :time_mode,
+      :allow_open_24_7,
       :enabled
     ])
     |> validate_required([:label, :schema])
@@ -83,21 +86,6 @@ defmodule Storymap.PinTypes.CustomPinType do
     |> unique_constraint(:slug)
     |> foreign_key_constraint(:created_by_user_id)
   end
-
-  @spec pin_type_value(t() | String.t()) :: String.t()
-  def pin_type_value(%__MODULE__{slug: slug}), do: "custom:#{slug}"
-
-  def pin_type_value(slug) when is_binary(slug), do: "custom:#{slug}"
-
-  @spec custom_pin_type?(String.t() | any()) :: boolean()
-  def custom_pin_type?(pin_type) when is_binary(pin_type),
-    do: String.starts_with?(pin_type, "custom:")
-
-  def custom_pin_type?(_), do: false
-
-  @spec slug_from_pin_type(String.t()) :: String.t() | nil
-  def slug_from_pin_type("custom:" <> slug) when slug != "", do: slug
-  def slug_from_pin_type(_), do: nil
 
   defp put_slug(changeset) do
     slug =

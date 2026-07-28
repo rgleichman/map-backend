@@ -28,6 +28,9 @@ defmodule Storymap.SubMapsFixtures do
       |> Map.merge(attrs)
       |> then(&SubMaps.create_sub_map(%Scope{user: owner}, &1))
 
+    # Tests still pass legacy builtin slugs; enable the full catalog allowlist by default.
+    Storymap.TestPinTypes.enable_all_types!(sub_map)
+
     sub_map
   end
 end
