@@ -95,7 +95,7 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
       <div>
         <h2 class="text-lg font-semibold text-base-content">Fields</h2>
         <p class="text-sm text-base-content/60 mt-1">
-          Choose what extra information pins of this type should collect.
+          Choose what extra information pins of this type should have.
         </p>
       </div>
 
