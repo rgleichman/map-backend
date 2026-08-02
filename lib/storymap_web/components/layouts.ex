@@ -176,16 +176,8 @@ defmodule StorymapWeb.Layouts do
         </.button>
       <% end %>
     </li>
-    <li>
-      <%= if @variant == "desktop" do %>
-        <.link
-          navigate={~p"/help"}
-          class={nav_btn_classes(@help_active?)}
-          aria-current={if(@help_active?, do: "page")}
-        >
-          Help
-        </.link>
-      <% else %>
+    <%= if @variant == "mobile" do %>
+      <li>
         <.link
           navigate={~p"/help"}
           class={[
@@ -196,9 +188,7 @@ defmodule StorymapWeb.Layouts do
         >
           Help
         </.link>
-      <% end %>
-    </li>
-    <%= if @variant == "mobile" do %>
+      </li>
       <li>
         <.link
           navigate={~p"/about"}
