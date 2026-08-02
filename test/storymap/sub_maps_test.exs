@@ -15,7 +15,30 @@ defmodule Storymap.SubMapsTest do
       SubMaps.create_sub_map(%Scope{user: user}, %{"name" => "BBQ", "community_url" => "bbq-test"})
 
     assert sub_map.owner_user_id == user.id
+    assert sub_map.color == Storymap.SubMaps.SubMap.default_color()
     assert %{} = SubMaps.get_membership(sub_map.id, user.id)
+  end
+
+  test "create_sub_map/2 accepts custom color" do
+    user = user_fixture()
+
+    {:ok, sub_map} =
+      SubMaps.create_sub_map(%Scope{user: user}, %{
+        "name" => "Green Map",
+        "community_url" => "green-map",
+        "color" => "#22C55E"
+      })
+
+    assert sub_map.color == "#22c55e"
+  end
+
+  test "changeset rejects invalid color" do
+    changeset =
+      %Storymap.SubMaps.SubMap{}
+      |> Storymap.SubMaps.SubMap.changeset(%{"name" => "X", "color" => "not-a-color"})
+
+    refute changeset.valid?
+    assert {"must be a hex color like #RRGGBB", _} = Keyword.get(changeset.errors, :color)
   end
 
   test "list_public/1 finds by query" do

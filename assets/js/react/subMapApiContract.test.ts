@@ -8,6 +8,7 @@ import type { SubMap } from "./types"
 const wireSubMap = {
   community_url: "bbq-austin",
   name: "BBQ Austin",
+  color: "#6366f1",
   contribution_mode: "open",
   promote_to_world_default: "ask",
   visibility: "public",
@@ -19,6 +20,7 @@ const wireSubMap = {
 describe("SubMap API contract", () => {
   it("types match backend wire keys for pin type settings", () => {
     expect(wireSubMap.enabled_pin_type_ids).toEqual([1])
+    expect(wireSubMap.color).toBe("#6366f1")
     expect(wireSubMap).not.toHaveProperty("enabled_builtin_pin_types")
     expect(wireSubMap).not.toHaveProperty("enabled_custom_pin_types")
     expect(wireSubMap).not.toHaveProperty("available_custom_pin_types")

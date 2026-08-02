@@ -40,6 +40,7 @@ defmodule StorymapWeb.SubMapJSON do
       name: sub_map.name,
       description: sub_map.description,
       rules: sub_map.rules,
+      color: sub_map.color,
       contribution_mode: to_string(sub_map.contribution_mode),
       promote_to_world_default: to_string(sub_map.promote_to_world_default),
       visibility: to_string(sub_map.visibility),

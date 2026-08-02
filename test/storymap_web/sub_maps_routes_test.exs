@@ -60,12 +60,17 @@ defmodule StorymapWeb.SubMapsRoutesTest do
       html = html_response(conn, 200)
       assert html =~ "Community settings"
       assert html =~ ~s(id="sub-map-settings-form")
+      assert html =~ ~s(id="community-color-field")
+      assert html =~ ~s(id="sub_map_color")
       assert html =~ ~s(id="community-pin-type-fields")
     end
 
     test "GET /m/new includes pin type fields", %{conn: conn} do
       conn = get(conn, ~p"/m/new")
-      assert html_response(conn, 200) =~ ~s(id="community-pin-type-fields")
+      html = html_response(conn, 200)
+      assert html =~ ~s(id="community-pin-type-fields")
+      assert html =~ ~s(id="community-color-field")
+      assert html =~ ~s(id="sub_map_color")
     end
 
     test "GET /m/:community_url/settings redirects non-owner", %{conn: conn} do

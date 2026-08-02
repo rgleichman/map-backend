@@ -4,6 +4,35 @@ defmodule StorymapWeb.SubMapComponents do
 
   use StorymapWeb, :verified_routes
 
+  alias Storymap.SubMaps.SubMap
+
+  attr :form, :any, required: true
+
+  def color_field(assigns) do
+    color = assigns.form[:color].value || SubMap.default_color()
+    assigns = assign(assigns, :color, color)
+
+    ~H"""
+    <div class="fieldset mb-2" id="community-color-field">
+      <div class="fieldset-legend">Color</div>
+      <p class="text-sm text-base-content/60 -mt-1 mb-1">
+        Space behind the globe when zoomed out, and the community bar
+      </p>
+      <div class="flex items-center gap-3">
+        <input
+          type="color"
+          name={@form[:color].name}
+          id={@form[:color].id}
+          value={@color}
+          aria-label="Community color"
+          class="h-12 w-20 shrink-0 cursor-pointer rounded-lg border-2 border-base-300 bg-base-100 p-1"
+        />
+        <span class="text-sm text-base-content/70 font-mono">{@color}</span>
+      </div>
+    </div>
+    """
+  end
+
   attr :pin_types, :list, required: true
   attr :enabled_pin_type_ids, :list, default: []
 

@@ -277,6 +277,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                 <MapCanvas
                   mapScopeKey={communityUrl ?? "world"}
                   styleUrl={styleUrl}
+                  mapBackgroundColor={subMap?.color}
                   pins={pins}
                   cameraRequest={cameraRequest}
                   onCameraRequestConsumed={() => setCameraRequest(null)}

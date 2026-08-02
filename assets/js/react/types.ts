@@ -170,6 +170,8 @@ export type SubMap = {
   name: string
   description?: string | null
   rules?: string | null
+  /** Community brand color (#RRGGBB) for space behind the globe and the community bar. */
+  color: string
   contribution_mode: ContributionMode
   promote_to_world_default: PromoteToWorldDefault
   visibility: SubMapVisibility

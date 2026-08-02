@@ -9,6 +9,8 @@ defmodule Storymap.SubMaps.SubMap do
   @contribution_modes [:open, :members_only, :approval_required]
   @promote_defaults [:never, :ask, :always]
   @visibilities [:public, :unlisted]
+  @default_color "#6366f1"
+  @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
 
   @type contribution_mode :: :open | :members_only | :approval_required
   @type promote_to_world_default :: :never | :ask | :always
@@ -20,6 +22,7 @@ defmodule Storymap.SubMaps.SubMap do
           name: String.t() | nil,
           description: String.t() | nil,
           rules: String.t() | nil,
+          color: String.t() | nil,
           contribution_mode: contribution_mode(),
           promote_to_world_default: promote_to_world_default(),
           visibility: visibility(),
@@ -38,6 +41,7 @@ defmodule Storymap.SubMaps.SubMap do
     field :name, :string
     field :description, :string
     field :rules, :string
+    field :color, :string, default: @default_color
     field :contribution_mode, Ecto.Enum, values: @contribution_modes, default: :open
     field :promote_to_world_default, Ecto.Enum, values: @promote_defaults, default: :ask
     field :visibility, Ecto.Enum, values: @visibilities, default: :public
@@ -54,6 +58,9 @@ defmodule Storymap.SubMaps.SubMap do
 
     timestamps(type: :utc_datetime)
   end
+
+  @spec default_color() :: String.t()
+  def default_color, do: @default_color
 
   @spec contribution_modes() :: [contribution_mode()]
   def contribution_modes, do: @contribution_modes
@@ -98,19 +105,56 @@ defmodule Storymap.SubMaps.SubMap do
       :name,
       :description,
       :rules,
+      :color,
       :contribution_mode,
       :promote_to_world_default,
       :visibility,
       :bounds,
       :settings
     ])
-    |> validate_required([:name, :contribution_mode, :promote_to_world_default, :visibility])
+    |> put_default_color()
+    |> normalize_color()
+    |> validate_required([
+      :name,
+      :color,
+      :contribution_mode,
+      :promote_to_world_default,
+      :visibility
+    ])
     |> validate_length(:name, max: 120)
     |> validate_length(:description, max: 5000)
     |> validate_length(:rules, max: 10000)
+    |> validate_length(:color, is: 7)
+    |> validate_format(:color, @hex_color_regex, message: "must be a hex color like #RRGGBB")
     |> put_community_url()
     |> unique_constraint(:community_url)
     |> foreign_key_constraint(:owner_user_id)
+  end
+
+  defp put_default_color(changeset) do
+    case get_field(changeset, :color) do
+      nil -> put_change(changeset, :color, @default_color)
+      _ -> changeset
+    end
+  end
+
+  defp normalize_color(changeset) do
+    case get_change(changeset, :color) do
+      nil ->
+        changeset
+
+      color when is_binary(color) ->
+        color = String.trim(color)
+
+        if color == "" do
+          put_change(changeset, :color, @default_color)
+        else
+          put_change(changeset, :color, String.downcase(color))
+        end
+
+      _ ->
+        changeset
+    end
   end
 
   defp put_community_url(changeset) do

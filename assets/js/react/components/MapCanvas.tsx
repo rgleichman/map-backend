@@ -98,6 +98,8 @@ type Props = {
   onNavigateToPin?: (pinId: number) => void
   heartedPinIds?: ReadonlySet<number>
   pinHeartsLoading?: boolean
+  /** Community map brand color — CSS behind the globe when zoomed out. */
+  mapBackgroundColor?: string
 }
 
 export default function MapCanvas({
@@ -123,6 +125,7 @@ export default function MapCanvas({
   onNavigateToPin,
   heartedPinIds = new Set(),
   pinHeartsLoading = false,
+  mapBackgroundColor,
 }: Props) {
   const { catalog } = usePinTypes()
   const catalogRef = useRef(catalog)
@@ -890,7 +893,10 @@ export default function MapCanvas({
   }, [cameraRequest, pins, mapReady])
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full"
+      style={mapBackgroundColor ? { backgroundColor: mapBackgroundColor } : undefined}
+    >
       {!mapReady && mapInitError == null && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-base-100/60 text-base-content">
           <div className="rounded-box bg-base-100 shadow px-4 py-3 text-sm font-medium">
@@ -1002,6 +1008,7 @@ export default function MapCanvas({
         className="w-full h-full"
         role="region"
         aria-label="Interactive map. Pinch or scroll to zoom; drag to pan."
+        style={mapBackgroundColor ? { backgroundColor: mapBackgroundColor } : undefined}
       />
     </div>
   )

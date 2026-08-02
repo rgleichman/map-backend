@@ -15,6 +15,7 @@
       class="space-y-4"
     >
       <.input field={@form[:name]} type="text" label="Name" required />
+      <.color_field form={@form} />
       <.input field={@form[:description]} type="textarea" label="Description" />
       <.input field={@form[:rules]} type="textarea" label="Rules (optional)" />
       <.input

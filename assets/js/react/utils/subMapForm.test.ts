@@ -6,6 +6,7 @@ function minimalSubMap(overrides: Partial<SubMap>): SubMap {
   return {
     community_url: "test",
     name: "Test",
+    color: "#6366f1",
     contribution_mode: "open",
     promote_to_world_default: "ask",
     visibility: "public",

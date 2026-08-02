@@ -20,6 +20,7 @@
       <p class="text-sm text-base-content/60 -mt-2">
         Your map will live at <span class="font-mono">/m/your-url</span>
       </p>
+      <.color_field form={@form} />
       <.input field={@form[:description]} type="textarea" label="Description" />
       <.input field={@form[:rules]} type="textarea" label="Rules (optional)" />
       <.input

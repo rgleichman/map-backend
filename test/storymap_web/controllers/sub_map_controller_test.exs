@@ -38,6 +38,7 @@ defmodule StorymapWeb.SubMapControllerTest do
       conn = get(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
       data = json_response(conn, 200)["data"]
 
+      assert data["color"] == sub_map.color
       assert Enum.sort(data["enabled_pin_type_ids"]) == Enum.sort([other.id, pin_type.id])
 
       assert Enum.map(data["enabled_pin_types"], & &1["slug"]) |> Enum.sort() ==

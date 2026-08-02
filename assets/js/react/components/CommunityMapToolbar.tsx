@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { SubMap } from "../types"
-import { actionBtnClass } from "../utils/actionUiClasses"
+import { ACTION_BTN_BASE_CLASS } from "../utils/actionUiClasses"
 import Button from "./ui/Button"
 
 type Props = {
@@ -35,6 +35,15 @@ const menuItemClass = [
   "text-base-content hover:bg-base-200/80 dark:hover:bg-base-300/60",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
   "cursor-pointer border-0 bg-transparent no-underline",
+].join(" ")
+
+/** Solid theme chip so community bar color never washes out label contrast. */
+const identityChipClass = [
+  ACTION_BTN_BASE_CLASS,
+  "min-h-9 max-w-[min(100vw-8rem,22rem)] gap-1.5 px-2 text-[13px]",
+  "border border-solid border-base-300/80",
+  "bg-base-100 text-base-content hover:bg-base-200",
+  "dark:bg-base-200 dark:hover:bg-base-300",
 ].join(" ")
 
 export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }: Props) {
@@ -83,19 +92,17 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   return (
     <nav
       aria-label="Community map"
-      className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-base-300 bg-primary/5 px-3 py-1 dark:bg-primary/10"
+      className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-black/10 px-3 py-1 dark:border-white/10"
+      style={{ backgroundColor: subMap.color }}
     >
       <div ref={rootRef} className="relative min-w-0">
         {hasMenuItems ? (
           <>
             <button
               type="button"
-              className={actionBtnClass(
-                "ghost",
-                "sm",
-                "min-h-9 max-w-[min(100vw-8rem,22rem)] gap-1.5 border border-base-300/80 bg-base-100/90 px-2 dark:bg-base-200/60",
-                menuOpen && "bg-base-200/90 dark:bg-base-300/50",
-              )}
+              className={[identityChipClass, menuOpen && "bg-base-200 dark:bg-base-300"]
+                .filter(Boolean)
+                .join(" ")}
               aria-expanded={menuOpen}
               aria-controls={menuId}
               aria-haspopup="menu"
@@ -157,7 +164,12 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
             )}
           </>
         ) : (
-          <div className="flex max-w-[min(100vw-8rem,22rem)] items-center rounded-md border border-base-300/80 bg-base-100/90 px-2 py-1.5 dark:bg-base-200/60">
+          <div
+            className={[
+              "flex max-w-[min(100vw-8rem,22rem)] items-center rounded-md px-2 py-1.5",
+              "border border-solid border-base-300/80 bg-base-100 text-base-content dark:bg-base-200",
+            ].join(" ")}
+          >
             {identityLabel}
           </div>
         )}
