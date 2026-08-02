@@ -49,7 +49,13 @@ export function usePinHoverPopup({
     hoverPopupRef.current = null
     hoverPinIdRef.current = null
     hoverRootRef.current = null
-    root?.unmount()
+    // Defer unmount: callers often run inside React commit/effects (e.g. selection
+    // changes). Sync unmount of a nested createRoot during render races React.
+    if (root) {
+      queueMicrotask(() => {
+        root.unmount()
+      })
+    }
     popup?.remove()
   }, [])
 
