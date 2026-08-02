@@ -55,18 +55,16 @@ export default function FieldEditorModal({
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-base-300 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <h3 className="text-base font-semibold text-base-content truncate">{fieldLabel}</h3>
-        {!isDesktop ? (
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            className="shrink-0"
-            onClick={() => void onDone()}
-            disabled={disabled || saving}
-          >
-            {saving ? "Saving…" : "Done"}
-          </Button>
-        ) : null}
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          className="shrink-0"
+          onClick={() => void onDone()}
+          disabled={disabled || saving}
+        >
+          {saving ? "Saving…" : "Done"}
+        </Button>
       </div>
       {error ? (
         <div className="shrink-0 border-b border-base-300 px-4 py-2 text-xs text-error">{error}</div>
