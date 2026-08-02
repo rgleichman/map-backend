@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogPinType, Pin, SubMap } from "../types"
 import { DEFAULT_FILTER, type FilterState } from "../components/map/filters"
 import { loadMapData } from "../loadMapData"
+import { upsertPinIntoList } from "../utils/pinMerge"
 import { usePinChannelSync } from "./usePinChannelSync"
 import type { UseMapDataParams, UseMapDataResult } from "./mapHookTypes"
 
@@ -25,22 +26,7 @@ export function useMapData({
   const [apiError, setApiError] = useState<string | null>(null)
 
   const updateOrAddPin = useCallback((pin: Pin) => {
-    setPins((prevPins) => {
-      const existingIndex = prevPins.findIndex((p) => p.id === pin.id)
-      if (existingIndex >= 0) {
-        const existing = prevPins[existingIndex]
-        const updated = [...prevPins]
-        updated[existingIndex] = {
-          ...pin,
-          is_owner: pin.is_owner ?? existing.is_owner ?? false,
-          created_by_me: pin.created_by_me ?? existing.created_by_me ?? false,
-          inserted_at: pin.inserted_at ?? existing.inserted_at,
-          updated_at: pin.updated_at ?? existing.updated_at,
-        }
-        return updated
-      }
-      return [...prevPins, { ...pin, is_owner: false, created_by_me: false }]
-    })
+    setPins((prevPins) => upsertPinIntoList(prevPins, pin))
   }, [])
 
   useEffect(() => {
