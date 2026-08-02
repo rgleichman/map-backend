@@ -43,6 +43,47 @@ defmodule StorymapWeb.PinDrawingFieldControllerTest do
       refute Map.has_key?(data["custom_data"], "sketch")
     end
 
+    test "upserts payload for ad-hoc drawing field and stores ref in ad_hoc_fields", %{
+      conn: conn,
+      user: user
+    } do
+      pin =
+        pin_fixture(
+          %{
+            "ad_hoc_fields" => [
+              %{"id" => "ad_hoc_sketch", "label" => "Sketch", "type" => "drawing"}
+            ]
+          },
+          user
+        )
+
+      conn =
+        post(conn, ~p"/api/pins/#{pin.id}/drawing_fields/ad_hoc_sketch",
+          payload: @payload,
+          format: "drawing/v1",
+          version: 1
+        )
+
+      data = json_response(conn, 200)["data"]
+      assert data["id"] == pin.id
+
+      [field] = data["ad_hoc_fields"]
+      assert field["id"] == "ad_hoc_sketch"
+      assert %{"ref" => ref} = field["value"]
+      assert is_integer(ref)
+
+      conn = get(conn, ~p"/api/pins/#{pin.id}/drawing_fields/ad_hoc_sketch")
+      blob = json_response(conn, 200)["data"]
+      assert blob["payload"] == @payload
+      assert blob["field_key"] == "ad_hoc_sketch"
+      assert blob["type"] == "drawing"
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/drawing_fields/ad_hoc_sketch")
+      data = json_response(conn, 200)["data"]
+      [cleared] = data["ad_hoc_fields"]
+      refute Map.has_key?(cleared, "value")
+    end
+
     test "rejects non-drawing field keys", %{conn: conn, user: user} do
       pin = drawing_pin_fixture(user)
 

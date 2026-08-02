@@ -12,6 +12,8 @@ import {
 export type DrawingFieldEditorProps = {
   csrfToken?: string
   pinId: number | null
+  /** See BlobFieldEditor `serverFieldReady`. */
+  serverFieldReady?: boolean
   fieldKey: string
   fieldLabel?: string
   value: unknown
@@ -30,6 +32,7 @@ function drawingSummary(drawing: ReturnType<typeof emptyDrawing>): string {
 export default function DrawingFieldEditor({
   csrfToken,
   pinId,
+  serverFieldReady = true,
   fieldKey,
   fieldLabel = "Drawing",
   value,
@@ -40,6 +43,7 @@ export default function DrawingFieldEditor({
       blobType={BlobFieldType.Drawing}
       csrfToken={csrfToken}
       pinId={pinId}
+      serverFieldReady={serverFieldReady}
       fieldKey={fieldKey}
       fieldLabel={fieldLabel}
       value={value}

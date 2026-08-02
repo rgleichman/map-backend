@@ -246,19 +246,32 @@ type FieldBlobUpsertResponse =
   | { data: { value: unknown } }
   | { data: { custom_data_value: unknown } }
   | { data: { custom_data: Record<string, unknown> } }
+  | { data: { ad_hoc_fields?: Array<{ id?: string; value?: unknown }> } }
 
 function fieldBlobPath(blobType: BlobFieldType, pinId: number, fieldKey: string) {
   const segment = BLOB_FIELD_API_SEGMENT[blobType]
   return `/api/pins/${pinId}/${segment}/${encodeURIComponent(fieldKey)}`
 }
 
-function pickFieldBlobCustomDataValue(fieldKey: string, res: FieldBlobUpsertResponse): unknown {
+/** Extract the blob ref from a pin upsert response (schema custom_data or ad-hoc). */
+export function pickFieldBlobCustomDataValue(
+  fieldKey: string,
+  res: FieldBlobUpsertResponse
+): unknown {
   const data = (res as { data: unknown }).data as Record<string, unknown> | undefined
   if (data && typeof data === "object") {
     if ("value" in data) return data.value
     if ("custom_data_value" in data) return data.custom_data_value
     if ("custom_data" in data && data.custom_data && typeof data.custom_data === "object") {
-      return (data.custom_data as Record<string, unknown>)[fieldKey]
+      const fromCustom = (data.custom_data as Record<string, unknown>)[fieldKey]
+      if (fromCustom !== undefined) return fromCustom
+    }
+    const adHoc = data.ad_hoc_fields
+    if (Array.isArray(adHoc)) {
+      const match = adHoc.find(
+        (field) => field && typeof field === "object" && field.id === fieldKey
+      )
+      if (match && "value" in match) return match.value
     }
   }
   return undefined

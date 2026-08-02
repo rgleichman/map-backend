@@ -16,6 +16,11 @@ export type BlobFieldEditorProps<T> = {
   blobType: BlobFieldType
   csrfToken?: string
   pinId: number | null
+  /**
+   * When false, keep drafts locally even if `pinId` is set.
+   * Needed for new ad-hoc fields that are not on the pin until Save.
+   */
+  serverFieldReady?: boolean
   fieldKey: string
   fieldLabel?: string
   value: unknown
@@ -46,6 +51,7 @@ export default function BlobFieldEditor<T>({
   blobType,
   csrfToken,
   pinId,
+  serverFieldReady = true,
   fieldKey,
   fieldLabel = "Field",
   value,
@@ -77,7 +83,7 @@ export default function BlobFieldEditor<T>({
   const [error, setError] = useState<string | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const autoLoadedRef = useRef(false)
-  const canUseApi = pinId != null
+  const canUseApi = pinId != null && serverFieldReady
 
   useEffect(() => {
     const payload = blobFieldDraftPayload(value)
@@ -224,7 +230,9 @@ export default function BlobFieldEditor<T>({
     pendingPinDraft ? (
       <span className="inline-flex items-center gap-1">
         <span className="badge badge-warning badge-sm">{canUseApi ? "Unsaved" : "Draft"}</span>
-        <span>{canUseApi ? "Saves when you save the pin." : "Saves when you add the pin."}</span>
+        <span>
+          {pinId == null ? "Saves when you add the pin." : "Saves when you save the pin."}
+        </span>
       </span>
     ) : !saved && !contentPresent ? (
       <span className="inline-flex items-center gap-1">

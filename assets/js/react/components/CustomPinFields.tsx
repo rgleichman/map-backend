@@ -54,6 +54,8 @@ type CustomFieldInputProps = {
   onValue: (v: unknown) => void
   csrfToken?: string
   pinId?: number | null
+  /** See BlobFieldEditor `serverFieldReady`. */
+  serverFieldReady?: boolean
   /** Blob storage key; defaults to the schema field key. */
   fieldKey?: string
 }
@@ -65,11 +67,13 @@ export function CustomFieldInput({
   onValue,
   csrfToken,
   pinId,
+  serverFieldReady = true,
   fieldKey,
 }: CustomFieldInputProps) {
   return renderField(field, value, onValue, {
     csrfToken,
     pinId,
+    serverFieldReady,
     fieldKey: fieldKey ?? field.key,
   })
 }
@@ -78,7 +82,12 @@ function renderField(
   field: CustomFieldSchema,
   value: unknown,
   onValue: (v: unknown) => void,
-  ctx: { csrfToken?: string; pinId?: number | null; fieldKey: string }
+  ctx: {
+    csrfToken?: string
+    pinId?: number | null
+    serverFieldReady?: boolean
+    fieldKey: string
+  }
 ) {
   switch (field.type) {
     case CustomFieldPrimitiveType.Textarea:
@@ -167,6 +176,7 @@ function renderField(
         <MusicFieldEditor
           csrfToken={ctx.csrfToken}
           pinId={ctx.pinId ?? null}
+          serverFieldReady={ctx.serverFieldReady}
           fieldKey={ctx.fieldKey}
           fieldLabel={field.label}
           value={value}
@@ -178,6 +188,7 @@ function renderField(
         <DrawingFieldEditor
           csrfToken={ctx.csrfToken}
           pinId={ctx.pinId ?? null}
+          serverFieldReady={ctx.serverFieldReady}
           fieldKey={ctx.fieldKey}
           fieldLabel={field.label}
           value={value}

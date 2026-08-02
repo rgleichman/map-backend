@@ -100,6 +100,11 @@ export default function PinModal({
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
   const availableTags = useMemo(() => deriveMapTags(pins), [pins])
+  const serverAdHocFieldIds = useMemo(() => {
+    if (pinId == null) return new Set<string>()
+    const pin = pins.find((p) => p.id === pinId)
+    return new Set((pin?.ad_hoc_fields ?? []).map((field) => field.id))
+  }, [pinId, pins])
   const catalogType = findPinType(pinType, catalog)
   const customFields = schemaFields(catalogType)
   const caps = scheduleCapabilities(pinType, catalog)
@@ -173,6 +178,7 @@ export default function PinModal({
               onChange={setAdHocFields}
               csrfToken={csrfToken}
               pinId={pinId}
+              serverFieldIds={serverAdHocFieldIds}
             />
           </div>
         ) : null}

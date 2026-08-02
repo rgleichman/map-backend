@@ -167,6 +167,55 @@ describe("validateAndBuildSavePayload", () => {
     })
   })
 
+  it("strips ad-hoc music and drawing drafts into adHocBlobDrafts", () => {
+    const musicPayload = JSON.stringify({
+      version: 1,
+      tempo: 100,
+      steps: 8,
+      rows: [{ note: "C4", hits: Array.from({ length: 8 }, () => false) }],
+    })
+    const drawingPayload = JSON.stringify({
+      version: 1,
+      width: 64,
+      height: 64,
+      strokes: [],
+    })
+    const result = validateAndBuildSavePayload(
+      { mode: "add", lat: 1, lng: 2, pinType: "one_time" },
+      minimalDraft({
+        pinType: "one_time",
+        adHocFields: [
+          {
+            id: "ad_hoc_song",
+            label: "Jam",
+            type: BlobFieldType.Music,
+            value: { draft: musicPayload },
+          },
+          {
+            id: "ad_hoc_draw",
+            label: "Sketch",
+            type: BlobFieldType.Drawing,
+            value: { draft: drawingPayload },
+          },
+        ],
+      }),
+      false,
+      systemCatalog
+    )
+    if ("payload" in result) {
+      expect(result.payload.ad_hoc_fields).toEqual([
+        { id: "ad_hoc_song", label: "Jam", type: BlobFieldType.Music },
+        { id: "ad_hoc_draw", label: "Sketch", type: BlobFieldType.Drawing },
+      ])
+      expect(result.adHocBlobDrafts).toEqual({
+        ad_hoc_song: { type: BlobFieldType.Music, payload: musicPayload },
+        ad_hoc_draw: { type: BlobFieldType.Drawing, payload: drawingPayload },
+      })
+    } else {
+      throw new Error("expected add payload")
+    }
+  })
+
   it("strips blob drafts from custom_data in edit payload", () => {
     const draftPayload = JSON.stringify({
       version: 1,

@@ -14,6 +14,8 @@ export { isBlobFieldRef as isMusicFieldRef }
 export type MusicFieldEditorProps = {
   csrfToken?: string
   pinId: number | null
+  /** See BlobFieldEditor `serverFieldReady`. */
+  serverFieldReady?: boolean
   fieldKey: string
   fieldLabel?: string
   value: unknown
@@ -23,6 +25,7 @@ export type MusicFieldEditorProps = {
 export default function MusicFieldEditor({
   csrfToken,
   pinId,
+  serverFieldReady = true,
   fieldKey,
   fieldLabel = "Song",
   value,
@@ -43,6 +46,7 @@ export default function MusicFieldEditor({
       blobType={BlobFieldType.Music}
       csrfToken={csrfToken}
       pinId={pinId}
+      serverFieldReady={serverFieldReady}
       fieldKey={fieldKey}
       fieldLabel={fieldLabel}
       value={value}

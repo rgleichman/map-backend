@@ -1,4 +1,4 @@
-import React, { useId } from "react"
+import React, { useId, useMemo } from "react"
 import type { AdHocField } from "../types"
 import {
   AD_HOC_FIELD_TYPE_OPTIONS,
@@ -15,11 +15,20 @@ type Props = {
   onChange: (fields: AdHocField[]) => void
   csrfToken?: string
   pinId?: number | null
+  /** Field ids already stored on the pin; new rows stay draft-only until pin Save. */
+  serverFieldIds?: ReadonlySet<string>
 }
 
 /** Author-defined extra fields on a single pin (separate from the type schema). */
-export default function AdHocPinFields({ fields, onChange, csrfToken, pinId }: Props) {
+export default function AdHocPinFields({
+  fields,
+  onChange,
+  csrfToken,
+  pinId,
+  serverFieldIds,
+}: Props) {
   const uid = useId()
+  const persistedIds = useMemo(() => serverFieldIds ?? new Set<string>(), [serverFieldIds])
 
   const addField = () => onChange([...fields, createAdHocField()])
 
@@ -100,6 +109,7 @@ export default function AdHocPinFields({ fields, onChange, csrfToken, pinId }: P
               onValue={(value) => onChange(updateAdHocField(fields, field.id, { value }))}
               csrfToken={csrfToken}
               pinId={pinId}
+              serverFieldReady={persistedIds.has(field.id)}
               fieldKey={field.id}
             />
           </div>
