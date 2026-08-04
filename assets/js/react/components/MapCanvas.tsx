@@ -1,5 +1,6 @@
 import React, { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react"
-import maplibregl, { Map as MLMap, Marker } from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
+import { Map as MLMap, Marker } from "maplibre-gl"
 import type { Pin, PinLink, PinType } from "../types"
 import { getPinBacklinks } from "../api/client"
 import {
@@ -409,8 +410,8 @@ export default function MapCanvas({
           maxZoom: GEOLOCATE_MAX_ZOOM,
         },
       })
-      geolocateControl.on("geolocate", (position: GeolocationPosition) => {
-        cacheDeviceLocation(position.coords)
+      geolocateControl.on("geolocate", (event) => {
+        cacheDeviceLocation(event.coords)
       })
       map.addControl(geolocateControl, "top-right")
       geolocateControlRef.current = geolocateControl

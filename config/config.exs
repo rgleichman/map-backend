@@ -52,6 +52,12 @@ config :esbuild,
       ~w(js/app.js js/theme.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ],
+  # Bundle MapLibre worker + shared chunk into one digest-safe file (MapLibre v6).
+  maplibre_worker: [
+    args:
+      ~w(node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs --bundle --outfile=../priv/static/assets/js/maplibre-gl-worker.js --format=esm --platform=browser --target=es2022),
+    cd: Path.expand("../assets", __DIR__)
   ]
 
 # Configure tailwind (the version is required)

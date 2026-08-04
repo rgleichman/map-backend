@@ -97,10 +97,16 @@ defmodule Storymap.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind storymap", "esbuild storymap"],
+      "assets.build": [
+        "compile",
+        "tailwind storymap",
+        "esbuild storymap",
+        "esbuild maplibre_worker"
+      ],
       "assets.deploy": [
         "tailwind storymap --minify",
         "esbuild storymap --minify",
+        "esbuild maplibre_worker",
         "phx.digest"
       ],
       "dialyzer.setup": ["dialyzer --plt"],
