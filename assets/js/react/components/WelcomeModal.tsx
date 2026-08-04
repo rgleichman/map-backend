@@ -134,7 +134,7 @@ export default function WelcomeModal({ onClose }: Props) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Report an issue
+              Report an issue or suggest a feature
             </Button>
           </div>
           <Button type="button" ref={closeButtonRef} variant="primary" onClick={onClose}>

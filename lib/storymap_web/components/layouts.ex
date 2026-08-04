@@ -208,7 +208,7 @@ defmodule StorymapWeb.Layouts do
           target="_blank"
           rel="noopener noreferrer"
         >
-          Report an issue
+          Report an issue or suggest a feature
         </a>
       </li>
       <li>
@@ -569,7 +569,7 @@ defmodule StorymapWeb.Layouts do
           target="_blank"
           rel="noopener noreferrer"
         >
-          Report an issue
+          Report an issue or suggest a feature
         </a>
         <a
           href={@github_url}
