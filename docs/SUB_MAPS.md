@@ -281,8 +281,11 @@ Pin writes include `sub_map_id` (or nested under sub_map route); world writes re
 ### Realtime
 
 - World: `map:world` (unchanged)
-- Sub-map: `map:submap:<community_url>` — join when viewing `/m/:community_url/map`
-- Broadcast pin events to sub-map topic always; to `map:world` only if `visible_on_world_map`
+- Sub-map public: `map:submap:<community_url>` — approved pins; join when viewing `/m/:community_url/map`
+- Sub-map mod: `map:submap:<community_url>:mod` — approved + pending (moderators only)
+- Sub-map creator (planned): `map:submap:<community_url>:user:<user_id>` — owner’s pending/rejected pins; see [CREATOR_PIN_CHANNEL.md](./CREATOR_PIN_CHANNEL.md)
+
+Broadcast pin events to the appropriate sub-map topic(s); to `map:world` only if `visible_on_world_map` / world-visible.
 
 ---
 
