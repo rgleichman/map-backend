@@ -11,6 +11,7 @@ import {
 import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
 import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
+import { PinStatusValue } from "../utils/pinStatus"
 import type { CatalogPinType, Pin, PinType, SubMap } from "../types"
 import {
   isEscapeCloseableDesktopMode,
@@ -32,6 +33,7 @@ type Params = {
   updateOrAddPin: (pin: Pin) => void
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
   setApiError: (error: string | null) => void
+  setInfoMessage?: (message: string | null) => void
 }
 
 function uploadPinBlobDrafts(
@@ -58,6 +60,7 @@ export function usePinWorkflow({
   updateOrAddPin,
   setPins,
   setApiError,
+  setInfoMessage,
 }: Params) {
   const [state, dispatch] = useReducer(pinWorkflowReducer, initialPinWorkflowState)
   const { modal, placement, draft, timeError, formError } = state
@@ -198,6 +201,9 @@ export function usePinWorkflow({
             : await api.createPin(csrfToken, result.payload)
           const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, pinData, result)
           updateOrAddPin(pinWithBlobs)
+          if (pinWithBlobs.status === PinStatusValue.Pending) {
+            setInfoMessage?.("Submitted — awaiting community approval")
+          }
           dispatch({ type: "after_add_saved" })
           setPendingNearLocationSave(null)
         } else {
@@ -222,7 +228,7 @@ export function usePinWorkflow({
         setSaving(false)
       }
     },
-    [communityUrl, csrfToken, setApiError, updateOrAddPin],
+    [communityUrl, csrfToken, setApiError, setInfoMessage, updateOrAddPin],
   )
 
   const onSave = useCallback(async () => {

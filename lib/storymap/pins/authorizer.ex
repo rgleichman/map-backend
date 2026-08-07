@@ -142,8 +142,16 @@ defmodule Storymap.Pins.Authorizer do
     SubMapPolicy.can_moderate?(user, sub_map, membership) or pin.user_id == user.id
   end
 
-  defp sub_map_pin_status_visible?(%User{} = user, %Pin{status: status}, sub_map, membership)
-       when status in [:rejected, :archived] do
+  defp sub_map_pin_status_visible?(
+         %User{} = user,
+         %Pin{status: :rejected} = pin,
+         sub_map,
+         membership
+       ) do
+    SubMapPolicy.can_moderate?(user, sub_map, membership) or pin.user_id == user.id
+  end
+
+  defp sub_map_pin_status_visible?(%User{} = user, %Pin{status: :archived}, sub_map, membership) do
     SubMapPolicy.can_moderate?(user, sub_map, membership)
   end
 
@@ -157,15 +165,16 @@ defmodule Storymap.Pins.Authorizer do
 
   @spec owner_can_edit_sub_map_pin?(SubMap.t() | nil, Pin.t()) :: boolean()
   defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: :approval_required}, %Pin{
-         status: :pending
-       }),
+         status: status
+       })
+       when status in [:pending, :rejected],
        do: true
 
   defp owner_can_edit_sub_map_pin?(%SubMap{contribution_mode: :approval_required}, _pin),
     do: false
 
   defp owner_can_edit_sub_map_pin?(%SubMap{}, %Pin{status: status})
-       when status in [:pending, :approved],
+       when status in [:pending, :approved, :rejected],
        do: true
 
   defp owner_can_edit_sub_map_pin?(_, _), do: false

@@ -49,7 +49,7 @@ export async function registerCustomPinImages(options: {
   for (const slug of slugs) {
     const row = catalogBySlug.get(slug)
     const visualKey = `${row?.marker_color ?? ""}:${row?.icon ?? ""}`
-    for (const outline of [undefined, "new", "selected"] as const) {
+    for (const outline of [undefined, "new", "selected", "awaiting"] as const) {
       const imageId = getPinTypeMarkerImageId(slug, outline)
       nextIds.add(imageId)
       nextVisualKeys.set(imageId, visualKey)

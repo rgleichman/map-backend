@@ -209,6 +209,42 @@ defmodule StorymapWeb.PinControllerTest do
       assert json_response(get(conn, ~p"/api/pins/#{pin.id}"), 404)
     end
 
+    test "returns rejected pin for creator", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      contributor = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "contribution_mode" => "approval_required",
+            "community_url" => "show-rejected-creator"
+          },
+          owner
+        )
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, _} =
+        Storymap.SubMaps.reject_pin(%Storymap.Accounts.Scope{user: owner}, sub_map, pin.id)
+
+      conn = log_in_user(conn, contributor)
+      data = json_response(get(conn, ~p"/api/pins/#{pin.id}"), 200)["data"]
+      assert data["id"] == pin.id
+      assert data["status"] == "rejected"
+    end
+
     test "returns rejected pin for community mod", %{conn: conn} do
       import Storymap.SubMapsFixtures
 

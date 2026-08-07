@@ -230,12 +230,25 @@ Controllers automatically have the `current_scope` available if they use the `:b
 - Elixir's builtin OTP primitives like `DynamicSupervisor` and `Registry`, require names in the child spec, such as `{DynamicSupervisor, name: MyApp.MyDynamicSup}`, then you can use `DynamicSupervisor.start_child(MyApp.MyDynamicSup, child_spec)`
 - Use `Task.async_stream(collection, callback, options)` for concurrent enumeration with back-pressure. The majority of times you will want to pass `timeout: :infinity` as option
 
+### Types and `@spec` (required for new/changed Elixir)
+
+**Always** add or update `@spec` when you add or change Elixir functions (public and private) in `lib/`. Prefer precise types (`Pin.t()`, `User.t()`, `Types.ecto_result/1`, `Types.authorize_result/0`) over bare `any()` / `term()` when the shape is known. Shared result types live in `Storymap.Types`.
+
+- **Schemas** exposed in APIs should define `@type t` (and enum `@type` aliases when using `Ecto.Enum`)
+- **Policy / authorizer modules** — `@spec` every function; booleans for `can_*?`, `Types.authorize_result()` for `authorize_*`
+- **Context modules** — `@spec` public functions and non-trivial private helpers; use `Scope.t()` for scoped calls
+- **LiveViews** — `@spec` `mount/3`, `handle_event/3`, and `handle_info/2` callbacks you implement (see admin LiveViews for the pattern)
+- **Controllers / plugs** — `@spec` public action and plug functions when adding or changing them
+- Do **not** skip specs on private helpers that encode business rules (visibility, status transitions, authorization)
+
+See README [types/`@spec` conventions](README.md#types-and-spec-conventions). Run `mix dialyzer` after adding specs on policy/context boundaries; fix real mismatches in the same change.
+
 ## Mix guidelines
 
 - Read the docs and options before using tasks (by using `mix help task_name`)
 - To debug test failures, run tests in a specific file with `mix test test/my_test.exs` or run all previously failed tests with `mix test --failed`
 - `mix deps.clean --all` is **almost never needed**. **Avoid** using it unless you have good reason
-- **Dialyzer** (optional): run `mix dialyzer.setup` once after clone or when deps change, then `mix dialyzer` before larger refactors. Not part of `mix precommit`. Add `@spec` when touching policy/context modules; see README for setup details and [types/`@spec` conventions](README.md#types-and-spec-conventions).
+- **Dialyzer** (optional but recommended): run `mix dialyzer.setup` once after clone or when deps change, then `mix dialyzer` before larger refactors and when adding `@spec` on policy/context modules. Not part of `mix precommit`. Specs themselves are required for new/changed Elixir as above; Dialyzer is how you verify them.
 <!-- phoenix:elixir-end -->
 
 <!-- phoenix:phoenix-start -->

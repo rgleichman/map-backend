@@ -8,6 +8,7 @@ import {
 } from "../../utils/pinTypeIcons"
 import { isPinNewSince } from "../../utils/mapLastVisit"
 import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
+import { PinStatusValue } from "../../utils/pinStatus"
 
 export type PinFeatureProperties = {
   pin_id: number
@@ -142,8 +143,13 @@ export function desaturateHex(hex: string, whiteRatio = 0.85): string {
   return `#${wr.toString(16).padStart(2, "0")}${wg.toString(16).padStart(2, "0")}${wb.toString(16).padStart(2, "0")}`
 }
 
-function mapOutlineForPin(isSelected: boolean, isNew: boolean): PinMarkerMapOutline | undefined {
+function mapOutlineForPin(
+  isSelected: boolean,
+  isAwaiting: boolean,
+  isNew: boolean,
+): PinMarkerMapOutline | undefined {
   if (isSelected) return "selected"
+  if (isAwaiting) return "awaiting"
   if (isNew) return "new"
   return undefined
 }
@@ -157,6 +163,7 @@ export function toPinFeature(
   const pinColor = resolvePinTypeConfig(pin.pin_type, catalog).color
   const isNew = isPinNewSince(pin, lastVisitWatermark)
   const isSelected = selectedPinId != null && pin.id === selectedPinId
+  const isAwaiting = pin.status === PinStatusValue.Pending
   const title = isSelected ? pin.title.trim() : truncateTitle(pin.title)
   return {
     type: "Feature",
@@ -165,7 +172,10 @@ export function toPinFeature(
       pin_id: pin.id,
       title,
       pin_type: pin.pin_type,
-      pin_type_icon: getPinTypeMarkerImageId(pin.pin_type, mapOutlineForPin(isSelected, isNew)),
+      pin_type_icon: getPinTypeMarkerImageId(
+        pin.pin_type,
+        mapOutlineForPin(isSelected, isAwaiting, isNew),
+      ),
       haloColor: isSelected ? SELECTED_PIN_OUTLINE_STROKE : desaturateHex(pinColor),
       haloWidth: isSelected ? PIN_LABEL_SELECTED_HALO_WIDTH : PIN_LABEL_HALO_WIDTH,
       isNew,

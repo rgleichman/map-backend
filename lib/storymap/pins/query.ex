@@ -55,6 +55,21 @@ defmodule Storymap.Pins.Query do
   end
 
   @doc """
+  Approved pins plus the viewer's own pending/rejected pins (for non-mod members).
+  """
+  @spec sub_map_pins_for_member(integer(), integer(), Ecto.Query.t()) :: Ecto.Query.t()
+  def sub_map_pins_for_member(sub_map_id, user_id, query \\ base())
+      when is_integer(sub_map_id) and is_integer(user_id) do
+    from(p in query,
+      where:
+        p.sub_map_id == ^sub_map_id and
+          (p.status == ^:approved or
+             (p.user_id == ^user_id and p.status in [^:pending, ^:rejected])),
+      order_by: [desc: p.updated_at]
+    )
+  end
+
+  @doc """
   Whether a sub-map pin event may be broadcast on the public `map:submap:*` channel.
 
   Matches `sub_map_pins/2` (approved only).

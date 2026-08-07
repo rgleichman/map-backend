@@ -135,13 +135,18 @@ Known false positives are listed in `.dialyzer_ignore.exs`. Fix real warnings wh
 
 #### Types and `@spec` conventions
 
+**Required for new and changed Elixir in `lib/`:** add or update `@spec` on functions you touch (public and private). Prefer precise types over `any()` / `term()`.
+
 When you touch policy or context modules, add or update types alongside the change:
 
 - **Shared result types** live in [`lib/storymap/types.ex`](lib/storymap/types.ex) (`Types.ecto_result/1`, `Types.authorize_result/0`, etc.).
 - **Schemas** exposed in public APIs should define `@type t` (see [`lib/storymap/admin_activity/event.ex`](lib/storymap/admin_activity/event.ex)); reuse existing enum `@type` aliases on the same module.
 - **Policy modules** — `@spec` every public function; booleans for `can_*?`, `Types.authorize_result()` for `authorize_*`.
-- **Context modules** — `@spec` public functions; use `Scope.t()` for scoped calls and `Storymap.Types` for auth/Ecto tuples.
+- **Context modules** — `@spec` public functions and non-trivial private helpers; use `Scope.t()` for scoped calls and `Storymap.Types` for auth/Ecto tuples.
+- **LiveViews** — `@spec` `mount/3`, `handle_event/3`, and `handle_info/2` you implement.
 - **JSONB / form boundary maps** — Elixir typespecs do not support string-literal map keys; use `map()` or `String.t()` and keep runtime validation (e.g. `@field_types` in [`lib/storymap/pin_types/schema.ex`](lib/storymap/pin_types/schema.ex)).
+
+Full agent-facing wording is in [`AGENTS.md`](AGENTS.md) under **Types and `@spec`**.
 
 Run `mix dialyzer` after adding specs; fix real mismatches in the same change rather than broad ignores.
 

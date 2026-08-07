@@ -276,10 +276,15 @@ defmodule Storymap.SubMaps do
   @spec list_pins(SubMap.t(), User.t() | nil, Membership.t() | nil) :: [Pin.t()]
   def list_pins(%SubMap{} = sub_map, viewer, membership) do
     query =
-      if Policy.can_moderate?(viewer, sub_map, membership) do
-        Query.sub_map_pins_for_mod(sub_map.id)
-      else
-        Query.sub_map_pins(sub_map.id)
+      cond do
+        Policy.can_moderate?(viewer, sub_map, membership) ->
+          Query.sub_map_pins_for_mod(sub_map.id)
+
+        match?(%User{}, viewer) ->
+          Query.sub_map_pins_for_member(sub_map.id, viewer.id)
+
+        true ->
+          Query.sub_map_pins(sub_map.id)
       end
 
     Repo.all(query)

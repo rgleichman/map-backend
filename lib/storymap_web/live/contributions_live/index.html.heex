@@ -1,0 +1,46 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="max-w-2xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold text-base-content mb-2">My contributions</h1>
+    <p class="text-base-content/70 mb-6">
+      Pins you have created. Only you can see this list.
+    </p>
+
+    <%= if @contributions == [] do %>
+      <div class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center">
+        <p class="text-base-content/80">You have not created any pins yet.</p>
+        <p class="mt-2 text-sm text-base-content/60">
+          Open the map and add a pin to see it here.
+        </p>
+        <.button navigate={~p"/"} variant="primary" size="sm" class="mt-6">
+          Go to map
+        </.button>
+      </div>
+    <% else %>
+      <ul class="divide-y divide-base-300 rounded-xl border border-base-300 bg-base-100 overflow-hidden">
+        <%= for pin <- @contributions do %>
+          <li id={"contribution-pin-#{pin.id}"}>
+            <.link
+              href={Pins.map_path_for_pin(pin)}
+              class="block p-4 hover:bg-base-200/50 transition-colors"
+            >
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 class="font-semibold text-base-content truncate">{pin.title}</h2>
+                  <span class={"badge badge-sm #{Pins.Pin.status_badge_class(pin.status)}"}>
+                    {Pins.Pin.status_label(pin.status)}
+                  </span>
+                </div>
+                <%= if pin.sub_map do %>
+                  <p class="text-sm text-base-content/70 mt-0.5">{pin.sub_map.name}</p>
+                <% end %>
+                <%= if pin.description && pin.description != "" do %>
+                  <p class="text-sm text-base-content/80 mt-1 line-clamp-2">{pin.description}</p>
+                <% end %>
+              </div>
+            </.link>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</Layouts.app>

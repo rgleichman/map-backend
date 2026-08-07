@@ -96,6 +96,9 @@ defmodule Storymap.SubMapsTest do
     assert pin.status == :pending
     assert [%{title: "Pending Spot"}] = SubMaps.pending_pins(sub_map)
     refute pin.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
+
+    membership = SubMaps.get_membership(sub_map.id, contributor.id)
+    assert pin.id in Enum.map(SubMaps.list_pins(sub_map, contributor, membership), & &1.id)
   end
 
   test "approval_required approves pins created by sub-map moderators/owners" do
@@ -149,6 +152,47 @@ defmodule Storymap.SubMapsTest do
     {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
     assert approved.status == :approved
     assert approved.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
+  end
+
+  test "list_pins includes creator's rejected pin; owner update resubmits as pending" do
+    owner = user_fixture()
+    contributor = user_fixture()
+
+    sub_map =
+      sub_map_fixture(
+        %{"contribution_mode" => "approval_required", "community_url" => "reject-resubmit"},
+        owner
+      )
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: contributor},
+        sub_map,
+        %{
+          "title" => "Spot",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    {:ok, rejected} = SubMaps.reject_pin(%Scope{user: owner}, sub_map, pin.id)
+    membership = SubMaps.get_membership(sub_map.id, contributor.id)
+
+    assert rejected.id in Enum.map(SubMaps.list_pins(sub_map, contributor, membership), & &1.id)
+    refute rejected.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
+
+    {:ok, resubmitted} =
+      Pins.update_pin(
+        rejected,
+        %{"title" => "Spot revised"},
+        sub_map: sub_map,
+        user: contributor,
+        membership: membership
+      )
+
+    assert resubmitted.status == :pending
+    assert resubmitted.title == "Spot revised"
   end
 
   test "update_pin/3 keeps visible_on_world_map when policy forbids override" do

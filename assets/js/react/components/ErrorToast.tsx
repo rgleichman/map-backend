@@ -3,6 +3,8 @@ import React, { type ReactNode } from "react"
 type Props = {
   message: string | null
   prefix?: string
+  /** Visual tone; defaults to error (existing call sites). */
+  tone?: "error" | "info"
 }
 
 /** Turn the first "sign in" / "log in" phrase into a login link. */
@@ -23,12 +25,17 @@ function messageWithLoginLink(message: string): ReactNode {
   )
 }
 
-export default function ErrorToast({ message, prefix = "" }: Props) {
+export default function ErrorToast({ message, prefix = "", tone = "error" }: Props) {
   if (!message) return null
+
+  const toneClass =
+    tone === "info"
+      ? "bg-info text-info-content"
+      : "bg-error text-error-content"
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" aria-live="polite">
-      <div role="alert" className="absolute top-[10%] bg-error text-error-content px-4 py-2 rounded shadow-lg pointer-events-auto">
+      <div role="alert" className={`absolute top-[10%] ${toneClass} px-4 py-2 rounded shadow-lg pointer-events-auto`}>
         {prefix}
         {messageWithLoginLink(message)}
       </div>

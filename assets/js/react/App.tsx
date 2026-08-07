@@ -73,6 +73,14 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     focusIntent,
   })
 
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!infoMessage) return
+    const t = window.setTimeout(() => setInfoMessage(null), 4000)
+    return () => window.clearTimeout(t)
+  }, [infoMessage])
+
   const { heartedPinIds, isHearted, toggleHeart, loading: pinHeartsLoading, loadError: pinHeartsLoadError } =
     usePinHearts(userId, csrfToken)
 
@@ -101,6 +109,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     updateOrAddPin,
     setPins,
     setApiError,
+    setInfoMessage,
   })
 
   const {
@@ -372,6 +381,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
           {timeError && <ErrorToast message={timeError} prefix="⏰ " />}
           {formError && <ErrorToast message={formError} />}
           {apiError && <ErrorToast message={apiError} />}
+          {infoMessage && <ErrorToast message={infoMessage} tone="info" />}
           {pinHeartsLoadError && <ErrorToast message={pinHeartsLoadError} />}
         </div>
       </SubMapProvider>

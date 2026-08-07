@@ -107,6 +107,22 @@ describe("toPinFeature", () => {
     expect(feature.properties.haloColor).toBe(SELECTED_PIN_OUTLINE_STROKE)
   })
 
+  it("uses awaiting outline for pending moderation status (selected wins)", () => {
+    const pin = minimalPin({
+      id: 3,
+      pin_type: "scheduled",
+      status: "pending",
+      updated_at: "2025-06-02T00:00:00.000Z",
+    })
+    const watermark = new Date("2025-06-01T12:00:00.000Z")
+    expect(toPinFeature(pin, [], watermark).properties.pin_type_icon).toBe(
+      "pin-icon-scheduled-awaiting",
+    )
+    expect(toPinFeature(pin, [], watermark, 3).properties.pin_type_icon).toBe(
+      "pin-icon-scheduled-selected",
+    )
+  })
+
   it("still truncates titles when the pin is not selected", () => {
     const long = "A".repeat(30)
     const pin = minimalPin({ id: 1, title: long })

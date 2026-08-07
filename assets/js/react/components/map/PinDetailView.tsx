@@ -17,6 +17,11 @@ import type { ToggleHeartResult } from "../../types"
 import Button from "../ui/Button"
 import CloseButton from "../ui/CloseButton"
 import { PencilIcon, TrashIcon } from "../ui/icons"
+import {
+  pinStatusBadgeClass,
+  pinStatusLabel,
+  showPinStatusBadge,
+} from "../../utils/pinStatus"
 
 const detailContentClasses = "text-sm text-base-content"
 
@@ -134,6 +139,11 @@ export default function PinDetailView({
           <CloseButton aria-label="Close pin details" onClick={onClose} className="shrink-0" />
         ) : null}
       </div>
+      {showPinStatusBadge(pin.status) ? (
+        <span className={`badge badge-sm mt-1 ${pinStatusBadgeClass(pin.status)}`}>
+          {pinStatusLabel(pin.status)}
+        </span>
+      ) : null}
       {pin.description ? (
         <LinkifiedText className="mt-1" text={pin.description} onNavigateToPin={onNavigateToPin} />
       ) : null}

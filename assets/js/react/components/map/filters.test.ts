@@ -411,7 +411,7 @@ describe("pinMapGeoJsonSyncPart", () => {
     expect(pinMapGeoJsonSyncPart({ ...base, updated_at: "2025-06-01T12:00:00Z" })).not.toBe(baseKey)
   })
 
-  it("is stable when only non-map fields change", () => {
+  it("changes when status changes (moderation outline)", () => {
     const pin = minimalPin({
       id: 1,
       title: "Cafe",
@@ -426,6 +426,24 @@ describe("pinMapGeoJsonSyncPart", () => {
       pinMapGeoJsonSyncPart({
         ...pin,
         status: "approved",
+      }),
+    ).not.toBe(key)
+  })
+
+  it("is stable when only non-map fields change", () => {
+    const pin = minimalPin({
+      id: 1,
+      title: "Cafe",
+      status: "pending",
+      visible_on_world_map: false,
+      is_owner: true,
+      created_by_me: true,
+      inserted_at: "2025-01-01T00:00:00Z",
+    })
+    const key = pinMapGeoJsonSyncPart(pin)
+    expect(
+      pinMapGeoJsonSyncPart({
+        ...pin,
         visible_on_world_map: true,
         is_owner: false,
         created_by_me: false,

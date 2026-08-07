@@ -18,6 +18,7 @@ defmodule Storymap.Pins do
     Visibility
   }
 
+  alias Storymap.Accounts.User
   alias Storymap.PinTypes
   alias Storymap.PinTypes.{PinType, Validator}
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
@@ -142,6 +143,7 @@ defmodule Storymap.Pins do
                  |> Pin.changeset(attrs)
                  |> maybe_add_pin_type_error(type_error)
                  |> maybe_put_visible_on_world_map(attrs)
+                 |> maybe_resubmit_rejected_pin(pin, sub_map, user)
                  |> validate_custom_pin_data(pin_type)
                  |> normalize_schedule(pin_type)
                  |> maybe_validate_sub_map_rules(sub_map, attrs, pin_type)
@@ -516,6 +518,24 @@ defmodule Storymap.Pins do
       _ -> changeset
     end
   end
+
+  # Owner edit of a rejected pin in approval_required communities re-enters the queue.
+  @spec maybe_resubmit_rejected_pin(
+          Ecto.Changeset.t(),
+          Pin.t(),
+          SubMap.t() | nil,
+          User.t() | nil
+        ) :: Ecto.Changeset.t()
+  defp maybe_resubmit_rejected_pin(
+         changeset,
+         %Pin{status: :rejected, user_id: user_id},
+         %SubMap{contribution_mode: :approval_required},
+         %User{id: user_id}
+       ) do
+    Ecto.Changeset.put_change(changeset, :status, :pending)
+  end
+
+  defp maybe_resubmit_rejected_pin(changeset, _pin, _sub_map, _user), do: changeset
 
   defp maybe_put_status(changeset, nil), do: changeset
 

@@ -122,11 +122,12 @@ const TEARDROP_PATH =
  * - pending: stroke via CSS `currentColor` (DOM placement; see `.pin-marker--pending`)
  * - selected: baked light green (dark-theme primary) for MapLibre selected-pin images
  * - new: baked amber stroke for MapLibre “new since last visit” images
+ * - awaiting: baked dashed sky stroke for MapLibre moderation-pending pins
  */
-export type PinMarkerOutline = "pending" | "selected" | "new"
+export type PinMarkerOutline = "pending" | "selected" | "new" | "awaiting"
 
 /** MapLibre image ids that use a baked outline variant. */
-export type PinMarkerMapOutline = Extract<PinMarkerOutline, "selected" | "new">
+export type PinMarkerMapOutline = Extract<PinMarkerOutline, "selected" | "new" | "awaiting">
 
 /** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
 export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
@@ -137,6 +138,11 @@ export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
  */
 export const SELECTED_PIN_OUTLINE_STROKE = "#95dd84"
 
+/** Stroke for moderation-pending (awaiting approval) dashed outline. */
+export const AWAITING_PIN_OUTLINE_STROKE = "#0ea5e9"
+
+const AWAITING_STROKE_DASHARRAY = "8 6"
+
 /** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
 export function getPinTypeMarkerImageId(
   pinType: PinType,
@@ -145,6 +151,7 @@ export function getPinTypeMarkerImageId(
   const base = `pin-icon-${pinType || DEFAULT_PIN_ICON}`
   if (outline === "selected") return `${base}-selected`
   if (outline === "new") return `${base}-new`
+  if (outline === "awaiting") return `${base}-awaiting`
   return base
 }
 
@@ -154,6 +161,7 @@ function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   if (outline === "pending") return "currentColor"
   if (outline === "selected") return SELECTED_PIN_OUTLINE_STROKE
   if (outline === "new") return NEW_PIN_OUTLINE_STROKE
+  if (outline === "awaiting") return AWAITING_PIN_OUTLINE_STROKE
   return null
 }
 
@@ -171,13 +179,15 @@ function buildPinMarkerSVGStringFallback(
 
   const stroke = markerOutlineStroke(outline)
   const outlined = stroke != null
-  // “new” / pending stay slightly translucent; selected is fully opaque so map labels cannot show through.
-  const translucent = outline === "new" || outline === "pending"
+  // “new” / pending / awaiting stay slightly translucent; selected is fully opaque so map labels cannot show through.
+  const translucent = outline === "new" || outline === "pending" || outline === "awaiting"
   const outlinePath = outlined
     ? outline === "selected"
       ? `<path d="${TEARDROP_PATH}" fill="${stroke}" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>
         <path d="${TEARDROP_PATH}" fill="${config.color}" fill-opacity="1"/>`
-      : `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
+      : outline === "awaiting"
+        ? `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round" stroke-dasharray="${AWAITING_STROKE_DASHARRAY}"/>`
+        : `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
     : ""
   const mainPathFillOpacity = translucent ? "0.72" : "1"
   const circleFillOpacity = translucent ? "0.85" : "1"
@@ -229,7 +239,7 @@ function buildPinMarkerSVGElement(
   const iconKey = config.iconKey
   const strokeIcon = isStrokeIcon(iconKey)
   const outlined = outline != null
-  const translucent = outline === "new" || outline === "pending"
+  const translucent = outline === "new" || outline === "pending" || outline === "awaiting"
   const mainPathFillOpacity = translucent ? "0.72" : "1"
   const circleFillOpacity = translucent ? "0.85" : "1"
   const iconPaths = ICON_PATH_DEFS[iconKey]
@@ -273,6 +283,9 @@ function buildPinMarkerSVGElement(
     outlinePath.setAttribute("stroke-linejoin", "round")
     // Selected: opaque fill under the stroke so nothing shows through the halo.
     outlinePath.setAttribute("fill", outline === "selected" ? stroke : "none")
+    if (outline === "awaiting") {
+      outlinePath.setAttribute("stroke-dasharray", AWAITING_STROKE_DASHARRAY)
+    }
     rootGroup.appendChild(outlinePath)
   }
 

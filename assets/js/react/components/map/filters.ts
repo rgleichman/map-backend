@@ -211,6 +211,7 @@ export function pinMapGeoJsonSyncPart(p: Pin): string {
     longitude: p.longitude,
     title: p.title,
     pin_type: p.pin_type,
+    status: p.status,
     tags: p.tags,
     description: p.description ?? null,
     schedule_timezone: p.schedule_timezone ?? null,

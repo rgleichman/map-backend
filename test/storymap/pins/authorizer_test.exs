@@ -170,7 +170,7 @@ defmodule Storymap.Pins.AuthorizerTest do
       assert :ok = Authorizer.authorize_show(admin, pin, sub_map: sub_map)
     end
 
-    test "forbids rejected pin for non-moderator member" do
+    test "allows rejected pin for creator" do
       owner = user_fixture()
       contributor = user_fixture()
 
@@ -196,8 +196,44 @@ defmodule Storymap.Pins.AuthorizerTest do
       pin = Repo.preload(rejected, :sub_map)
       membership = SubMaps.get_membership(sub_map.id, contributor.id)
 
-      assert {:error, :not_found} =
+      assert :ok =
                Authorizer.authorize_show(contributor, pin,
+                 sub_map: sub_map,
+                 membership: membership
+               )
+    end
+
+    test "forbids rejected pin for other non-moderator member" do
+      owner = user_fixture()
+      contributor = user_fixture()
+      other = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "show-rejected-other"},
+          owner
+        )
+
+      {:ok, _} = SubMaps.join(%Scope{user: other}, sub_map)
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Rejected Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, rejected} = SubMaps.reject_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(rejected, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, other.id)
+
+      assert {:error, :not_found} =
+               Authorizer.authorize_show(other, pin,
                  sub_map: sub_map,
                  membership: membership
                )
@@ -404,6 +440,36 @@ defmodule Storymap.Pins.AuthorizerTest do
         )
 
       pin = Repo.preload(pin, :sub_map)
+      membership = SubMaps.get_membership(sub_map.id, contributor.id)
+      opts = [sub_map: sub_map, membership: membership]
+
+      assert :ok = Authorizer.authorize_update(contributor, pin, opts)
+    end
+
+    test "allows owner editing rejected pin in approval_required community" do
+      owner = user_fixture()
+      contributor = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{"contribution_mode" => "approval_required", "community_url" => "auth-rejected-edit"},
+          owner
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, rejected} = SubMaps.reject_pin(%Scope{user: owner}, sub_map, pin.id)
+      pin = Repo.preload(rejected, :sub_map)
       membership = SubMaps.get_membership(sub_map.id, contributor.id)
       opts = [sub_map: sub_map, membership: membership]
 

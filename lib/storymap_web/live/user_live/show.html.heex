@@ -56,6 +56,54 @@
                 <% end %>
               <% end %>
             </div>
+
+            <div class="mt-8 pt-6 border-t border-base-300">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 class="text-lg font-semibold text-base-content">My contributions</h2>
+                <%= if @contributions_count > 0 do %>
+                  <.link
+                    navigate={~p"/contributions"}
+                    class="link link-primary text-sm font-medium"
+                  >
+                    See all ({@contributions_count})
+                  </.link>
+                <% end %>
+              </div>
+
+              <%= if @contributions_preview == [] do %>
+                <p class="text-sm text-base-content/70">
+                  You have not created any pins yet.
+                  <.link navigate={~p"/"} class="link link-primary">Browse the map</.link>
+                  to add one.
+                </p>
+              <% else %>
+                <ul class="space-y-2">
+                  <%= for pin <- @contributions_preview do %>
+                    <li id={"profile-contribution-pin-#{pin.id}"}>
+                      <.link
+                        href={Storymap.Pins.map_path_for_pin(pin)}
+                        class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-base-200 transition-colors"
+                      >
+                        <span class="min-w-0 flex flex-wrap items-center gap-2">
+                          <span class="font-medium text-base-content truncate">{pin.title}</span>
+                          <span class={"badge badge-sm #{Storymap.Pins.Pin.status_badge_class(pin.status)}"}>
+                            {Storymap.Pins.Pin.status_label(pin.status)}
+                          </span>
+                        </span>
+                        <%= if pin.sub_map do %>
+                          <span class="text-xs text-base-content/60 shrink-0">{pin.sub_map.name}</span>
+                        <% end %>
+                      </.link>
+                    </li>
+                  <% end %>
+                </ul>
+                <%= if @contributions_count > length(@contributions_preview) do %>
+                  <.button navigate={~p"/contributions"} variant="ghost" size="sm" class="mt-4">
+                    See all contributions
+                  </.button>
+                <% end %>
+              <% end %>
+            </div>
           <% end %>
         </div>
       </div>

@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogPinType, Pin, SubMap } from "../types"
 import { DEFAULT_FILTER, type FilterState } from "../components/map/filters"
 import { loadMapData } from "../loadMapData"
+import {
+  applyOwnedMarkerDeletedRefetch,
+  refetchPinAfterMarkerDeleted,
+  shouldRefetchOnMarkerDeleted,
+} from "../utils/markerDeleted"
 import { upsertPinIntoList } from "../utils/pinMerge"
 import { usePinChannelSync } from "./usePinChannelSync"
 import type { UseMapDataParams, UseMapDataResult } from "./mapHookTypes"
@@ -24,9 +29,21 @@ export function useMapData({
   const [loading, setLoading] = useState(true)
   const [mapInitialized, setMapInitialized] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const pinsRef = useRef(pins)
+  pinsRef.current = pins
 
   const updateOrAddPin = useCallback((pin: Pin) => {
     setPins((prevPins) => upsertPinIntoList(prevPins, pin))
+  }, [])
+
+  const handleDeletePinId = useCallback((pinId: number) => {
+    if (!shouldRefetchOnMarkerDeleted(pinsRef.current, pinId)) {
+      setPins((prev) => prev.filter((p) => p.id !== pinId))
+      return
+    }
+    void refetchPinAfterMarkerDeleted(pinId).then((result) => {
+      setPins((prev) => applyOwnedMarkerDeletedRefetch(prev, pinId, result))
+    })
   }, [])
 
   useEffect(() => {
@@ -84,7 +101,7 @@ export function useMapData({
 
   usePinChannelSync({
     onUpsertPin: updateOrAddPin,
-    onDeletePinId: (pinId) => setPins((prev) => prev.filter((p) => p.id !== pinId)),
+    onDeletePinId: handleDeletePinId,
     communityUrl,
     canModerate: subMap?.can_moderate === true,
   })

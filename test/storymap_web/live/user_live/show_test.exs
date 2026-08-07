@@ -19,6 +19,19 @@ defmodule StorymapWeb.UserLive.ShowTest do
     assert has_element?(view, "a[href='/map?pin=#{pin.id}']")
   end
 
+  test "shows contributions section on own profile", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_user(conn, user)
+
+    pin = pin_fixture(%{"title" => "Created cafe"}, user)
+
+    {:ok, view, _html} = live(conn, ~p"/user/#{user.id}")
+    assert has_element?(view, "h2", "My contributions")
+    assert has_element?(view, "#profile-contribution-pin-#{pin.id}", "Created cafe")
+    assert has_element?(view, "#profile-contribution-pin-#{pin.id} .badge", "Approved")
+    assert has_element?(view, "a[href='/contributions']", "See all (1)")
+  end
+
   test "does not show saved pins on another user's profile", %{conn: conn} do
     viewer = user_fixture()
     other = user_fixture()
@@ -29,6 +42,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
 
     {:ok, _view, html} = live(conn, ~p"/user/#{other.id}")
     refute html =~ "Saved pins"
+    refute html =~ "My contributions"
     refute html =~ "Secret save"
   end
 
@@ -38,6 +52,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
 
     {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
     assert html =~ "You have not saved any pins yet"
+    assert html =~ "You have not created any pins yet"
     refute has_element?(view, "a", "See all")
   end
 
@@ -51,7 +66,9 @@ defmodule StorymapWeb.UserLive.ShowTest do
     {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
     assert has_element?(view, "h2", "Saved pins")
     assert html =~ "You have not saved any pins yet"
-    refute has_element?(view, "a", "See all")
-    refute html =~ "Saved before mute"
+    refute has_element?(view, "#profile-saved-pin-#{pin.id}")
+    # Contributions still list pins the user created (mute blocks hearts, not ownership).
+    assert has_element?(view, "h2", "My contributions")
+    assert has_element?(view, "#profile-contribution-pin-#{pin.id}", "Saved before mute")
   end
 end

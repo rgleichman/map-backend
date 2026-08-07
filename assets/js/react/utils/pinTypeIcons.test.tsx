@@ -5,6 +5,7 @@ vi.mock("../context/PinTypesContext", () => ({
 }))
 import PinTypeIcon from "../components/PinTypeIcon"
 import {
+  AWAITING_PIN_OUTLINE_STROKE,
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
   NEW_PIN_OUTLINE_STROKE,
@@ -87,6 +88,14 @@ describe("createPinTypeMarkerSVG", () => {
     const svg = decodeDataUrlBase64(dataUrl)
     expect(svg).toContain(`stroke="${SELECTED_PIN_OUTLINE_STROKE}"`)
     expect(svg).toContain(`fill="${SELECTED_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain('stroke-width="10"')
+  })
+
+  it("bakes dashed sky stroke for awaiting-approval outline", () => {
+    const dataUrl = createPinTypeMarkerSVG("scheduled", [], "awaiting")
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain(`stroke="${AWAITING_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain('stroke-dasharray="8 6"')
     expect(svg).toContain('stroke-width="10"')
   })
 })

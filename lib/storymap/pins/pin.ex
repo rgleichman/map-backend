@@ -191,6 +191,34 @@ defmodule Storymap.Pins.Pin do
   @spec statuses() :: [status()]
   def statuses, do: @statuses
 
+  @doc """
+  Human-readable label for a pin moderation status (LiveView lists, etc.).
+  """
+  @spec status_label(status() | String.t()) :: String.t()
+  def status_label(:pending), do: "Pending"
+  def status_label(:approved), do: "Approved"
+  def status_label(:rejected), do: "Rejected"
+  def status_label(:archived), do: "Archived"
+  def status_label("pending"), do: "Pending"
+  def status_label("approved"), do: "Approved"
+  def status_label("rejected"), do: "Rejected"
+  def status_label("archived"), do: "Archived"
+  def status_label(_), do: "Unknown"
+
+  @doc """
+  DaisyUI badge class for a pin moderation status.
+  """
+  @spec status_badge_class(status() | String.t()) :: String.t()
+  def status_badge_class(:pending), do: "badge-warning"
+  def status_badge_class(:approved), do: "badge-success"
+  def status_badge_class(:rejected), do: "badge-error"
+  def status_badge_class(:archived), do: "badge-ghost"
+  def status_badge_class("pending"), do: "badge-warning"
+  def status_badge_class("approved"), do: "badge-success"
+  def status_badge_class("rejected"), do: "badge-error"
+  def status_badge_class("archived"), do: "badge-ghost"
+  def status_badge_class(_), do: "badge-ghost"
+
   defp put_default_custom_data(changeset) do
     case get_field(changeset, :custom_data) do
       nil -> put_change(changeset, :custom_data, %{})

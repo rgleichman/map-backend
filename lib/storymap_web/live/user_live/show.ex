@@ -2,11 +2,14 @@ defmodule StorymapWeb.UserLive.Show do
   use StorymapWeb, :live_view
 
   alias Storymap.Accounts
+  alias Storymap.Pins
   alias Storymap.Pins.{HeartAuthorizer, Hearts}
 
   @profile_saved_preview_limit 5
+  @profile_contributions_preview_limit 5
 
   @impl true
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(%{"user_id" => user_id}, _session, socket) do
     case safe_get_user(user_id) do
       {:ok, user} ->
@@ -32,13 +35,23 @@ defmodule StorymapWeb.UserLive.Show do
             {[], 0}
           end
 
+        {contributions_preview, contributions_count} =
+          if own_profile? do
+            all = Pins.list_pins_by_user(user.id)
+            {Enum.take(all, @profile_contributions_preview_limit), length(all)}
+          else
+            {[], 0}
+          end
+
         {:ok,
          assign(socket,
            user: safe_user_data,
            not_found: false,
            own_profile?: own_profile?,
            saved_pins_preview: saved_pins_preview,
-           saved_pins_count: saved_pins_count
+           saved_pins_count: saved_pins_count,
+           contributions_preview: contributions_preview,
+           contributions_count: contributions_count
          )}
 
       :error ->
@@ -47,11 +60,14 @@ defmodule StorymapWeb.UserLive.Show do
            not_found: true,
            own_profile?: false,
            saved_pins_preview: [],
-           saved_pins_count: 0
+           saved_pins_count: 0,
+           contributions_preview: [],
+           contributions_count: 0
          )}
     end
   end
 
+  @spec own_profile?(Phoenix.LiveView.Socket.t(), integer()) :: boolean()
   defp own_profile?(socket, profile_user_id) do
     case socket.assigns[:current_scope] do
       %{user: %{id: id}} -> id == profile_user_id
@@ -59,6 +75,7 @@ defmodule StorymapWeb.UserLive.Show do
     end
   end
 
+  @spec safe_get_user(String.t() | integer()) :: {:ok, Accounts.User.t()} | :error
   defp safe_get_user(user_id) do
     try do
       {:ok, Accounts.get_user!(user_id)}
