@@ -13,25 +13,44 @@ import type {
 import { BLOB_FIELD_API_SEGMENT, BlobFieldType } from "../utils/blobFieldType"
 import { errorMessageFromResponse } from "../utils/apiErrors"
 
+const JSON_ACCEPT_HEADERS = { Accept: "application/json" } as const
+
+function mergeApiHeaders(headers?: HeadersInit): HeadersInit {
+  return { ...JSON_ACCEPT_HEADERS, ...(headers ?? {}) }
+}
+
 async function readErrorMessage(res: Response): Promise<string> {
   const text = await res.text().catch(() => "")
   return errorMessageFromResponse(res.status, text)
 }
 
-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init)
-  if (!res.ok) {
+function responseLooksLikeHtml(res: Response): boolean {
+  const contentType = res.headers.get("content-type") ?? ""
+  return contentType.includes("text/html")
+}
+
+async function assertApiSuccess(res: Response): Promise<Response> {
+  if (!res.ok || responseLooksLikeHtml(res)) {
     throw new Error(await readErrorMessage(res))
   }
+  return res
+}
+
+async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: mergeApiHeaders(init?.headers),
+  })
+  await assertApiSuccess(res)
   return res.json() as Promise<T>
 }
 
 async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
-  const res = await fetch(url, init)
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res))
-  }
-  return res
+  const res = await fetch(url, {
+    ...init,
+    headers: mergeApiHeaders(init?.headers),
+  })
+  return assertApiSuccess(res)
 }
 
 export function getPinBacklinks(id: number): Promise<{ data: PinLink[] }> {
@@ -207,13 +226,16 @@ export function updatePin(csrf: string | undefined, id: number, changes: UpdateP
 }
 
 export async function deletePin(csrf: string | undefined, id: number): Promise<void> {
-  await fetchRequest(`/api/pins/${id}`, {
+  const res = await fetchRequest(`/api/pins/${id}`, {
     method: "DELETE",
     headers: {
       ...(csrf ? { "x-csrf-token": csrf } : {}),
     },
     credentials: "same-origin",
   })
+  if (res.status !== 204) {
+    throw new Error(errorMessageFromResponse(res.status, ""))
+  }
 }
 
 export function submitReport(

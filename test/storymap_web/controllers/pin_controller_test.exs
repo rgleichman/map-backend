@@ -581,6 +581,160 @@ defmodule StorymapWeb.PinControllerTest do
       conn = delete(conn, ~p"/api/pins/#{pin}")
       assert json_response(conn, 403)["errors"] != %{}
     end
+
+    # React deletePin used to omit Accept (fetch defaults to */*). Unauthenticated
+    # /api deletes must return JSON 401, not an HTML log-in redirect that fetch
+    # would follow to 200 and the client could treat as success.
+    test "unauthenticated delete with browser-like Accept returns 401 JSON", %{pin: pin} do
+      conn =
+        build_conn()
+        |> put_req_header("accept", "*/*")
+        |> delete(~p"/api/pins/#{pin.id}")
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert %Pin{} = Storymap.Pins.get_pin(pin.id)
+    end
+  end
+
+  describe "delete sub-map pin" do
+    setup :register_and_log_in_user
+
+    test "owner deletes their community pin", %{conn: conn, user: user} do
+      import Storymap.SubMapsFixtures
+
+      sub_map = sub_map_fixture(%{"community_url" => "delete-submap-owner"}, user)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: user},
+          sub_map,
+          %{
+            "title" => "Community Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}")
+      assert response(conn, 204)
+      assert is_nil(Storymap.Pins.get_pin(pin.id))
+    end
+
+    test "contributor deletes their approved pin in approval_required community", %{
+      conn: conn,
+      user: contributor
+    } do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "contribution_mode" => "approval_required",
+            "community_url" => "delete-submap-approved"
+          },
+          owner
+        )
+
+      {:ok, _} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: contributor}, sub_map)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Pending Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      {:ok, approved} =
+        Storymap.SubMaps.approve_pin(%Storymap.Accounts.Scope{user: owner}, sub_map, pin.id)
+
+      conn = delete(conn, ~p"/api/pins/#{approved.id}")
+      assert response(conn, 204)
+      assert is_nil(Storymap.Pins.get_pin(approved.id))
+    end
+
+    test "community moderator deletes another member's pin", %{conn: conn, user: owner} do
+      import Storymap.SubMapsFixtures
+
+      contributor = Storymap.AccountsFixtures.user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "delete-submap-mod"}, owner)
+
+      {:ok, _} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: contributor}, sub_map)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: contributor},
+          sub_map,
+          %{
+            "title" => "Member Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}")
+      assert response(conn, 204)
+      assert is_nil(Storymap.Pins.get_pin(pin.id))
+    end
+
+    test "forbids non-owner non-moderator from deleting", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = Storymap.AccountsFixtures.user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "delete-submap-deny"}, owner)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Owner Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}")
+      assert json_response(conn, 403)["errors"] != %{}
+      assert %Pin{} = Storymap.Pins.get_pin(pin.id)
+    end
+
+    test "forbids muted owner from deleting", %{conn: conn, user: user} do
+      import Storymap.SubMapsFixtures
+
+      sub_map = sub_map_fixture(%{"community_url" => "delete-submap-muted"}, user)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: user},
+          sub_map,
+          %{
+            "title" => "Muted Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      muted =
+        Storymap.Repo.update!(Ecto.Changeset.change(user, muted_at: DateTime.utc_now(:second)))
+
+      conn = log_in_user(conn, muted)
+      conn = delete(conn, ~p"/api/pins/#{pin.id}")
+      assert json_response(conn, 403)["errors"] != %{}
+      assert %Pin{} = Storymap.Pins.get_pin(pin.id)
+    end
   end
 
   describe "pin linking" do

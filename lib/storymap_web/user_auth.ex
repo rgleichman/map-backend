@@ -320,8 +320,7 @@ defmodule StorymapWeb.UserAuth do
       if api_request?(conn) do
         conn
         |> put_status(:unauthorized)
-        |> put_view(json: StorymapWeb.ErrorJSON)
-        |> render(:"401")
+        |> json(%{errors: %{detail: "Unauthorized"}})
         |> halt()
       else
         conn
@@ -333,11 +332,21 @@ defmodule StorymapWeb.UserAuth do
     end
   end
 
+  # Prefer JSON 401 for API clients. Browser fetch defaults to Accept: */* and does
+  # not send application/json; path + negotiated format cover /api routes.
   defp api_request?(conn) do
-    case get_req_header(conn, "accept") do
-      [accept | _] -> String.contains?(accept, "application/json")
-      _ -> false
-    end
+    api_path?(conn) or json_format?(conn) or accept_json?(conn)
+  end
+
+  defp api_path?(%Plug.Conn{path_info: ["api" | _]}), do: true
+  defp api_path?(_), do: false
+
+  defp json_format?(conn) do
+    conn.private[:phoenix_format] in ["json", :json]
+  end
+
+  defp accept_json?(conn) do
+    Enum.any?(get_req_header(conn, "accept"), &String.contains?(&1, "application/json"))
   end
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do

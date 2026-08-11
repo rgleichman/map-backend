@@ -364,6 +364,20 @@ defmodule StorymapWeb.UserAuthTest do
       refute conn.halted
       refute conn.status
     end
+
+    # Browser fetch defaults to Accept: */*. /api paths must still get JSON 401,
+    # not an HTML log-in redirect (see pin delete + React deletePin false success).
+    test "returns 401 JSON for unauthenticated /api request with Accept */*", %{conn: conn} do
+      conn =
+        %{conn | path_info: ["api", "pins", "1"]}
+        |> put_req_header("accept", "*/*")
+        |> fetch_flash()
+        |> UserAuth.require_authenticated_user([])
+
+      assert conn.halted
+      assert conn.status == 401
+      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+    end
   end
 
   describe "disconnect_sessions/1" do
