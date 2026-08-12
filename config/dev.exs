@@ -35,6 +35,7 @@ config :storymap, StorymapWeb.Endpoint,
   secret_key_base: "gUwz8gP6NOLhwcUGrDHUje/RS3oRWmh5CQBBi3AzQX5h2ZtQVi2vdsOKMlPua+ec",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:storymap, ~w(--sourcemap=inline --watch)]},
+    esbuild_maplibre_worker: {Esbuild, :install_and_run, [:maplibre_worker, ~w(--watch)]},
     tailwind: {Tailwind, :install_and_run, [:storymap, ~w(--watch)]}
   ]
 
