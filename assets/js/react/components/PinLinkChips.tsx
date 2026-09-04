@@ -37,15 +37,10 @@ export default function PinLinkChips({ links, pins, onNavigate, onRemove, showSo
             title={hint ?? undefined}
             removeLabel={onRemove ? `Remove link to ${title}` : undefined}
             onRemove={onRemove ? () => onRemove(link.pin_id) : undefined}
+            onClick={onNavigate ? () => onNavigate(link.pin_id) : undefined}
           >
             <PinTypeBadge pinType={pinType} catalog={catalog} />
-            <button
-              type="button"
-              className="min-w-0 truncate font-medium hover:underline border-none bg-transparent cursor-pointer p-0 text-inherit pl-0.5"
-              onClick={() => onNavigate?.(link.pin_id)}
-            >
-              {title}
-            </button>
+            <span className="min-w-0 truncate font-medium pl-0.5">{title}</span>
             {cached?.community ? (
               <span className="text-xs text-base-content/70">({cached.community.name})</span>
             ) : null}
