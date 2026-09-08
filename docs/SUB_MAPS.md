@@ -3,7 +3,8 @@
 This document records product and technical decisions for **sub-maps**: user-created,
 community-governed collections of pins with optional visibility on the world map.
 
-Related: [SPEC.md](../SPEC.md) (world map behavior), brainstorm plan (not edited in-repo).
+Related: [SPEC.md](../SPEC.md) (world map behavior), [TRUST.md](TRUST.md)
+(site-wide trust / content moderation strategy).
 
 ---
 
@@ -29,7 +30,12 @@ Related: [SPEC.md](../SPEC.md) (world map behavior), brainstorm plan (not edited
 
 **Tier 2:** pin suggestions (nominate without joining), comments per pin, per-community contributor tab on user profile, mod announcements banner, follow-without-joining, embed widget.
 
-**Tier 3:** reviews/ratings, photo galleries, meetup events, polls, cross-sub-map linking, reputation scores.
+**Tier 3:** reviews/ratings, photo galleries, meetup events, polls, cross-sub-map linking.
+
+**Trust / reputation:** not deferred here — site-wide trust scores, vouching,
+world pending queues, and trust-gated privileges are specified in
+[TRUST.md](TRUST.md) and intentionally supersede older “open world posting /
+mod-only approve / flat rate limits” baselines where they conflict.
 
 **v1 exclusions (decided):**
 

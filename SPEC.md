@@ -4,12 +4,21 @@
 
 Storymap is a collaborative map application where users can add location
 markers (pins) to a shared world map. Users can view all pins, and
-authenticated users can create, edit, and delete their own pins.
+authenticated users can create, edit, and delete their own pins (subject to
+trust and moderation rules below).
 
 Users can also create **sub-maps**: community-owned collections of pins with
 their own rules, moderators, and optional promotion to the world map. See
 [docs/SUB_MAPS.md](docs/SUB_MAPS.md) for the full sub-map design (MVP scope,
 data model, policies, routes).
+
+**Trust (target moderation strategy):** privileges such as posting directly to
+the world map, elevated rate limits, approving pending pins, and vouching for
+other users are gated by a per-user trust score. Trust flows from
+higher-trust users to lower-trust users via vouch and pin-approve signals.
+See [docs/TRUST.md](docs/TRUST.md). Until that system is implemented, shipped
+behavior may still allow any logged-in non-muted user to create approved
+world pins — treat that as legacy relative to TRUST.md.
 
 ## Core Functionality
 
@@ -44,9 +53,12 @@ data model, policies, routes).
     location
   - Non-logged-in users who attempt to add a pin will see a notice prompting
     them to log in
+  - **Target (trust):** direct approved world pins require sufficient trust;
+    lower-trust users submit world pins as pending until a trust-qualified
+    (or role/admin) approver accepts them — see [docs/TRUST.md](docs/TRUST.md)
 - Location can be set or changed by: (1) "Set location on map" then tapping
   the desired point on the map
-  
+   
 #### Editing Pins
 
 - **Requirement**: Users must be logged in to edit pins
