@@ -10,6 +10,7 @@ defmodule Storymap.SubMaps do
   alias Storymap.Pins.{Authorizer, Pin, Query, Visibility}
   alias Storymap.Repo
   alias Storymap.SubMaps.{CommunityTag, Membership, PinTypeSettings, Policy, SubMap}
+  alias Storymap.Trust.Ledger
   alias Storymap.Types
 
   @type counts_map :: %{
@@ -323,6 +324,12 @@ defmodule Storymap.SubMaps do
            pin
            |> Ecto.Changeset.change(%{status: :approved})
            |> Repo.update() do
+      _ =
+        Ledger.record_pin_approve(user.id, pin.user_id, pin.id, %{
+          "sub_map_id" => sub_map.id,
+          "gate" => "community_moderator"
+        })
+
       {:ok, Repo.preload(pin, [:tags, :sub_map])}
     else
       nil -> {:error, :not_found}
