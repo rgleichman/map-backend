@@ -470,10 +470,14 @@ admins know whether a row is stale relative to config.
 
 ## 10. Implementation phases
 
-1. **Ledger + score job + admin readouts** — done (schemas, EigenTrust recompute, admin Users trust column / Recompute trust).
-2. **Emit `pin_approve` from existing approve paths;** add world pending + trust-or-role approve.
-3. **Gate world create and rate-limit bands on `T`.**
-4. **Vouch API + UI;** enforce `T_vouch` and budget \(k\).
-5. **Reject / identity attestations** as follow-on signals.
+1. **Ledger + score job + admin readouts** — done.
+2. **Emit `pin_approve`; world pending + trust-or-role approve** — done (behind `trust_gates_enabled`).
+3. **Gate world create and rate-limit bands on `T`** — done (world gate flagged; rate bands always on for authenticated writes).
+4. **Vouch API + admin UI** — done (`POST/DELETE /api/users/:id/vouch`, admin Vouch button).
+5. **Reject / identity attestations** as follow-on signals — not started.
 
-**Ops:** after deploy of the score job, run `mix trust.recompute` once (or use Admin → Recompute trust) so `user_trust_scores` is populated.
+**Ops:** after deploy, run `mix trust.recompute` once (or Admin → Recompute trust). Enable world/community trust gates with:
+
+```elixir
+config :storymap, Storymap.Trust, trust_gates_enabled: true
+```

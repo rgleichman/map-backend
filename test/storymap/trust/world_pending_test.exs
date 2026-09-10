@@ -22,7 +22,9 @@ defmodule Storymap.Trust.WorldPendingTest do
   end
 
   test "gates off: world create stays approved" do
-    Application.put_env(:storymap, Storymap.Trust,
+    Application.put_env(
+      :storymap,
+      Storymap.Trust,
       Keyword.put(Trust.config(), :trust_gates_enabled, false)
     )
 
@@ -44,7 +46,9 @@ defmodule Storymap.Trust.WorldPendingTest do
   end
 
   test "gates on: low trust world create is pending; high trust is approved" do
-    Application.put_env(:storymap, Storymap.Trust,
+    Application.put_env(
+      :storymap,
+      Storymap.Trust,
       Keyword.merge(Trust.config(), trust_gates_enabled: true, t_world: 0.55)
     )
 
@@ -81,7 +85,9 @@ defmodule Storymap.Trust.WorldPendingTest do
   end
 
   test "trust-qualified non-mod can approve community pending when gates on" do
-    Application.put_env(:storymap, Storymap.Trust,
+    Application.put_env(
+      :storymap,
+      Storymap.Trust,
       Keyword.merge(Trust.config(), trust_gates_enabled: true, t_approve: 0.70)
     )
 
@@ -119,7 +125,9 @@ defmodule Storymap.Trust.WorldPendingTest do
   end
 
   test "world approve by admin emits ledger and publishes" do
-    Application.put_env(:storymap, Storymap.Trust,
+    Application.put_env(
+      :storymap,
+      Storymap.Trust,
       Keyword.merge(Trust.config(), trust_gates_enabled: true, t_world: 0.55)
     )
 
