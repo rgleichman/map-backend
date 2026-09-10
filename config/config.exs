@@ -79,6 +79,28 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Site-wide trust scores (docs/TRUST.md). Gates stay off until ledger + scores ship.
+config :storymap, Storymap.Trust,
+  trust_gates_enabled: false,
+  eigen_a: 0.85,
+  half_life_days: 180.0,
+  alpha: 0.85,
+  beta: 0.15,
+  w_vouch: 1.0,
+  w_approve: 0.5,
+  vouch_budget_k: 5,
+  t_world: 0.55,
+  t_approve: 0.70,
+  t_vouch: 0.60,
+  email_confirmed_bonus: 0.2,
+  bootstrap_user_ids: [],
+  recompute_interval_ms: 300_000,
+  rate_limit_bands: [
+    {0.0, 0.30, 20},
+    {0.30, 0.60, 60},
+    {0.60, 1.01, 120}
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
