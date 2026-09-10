@@ -202,7 +202,11 @@ export function usePinWorkflow({
           const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, pinData, result)
           updateOrAddPin(pinWithBlobs)
           if (pinWithBlobs.status === PinStatusValue.Pending) {
-            setInfoMessage?.("Submitted — awaiting community approval")
+            setInfoMessage?.(
+              communityUrl
+                ? "Submitted — awaiting community approval"
+                : "Submitted — awaiting trust approval before it appears on the world map"
+            )
           }
           dispatch({ type: "after_add_saved" })
           setPendingNearLocationSave(null)

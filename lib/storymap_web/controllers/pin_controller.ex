@@ -12,7 +12,7 @@ defmodule StorymapWeb.PinController do
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     current_user = ConnAuth.current_user(conn)
-    pins = Pins.list_pins()
+    pins = Pins.list_pins(current_user)
     render(conn, :index, pins: pins, current_user: current_user)
   end
 
