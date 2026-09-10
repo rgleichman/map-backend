@@ -96,4 +96,23 @@ defmodule StorymapWeb.AdminLive.UsersTest do
     assert has_element?(view, "#users-#{target.id}-pins a[href='/map?pin=#{pin1.id}']")
     assert has_element?(view, "#users-#{target.id}-pins a[href='/map?pin=#{pin2.id}']")
   end
+
+  test "admin sees trust column and can recompute trust", %{conn: conn} do
+    admin = AccountsFixtures.user_fixture()
+    admin = Repo.update!(Ecto.Changeset.change(admin, admin_level: 10))
+    target = AccountsFixtures.user_fixture()
+
+    conn = log_in_user(conn, admin)
+    {:ok, view, _html} = live(conn, ~p"/admin/users")
+
+    assert has_element?(view, "#recompute-trust")
+    assert has_element?(view, "#user-#{target.id}-trust")
+
+    view
+    |> element("#recompute-trust")
+    |> render_click()
+
+    assert has_element?(view, "#user-#{target.id}-trust", "social")
+    assert has_element?(view, "tr#users-#{admin.id}", "Seed")
+  end
 end
