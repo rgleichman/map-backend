@@ -27,8 +27,9 @@ defmodule StorymapWeb.Plugs.RateLimit do
   def call(conn, %{limit: limit, window_sec: window_sec, format: format, bucket: bucket}) do
     if enabled?() do
       key = key(conn, bucket)
+      effective_limit = effective_limit(conn, bucket, limit)
 
-      case check(key, limit, window_sec) do
+      case check(key, effective_limit, window_sec) do
         :allow -> conn
         :limit_exceeded -> halt_with_429(conn, format)
       end
@@ -36,6 +37,39 @@ defmodule StorymapWeb.Plugs.RateLimit do
       conn
     end
   end
+
+  @doc """
+  Resolve write limit for an authenticated user from trust bands.
+  Missing score → Mid band (default `limit` from plug opts, typically 60).
+  """
+  @spec write_limit_for_user(integer(), pos_integer()) :: pos_integer()
+  def write_limit_for_user(user_id, default_limit) when is_integer(user_id) do
+    case Storymap.Trust.get_score(user_id) do
+      nil ->
+        default_limit
+
+      %{t_effective: t} ->
+        bands =
+          Storymap.Trust.config(:rate_limit_bands, [
+            {0.0, 0.30, 20},
+            {0.30, 0.60, 60},
+            {0.60, 1.01, 120}
+          ])
+
+        Enum.find_value(bands, default_limit, fn {lo, hi, band_limit} ->
+          if t >= lo and t < hi, do: band_limit
+        end)
+    end
+  end
+
+  defp effective_limit(conn, "api_writes", default_limit) do
+    case conn.assigns[:current_scope] do
+      %{user: %{id: id}} when is_integer(id) -> write_limit_for_user(id, default_limit)
+      _ -> default_limit
+    end
+  end
+
+  defp effective_limit(_conn, _bucket, default_limit), do: default_limit
 
   @doc """
   Fixed-window limit for Help page contact form submissions, keyed by client IP string.
