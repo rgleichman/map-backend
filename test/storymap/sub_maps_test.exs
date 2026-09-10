@@ -46,6 +46,55 @@ defmodule Storymap.SubMapsTest do
     assert [_] = SubMaps.list_public(q: "bbq")
   end
 
+  test "list_for_user/1 returns active memberships including unlisted" do
+    owner = user_fixture()
+    member = user_fixture()
+    other = user_fixture()
+
+    owned = sub_map_fixture(%{"community_url" => "owned-public", "name" => "Owned Public"}, owner)
+
+    _unlisted =
+      sub_map_fixture(
+        %{
+          "community_url" => "owned-unlisted",
+          "name" => "Owned Unlisted",
+          "visibility" => "unlisted"
+        },
+        owner
+      )
+
+    joined =
+      sub_map_fixture(%{"community_url" => "joined-public", "name" => "Joined Public"}, other)
+
+    {:ok, _} = SubMaps.join(%Scope{user: member}, joined)
+
+    banned_map =
+      sub_map_fixture(%{"community_url" => "banned-from", "name" => "Banned From"}, other)
+
+    {:ok, banned_membership} = SubMaps.join(%Scope{user: member}, banned_map)
+
+    {:ok, _} =
+      banned_membership
+      |> Storymap.SubMaps.Membership.changeset(%{"status" => "banned"})
+      |> Storymap.Repo.update()
+
+    owner_list = SubMaps.list_for_user(%Scope{user: owner})
+    owner_urls = Enum.map(owner_list, & &1.sub_map.community_url)
+    assert "owned-public" in owner_urls
+    assert "owned-unlisted" in owner_urls
+    refute "joined-public" in owner_urls
+    assert Enum.all?(owner_list, &(&1.role == :owner))
+
+    member_list = SubMaps.list_for_user(%Scope{user: member})
+    member_urls = Enum.map(member_list, & &1.sub_map.community_url)
+    assert "joined-public" in member_urls
+    refute "banned-from" in member_urls
+    refute "owned-public" in member_urls
+
+    refute Enum.any?(SubMaps.list_public(), &(&1.community_url == "owned-unlisted"))
+    assert Enum.any?(SubMaps.list_public(), &(&1.id == owned.id))
+  end
+
   test "create_pin_in_sub_map/3 adds community tag" do
     owner = user_fixture()
 

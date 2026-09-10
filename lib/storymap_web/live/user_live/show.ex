@@ -2,11 +2,14 @@ defmodule StorymapWeb.UserLive.Show do
   use StorymapWeb, :live_view
 
   alias Storymap.Accounts
+  alias Storymap.Accounts.Scope
   alias Storymap.Pins
   alias Storymap.Pins.{HeartAuthorizer, Hearts}
+  alias Storymap.SubMaps
 
   @profile_saved_preview_limit 5
   @profile_contributions_preview_limit 5
+  @profile_communities_preview_limit 5
 
   @impl true
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
@@ -43,6 +46,20 @@ defmodule StorymapWeb.UserLive.Show do
             {[], 0}
           end
 
+        {communities_preview, communities_count} =
+          if own_profile? do
+            case socket.assigns[:current_scope] do
+              %Scope{user: %{}} = scope ->
+                all = SubMaps.list_for_user(scope)
+                {Enum.take(all, @profile_communities_preview_limit), length(all)}
+
+              _ ->
+                {[], 0}
+            end
+          else
+            {[], 0}
+          end
+
         {:ok,
          assign(socket,
            user: safe_user_data,
@@ -51,7 +68,9 @@ defmodule StorymapWeb.UserLive.Show do
            saved_pins_preview: saved_pins_preview,
            saved_pins_count: saved_pins_count,
            contributions_preview: contributions_preview,
-           contributions_count: contributions_count
+           contributions_count: contributions_count,
+           communities_preview: communities_preview,
+           communities_count: communities_count
          )}
 
       :error ->
@@ -62,7 +81,9 @@ defmodule StorymapWeb.UserLive.Show do
            saved_pins_preview: [],
            saved_pins_count: 0,
            contributions_preview: [],
-           contributions_count: 0
+           contributions_count: 0,
+           communities_preview: [],
+           communities_count: 0
          )}
     end
   end

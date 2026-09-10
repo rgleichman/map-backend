@@ -104,6 +104,51 @@
                 <% end %>
               <% end %>
             </div>
+
+            <div class="mt-8 pt-6 border-t border-base-300">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 class="text-lg font-semibold text-base-content">Communities</h2>
+                <%= if @communities_count > 0 do %>
+                  <.link navigate={~p"/m"} class="link link-primary text-sm font-medium">
+                    See all ({@communities_count})
+                  </.link>
+                <% end %>
+              </div>
+
+              <%= if @communities_preview == [] do %>
+                <p class="text-sm text-base-content/70">
+                  You have not joined any communities yet. Only you can see this list.
+                  <.link navigate={~p"/m"} class="link link-primary">Browse communities</.link>
+                  to find one.
+                </p>
+              <% else %>
+                <p class="text-sm text-base-content/70 mb-3">Only you can see this list.</p>
+                <ul class="space-y-2">
+                  <%= for membership <- @communities_preview do %>
+                    <li id={"profile-community-#{membership.sub_map.id}"}>
+                      <.link
+                        navigate={~p"/m/#{membership.sub_map.community_url}/map"}
+                        class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-base-200 transition-colors"
+                      >
+                        <span class="font-medium text-base-content truncate">
+                          {membership.sub_map.name}
+                        </span>
+                        <%= if membership.role in [:owner, :moderator] do %>
+                          <span class="badge badge-sm badge-outline capitalize shrink-0">
+                            {membership.role}
+                          </span>
+                        <% end %>
+                      </.link>
+                    </li>
+                  <% end %>
+                </ul>
+                <%= if @communities_count > length(@communities_preview) do %>
+                  <.button navigate={~p"/m"} variant="ghost" size="sm" class="mt-4">
+                    See all communities
+                  </.button>
+                <% end %>
+              <% end %>
+            </div>
           <% end %>
         </div>
       </div>

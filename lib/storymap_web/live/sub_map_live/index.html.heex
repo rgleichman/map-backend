@@ -25,6 +25,41 @@
       </div>
     </div>
 
+    <%= if @my_memberships != [] do %>
+      <section id="my-communities" class="mb-10 space-y-4">
+        <div class="space-y-1">
+          <h2 class="text-xl font-semibold text-base-content">Your communities</h2>
+          <p class="text-sm text-base-content/70">
+            Only you can see this list.
+          </p>
+        </div>
+        <ul id="my-communities-list" class="grid gap-4 sm:grid-cols-2">
+          <%= for membership <- @my_memberships do %>
+            <li id={"my-community-#{membership.sub_map.id}"}>
+              <.link
+                navigate={~p"/m/#{membership.sub_map.community_url}/map"}
+                class="card bg-base-200/50 border border-base-300 hover:border-primary/40 transition-colors"
+              >
+                <div class="card-body">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="card-title text-lg">{membership.sub_map.name}</h3>
+                    <%= if membership.role in [:owner, :moderator] do %>
+                      <span class="badge badge-sm badge-outline capitalize">
+                        {membership.role}
+                      </span>
+                    <% end %>
+                  </div>
+                  <p class="text-sm text-base-content/70 line-clamp-2">
+                    {membership.sub_map.description}
+                  </p>
+                </div>
+              </.link>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+
     <form id="sub-maps-search" phx-change="search" class="mb-8">
       <label for="sub-maps-search-input" class="sr-only">Search communities</label>
       <input

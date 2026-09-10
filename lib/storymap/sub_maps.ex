@@ -57,6 +57,23 @@ defmodule Storymap.SubMaps do
     Repo.get_by(Membership, sub_map_id: sub_map_id, user_id: user_id)
   end
 
+  @doc """
+  Lists communities the scoped user actively belongs to (newest membership first).
+
+  **Private:** results must only be shown to that same user (own profile or the
+  signed-in `/m` "Your communities" section). Includes unlisted communities the
+  user belongs to. Omits banned and pending memberships.
+  """
+  @spec list_for_user(Scope.t()) :: [Membership.t()]
+  def list_for_user(%Scope{user: %User{id: user_id}}) do
+    from(m in Membership,
+      where: m.user_id == ^user_id and m.status == ^:active,
+      order_by: [desc: m.inserted_at],
+      preload: [:sub_map]
+    )
+    |> Repo.all()
+  end
+
   @spec list_public(keyword()) :: [SubMap.t()]
   def list_public(opts \\ []) do
     q = Keyword.get(opts, :q, "") |> to_string() |> String.trim()
