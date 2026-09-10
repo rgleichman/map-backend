@@ -11,6 +11,7 @@ defmodule Storymap.Pins.Authorizer do
   alias Storymap.SubMaps.SubMap
   alias Storymap.SubMaps.Policy, as: SubMapPolicy
   alias Storymap.SubMaps.Membership
+  alias Storymap.Trust.Policy, as: TrustPolicy
   alias Storymap.Types
 
   @spec authorize_create(User.t()) :: Types.authorize_result()
@@ -57,6 +58,9 @@ defmodule Storymap.Pins.Authorizer do
       Visibility.world_visible?(pin) ->
         :ok
 
+      world_pending_visible?(user, pin) ->
+        :ok
+
       match?(%User{}, user) && site_pin_moderator?(user) ->
         :ok
 
@@ -69,6 +73,13 @@ defmodule Storymap.Pins.Authorizer do
         {:error, :not_found}
     end
   end
+
+  defp world_pending_visible?(%User{} = user, %Pin{sub_map_id: nil, status: status} = pin)
+       when status in [:pending, :rejected] do
+    pin.user_id == user.id or TrustPolicy.can_approve_world?(user)
+  end
+
+  defp world_pending_visible?(_, _), do: false
 
   @spec can_edit_in_json?(User.t(), Pin.t(), keyword()) :: boolean()
   def can_edit_in_json?(%User{} = user, %Pin{} = pin, opts \\ []) do

@@ -98,6 +98,14 @@ defmodule Storymap.Pins.Query do
     )
   end
 
+  @spec pending_world_pins(Ecto.Query.t()) :: Ecto.Query.t()
+  def pending_world_pins(query \\ base()) do
+    from(p in query,
+      where: is_nil(p.sub_map_id) and p.status == ^:pending,
+      order_by: [asc: p.inserted_at]
+    )
+  end
+
   @spec by_user(integer(), Ecto.Query.t()) :: Ecto.Query.t()
   def by_user(user_id, query \\ base()) do
     from(p in query,

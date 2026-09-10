@@ -11,6 +11,7 @@ defmodule Storymap.SubMaps do
   alias Storymap.Repo
   alias Storymap.SubMaps.{CommunityTag, Membership, PinTypeSettings, Policy, SubMap}
   alias Storymap.Trust.Ledger
+  alias Storymap.Trust.Policy, as: TrustPolicy
   alias Storymap.Types
 
   @type counts_map :: %{
@@ -319,15 +320,20 @@ defmodule Storymap.SubMaps do
   def approve_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
     with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
          membership <- get_membership(sub_map.id, user.id),
-         true <- Policy.can_moderate?(user, sub_map, membership),
+         true <- TrustPolicy.can_approve_community_pin?(user, sub_map, membership),
          {:ok, pin} <-
            pin
            |> Ecto.Changeset.change(%{status: :approved})
            |> Repo.update() do
+      gate =
+        if Policy.can_moderate?(user, sub_map, membership),
+          do: "community_moderator",
+          else: "trust"
+
       _ =
         Ledger.record_pin_approve(user.id, pin.user_id, pin.id, %{
           "sub_map_id" => sub_map.id,
-          "gate" => "community_moderator"
+          "gate" => gate
         })
 
       {:ok, Repo.preload(pin, [:tags, :sub_map])}
@@ -343,7 +349,7 @@ defmodule Storymap.SubMaps do
   def reject_pin(%Scope{user: user}, %SubMap{} = sub_map, pin_id) do
     with %Pin{} = pin <- get_sub_map_pin(sub_map, pin_id),
          membership <- get_membership(sub_map.id, user.id),
-         true <- Policy.can_moderate?(user, sub_map, membership),
+         true <- TrustPolicy.can_approve_community_pin?(user, sub_map, membership),
          {:ok, pin} <-
            pin
            |> Ecto.Changeset.change(%{status: :rejected})
