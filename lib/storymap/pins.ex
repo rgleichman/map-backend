@@ -24,6 +24,9 @@ defmodule Storymap.Pins do
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
   alias Storymap.SubMaps
   alias Storymap.SubMaps.{PinTypeSettings, SubMap}
+  alias Storymap.Trust
+  alias Storymap.Trust.Ledger
+  alias Storymap.Trust.Policy, as: TrustPolicy
   alias Storymap.Types
 
   @blob_field_types BlobFieldType.values()
@@ -56,6 +59,55 @@ defmodule Storymap.Pins do
     case Repo.get(Pin, id) do
       nil -> nil
       %Pin{} = pin -> preload_pin_associations(pin)
+    end
+  end
+
+  @spec list_pending_world_pins() :: [Pin.t()]
+  def list_pending_world_pins do
+    Query.pending_world_pins()
+    |> Repo.all()
+    |> Repo.preload(Query.list_preloads())
+  end
+
+  @spec approve_world_pin(User.t(), integer()) ::
+          Types.ecto_ok(Pin.t()) | Types.forbidden() | {:error, :not_found}
+  def approve_world_pin(%User{} = user, pin_id) when is_integer(pin_id) do
+    with %Pin{sub_map_id: nil, status: :pending} = pin <- get_pin(pin_id),
+         true <- TrustPolicy.can_approve_world?(user),
+         {:ok, pin} <-
+           pin
+           |> Ecto.Changeset.change(%{status: :approved})
+           |> Repo.update() do
+      _ =
+        Ledger.record_pin_approve(user.id, pin.user_id, pin.id, %{
+          "scope" => "world",
+          "gate" => "trust_or_admin"
+        })
+
+      {:ok, preload_pin_associations(pin)}
+    else
+      nil -> {:error, :not_found}
+      %Pin{} -> {:error, :not_found}
+      false -> {:error, :forbidden}
+      {:error, _} = err -> err
+    end
+  end
+
+  @spec reject_world_pin(User.t(), integer()) ::
+          Types.ecto_ok(Pin.t()) | Types.forbidden() | {:error, :not_found}
+  def reject_world_pin(%User{} = user, pin_id) when is_integer(pin_id) do
+    with %Pin{sub_map_id: nil, status: :pending} = pin <- get_pin(pin_id),
+         true <- TrustPolicy.can_approve_world?(user),
+         {:ok, pin} <-
+           pin
+           |> Ecto.Changeset.change(%{status: :rejected})
+           |> Repo.update() do
+      {:ok, preload_pin_associations(pin)}
+    else
+      nil -> {:error, :not_found}
+      %Pin{} -> {:error, :not_found}
+      false -> {:error, :forbidden}
+      {:error, _} = err -> err
     end
   end
 
@@ -505,12 +557,27 @@ defmodule Storymap.Pins do
     |> maybe_put_boolean(:visible_on_world_map, visible)
   end
 
-  defp maybe_put_privileged_create_fields(changeset, nil, _attrs) do
+  defp maybe_put_privileged_create_fields(changeset, nil, attrs) do
+    status = world_create_status(Map.get(attrs, "user_id"))
+
     changeset
     |> Ecto.Changeset.put_change(:sub_map_id, nil)
-    |> Ecto.Changeset.put_change(:status, :approved)
+    |> Ecto.Changeset.put_change(:status, status)
     |> Ecto.Changeset.put_change(:visible_on_world_map, true)
   end
+
+  defp world_create_status(user_id) when is_integer(user_id) do
+    user = Repo.get(User, user_id)
+
+    cond do
+      is_nil(user) -> :approved
+      TrustPolicy.can_direct_world_post?(user) -> :approved
+      Trust.gates_enabled?() -> :pending
+      true -> :approved
+    end
+  end
+
+  defp world_create_status(_), do: :approved
 
   defp maybe_put_visible_on_world_map(changeset, attrs) do
     case Map.get(attrs, "visible_on_world_map") do
