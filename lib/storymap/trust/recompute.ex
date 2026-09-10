@@ -2,6 +2,8 @@ defmodule Storymap.Trust.Recompute do
   @moduledoc false
   use GenServer
 
+  require Logger
+
   alias Storymap.Trust
   alias Storymap.Trust.Scores
 
@@ -12,10 +14,15 @@ defmodule Storymap.Trust.Recompute do
 
   @doc """
   Request a recompute soon (debounced via GenServer cast).
+  No-ops when `recompute_on_events` is false (test default).
   """
   @spec schedule_soon() :: :ok
   def schedule_soon do
-    GenServer.cast(__MODULE__, :recompute_soon)
+    if Trust.config(:recompute_on_events, true) do
+      GenServer.cast(__MODULE__, :recompute_soon)
+    else
+      :ok
+    end
   catch
     :exit, _ -> :ok
   end
@@ -36,13 +43,13 @@ defmodule Storymap.Trust.Recompute do
 
   @impl true
   def handle_info(:periodic, state) do
-    _ = Scores.recompute_all()
+    _ = safe_recompute()
     schedule_periodic()
     {:noreply, state}
   end
 
   def handle_info(:recompute_now, state) do
-    _ = Scores.recompute_all()
+    _ = safe_recompute()
     {:noreply, state}
   end
 
@@ -50,6 +57,14 @@ defmodule Storymap.Trust.Recompute do
   def handle_cast(:recompute_soon, state) do
     Process.send_after(self(), :recompute_now, 2_000)
     {:noreply, state}
+  end
+
+  defp safe_recompute do
+    Scores.recompute_all()
+  rescue
+    e in [DBConnection.OwnershipError, DBConnection.ConnectionError] ->
+      Logger.debug("trust recompute skipped: #{Exception.message(e)}")
+      {:error, :skipped}
   end
 
   defp schedule_periodic do

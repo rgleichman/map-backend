@@ -163,6 +163,9 @@ defmodule StorymapWeb.Router do
     post "/pins/:id/approve", PinController, :approve
     post "/pins/:id/reject", PinController, :reject
 
+    post "/users/:id/vouch", VouchController, :create
+    delete "/users/:id/vouch", VouchController, :delete
+
     post "/pins/:id/heart", PinHeartController, :create
     delete "/pins/:id/heart", PinHeartController, :delete
   end

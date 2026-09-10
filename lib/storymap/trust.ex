@@ -8,6 +8,7 @@ defmodule Storymap.Trust do
 
   alias Storymap.Trust.Scores
   alias Storymap.Trust.UserTrustScore
+  alias Storymap.Trust.Vouches
 
   @spec config() :: keyword()
   def config do
@@ -47,4 +48,15 @@ defmodule Storymap.Trust do
   def seed_user?(user_id) when is_integer(user_id) do
     user_id in Scores.seed_user_ids()
   end
+
+  @spec vouch(Storymap.Accounts.User.t(), integer()) ::
+          {:ok, Storymap.Trust.TrustVouch.t()} | Vouches.vouch_error()
+  def vouch(actor, subject_id), do: Vouches.vouch(actor, subject_id)
+
+  @spec revoke_vouch(Storymap.Accounts.User.t(), integer()) ::
+          {:ok, :revoked} | Vouches.vouch_error()
+  def revoke_vouch(actor, subject_id), do: Vouches.revoke_vouch(actor, subject_id)
+
+  @spec vouch_budget_remaining(integer()) :: non_neg_integer()
+  def vouch_budget_remaining(actor_id), do: Vouches.vouch_budget_remaining(actor_id)
 end

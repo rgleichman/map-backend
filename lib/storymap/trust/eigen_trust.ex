@@ -10,7 +10,12 @@ defmodule Storymap.Trust.EigenTrust do
   `p` is a map of `user_id => prior` (sums to 1).
   `user_ids` is the full user id list.
   """
-  @spec iterate(%{{integer(), integer()} => float()}, %{integer() => float()}, [integer()], keyword()) ::
+  @spec iterate(
+          %{{integer(), integer()} => float()},
+          %{integer() => float()},
+          [integer()],
+          keyword()
+        ) ::
           %{integer() => float()}
   def iterate(c, p, user_ids, opts \\ []) do
     a = Keyword.get(opts, :a, 0.85)

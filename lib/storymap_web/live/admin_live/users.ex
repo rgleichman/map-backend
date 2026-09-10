@@ -77,6 +77,34 @@ defmodule StorymapWeb.AdminLive.Users do
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   @impl true
+  def handle_event("vouch_user", %{"id" => id}, socket) do
+    current_user = Accounts.get_user!(socket.assigns.current_scope.user.id)
+    subject_id = String.to_integer(id)
+
+    case Trust.vouch(current_user, subject_id) do
+      {:ok, _} ->
+        {:noreply, put_flash(socket, :info, "Vouched for user ##{subject_id}.")}
+
+      {:error, :forbidden} ->
+        {:noreply, put_flash(socket, :error, "You cannot vouch (trust or mute).")}
+
+      {:error, :vouch_budget} ->
+        {:noreply, put_flash(socket, :error, "Vouch budget exhausted.")}
+
+      {:error, :already_vouched} ->
+        {:noreply, put_flash(socket, :error, "Already vouched for this user.")}
+
+      {:error, :self_vouch} ->
+        {:noreply, put_flash(socket, :error, "Cannot vouch for yourself.")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not vouch.")}
+    end
+  end
+
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
+  @impl true
   def handle_event("recompute_trust", _params, socket) do
     current_user = Accounts.get_user!(socket.assigns.current_scope.user.id)
 
@@ -344,6 +372,18 @@ defmodule StorymapWeb.AdminLive.Users do
                     >
                       Seed
                     </span>
+                    <.button
+                      :if={user.id != @current_scope.user.id}
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      class="ml-1"
+                      id={"vouch-user-#{user.id}"}
+                      phx-click="vouch_user"
+                      phx-value-id={user.id}
+                    >
+                      Vouch
+                    </.button>
                   </td>
                   <td>
                     <%= if user.confirmed_at do %>
@@ -387,8 +427,8 @@ defmodule StorymapWeb.AdminLive.Users do
                     <% score = Map.get(@trust_by_user_id, user.id) %>
                     <div class="font-mono text-sm">{format_trust(score)}</div>
                     <div :if={score} class="text-xs opacity-70 mt-1">
-                      social {:erlang.float_to_binary(score.t_social_cal * 1.0, decimals: 2)}
-                      · id {:erlang.float_to_binary(score.t_id * 1.0, decimals: 2)}
+                      social {:erlang.float_to_binary(score.t_social_cal * 1.0, decimals: 2)} · id {:erlang.float_to_binary(
+                        score.t_id * 1.0, decimals: 2)}
                     </div>
                   </td>
                   <td class="w-32 align-top">
