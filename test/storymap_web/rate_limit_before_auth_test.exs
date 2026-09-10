@@ -51,8 +51,11 @@ defmodule StorymapWeb.RateLimitBeforeAuthTest do
 
   test "authenticated API writes use a separate user bucket from IP" do
     user = user_fixture()
-    limit = 2
-    rate_opts = RateLimit.init(bucket: "api_writes", limit: limit, window_sec: 60, format: :json)
+    Storymap.TrustFixtures.put_trust_score!(user.id, 0.1)
+    limit = RateLimit.write_limit_for_user(user.id, 60)
+    assert limit == 20
+
+    rate_opts = RateLimit.init(bucket: "api_writes", limit: 60, window_sec: 60, format: :json)
 
     authed =
       build_conn(:post, "/api/pins")
@@ -75,6 +78,18 @@ defmodule StorymapWeb.RateLimitBeforeAuthTest do
 
     conn = RateLimit.call(anon, rate_opts)
     refute conn.halted
+  end
+
+  test "api_writes trust bands: mid and high" do
+    mid_user = user_fixture()
+    high_user = user_fixture()
+    Storymap.TrustFixtures.put_trust_score!(mid_user.id, 0.45)
+    Storymap.TrustFixtures.put_trust_score!(high_user.id, 0.80)
+
+    assert RateLimit.write_limit_for_user(mid_user.id, 60) == 60
+    assert RateLimit.write_limit_for_user(high_user.id, 60) == 120
+    # missing score → mid default
+    assert RateLimit.write_limit_for_user(user_fixture().id, 60) == 60
   end
 
   test "API write route returns 429 before auth when IP bucket is exhausted", %{conn: conn} do
