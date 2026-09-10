@@ -14,6 +14,7 @@ defmodule Storymap.Application do
       {DNSCluster, query: Application.get_env(:storymap, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Storymap.PubSub},
       Storymap.RateLimitPurge,
+      Storymap.Trust.Recompute,
       # Start a worker by calling: Storymap.Worker.start_link(arg)
       # {Storymap.Worker, arg},
       # Start to serve requests, typically the last entry
