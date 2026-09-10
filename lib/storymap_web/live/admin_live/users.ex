@@ -1,11 +1,15 @@
 defmodule StorymapWeb.AdminLive.Users do
   use StorymapWeb, :live_view
 
+  import Ecto.Query
+
   alias Storymap.AdminActivity
   alias Storymap.Accounts
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.Pins
+  alias Storymap.Trust
+  alias Storymap.Trust.UserTrustScore
 
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   @impl true
@@ -17,7 +21,36 @@ defmodule StorymapWeb.AdminLive.Users do
      |> assign(:page_title, "Admin · Users")
      |> assign(:expanded_user_ids, MapSet.new())
      |> assign(:pins_by_user_id, %{})
+     |> assign(:trust_by_user_id, load_trust_by_user_id(users))
      |> stream(:users, users)}
+  end
+
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
+  @impl true
+  def handle_event("recompute_trust", _params, socket) do
+    current_user = Accounts.get_user!(socket.assigns.current_scope.user.id)
+
+    if current_user.admin_level < 10 do
+      {:noreply,
+       socket
+       |> put_flash(:error, "You are not authorized to recompute trust.")
+       |> push_navigate(to: ~p"/")}
+    else
+      {:ok, count} = Trust.recompute_all()
+      users = Accounts.list_users_for_admin(socket.assigns.current_scope)
+
+      _ =
+        AdminActivity.record_event("trust_recomputed", current_user.id, %{
+          "user_count" => count
+        })
+
+      {:noreply,
+       socket
+       |> assign(:trust_by_user_id, load_trust_by_user_id(users))
+       |> stream(:users, users, reset: true)
+       |> put_flash(:info, "Recomputed trust for #{count} user(s).")}
+    end
   end
 
   @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
@@ -161,6 +194,20 @@ defmodule StorymapWeb.AdminLive.Users do
   defp mute_flash_message(%User{id: id, muted_at: nil}), do: "Unmuted user #{id}."
   defp mute_flash_message(%User{id: id}), do: "Muted user #{id}."
 
+  defp load_trust_by_user_id(users) do
+    ids = Enum.map(users, & &1.id)
+
+    from(s in UserTrustScore, where: s.user_id in ^ids)
+    |> Storymap.Repo.all()
+    |> Map.new(&{&1.user_id, &1})
+  end
+
+  defp format_trust(nil), do: "—"
+
+  defp format_trust(%UserTrustScore{} = score) do
+    :erlang.float_to_binary(score.t_effective * 1.0, decimals: 3)
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -169,8 +216,17 @@ defmodule StorymapWeb.AdminLive.Users do
         <div class="flex items-start justify-between gap-4">
           <div>
             <h1 class="text-2xl font-semibold tracking-tight">Admin dashboard</h1>
-            <p class="text-sm opacity-80 mt-1">Manage user admin levels (0..10).</p>
+            <p class="text-sm opacity-80 mt-1">Manage user admin levels (0..10) and trust scores.</p>
           </div>
+          <.button
+            id="recompute-trust"
+            type="button"
+            variant="ghost"
+            size="sm"
+            phx-click="recompute_trust"
+          >
+            Recompute trust
+          </.button>
         </div>
 
         <div class="mt-6">
@@ -181,13 +237,22 @@ defmodule StorymapWeb.AdminLive.Users do
                   <th>User</th>
                   <th>Confirmed</th>
                   <th>Muted</th>
+                  <th>Trust</th>
                   <th>Pins</th>
                   <th>Admin level</th>
                 </tr>
               </thead>
               <tbody id="admin-users" phx-update="stream">
                 <tr :for={{dom_id, user} <- @streams.users} id={dom_id}>
-                  <td class="font-medium">{"#"}{user.id}</td>
+                  <td class="font-medium">
+                    {"#"}{user.id}
+                    <span
+                      :if={Trust.seed_user?(user.id)}
+                      class="badge badge-info badge-outline badge-sm ml-1"
+                    >
+                      Seed
+                    </span>
+                  </td>
                   <td>
                     <%= if user.confirmed_at do %>
                       <span class="badge badge-success badge-outline">Yes</span>
@@ -225,6 +290,14 @@ defmodule StorymapWeb.AdminLive.Users do
                         </.button>
                       </div>
                     <% end %>
+                  </td>
+                  <td class="w-40 align-top" id={"user-#{user.id}-trust"}>
+                    <% score = Map.get(@trust_by_user_id, user.id) %>
+                    <div class="font-mono text-sm">{format_trust(score)}</div>
+                    <div :if={score} class="text-xs opacity-70 mt-1">
+                      social {:erlang.float_to_binary(score.t_social_cal * 1.0, decimals: 2)}
+                      · id {:erlang.float_to_binary(score.t_id * 1.0, decimals: 2)}
+                    </div>
                   </td>
                   <td class="w-32 align-top">
                     <.button
