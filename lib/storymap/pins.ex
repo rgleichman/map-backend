@@ -40,8 +40,36 @@ defmodule Storymap.Pins do
 
   @spec list_pins() :: [Pin.t()]
   def list_pins do
+    list_pins(nil)
+  end
+
+  @doc """
+  World-visible approved pins, plus the viewer's own pending/rejected world pins
+  when `user` is given (so creators see submissions awaiting trust approval).
+  """
+  @spec list_pins(User.t() | nil) :: [Pin.t()]
+  def list_pins(nil) do
     Query.world_pins()
     |> Repo.all()
+    |> Repo.preload(Query.list_preloads())
+  end
+
+  def list_pins(%User{id: user_id}) do
+    approved =
+      Query.world_pins()
+      |> Repo.all()
+
+    own_pending =
+      from(p in Pin,
+        where:
+          is_nil(p.sub_map_id) and p.user_id == ^user_id and
+            p.status in [^:pending, ^:rejected],
+        order_by: [desc: p.updated_at]
+      )
+      |> Repo.all()
+
+    (approved ++ own_pending)
+    |> Enum.uniq_by(& &1.id)
     |> Repo.preload(Query.list_preloads())
   end
 

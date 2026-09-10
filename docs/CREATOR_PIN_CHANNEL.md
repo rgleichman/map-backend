@@ -37,7 +37,8 @@ flowchart TB
 | Payload | Same as public/mod: `marker_added` / `marker_updated` with `PinJSON.data/1` (or `data_with_user` if client needs `created_by_me` on channel upserts — prefer enriching for this topic so React badges/outlines stay correct), and `marker_deleted` with `%{pin_id: id}` |
 | Which pins | Sub-map pins where `pin.user_id == topic user_id` and `status in [:pending, :rejected]` for upserts; true deletes and transitions **out** of creator-only visibility still send `marker_deleted` on this topic when appropriate |
 | Public/mod channels | Unchanged semantics (approved public; approved+pending mod). Do **not** put pending/rejected pin bodies on the public topic |
-| World map | No creator topic (world pins are approved-only for creators today) |
+| World map | Pending/rejected world pins are HTTP-visible to the creator via `GET /api/pins` (merged into the list). No dedicated world creator channel yet; trust approvers use `GET /api/pins/pending_world` |
+
 | Interim refetch | **Keep** `markerDeleted` refetch as a safety net for public-channel deletes until this ships and is verified; afterward, keep it as a cheap fallback (owned pin + public delete → refetch) unless it proves redundant |
 
 ## Visibility / broadcast matrix

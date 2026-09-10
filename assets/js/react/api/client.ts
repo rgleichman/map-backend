@@ -201,6 +201,30 @@ export function createSubMapPin(
   })
 }
 
+export function fetchPendingWorldPins(): Promise<{ data: Pin[] }> {
+  return jsonFetch("/api/pins/pending_world")
+}
+
+export function approveWorldPin(csrf: string | undefined, id: number): Promise<{ data: Pin }> {
+  return jsonFetch(`/api/pins/${id}/approve`, {
+    method: "POST",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
+export function rejectWorldPin(csrf: string | undefined, id: number): Promise<{ data: Pin }> {
+  return jsonFetch(`/api/pins/${id}/reject`, {
+    method: "POST",
+    headers: {
+      ...(csrf ? { "x-csrf-token": csrf } : {}),
+    },
+    credentials: "same-origin",
+  })
+}
+
 export function createPin(csrf: string | undefined, pin: NewPin): Promise<{ data: Pin }> {
   return jsonFetch("/api/pins", {
     method: "POST",
