@@ -6,6 +6,7 @@ defmodule Storymap.Trust do
   `trust_gates_enabled` is true in application config.
   """
 
+  alias Storymap.Trust.Scores
   alias Storymap.Trust.UserTrustScore
 
   @spec config() :: keyword()
@@ -35,5 +36,15 @@ defmodule Storymap.Trust do
       %UserTrustScore{t_effective: t} when is_integer(t) -> t * 1.0
       nil -> 0.0
     end
+  end
+
+  @spec recompute_all(DateTime.t() | nil) :: {:ok, non_neg_integer()}
+  def recompute_all(as_of \\ nil) do
+    Scores.recompute_all(as_of)
+  end
+
+  @spec seed_user?(integer()) :: boolean()
+  def seed_user?(user_id) when is_integer(user_id) do
+    user_id in Scores.seed_user_ids()
   end
 end

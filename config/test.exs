@@ -40,6 +40,11 @@ config :logger, level: :warning
 # Disable rate limiting in tests
 config :storymap, StorymapWeb.Plugs.RateLimit, enabled: false
 
+# Trust: keep gates off; avoid frequent recompute in test
+config :storymap, Storymap.Trust,
+  trust_gates_enabled: false,
+  recompute_interval_ms: 86_400_000
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
