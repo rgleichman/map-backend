@@ -3,7 +3,7 @@ import type { CatalogPinType, Pin, SubMap } from "../types"
 import type { FilterState } from "../components/map/filters"
 import type { SetCommunityScopeOptions } from "../mapRoute"
 
-export type NavigateToPin = (pinId: number, pins: Pin[]) => Promise<void>
+export type NavigateToPin = (pinId: number, pins: Pin[]) => Promise<Pin | null>
 
 /** One-shot request to open/focus a pin (boot, popstate, or in-app navigate). */
 export type PinFocusIntent = {

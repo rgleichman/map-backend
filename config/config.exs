@@ -81,7 +81,7 @@ config :phoenix, :json_library, Jason
 
 # Site-wide trust scores (docs/TRUST.md). Gates stay off until ledger + scores ship.
 config :storymap, Storymap.Trust,
-  trust_gates_enabled: false,
+  trust_gates_enabled: true,
   eigen_a: 0.85,
   half_life_days: 180.0,
   alpha: 0.85,

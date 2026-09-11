@@ -56,4 +56,24 @@ defmodule Storymap.Pins.ListPinsTrustTest do
     refute theirs.id in ids
     refute mine.id in Enum.map(Pins.list_pins(), & &1.id)
   end
+
+  test "list_pins/1 includes all pending world pins for trust approvers" do
+    author = user_fixture()
+    approver = user_fixture(%{admin_level: 1})
+    put_trust_score!(author.id, 0.0)
+
+    {:ok, pending} =
+      Pins.create_pin(
+        %{
+          "title" => "Needs review",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        },
+        author.id
+      )
+
+    assert pending.status == :pending
+    assert pending.id in Enum.map(Pins.list_pins(approver), & &1.id)
+  end
 end
