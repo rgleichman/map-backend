@@ -201,6 +201,42 @@ defmodule Storymap.SubMapsTest do
     {:ok, approved} = SubMaps.approve_pin(%Scope{user: owner}, sub_map, pin.id)
     assert approved.status == :approved
     assert approved.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
+
+    event =
+      Repo.get_by(Storymap.Trust.TrustEvent,
+        type: :pin_approve,
+        actor_user_id: owner.id,
+        pin_id: pin.id
+      )
+
+    assert event
+    assert event.subject_user_id == contributor.id
+
+    # reject does not emit trust events
+    sub_map2 =
+      sub_map_fixture(
+        %{"contribution_mode" => "approval_required", "community_url" => "reject-no-trust"},
+        owner
+      )
+
+    {:ok, pin2} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: contributor},
+        sub_map2,
+        %{
+          "title" => "Spot 2",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    {:ok, _} = SubMaps.reject_pin(%Scope{user: owner}, sub_map2, pin2.id)
+
+    refute Repo.get_by(Storymap.Trust.TrustEvent,
+             type: :pin_approve,
+             pin_id: pin2.id
+           )
   end
 
   test "list_pins includes creator's rejected pin; owner update resubmits as pending" do

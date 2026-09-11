@@ -159,6 +159,13 @@ defmodule StorymapWeb.Router do
     post "/sub_maps/:community_url/pins/:id/approve", SubMapController, :approve_pin
     post "/sub_maps/:community_url/pins/:id/reject", SubMapController, :reject_pin
 
+    get "/pins/pending_world", PinController, :pending_world
+    post "/pins/:id/approve", PinController, :approve
+    post "/pins/:id/reject", PinController, :reject
+
+    post "/users/:id/vouch", VouchController, :create
+    delete "/users/:id/vouch", VouchController, :delete
+
     post "/pins/:id/heart", PinHeartController, :create
     delete "/pins/:id/heart", PinHeartController, :delete
   end

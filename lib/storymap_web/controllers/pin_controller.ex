@@ -12,7 +12,7 @@ defmodule StorymapWeb.PinController do
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     current_user = ConnAuth.current_user(conn)
-    pins = Pins.list_pins()
+    pins = Pins.list_pins(current_user)
     render(conn, :index, pins: pins, current_user: current_user)
   end
 
@@ -141,6 +141,40 @@ defmodule StorymapWeb.PinController do
       end
     else
       _ -> {:error, :not_found}
+    end
+  end
+
+  @spec pending_world(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def pending_world(conn, _params) do
+    user = conn.assigns.current_scope.user
+
+    if Storymap.Trust.Policy.can_approve_world?(user) do
+      pins = Pins.list_pending_world_pins()
+      render(conn, :index, pins: pins, current_user: user)
+    else
+      {:error, :forbidden}
+    end
+  end
+
+  @spec approve(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def approve(conn, %{"id" => id}) do
+    user = conn.assigns.current_scope.user
+
+    with {pin_id, ""} <- Integer.parse(id),
+         {:ok, %Pin{} = pin} <- Pins.approve_world_pin(user, pin_id) do
+      PinBroadcast.broadcast_pin_event(pin, :updated)
+      render(conn, :show, pin: pin, current_user: user)
+    end
+  end
+
+  @spec reject(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def reject(conn, %{"id" => id}) do
+    user = conn.assigns.current_scope.user
+
+    with {pin_id, ""} <- Integer.parse(id),
+         {:ok, %Pin{} = pin} <- Pins.reject_world_pin(user, pin_id) do
+      PinBroadcast.broadcast_pin_event(pin, :updated)
+      render(conn, :show, pin: pin, current_user: user)
     end
   end
 end
