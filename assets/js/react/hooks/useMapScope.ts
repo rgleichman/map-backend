@@ -81,13 +81,14 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
       window.history.replaceState(null, "", mapPathWithPinQuery(communityUrlRef.current, pinId))
     }
 
-    if (pins.some((p) => p.id === pinId)) {
+    const existing = pins.find((p) => p.id === pinId)
+    if (existing) {
       resolvingPinIdsRef.current.delete(pinId)
       focusPin()
-      return
+      return existing
     }
 
-    if (resolvingPinIdsRef.current.has(pinId)) return
+    if (resolvingPinIdsRef.current.has(pinId)) return null
     resolvingPinIdsRef.current.add(pinId)
 
     try {
@@ -98,9 +99,11 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
         setCommunityScope(null, { replace: true, pinId })
       }
       focusPin()
+      return data
     } catch {
       window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
       setFocusIntent(null)
+      return null
     } finally {
       resolvingPinIdsRef.current.delete(pinId)
     }

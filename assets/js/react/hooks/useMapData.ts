@@ -96,8 +96,10 @@ export function useMapData({
       return
     }
 
-    void navigateToPinRef.current(focusIntent.pinId, pins)
-  }, [loading, focusIntent, pins, resolvingPinIdsRef])
+    void navigateToPinRef.current(focusIntent.pinId, pins).then((pin) => {
+      if (pin) updateOrAddPin(pin)
+    })
+  }, [loading, focusIntent, pins, resolvingPinIdsRef, updateOrAddPin])
 
   usePinChannelSync({
     onUpsertPin: updateOrAddPin,

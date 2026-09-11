@@ -44,8 +44,8 @@ defmodule Storymap.Pins do
   end
 
   @doc """
-  World-visible approved pins, plus the viewer's own pending/rejected world pins
-  when `user` is given (so creators see submissions awaiting trust approval).
+  World-visible approved pins, plus pending/rejected world pins the viewer
+  is allowed to see: their own, or all pending when they can approve world pins.
   """
   @spec list_pins(User.t() | nil) :: [Pin.t()]
   def list_pins(nil) do
@@ -54,21 +54,32 @@ defmodule Storymap.Pins do
     |> Repo.preload(Query.list_preloads())
   end
 
-  def list_pins(%User{id: user_id}) do
+  def list_pins(%User{} = user) do
     approved =
       Query.world_pins()
       |> Repo.all()
 
-    own_pending =
-      from(p in Pin,
-        where:
-          is_nil(p.sub_map_id) and p.user_id == ^user_id and
-            p.status in [^:pending, ^:rejected],
-        order_by: [desc: p.updated_at]
-      )
-      |> Repo.all()
+    own_or_queue =
+      cond do
+        TrustPolicy.can_approve_world?(user) ->
+          from(p in Pin,
+            where:
+              is_nil(p.sub_map_id) and p.status in [^:pending, ^:rejected],
+            order_by: [desc: p.updated_at]
+          )
+          |> Repo.all()
 
-    (approved ++ own_pending)
+        true ->
+          from(p in Pin,
+            where:
+              is_nil(p.sub_map_id) and p.user_id == ^user.id and
+                p.status in [^:pending, ^:rejected],
+            order_by: [desc: p.updated_at]
+          )
+          |> Repo.all()
+      end
+
+    (approved ++ own_or_queue)
     |> Enum.uniq_by(& &1.id)
     |> Repo.preload(Query.list_preloads())
   end
