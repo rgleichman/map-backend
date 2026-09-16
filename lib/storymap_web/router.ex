@@ -159,7 +159,6 @@ defmodule StorymapWeb.Router do
     post "/sub_maps/:community_url/pins/:id/approve", SubMapController, :approve_pin
     post "/sub_maps/:community_url/pins/:id/reject", SubMapController, :reject_pin
 
-    get "/pins/pending_world", PinController, :pending_world
     post "/pins/:id/approve", PinController, :approve
     post "/pins/:id/reject", PinController, :reject
 
@@ -168,6 +167,18 @@ defmodule StorymapWeb.Router do
 
     post "/pins/:id/heart", PinHeartController, :create
     delete "/pins/:id/heart", PinHeartController, :delete
+  end
+
+  scope "/api", StorymapWeb do
+    pipe_through [
+      :api,
+      :fetch_session,
+      :fetch_current_scope_for_user,
+      :rate_limit_api_reads,
+      :require_authenticated_user
+    ]
+
+    get "/pins/pending_world", PinController, :pending_world
   end
 
   scope "/api", StorymapWeb do

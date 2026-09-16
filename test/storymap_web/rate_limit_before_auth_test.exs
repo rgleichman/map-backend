@@ -114,4 +114,24 @@ defmodule StorymapWeb.RateLimitBeforeAuthTest do
 
     assert conn.status != 429
   end
+
+  test "GET pending_world is not limited by exhausted api_writes bucket", %{conn: conn} do
+    admin = user_fixture(%{admin_level: 1})
+    conn = log_in_user(conn, admin)
+    now = System.system_time(:second)
+    :ets.insert(@table, {"rate_limit:api_writes:user:#{admin.id}", 60, now, 60})
+
+    conn = get(conn, ~p"/api/pins/pending_world")
+    assert conn.status != 429
+  end
+
+  test "GET pending_world returns 429 when api_reads bucket is exhausted", %{conn: conn} do
+    admin = user_fixture(%{admin_level: 1})
+    conn = log_in_user(conn, admin)
+    now = System.system_time(:second)
+    :ets.insert(@table, {"rate_limit:api_reads:user:#{admin.id}", 300, now, 60})
+
+    conn = get(conn, ~p"/api/pins/pending_world")
+    assert json_response(conn, 429)
+  end
 end

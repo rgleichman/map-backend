@@ -624,7 +624,7 @@ defmodule Storymap.Pins do
     end
   end
 
-  # Owner edit of a rejected pin in approval_required communities re-enters the queue.
+  # Owner edit of a rejected pin re-enters the queue (approval_required communities or world).
   @spec maybe_resubmit_rejected_pin(
           Ecto.Changeset.t(),
           Pin.t(),
@@ -635,6 +635,15 @@ defmodule Storymap.Pins do
          changeset,
          %Pin{status: :rejected, user_id: user_id},
          %SubMap{contribution_mode: :approval_required},
+         %User{id: user_id}
+       ) do
+    Ecto.Changeset.put_change(changeset, :status, :pending)
+  end
+
+  defp maybe_resubmit_rejected_pin(
+         changeset,
+         %Pin{status: :rejected, user_id: user_id, sub_map_id: nil},
+         nil,
          %User{id: user_id}
        ) do
     Ecto.Changeset.put_change(changeset, :status, :pending)

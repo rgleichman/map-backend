@@ -152,4 +152,39 @@ defmodule Storymap.Trust.WorldPendingTest do
     assert approved.id in Enum.map(Pins.list_pins(), & &1.id)
     assert Repo.get_by(TrustEvent, type: :pin_approve, pin_id: pin.id)
   end
+
+  test "owner update of rejected world pin resubmits as pending" do
+    Application.put_env(
+      :storymap,
+      Storymap.Trust,
+      Keyword.merge(Trust.config(), trust_gates_enabled: true, t_world: 0.55)
+    )
+
+    author = user_fixture()
+    admin = user_fixture(%{admin_level: 1})
+    put_trust_score!(author.id, 0.0)
+
+    {:ok, pin} =
+      Pins.create_pin(
+        %{
+          "title" => "World",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        },
+        author.id
+      )
+
+    assert pin.status == :pending
+
+    {:ok, rejected} = Pins.reject_world_pin(admin, pin.id)
+    assert rejected.status == :rejected
+    refute rejected.id in Enum.map(Pins.list_pins(), & &1.id)
+
+    {:ok, resubmitted} =
+      Pins.update_pin(rejected, %{"title" => "World revised"}, user: author)
+
+    assert resubmitted.status == :pending
+    assert resubmitted.title == "World revised"
+  end
 end
