@@ -79,9 +79,10 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Site-wide trust scores (docs/TRUST.md). Gates stay off until ledger + scores ship.
+# Site-wide trust scores (docs/TRUST.md). Soft-run: ledger/scores/vouch/approve
+# keep collecting signal; privilege gates (pending world, trust approve) stay off.
 config :storymap, Storymap.Trust,
-  trust_gates_enabled: true,
+  trust_gates_enabled: false,
   eigen_a: 0.85,
   half_life_days: 180.0,
   alpha: 0.85,

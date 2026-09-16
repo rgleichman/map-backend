@@ -63,8 +63,7 @@ defmodule Storymap.Pins do
       cond do
         TrustPolicy.can_approve_world?(user) ->
           from(p in Pin,
-            where:
-              is_nil(p.sub_map_id) and p.status in [^:pending, ^:rejected],
+            where: is_nil(p.sub_map_id) and p.status in [^:pending, ^:rejected],
             order_by: [desc: p.updated_at]
           )
           |> Repo.all()

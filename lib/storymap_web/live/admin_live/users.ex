@@ -428,7 +428,9 @@ defmodule StorymapWeb.AdminLive.Users do
                     <div class="font-mono text-sm">{format_trust(score)}</div>
                     <div :if={score} class="text-xs opacity-70 mt-1">
                       social {:erlang.float_to_binary(score.t_social_cal * 1.0, decimals: 2)} · id {:erlang.float_to_binary(
-                        score.t_id * 1.0, decimals: 2)}
+                        score.t_id * 1.0,
+                        decimals: 2
+                      )}
                     </div>
                   </td>
                   <td class="w-32 align-top">

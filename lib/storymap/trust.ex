@@ -33,8 +33,7 @@ defmodule Storymap.Trust do
   @spec effective_trust(integer()) :: float()
   def effective_trust(user_id) when is_integer(user_id) do
     case get_score(user_id) do
-      %UserTrustScore{t_effective: t} when is_float(t) -> t
-      %UserTrustScore{t_effective: t} when is_integer(t) -> t * 1.0
+      %UserTrustScore{t_effective: t} -> t
       nil -> 0.0
     end
   end

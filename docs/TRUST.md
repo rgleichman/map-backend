@@ -476,7 +476,11 @@ admins know whether a row is stale relative to config.
 4. **Vouch API + admin UI** — done (`POST/DELETE /api/users/:id/vouch`, admin Vouch button).
 5. **Reject / identity attestations** as follow-on signals — not started.
 
-**Ops:** after deploy, run `mix trust.recompute` once (or Admin → Recompute trust). Enable world/community trust gates with:
+**Ops:** Soft-run by default (`trust_gates_enabled: false` in `config/config.exs`):
+scores, vouch, and admin/mod approve keep running; privilege gates (pending
+world create, trust-threshold approve) stay off. Rate-limit bands remain on.
+After deploy, run `mix trust.recompute` once (or Admin → Recompute trust).
+When ready to enforce privileges, enable gates with:
 
 ```elixir
 config :storymap, Storymap.Trust, trust_gates_enabled: true
