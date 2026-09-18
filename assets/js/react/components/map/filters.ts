@@ -96,7 +96,7 @@ export function listActiveFilterChips(filter: FilterState, catalog: CatalogPinTy
     })
   }
   if (filter.heartedOnly) {
-    chips.push({ dimension: "hearted", label: "Saved pins" })
+    chips.push({ dimension: "hearted", label: GardenCopy.clippings })
   }
   if (filter.mineOnly) {
     chips.push({ dimension: "mine", label: GardenCopy.myPlants })

@@ -32,6 +32,22 @@ defmodule StorymapWeb.GardenCopy do
   @spec clippings() :: String.t()
   def clippings, do: "Clippings"
 
+  @spec plants_you_have_clipped() :: String.t()
+  def plants_you_have_clipped, do: "Plants you have clipped. Only you can see this list."
+
+  @spec not_clipped_anything_yet() :: String.t()
+  def not_clipped_anything_yet, do: "You have not taken any clippings yet."
+
+  @spec open_map_and_take_clipping() :: String.t()
+  def open_map_and_take_clipping,
+    do: "Open a plant on the map and take a clipping to see it here."
+
+  @spec see_all_clippings() :: String.t()
+  def see_all_clippings, do: "See all clippings"
+
+  @spec browse_map_to_clip() :: String.t()
+  def browse_map_to_clip, do: "to find plants to clip."
+
   @spec plant_catalogue() :: String.t()
   def plant_catalogue, do: "Plant Catalogue"
 

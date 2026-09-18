@@ -2,6 +2,11 @@ import React, { useState } from "react"
 import LoginRequiredModal, { LoginLink } from "../LoginRequiredModal"
 import HeartIcon from "../HeartIcon"
 import type { ToggleHeartResult } from "../../types"
+import {
+  clippingButtonAriaLabel,
+  clippingButtonLabel,
+  GardenCopy,
+} from "../../utils/gardenCopy"
 
 type Props = {
   hearted: boolean
@@ -33,7 +38,7 @@ export default function PinHeartButton({ hearted, disabled = false, onToggle }: 
         onClick={() => void handleClick()}
         disabled={busy || disabled}
         aria-pressed={hearted}
-        aria-label={hearted ? "Remove from saved pins" : "Save pin"}
+        aria-label={clippingButtonAriaLabel(hearted)}
         className={[
           "inline-flex items-center gap-1.5 rounded px-2 py-1.5 border-none cursor-pointer font-semibold transition-colors",
           hearted
@@ -45,13 +50,14 @@ export default function PinHeartButton({ hearted, disabled = false, onToggle }: 
           .join(" ")}
       >
         <HeartIcon filled={hearted} className="shrink-0" />
-        <span>{hearted ? "Saved" : "Save"}</span>
+        <span>{clippingButtonLabel(hearted)}</span>
       </button>
       {loginOpen && (
         <LoginRequiredModal
           message={
             <>
-              <LoginLink>Log in</LoginLink> to save pins.
+              <LoginLink>Log in</LoginLink>
+              {GardenCopy.logInToTakeClipping}
             </>
           }
           onClose={() => setLoginOpen(false)}

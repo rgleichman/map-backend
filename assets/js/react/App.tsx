@@ -90,7 +90,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
       try {
         return await toggleHeart(pinId)
       } catch {
-        setApiError("Could not update saved pin.")
+        setApiError(GardenCopy.couldNotUpdateClipping)
         return { needsLogin: false as const }
       }
     },

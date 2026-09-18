@@ -1,15 +1,15 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="max-w-2xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold text-base-content mb-2">Saved pins</h1>
+    <h1 class="text-3xl font-bold text-base-content mb-2">{GardenCopy.clippings()}</h1>
     <p class="text-base-content/70 mb-6">
-      Pins you have saved. Only you can see this list.
+      {GardenCopy.plants_you_have_clipped()}
     </p>
 
     <%= if @saved_pins == [] do %>
       <div class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center">
-        <p class="text-base-content/80">You have not saved any pins yet.</p>
+        <p class="text-base-content/80">{GardenCopy.not_clipped_anything_yet()}</p>
         <p class="mt-2 text-sm text-base-content/60">
-          Open a pin on the map and tap the heart to save it here.
+          {GardenCopy.open_map_and_take_clipping()}
         </p>
         <.button navigate={~p"/"} variant="primary" size="sm" class="mt-6">
           Go to map

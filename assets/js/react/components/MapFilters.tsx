@@ -242,14 +242,14 @@ export default function MapFilters({
                 )}
               >
                 <HeartIcon filled={filter.heartedOnly} size={14} />
-                Saved pins only
+                {GardenCopy.clippingsOnly}
               </button>
             </div>
             {savedFilterEmptyOnMap && (
               <p className="text-sm text-base-content/60 mt-2">
-                No saved pins on this map —{" "}
+                {GardenCopy.noClippingsOnMap}{" "}
                 <a href="/saved" className="link link-primary">
-                  view all
+                  {GardenCopy.viewAllClippings}
                 </a>
               </p>
             )}

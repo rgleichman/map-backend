@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as api from "../api/client"
 import type { ToggleHeartResult } from "../types"
+import { GardenCopy } from "../utils/gardenCopy"
 
 export function usePinHearts(userId?: number, csrfToken?: string) {
   const [heartedPinIds, setHeartedPinIds] = useState<ReadonlySet<number>>(new Set())
@@ -29,7 +30,7 @@ export function usePinHearts(userId?: number, csrfToken?: string) {
       .catch((e) => {
         if (!cancelled) {
           setHeartedPinIds(new Set())
-          setLoadError(e instanceof Error ? e.message : "Could not load saved pins.")
+          setLoadError(e instanceof Error ? e.message : GardenCopy.couldNotLoadClippings)
         }
       })
       .finally(() => {
@@ -67,7 +68,7 @@ export function usePinHearts(userId?: number, csrfToken?: string) {
           else next.delete(pinId)
           return next
         })
-        throw new Error("Could not update saved pin")
+        throw new Error(GardenCopy.couldNotUpdateClipping)
       }
     },
     [userId, csrfToken],

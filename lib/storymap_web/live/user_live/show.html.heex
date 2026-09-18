@@ -19,7 +19,7 @@
           <%= if @own_profile? do %>
             <div class="mt-8 pt-6 border-t border-base-300">
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <h2 class="text-lg font-semibold text-base-content">Saved pins</h2>
+                <h2 class="text-lg font-semibold text-base-content">{GardenCopy.clippings()}</h2>
                 <%= if @saved_pins_count > 0 do %>
                   <.link navigate={~p"/saved"} class="link link-primary text-sm font-medium">
                     See all ({@saved_pins_count})
@@ -29,9 +29,9 @@
 
               <%= if @saved_pins_preview == [] do %>
                 <p class="text-sm text-base-content/70">
-                  You have not saved any pins yet.
+                  {GardenCopy.not_clipped_anything_yet()}
                   <.link navigate={~p"/"} class="link link-primary">Browse the map</.link>
-                  to find pins to save.
+                  {GardenCopy.browse_map_to_clip()}
                 </p>
               <% else %>
                 <ul class="space-y-2">
@@ -51,7 +51,7 @@
                 </ul>
                 <%= if @saved_pins_count > length(@saved_pins_preview) do %>
                   <.button navigate={~p"/saved"} variant="ghost" size="sm" class="mt-4">
-                    See all saved pins
+                    {GardenCopy.see_all_clippings()}
                   </.button>
                 <% end %>
               <% end %>

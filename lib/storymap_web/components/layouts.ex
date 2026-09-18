@@ -289,7 +289,7 @@ defmodule StorymapWeb.Layouts do
                 class={["rounded-lg", @saved_active? && "active"]}
                 aria-current={if(@saved_active?, do: "page")}
               >
-                Saved
+                {GardenCopy.clippings()}
               </.link>
             </li>
             <li>
@@ -352,7 +352,7 @@ defmodule StorymapWeb.Layouts do
             ]}
             aria-current={if(@saved_active?, do: "page")}
           >
-            Saved
+            {GardenCopy.clippings()}
           </.link>
         </li>
         <li>

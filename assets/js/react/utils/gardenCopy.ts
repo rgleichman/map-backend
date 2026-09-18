@@ -15,6 +15,13 @@ export const GardenCopy = {
   takeAClipping: "Take a clipping",
   clippings: "Clippings",
   clippingsOnly: "Clippings only",
+  clipped: "Clipped",
+  removeFromClippings: "Remove from clippings",
+  noClippingsOnMap: "No clippings on this map —",
+  viewAllClippings: "view all",
+  logInToTakeClipping: " to take a clipping.",
+  couldNotLoadClippings: "Could not load clippings.",
+  couldNotUpdateClipping: "Could not update clipping.",
   myPlants: "My plants",
   plantCatalogue: "Plant Catalogue",
   plantType: "Plant type",
@@ -84,3 +91,13 @@ export function plantFormPrimaryLabel(mode: "add" | "edit", saving: boolean): st
   }
   return mode === "edit" ? GardenCopy.save : GardenCopy.plantBang
 }
+
+/** Heart / collection button label and aria. */
+export function clippingButtonLabel(hearted: boolean): string {
+  return hearted ? GardenCopy.clipped : GardenCopy.takeAClipping
+}
+
+export function clippingButtonAriaLabel(hearted: boolean): string {
+  return hearted ? GardenCopy.removeFromClippings : GardenCopy.takeAClipping
+}
+

@@ -3,6 +3,7 @@ defmodule StorymapWeb.SavedLive.Index do
 
   alias Storymap.Pins
   alias Storymap.Pins.{HeartAuthorizer, Hearts}
+  alias StorymapWeb.GardenCopy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,7 +15,7 @@ defmodule StorymapWeb.SavedLive.Index do
 
         {:ok,
          socket
-         |> assign(:page_title, "Saved pins")
+         |> assign(:page_title, GardenCopy.clippings())
          |> assign(:saved_pins, saved_pins)}
 
       {:error, :forbidden} ->

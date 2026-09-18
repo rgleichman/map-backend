@@ -8,8 +8,8 @@ defmodule StorymapWeb.SavedLive.IndexTest do
 
   test "renders empty state", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/saved")
-    assert has_element?(view, "h1", "Saved pins")
-    assert render(view) =~ "You have not saved any pins yet"
+    assert has_element?(view, "h1", "Clippings")
+    assert render(view) =~ "You have not taken any clippings yet"
   end
 
   test "lists saved pins", %{conn: conn, user: user} do
