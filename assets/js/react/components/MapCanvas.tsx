@@ -59,7 +59,7 @@ import {
 } from "../utils/siteLayout"
 
 const GEOLOCATE_MAX_ZOOM = 12
-const PIN_FOCUS_ZOOM = 14
+const PIN_FOCUS_ZOOM = 13
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
@@ -268,7 +268,6 @@ export default function MapCanvas({
   function flyToPin(map: MLMap, pin: Pin): void {
     map.flyTo({
       center: [pin.longitude, pin.latitude],
-      zoom: PIN_FOCUS_ZOOM,
       padding: mapPaddingForPinPanel(map, isDesktopRef.current),
     })
   }
