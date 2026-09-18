@@ -26,8 +26,8 @@ defmodule StorymapWeb.PinTypeLive.Form do
   def field_type_description("select"), do: "Choose one option from a list you define."
   def field_type_description("url"), do: "A web link."
   def field_type_description("list"), do: "Multiple short text items."
-  def field_type_description("music"), do: "Attach or link to music."
-  def field_type_description("drawing"), do: "Freehand drawing on the map."
+  def field_type_description("music"), do: "Attach or link to a garden tune."
+  def field_type_description("drawing"), do: "Botanical illustration on the map."
   def field_type_description(_), do: ""
 
   @spec empty_field() :: field_form()

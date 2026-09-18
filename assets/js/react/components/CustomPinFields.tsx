@@ -14,6 +14,7 @@ import {
   formatCustomFieldValue,
   isCustomFieldEmpty,
 } from "../utils/customFieldValue"
+import { GardenCopy } from "../utils/gardenCopy"
 import Button from "./ui/Button"
 
 type Props = {
@@ -280,7 +281,7 @@ export function CustomFieldDisplay({
 
   if (field.type === BlobFieldType.Music) {
     if (hoverSkim) {
-      return <span className={className}>Music</span>
+      return <span className={className}>{GardenCopy.gardenTune}</span>
     }
     return <MusicFieldDisplay fieldKey={field.key} value={value} className={className} />
   }
@@ -342,8 +343,8 @@ function MusicFieldDisplay({ fieldKey, value, className }: BlobFieldDisplayProps
     )
   }, [fieldKey, pinId, refOk, toggle])
 
-  if (!pinId) return <span className={className}>Music</span>
-  if (!refOk) return <span className={className}>Music</span>
+  if (!pinId) return <span className={className}>{GardenCopy.gardenTune}</span>
+  if (!refOk) return <span className={className}>{GardenCopy.gardenTune}</span>
 
   return (
     <div className={`inline-flex flex-wrap items-center gap-2 ${className ?? ""}`.trim()}>
@@ -402,10 +403,10 @@ function DrawingFieldDisplay({
     }
   }, [fieldKey, pinId, refOk])
 
-  if (!pinId || !refOk) return <span className={className}>Drawing</span>
+  if (!pinId || !refOk) return <span className={className}>{GardenCopy.botanicalIllustration}</span>
   if (loading) return <span className={`text-xs text-base-content/60 ${className ?? ""}`.trim()}>Loading…</span>
   if (error) return <span className={`text-xs text-error ${className ?? ""}`.trim()}>{error}</span>
-  if (!payload) return <span className={className}>Drawing</span>
+  if (!payload) return <span className={className}>{GardenCopy.botanicalIllustration}</span>
 
   return (
     <div className={className}>

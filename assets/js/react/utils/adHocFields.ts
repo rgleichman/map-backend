@@ -1,5 +1,6 @@
 import type { AdHocField, CustomFieldPrimitiveType as CustomFieldPrimitiveTypeName, CustomFieldSchema } from "../types"
 import { BlobFieldType } from "./blobFieldType"
+import { GardenCopy } from "./gardenCopy"
 import {
   blobFieldDraftPayload,
   inferBlobFieldTypeFromPayload,
@@ -21,8 +22,8 @@ export const AD_HOC_FIELD_TYPE_OPTIONS: { value: AdHocField["type"]; label: stri
   { value: CustomFieldPrimitiveType.Boolean, label: "Yes / No" },
   { value: CustomFieldPrimitiveType.Url, label: "Link" },
   { value: CustomFieldPrimitiveType.List, label: "List" },
-  { value: BlobFieldType.Music, label: "Music" },
-  { value: BlobFieldType.Drawing, label: "Drawing" },
+  { value: BlobFieldType.Music, label: GardenCopy.gardenTune },
+  { value: BlobFieldType.Drawing, label: GardenCopy.botanicalIllustration },
 ]
 
 export function newAdHocFieldId(): string {

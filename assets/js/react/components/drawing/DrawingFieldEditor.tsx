@@ -8,6 +8,7 @@ import {
   drawingHasContent,
   strokeCount,
 } from "../../utils/drawingPayload"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 export type DrawingFieldEditorProps = {
   csrfToken?: string
@@ -34,7 +35,7 @@ export default function DrawingFieldEditor({
   pinId,
   serverFieldReady = true,
   fieldKey,
-  fieldLabel = "Drawing",
+  fieldLabel = GardenCopy.botanicalIllustration,
   value,
   onValue,
 }: DrawingFieldEditorProps) {
@@ -52,8 +53,8 @@ export default function DrawingFieldEditor({
       parse={parseDrawing}
       serialize={serializeDrawing}
       hasContent={drawingHasContent}
-      editLabel="Edit drawing"
-      deleteLabel="Delete drawing"
+      editLabel={`Edit ${GardenCopy.botanicalIllustration.toLowerCase()}`}
+      deleteLabel={GardenCopy.uproot}
       emptyHint="Open the editor to draw."
       saveEmptyError="Draw something before saving."
       renderSummary={drawingSummary}

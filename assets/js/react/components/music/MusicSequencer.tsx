@@ -204,7 +204,7 @@ export default function MusicSequencer({
 
       <p className="text-xs text-base-content/60">
         {compact
-          ? "Each column is a frame. Drawing Play syncs sound."
+          ? "Each column is a frame. Botanical illustration Play syncs sound."
           : "Tap pads to hear notes. Toggle steps to build a pattern. Play runs left to right."}
       </p>
     </div>

@@ -3,6 +3,7 @@ import { usePinComments } from "../../hooks/usePinComments"
 import PinCommentItem from "./PinCommentItem"
 import CommentComposer from "./CommentComposer"
 import LoginRequiredModal, { LoginLink } from "../LoginRequiredModal"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 type Props = {
   pinId: number
@@ -45,7 +46,7 @@ export default function PinComments({
       return
     }
     if (userMuted) {
-      setFormError("Your account cannot post comments.")
+      setFormError(GardenCopy.cannotPostNotes)
       return
     }
     setFormError(null)
@@ -54,7 +55,7 @@ export default function PinComments({
       await createComment(body)
       setNewBody("")
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Could not post comment.")
+      setFormError(e instanceof Error ? e.message : GardenCopy.couldNotPostNote)
     } finally {
       setSubmitting(false)
     }
@@ -72,7 +73,10 @@ export default function PinComments({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span>Comments{commentCount > 0 ? ` (${commentCount})` : ""}</span>
+        <span>
+          {GardenCopy.notes}
+          {commentCount > 0 ? ` (${commentCount})` : ""}
+        </span>
         <span className="text-base-content/60" aria-hidden>
           {open ? "▾" : "▸"}
         </span>
@@ -81,11 +85,11 @@ export default function PinComments({
       {open ? (
         <div className="mt-2">
           {loading ? (
-            <p className="text-sm text-base-content/60">Loading comments…</p>
+            <p className="text-sm text-base-content/60">{GardenCopy.loadingNotes}</p>
           ) : error ? (
             <p className="text-sm text-error">{error}</p>
           ) : comments.length === 0 ? (
-            <p className="text-sm text-base-content/60">No comments yet.</p>
+            <p className="text-sm text-base-content/60">{GardenCopy.noNotesYet}</p>
           ) : (
             <div>
               {comments.map((comment) => (
@@ -110,15 +114,15 @@ export default function PinComments({
               value={newBody}
               onChange={setNewBody}
               onSubmit={() => void submitNew()}
-              submitLabel="Post comment"
-              placeholder={userId ? "Add a comment…" : "Log in to comment…"}
+              submitLabel={GardenCopy.postNote}
+              placeholder={userId ? GardenCopy.addANote : GardenCopy.logInToNote}
               disabled={submitting || userMuted}
               onFocus={() => {
                 if (!userId) setLoginOpen(true)
               }}
             />
             {userMuted ? (
-              <p className="text-xs text-base-content/60">Your account cannot post comments.</p>
+              <p className="text-xs text-base-content/60">{GardenCopy.cannotPostNotes}</p>
             ) : null}
             {formError ? <p className="text-xs text-error">{formError}</p> : null}
           </div>
@@ -129,7 +133,8 @@ export default function PinComments({
         <LoginRequiredModal
           message={
             <>
-              You must <LoginLink /> to comment on pins.
+              You must <LoginLink />
+              {GardenCopy.mustLogInToNoteOnPlants}
             </>
           }
           onClose={() => setLoginOpen(false)}

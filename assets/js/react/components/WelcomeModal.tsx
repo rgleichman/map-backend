@@ -84,7 +84,7 @@ export default function WelcomeModal({ onClose }: Props) {
               </li>
               <li>Use the search control in the map top-left to find plants or places.</li>
               <li>
-                Search finds plants by name, description, or tag, and places by address or location.
+                Search finds plants by name, description, or label, and places by address or location.
               </li>
               <li>
                 Use the filter button in the map top-right to filter by plant type and other unique qualities.

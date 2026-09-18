@@ -242,13 +242,13 @@ export default function PinModal({
           </div>
         )}
         <div className="mb-4">
-          <label htmlFor="pin-tag-input" className="block font-medium mb-1">Tags</label>
+          <label htmlFor="pin-tag-input" className="block font-medium mb-1">{GardenCopy.labels}</label>
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
                 <RemovableChip
                   key={tag}
-                  removeLabel={`Remove tag: ${tag}`}
+                  removeLabel={`${GardenCopy.removeLabelPrefix} ${tag}`}
                   onRemove={() => handleRemoveTag(tag)}
                 >
                   <span className="min-w-0 truncate pl-0.5">{tag}</span>
@@ -263,7 +263,7 @@ export default function PinModal({
             omitCommunityTags
             allowCreate
             onSelect={handleAddTag}
-            placeholder="Add tag…"
+            placeholder={GardenCopy.addLabel}
           />
         </div>
         <RelatedPinsEditor

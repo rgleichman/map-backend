@@ -279,15 +279,15 @@ export default function MapFilters({
         </section>
 
         <section>
-          <p className={sectionTitle}>Tags</p>
+          <p className={sectionTitle}>{GardenCopy.labels}</p>
           {tags.length === 0 ? (
-            <p className="text-sm text-base-content/60">No tags on the map yet.</p>
+            <p className="text-sm text-base-content/60">{GardenCopy.noLabelsOnMapYet}</p>
           ) : (
             <TagCombobox
               availableTags={tags}
               selectedTag={filter.tag}
               onSelect={(tag) => setTag(filter.tag === tag ? null : tag)}
-              placeholder="Search tags…"
+              placeholder={GardenCopy.searchLabels}
             />
           )}
         </section>

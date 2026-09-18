@@ -206,7 +206,7 @@ export default function PinDetailView({
       ) : null}
       {displayTags.length > 0 && (
         <div className="flex flex-wrap gap-x-1 gap-y-1 items-center my-2">
-          <span className={detailContentClasses}>Tags:</span>
+          <span className={detailContentClasses}>{GardenCopy.labelsColon}</span>
           {displayTags.map((tag) => (
             <button
               key={tag}

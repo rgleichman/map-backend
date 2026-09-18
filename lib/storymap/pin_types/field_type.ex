@@ -16,7 +16,7 @@ defmodule Storymap.PinTypes.FieldType do
   def field_type_label("select"), do: "Dropdown"
   def field_type_label("url"), do: "Link"
   def field_type_label("list"), do: "List of text"
-  def field_type_label("music"), do: "Music"
-  def field_type_label("drawing"), do: "Drawing"
+  def field_type_label("music"), do: "Garden Tune"
+  def field_type_label("drawing"), do: "Botanical illustration"
   def field_type_label(type), do: type
 end

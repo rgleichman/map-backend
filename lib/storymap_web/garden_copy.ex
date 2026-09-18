@@ -181,17 +181,17 @@ defmodule StorymapWeb.GardenCopy do
   @spec notes() :: String.t()
   def notes, do: "Notes"
 
-  @spec gardeners() :: String.t()
-  def gardeners, do: "Gardeners"
-
   @spec labels() :: String.t()
   def labels, do: "Labels"
 
   @spec botanical_illustration() :: String.t()
   def botanical_illustration, do: "Botanical illustration"
 
-  @spec garden_tunes() :: String.t()
-  def garden_tunes, do: "Garden Tunes"
+  @spec garden_tune() :: String.t()
+  def garden_tune, do: "Garden Tune"
+
+  @spec gardeners() :: String.t()
+  def gardeners, do: "Gardeners"
 
   @spec pollinator_path() :: String.t()
   def pollinator_path, do: "Pollinator Path"
@@ -215,7 +215,7 @@ defmodule StorymapWeb.GardenCopy do
       {"Users", gardeners()},
       {"Tags", labels()},
       {"Drawings", botanical_illustration()},
-      {"Music", garden_tunes()},
+      {"Music", garden_tune()},
       {"Connections / pin links", pollinator_path()}
     ]
   end

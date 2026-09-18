@@ -9,6 +9,7 @@ import ConfirmDialog from "../ui/ConfirmDialog"
 import { PencilIcon, TrashIcon } from "../ui/icons"
 import CommentComposer from "./CommentComposer"
 import ContentReportDialog from "./ContentReportDialog"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 type Props = {
   comment: PinComment
@@ -176,7 +177,7 @@ export default function PinCommentItem({
 
       <ConfirmDialog
         open={confirmDeleteOpen}
-        title="Delete this comment?"
+        title={GardenCopy.deleteThisNote}
         body="This cannot be undone."
         confirming={submitting}
         onCancel={() => setConfirmDeleteOpen(false)}
@@ -191,8 +192,8 @@ export default function PinCommentItem({
       <ContentReportDialog
         subjectType={ReportSubjectType.PinComment}
         subjectId={comment.id}
-        title="Report this comment"
-        detailsPlaceholder="What is wrong with this comment?"
+        title={GardenCopy.reportThisNote}
+        detailsPlaceholder={GardenCopy.reportNotePlaceholder}
         csrfToken={csrfToken}
         open={reportOpen}
         onClose={() => setReportOpen(false)}

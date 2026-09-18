@@ -6,6 +6,7 @@ import { usePinTypes } from "../../context/PinTypesContext"
 import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import { SECTION_LABEL_CLASS } from "../../utils/mapUiClasses"
 import { buildPinHoverRows, type PinHoverRow } from "./pinHoverFields"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 type Props = {
   pin: Pin
@@ -30,7 +31,7 @@ function HoverRow({ row, drawingSize }: { row: PinHoverRow; drawingSize: number 
       <div className="min-w-0">
         <FieldLabel>{row.label}</FieldLabel>
         <span className="mt-1 inline-flex items-center rounded-md bg-base-200/90 dark:bg-base-300/70 px-2 py-0.5 text-[11px] font-medium text-base-content/70">
-          Music
+          {GardenCopy.gardenTune}
         </span>
       </div>
     )

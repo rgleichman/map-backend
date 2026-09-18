@@ -6,6 +6,7 @@ import MusicPlayStopLabel from "./MusicPlayStopLabel"
 import MusicSequencer from "./MusicSequencer"
 import { BlobFieldType } from "../../utils/blobFieldType"
 import { isBlobFieldRef } from "../../utils/blobFieldValue"
+import { GardenCopy } from "../../utils/gardenCopy"
 import { useMusicPreview } from "../../hooks/useMusicPreview"
 import Button from "../ui/Button"
 
@@ -27,7 +28,7 @@ export default function MusicFieldEditor({
   pinId,
   serverFieldReady = true,
   fieldKey,
-  fieldLabel = "Song",
+  fieldLabel = GardenCopy.gardenTune,
   value,
   onValue,
 }: MusicFieldEditorProps) {
@@ -55,8 +56,8 @@ export default function MusicFieldEditor({
       parse={parseScore}
       serialize={serializeScore}
       hasContent={scoreHasContent}
-      editLabel="Edit song"
-      deleteLabel="Delete music"
+      editLabel={`Edit ${GardenCopy.gardenTune.toLowerCase()}`}
+      deleteLabel={GardenCopy.uproot}
       emptyHint="Open the editor to compose."
       saveEmptyError="Add at least one note before saving."
       renderSummary={(score) => `${score.tempo} BPM · ${score.steps} steps · pattern ready`}

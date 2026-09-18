@@ -7,6 +7,7 @@ import {
 } from "../../utils/drawingPayload"
 import { scoreHasContent } from "../../utils/musicScore"
 import { useDrawingFramePlayback } from "../../hooks/useDrawingFramePlayback"
+import { GardenCopy } from "../../utils/gardenCopy"
 import Button from "../ui/Button"
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "../ui/icons"
 
@@ -70,7 +71,7 @@ export default function DrawingPreview({
           size="xs"
           variant="action"
           onClick={() => setMuted((m) => !m)}
-          aria-label={muted ? "Unmute drawing soundtrack" : "Mute drawing soundtrack"}
+          aria-label={muted ? "Unmute botanical illustration soundtrack" : "Mute botanical illustration soundtrack"}
           aria-pressed={!muted}
           className="inline-flex items-center gap-1.5"
         >
@@ -106,7 +107,7 @@ export function DrawingPreviewFromPayload({
 }: DisplayProps) {
   const data = parseDrawing(payload)
   if (!drawingHasContent(data)) {
-    return <span className={className}>Drawing</span>
+    return <span className={className}>{GardenCopy.botanicalIllustration}</span>
   }
   return (
     <DrawingPreview

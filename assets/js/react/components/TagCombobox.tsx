@@ -11,6 +11,7 @@ import {
 } from "../hooks/useComboboxNavigation"
 import { HighlightedMatch } from "./HighlightedExcerpt"
 import Button from "./ui/Button"
+import { GardenCopy } from "../utils/gardenCopy"
 
 type Props = {
   availableTags: string[]
@@ -33,7 +34,7 @@ export default function TagCombobox({
   allowCreate = false,
   selectedTag = null,
   onSelect,
-  placeholder = "Search tags…",
+  placeholder = GardenCopy.searchLabels,
   inputId,
   className,
 }: Props) {
@@ -135,7 +136,7 @@ export default function TagCombobox({
         />
         {allowCreate ? (
           <Button type="button" variant="primary" size="sm" className="shrink-0" onClick={() => tryCreate()}>
-            Add tag
+            {GardenCopy.addLabelButton}
           </Button>
         ) : null}
       </div>
