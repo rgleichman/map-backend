@@ -231,8 +231,8 @@ defmodule Storymap.PinsTest do
         )
 
       pin = Storymap.Repo.preload(pin, :sub_map)
-      assert Pins.map_path_for_pin(pin) == "/m/path-test/map?pin=#{pin.id}"
-      assert Pins.map_path_for_pin(pin.id) == "/m/path-test/map?pin=#{pin.id}"
+      assert Pins.map_path_for_pin(pin) == "/g/path-test/map?pin=#{pin.id}"
+      assert Pins.map_path_for_pin(pin.id) == "/g/path-test/map?pin=#{pin.id}"
     end
 
     test "map_path_for_pin/1 uses world map for legacy pins" do

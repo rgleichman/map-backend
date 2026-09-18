@@ -15,7 +15,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
         {:halt,
          socket
          |> Phoenix.LiveView.put_flash(:error, GardenCopy.garden_not_found())
-         |> Phoenix.LiveView.redirect(to: ~p"/m")}
+         |> Phoenix.LiveView.redirect(to: ~p"/g")}
 
       sub_map ->
         membership = membership_for(socket, sub_map.id)
@@ -40,7 +40,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
       {:halt,
        socket
        |> Phoenix.LiveView.put_flash(:error, GardenCopy.groundskeeper_access_required())
-       |> Phoenix.LiveView.redirect(to: ~p"/m/#{socket.assigns.sub_map.community_url}/map")}
+       |> Phoenix.LiveView.redirect(to: ~p"/g/#{socket.assigns.sub_map.community_url}/map")}
     end
   end
 
@@ -61,7 +61,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
       {:halt,
        socket
        |> Phoenix.LiveView.put_flash(:error, GardenCopy.garden_owner_access_required())
-       |> Phoenix.LiveView.redirect(to: ~p"/m/#{sub_map.community_url}/map")}
+       |> Phoenix.LiveView.redirect(to: ~p"/g/#{sub_map.community_url}/map")}
     end
   end
 

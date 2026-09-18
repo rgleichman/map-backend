@@ -39,7 +39,7 @@ Changing `time_mode` on a type does not rewrite existing pins until each pin is 
 | Create a type | Any logged-in user (`/pin-types/new`, `POST /api/pin_types`) |
 | Edit/delete a type | Creator or site admin (`admin_level >= 1`); system types cannot be deleted |
 | Use on world map | Any user who can post pins — all **enabled** catalog types |
-| Enable types in a community | Community owner/mod (`/m/:url/settings`) via `sub_map_pin_types` |
+| Enable types in a community | Community owner/mod (`/g/:url/settings`) via `sub_map_pin_types` |
 
 ## Community allowlist
 
@@ -92,7 +92,7 @@ Pin create/update accepts `pin_type` (slug) and/or `pin_type_id`, plus `custom_d
 
 - `/pin-types` — browse catalog (public)
 - `/pin-types/new`, `/pin-types/:id/edit` — create/edit (auth); delete hidden for system types
-- `/m/:community_url/settings` — community settings including pin type allowlist (owner)
+- `/g/:community_url/settings` — community settings including pin type allowlist (owner)
 
 ## Unify migration (string → FK)
 

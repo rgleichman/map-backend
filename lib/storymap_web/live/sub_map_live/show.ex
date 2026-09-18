@@ -11,7 +11,7 @@ defmodule StorymapWeb.SubMapLive.Show do
   def mount(_params, _session, socket) do
     sub_map = socket.assigns.sub_map
 
-    {:ok, redirect(socket, to: ~p"/m/#{sub_map.community_url}/map")}
+    {:ok, redirect(socket, to: ~p"/g/#{sub_map.community_url}/map")}
   end
 
   @impl true

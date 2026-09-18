@@ -14,7 +14,14 @@ defmodule Storymap.Pins.ReferenceParserTest do
                {:ok, 42}
     end
 
-    test "parses community map pin URLs" do
+    test "parses garden map pin URLs" do
+      assert ReferenceParser.parse_map_pin_link(
+               "https://mapgarden.net/g/my-community/map?pin=12",
+               @origin
+             ) == {:ok, 12}
+    end
+
+    test "parses legacy /m garden map pin URLs" do
       assert ReferenceParser.parse_map_pin_link(
                "https://mapgarden.net/m/my-community/map?pin=12",
                @origin

@@ -72,7 +72,7 @@
                 <.button
                   navigate={
                     if pin.sub_map do
-                      ~p"/m/#{pin.sub_map.community_url}/map?pin=#{pin.id}"
+                      ~p"/g/#{pin.sub_map.community_url}/map?pin=#{pin.id}"
                     else
                       ~p"/map?pin=#{pin.id}"
                     end

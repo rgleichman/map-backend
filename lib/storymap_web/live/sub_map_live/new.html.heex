@@ -18,7 +18,7 @@
         required
       />
       <p class="text-sm text-base-content/60 -mt-2">
-        Your map will live at <span class="font-mono">/m/your-url</span>
+        Your map will live at <span class="font-mono">/g/your-url</span>
       </p>
       <.color_field form={@form} />
       <.input field={@form[:description]} type="textarea" label="Description" />
@@ -42,7 +42,7 @@
         <.button type="submit" variant="primary" id="sub-map-create-submit">
           {GardenCopy.create_garden()}
         </.button>
-        <.button navigate={~p"/m"} variant="ghost">Cancel</.button>
+        <.button navigate={~p"/g"} variant="ghost">Cancel</.button>
       </div>
     </.form>
   </div>

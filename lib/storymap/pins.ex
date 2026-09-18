@@ -158,7 +158,7 @@ defmodule Storymap.Pins do
   """
   @spec map_path_for_pin(Pin.t()) :: String.t()
   def map_path_for_pin(%Pin{id: id, sub_map: %SubMap{community_url: url}}) do
-    "/m/#{url}/map?pin=#{id}"
+    "/g/#{url}/map?pin=#{id}"
   end
 
   @spec map_path_for_pin(Pin.t()) :: String.t()

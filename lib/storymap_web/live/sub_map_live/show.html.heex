@@ -2,7 +2,7 @@
   <div class="max-w-3xl mx-auto px-4 py-10">
     <div class="space-y-2 mb-6">
       <p class="text-sm text-base-content/60">
-        <.link navigate={~p"/m"} class="link">{GardenCopy.gardens()}</.link>
+        <.link navigate={~p"/g"} class="link">{GardenCopy.gardens()}</.link>
         <span class="mx-1">/</span>
         <span class="font-mono">{@sub_map.community_url}</span>
       </p>
@@ -27,7 +27,7 @@
 
     <div class="flex flex-wrap gap-3">
       <.button
-        navigate={~p"/m/#{@sub_map.community_url}/map"}
+        navigate={~p"/g/#{@sub_map.community_url}/map"}
         variant="primary"
         id="sub-map-open-map"
       >
@@ -48,7 +48,7 @@
 
       <%= if @can_moderate_sub_map do %>
         <.button
-          navigate={~p"/m/#{@sub_map.community_url}/admin"}
+          navigate={~p"/g/#{@sub_map.community_url}/admin"}
           variant="ghost"
           id="sub-map-admin-link"
         >

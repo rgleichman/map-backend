@@ -15,7 +15,14 @@ describe("parseMapPinLink", () => {
     })
   })
 
-  it("parses community map pin URLs", () => {
+  it("parses garden map pin URLs", () => {
+    expect(parseMapPinLink("https://mapgarden.net/g/my-community/map?pin=12", ORIGIN)).toEqual({
+      pinId: 12,
+      communityUrl: "my-community",
+    })
+  })
+
+  it("parses legacy /m garden map pin URLs", () => {
     expect(parseMapPinLink("https://mapgarden.net/m/my-community/map?pin=12", ORIGIN)).toEqual({
       pinId: 12,
       communityUrl: "my-community",

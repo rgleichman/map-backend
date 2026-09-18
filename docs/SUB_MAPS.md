@@ -15,16 +15,16 @@ Related: [SPEC.md](../SPEC.md) (world map behavior), [TRUST.md](TRUST.md)
 | Feature | Notes |
 |---------|--------|
 | Create / list / view sub-map | Community URL, name, description, rules markdown |
-| Sub-map map view | `/m/:community_url/map` — scoped pins, same React map shell as world |
+| Sub-map map view | `/g/:community_url/map` — scoped pins, same React map shell as world |
 | Roles | `owner`, `moderator`, `member` on `sub_map_memberships` |
 | Contribution modes | Per sub-map: `open`, `members_only`, `approval_required` |
 | Pin approval queue | Status `pending` → mod approves → `approved` |
 | World promotion | Sub-map default `never \| ask \| always` + per-pin `visible_on_world_map` |
 | Join / leave | Public sub-maps; `private` deferred (see below) |
 | Scoped realtime | Channel `map:submap:<community_url>` |
-| Scoped reports | Reports include `sub_map_id`; mod queue at `/m/:community_url/admin` |
+| Scoped reports | Reports include `sub_map_id`; mod queue at `/g/:community_url/admin` |
 | Light activity feed | Reuse `admin_activity_events` pattern with `sub_map_id` |
-| Discovery | `/m` browse + search by name or community URL; public + `unlisted` only |
+| Discovery | `/g` browse + search by name or community URL; public + `unlisted` only |
 
 ### Explicitly deferred (post-MVP)
 
@@ -72,7 +72,7 @@ Sub-map mods do **not** gain world-map powers unless they are also site admins.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | serial | PK |
-| `community_url` | string | Unique, URL-safe path segment (`bbq-austin` → `/m/bbq-austin`) |
+| `community_url` | string | Unique, URL-safe path segment (`bbq-austin` → `/g/bbq-austin`) |
 | `name` | string | Display name |
 | `description` | text | Optional; markdown |
 | `rules` | text | Optional; community rules markdown |
@@ -235,15 +235,16 @@ New pin in `open` or `members_only` without approval mode: `approved` immediatel
 
 | Route | Purpose | Auth |
 |-------|---------|------|
-| `GET /m` | Browse/search public sub-maps | Optional |
-| `GET /m/new` | Create sub-map wizard | Required |
-| `GET /m/:community_url` | Redirects to community map | Optional |
-| `GET /m/:community_url/map` | Map UI (React, scoped pins) | Optional |
-| `GET /m/:community_url/settings` | Edit community settings | Required + owner |
-| `GET /m/:community_url/admin` | Mod queue, reports, members | Required + mod role |
+| `GET /g` | Browse/search public sub-maps | Optional |
+| `GET /g/new` | Create sub-map wizard | Required |
+| `GET /g/:community_url` | Redirects to community map | Optional |
+| `GET /g/:community_url/map` | Map UI (React, scoped pins) | Optional |
+| `GET /g/:community_url/settings` | Edit community settings | Required + owner |
+| `GET /g/:community_url/admin` | Mod queue, reports, members | Required + mod role |
+| `GET /m`, `GET /m/*` | 301 to the same path under `/g` (query string preserved) | Optional |
 | `GET /map` | World map (unchanged) | Optional |
 
-**Community URL** (user-facing term for the path segment): lowercase alphanumeric + hyphens, 3–48 chars, unique. Example: `bbq-austin` → `https://…/m/bbq-austin`.
+**Community URL** (user-facing term for the path segment): lowercase alphanumeric + hyphens, 3–48 chars, unique. Example: `bbq-austin` → `https://…/g/bbq-austin`.
 
 ### API (v1)
 
@@ -261,7 +262,7 @@ New pin in `open` or `members_only` without approval mode: `approved` immediatel
 
 Pin writes include `sub_map_id` (or nested under sub_map route); world writes remain `POST /api/pins` with `sub_map_id` absent.
 
-### Browse UX (`/m`)
+### Browse UX (`/g`)
 
 - Search input filters by name or community URL (server-side `ilike`).
 - Cards: name, tagline/description excerpt, pin count, member count, region hint from bounds.
@@ -269,15 +270,15 @@ Pin writes include `sub_map_id` (or nested under sub_map route); world writes re
 - Empty state: CTA to create first sub-map (if authenticated).
 - `unlisted` sub-maps: excluded from index; accessible via direct link.
 
-### Sub-map home (`/m/:community_url`)
+### Sub-map home (`/g/:community_url`)
 
 - Header: name, description, rules
 - Stats row: pins, members, contribution mode badge
-- Primary CTA: “Open map” → `/m/:community_url/map`
+- Primary CTA: “Open map” → `/g/:community_url/map`
 - Secondary: Join / Leave (if authenticated)
 - Mods: link to admin queue when pending count > 0
 
-### Map chrome (`/m/:community_url/map`)
+### Map chrome (`/g/:community_url/map`)
 
 - `data-community-url` on `#react-root` for client to fetch scoped pins + channel
 - Community identity chip (name + “Community” label); management actions in a menu (Moderation / Settings / Leave); Join as a primary CTA when not a member
@@ -287,7 +288,7 @@ Pin writes include `sub_map_id` (or nested under sub_map route); world writes re
 ### Realtime
 
 - World: `map:world` (unchanged)
-- Sub-map public: `map:submap:<community_url>` — approved pins; join when viewing `/m/:community_url/map`
+- Sub-map public: `map:submap:<community_url>` — approved pins; join when viewing `/g/:community_url/map`
 - Sub-map mod: `map:submap:<community_url>:mod` — approved + pending (moderators only)
 - Sub-map creator (planned): `map:submap:<community_url>:user:<user_id>` — owner’s pending/rejected pins; see [CREATOR_PIN_CHANNEL.md](./CREATOR_PIN_CHANNEL.md)
 

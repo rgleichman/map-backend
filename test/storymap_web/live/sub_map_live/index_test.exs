@@ -11,7 +11,7 @@ defmodule StorymapWeb.SubMapLive.IndexTest do
   test "guest does not see Your gardens section", %{conn: conn} do
     sub_map_fixture(%{"community_url" => "guest-browse", "name" => "Guest Browse"})
 
-    {:ok, view, html} = live(conn, ~p"/m")
+    {:ok, view, html} = live(conn, ~p"/g")
     refute has_element?(view, "#my-communities")
     refute html =~ "Your gardens"
     assert has_element?(view, "#sub-maps-list")
@@ -34,7 +34,7 @@ defmodule StorymapWeb.SubMapLive.IndexTest do
 
     {:ok, _} = SubMaps.join(%Scope{user: user}, public)
 
-    {:ok, view, html} = live(conn, ~p"/m")
+    {:ok, view, html} = live(conn, ~p"/g")
 
     assert has_element?(view, "#my-communities", "Your gardens")
     assert has_element?(view, "#my-community-#{owned.id}", "My Unlisted")

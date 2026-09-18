@@ -63,7 +63,7 @@ defmodule Storymap.SubMaps do
   Lists communities the scoped user actively belongs to (newest membership first).
 
   **Private:** results must only be shown to that same user (own profile or the
-  signed-in `/m` "Your communities" section). Includes unlisted communities the
+  signed-in `/g` "Your gardens" section). Includes unlisted communities the
   user belongs to. Omits banned and pending memberships.
   """
   @spec list_for_user(Scope.t()) :: [Membership.t()]

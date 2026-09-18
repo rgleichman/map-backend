@@ -53,7 +53,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
     assert has_element?(view, "h2", "Gardens")
     assert has_element?(view, "#profile-community-#{owned.id}", "Profile Owned")
     assert has_element?(view, "#profile-community-#{joined.id}", "Profile Joined")
-    assert has_element?(view, "a[href='/m']", "See all (2)")
+    assert has_element?(view, "a[href='/g']", "See all (2)")
     assert html =~ "Only you can see this list"
   end
 

@@ -5,7 +5,7 @@ defmodule Storymap.Pins.ReferenceParser do
   """
 
   @http_url_pattern ~r/https?:\/\/[^\s<>"')\]]+/
-  @relative_map_pattern ~r/(?:^|[\s(\["'])(\/(?:m\/[^\/\s]+\/)?map\?pin=\d+)/
+  @relative_map_pattern ~r/(?:^|[\s(\["'])(\/(?:[gm]\/[^\/\s]+\/)?map\?pin=\d+)/
 
   @doc """
   Returns the configured application origin used when parsing relative URLs.
@@ -118,7 +118,7 @@ defmodule Storymap.Pins.ReferenceParser do
         p -> p
       end
 
-    normalized in ["/", "/map"] or Regex.match?(~r/^\/m\/[^\/]+\/map$/, normalized)
+    normalized in ["/", "/map"] or Regex.match?(~r/^\/[gm]\/[^\/]+\/map$/, normalized)
   end
 
   defp parse_pin_param(query) when is_binary(query) do

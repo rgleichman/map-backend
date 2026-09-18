@@ -128,7 +128,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
                 {showModeration && (
                   <a
                     role="menuitem"
-                    href={`/m/${subMap.community_url}/admin`}
+                    href={`/g/${encodeURIComponent(subMap.community_url)}/admin`}
                     className={menuItemClass}
                     onClick={closeMenu}
                   >
@@ -141,7 +141,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
                 {showSettings && (
                   <a
                     role="menuitem"
-                    href={`/m/${subMap.community_url}/settings`}
+                    href={`/g/${encodeURIComponent(subMap.community_url)}/settings`}
                     className={menuItemClass}
                     onClick={closeMenu}
                   >

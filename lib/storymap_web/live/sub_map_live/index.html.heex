@@ -9,7 +9,7 @@
           </p>
         </div>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
-          <.button navigate={~p"/m/new"} variant="primary" class="shrink-0" id="sub-maps-create">
+          <.button navigate={~p"/g/new"} variant="primary" class="shrink-0" id="sub-maps-create">
             {GardenCopy.create_a_garden()}
           </.button>
         <% else %>
@@ -37,7 +37,7 @@
           <%= for membership <- @my_memberships do %>
             <li id={"my-community-#{membership.sub_map.id}"}>
               <.link
-                navigate={~p"/m/#{membership.sub_map.community_url}/map"}
+                navigate={~p"/g/#{membership.sub_map.community_url}/map"}
                 class="card bg-base-200/50 border border-base-300 hover:border-primary/40 transition-colors"
               >
                 <div class="card-body">
@@ -82,7 +82,7 @@
           {GardenCopy.no_gardens_yet()}
         </p>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
-          <.button navigate={~p"/m/new"} variant="primary">
+          <.button navigate={~p"/g/new"} variant="primary">
             {GardenCopy.create_a_garden()}
           </.button>
         <% else %>
@@ -96,7 +96,7 @@
         <%= for sub_map <- @sub_maps do %>
           <li>
             <.link
-              navigate={~p"/m/#{sub_map.community_url}/map"}
+              navigate={~p"/g/#{sub_map.community_url}/map"}
               class="card bg-base-200/50 border border-base-300 hover:border-primary/40 transition-colors"
             >
               <div class="card-body">

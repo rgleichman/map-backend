@@ -10,7 +10,14 @@ defmodule StorymapWeb.LayoutsTest do
       assert Layouts.map_full_bleed_path?("/map/")
     end
 
-    test "community map paths are full-bleed" do
+    test "garden map paths are full-bleed" do
+      assert Layouts.map_full_bleed_path?("/g/stories/map")
+      assert Layouts.map_full_bleed_path?("/g/stories/map/")
+      refute Layouts.map_full_bleed_path?("/g/stories")
+      refute Layouts.map_full_bleed_path?("/g")
+    end
+
+    test "legacy /m garden map paths are full-bleed" do
       assert Layouts.map_full_bleed_path?("/m/stories/map")
       assert Layouts.map_full_bleed_path?("/m/stories/map/")
       refute Layouts.map_full_bleed_path?("/m/stories")
@@ -27,8 +34,8 @@ defmodule StorymapWeb.LayoutsTest do
     test "aliases map_full_bleed_path?/1" do
       assert Layouts.full_viewport_map_path?("/map") == Layouts.map_full_bleed_path?("/map")
 
-      assert Layouts.full_viewport_map_path?("/m/foo/map") ==
-               Layouts.map_full_bleed_path?("/m/foo/map")
+      assert Layouts.full_viewport_map_path?("/g/foo/map") ==
+               Layouts.map_full_bleed_path?("/g/foo/map")
     end
   end
 

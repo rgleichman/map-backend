@@ -39,7 +39,7 @@ defmodule StorymapWeb.SubMapLive.New do
         {:noreply,
          socket
          |> put_flash(:info, GardenCopy.garden_created())
-         |> push_navigate(to: ~p"/m/#{sub_map.community_url}/map")}
+         |> push_navigate(to: ~p"/g/#{sub_map.community_url}/map")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}

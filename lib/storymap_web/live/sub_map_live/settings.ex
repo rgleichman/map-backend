@@ -53,7 +53,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
         {:noreply,
          socket
          |> put_flash(:error, GardenCopy.garden_owner_access_required())
-         |> push_navigate(to: ~p"/m/#{socket.assigns.sub_map.community_url}/map")}
+         |> push_navigate(to: ~p"/g/#{socket.assigns.sub_map.community_url}/map")}
     end
   end
 

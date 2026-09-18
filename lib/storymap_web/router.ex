@@ -58,8 +58,12 @@ defmodule StorymapWeb.Router do
     get "/", MapController, :index
     get "/map", MapController, :index
 
-    # Sub-map community map (scoped pins; see docs/SUB_MAPS.md)
-    get "/m/:community_url/map", MapController, :sub_map
+    # Garden map (scoped pins; see docs/SUB_MAPS.md)
+    get "/g/:community_url/map", MapController, :sub_map
+
+    # Legacy `/m` garden URLs
+    get "/m", GardenRedirectController, :from_m
+    get "/m/*path", GardenRedirectController, :from_m
   end
 
   scope "/api", StorymapWeb do
@@ -227,9 +231,9 @@ defmodule StorymapWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/saved", SavedLive.Index, :index
       live "/contributions", ContributionsLive.Index, :index
-      live "/m/new", SubMapLive.New, :new
-      live "/m/:community_url/settings", SubMapLive.Settings, :edit
-      live "/m/:community_url/admin", SubMapLive.Admin, :index
+      live "/g/new", SubMapLive.New, :new
+      live "/g/:community_url/settings", SubMapLive.Settings, :edit
+      live "/g/:community_url/admin", SubMapLive.Admin, :index
       live "/pin-types/new", PinTypeLive.New, :new
       live "/pin-types/:id/edit", PinTypeLive.Edit, :edit
     end
@@ -264,9 +268,9 @@ defmodule StorymapWeb.Router do
       # Public pins list page
       live "/pins", PinLive.Index, :index
       live "/pin-types", PinTypeLive.Index, :index
-      # Sub-map discovery (see docs/SUB_MAPS.md)
-      live "/m", SubMapLive.Index, :index
-      live "/m/:community_url", SubMapLive.Show, :show
+      # Garden discovery (see docs/SUB_MAPS.md)
+      live "/g", SubMapLive.Index, :index
+      live "/g/:community_url", SubMapLive.Show, :show
       live "/privacy-policy", StaticLive.Privacy, :show
       live "/about", StaticLive.About, :show
       live "/vision", StaticLive.Vision, :show

@@ -120,13 +120,13 @@ defmodule StorymapWeb.Layouts do
       |> assign(:login_active?, String.starts_with?(path, "/users/log-in"))
       |> assign(:about_active?, path == "/about")
       |> assign(:help_active?, path == "/help")
-      |> assign(:communities_active?, path == "/m" || String.starts_with?(path, "/m/"))
+      |> assign(:communities_active?, garden_nav_active?(path))
 
     ~H"""
     <li>
       <%= if @variant == "desktop" do %>
         <.link
-          navigate={~p"/m"}
+          navigate={~p"/g"}
           class={nav_btn_classes(@communities_active?)}
           aria-current={if(@communities_active?, do: "page")}
         >
@@ -134,7 +134,7 @@ defmodule StorymapWeb.Layouts do
         </.link>
       <% else %>
         <.link
-          navigate={~p"/m"}
+          navigate={~p"/g"}
           class={[
             "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
             @communities_active? && "bg-base-300 font-medium"
@@ -609,17 +609,25 @@ defmodule StorymapWeb.Layouts do
   end
 
   @doc "True for map pages that should not have content bottom padding (`md:pb-24`)."
+  @spec map_full_bleed_path?(String.t()) :: boolean()
   def map_full_bleed_path?(request_path) when is_binary(request_path) do
     case normalize_request_path_for_layout(request_path) do
       "/" -> true
       "/map" -> true
+      "/g/" <> rest -> String.ends_with?(rest, "/map")
       "/m/" <> rest -> String.ends_with?(rest, "/map")
       _ -> false
     end
   end
 
   @doc "Alias for `map_full_bleed_path?/1`."
+  @spec full_viewport_map_path?(String.t()) :: boolean()
   def full_viewport_map_path?(request_path), do: map_full_bleed_path?(request_path)
+
+  @spec garden_nav_active?(String.t()) :: boolean()
+  defp garden_nav_active?(path) do
+    path in ["/g", "/m"] or String.starts_with?(path, "/g/") or String.starts_with?(path, "/m/")
+  end
 
   defp normalize_request_path_for_layout(path) do
     path

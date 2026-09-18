@@ -4,24 +4,27 @@ export function normalizePathname(pathname: string): string {
   return trimmed === "" ? "/" : trimmed
 }
 
-/** True for world map (`/`, `/map`) and community maps (`/m/:url/map`). */
+/** Garden map path: `/g/:url/map`, plus legacy `/m/:url/map`. */
+const GARDEN_MAP_PATH = /^\/(?:g|m)\/([^/]+)\/map$/
+
+/** True for world map (`/`, `/map`) and garden maps (`/g/:url/map`, legacy `/m`). */
 export function isMapPathname(pathname: string): boolean {
   const path = normalizePathname(pathname)
   if (path === "/" || path === "/map") return true
-  return /^\/m\/[^/]+\/map$/.test(path)
+  return GARDEN_MAP_PATH.test(path)
 }
 
 /** Community slug from a map pathname, or undefined for the world map. */
 export function communityUrlFromPathname(pathname: string): string | undefined {
   const path = normalizePathname(pathname)
-  const match = path.match(/^\/m\/([^/]+)\/map$/)
+  const match = path.match(GARDEN_MAP_PATH)
   return match ? decodeURIComponent(match[1]) : undefined
 }
 
-/** Path for world or community map scope. */
+/** Path for world or garden map scope. Canonical prefix is `/g`. */
 export function mapPathForScope(communityUrl?: string | null): string {
   if (communityUrl) {
-    return `/m/${encodeURIComponent(communityUrl)}/map`
+    return `/g/${encodeURIComponent(communityUrl)}/map`
   }
   return "/map"
 }

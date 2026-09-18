@@ -7,6 +7,7 @@ describe("parsePinIdFromMapUrlInput", () => {
   it("extracts pin id from map URLs", () => {
     expect(parsePinIdFromMapUrlInput("https://mapgarden.net/map?pin=89", ORIGIN)).toBe(89)
     expect(parsePinIdFromMapUrlInput("/map?pin=42", ORIGIN)).toBe(42)
+    expect(parsePinIdFromMapUrlInput("https://mapgarden.net/g/austin/map?pin=12", ORIGIN)).toBe(12)
     expect(parsePinIdFromMapUrlInput("https://mapgarden.net/m/austin/map?pin=12", ORIGIN)).toBe(12)
   })
 

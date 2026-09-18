@@ -176,7 +176,7 @@ const isMapPathname = (pathname) => {
   const trimmed = (pathname || "").replace(/\/+$/, "")
   const path = trimmed === "" ? "/" : trimmed
   if (path === "/" || path === "/map") return true
-  return /^\/m\/[^/]+\/map$/.test(path)
+  return /^\/(?:g|m)\/[^/]+\/map$/.test(path)
 }
 
 const FOOTER_LEGEND_PAD =

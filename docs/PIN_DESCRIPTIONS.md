@@ -17,7 +17,8 @@ catalog, the app turns recognized links into clickable anchors.
 | Markdown email | `[Email us](team@example.com)` | `mailto:team@example.com` |
 | Markdown mailto | `[Email us](mailto:team@example.com)` | mail client |
 | Map pin link | `https://mapgarden.net/map?pin=89` | opens pin in-app (no reload) |
-| Community pin link | `https://mapgarden.net/m/my-community/map?pin=12` | opens pin in-app (no reload) |
+| Garden pin link | `https://mapgarden.net/g/my-community/map?pin=12` | opens pin in-app (no reload) |
+| Legacy garden pin link | `https://mapgarden.net/m/my-community/map?pin=12` | same as `/g` (still parsed) |
 
 `http://` and `https://` are optional for web links. Scheme-less domains are
 always opened with `https://`. Email links open in the user's mail client (not
