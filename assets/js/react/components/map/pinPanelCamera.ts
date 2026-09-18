@@ -1,8 +1,8 @@
 /** Edge inset so pins aren’t flush against the panel or map chrome. */
 export const PIN_PANEL_EDGE_MARGIN_PX = 48
 
-/** Binary-search iterations for globe-aware zoom fitting. */
-export const PIN_PANEL_ZOOM_SEARCH_ITERATIONS = 16
+/** Sub-pixel slack for “inside” checks after globe project. */
+export const PIN_PANEL_NUDGE_TOLERANCE_PX = 0.5
 
 export type PanelPadding = {
   top: number
@@ -11,7 +11,9 @@ export type PanelPadding = {
   left: number
 }
 
-/** True when (x, y) lies inside the padded viewport, inset by margin. */
+export type ScreenPoint = { x: number; y: number }
+
+/** True when (x, y) lies inside the padded viewport, inset by margin (± slack). */
 export function pointInPaddedViewport(
   x: number,
   y: number,
@@ -19,56 +21,46 @@ export function pointInPaddedViewport(
   mapHeight: number,
   padding: PanelPadding,
   margin: number,
+  slackPx: number = 0,
 ): boolean {
   return (
-    x >= padding.left + margin &&
-    x <= mapWidth - padding.right - margin &&
-    y >= padding.top + margin &&
-    y <= mapHeight - padding.bottom - margin
+    x >= padding.left + margin - slackPx &&
+    x <= mapWidth - padding.right - margin + slackPx &&
+    y >= padding.top + margin - slackPx &&
+    y <= mapHeight - padding.bottom - margin + slackPx
   )
 }
 
 /**
- * Highest zoom ≤ currentZoom that keeps the focus point inside the padded
- * viewport (zoom-out only).
+ * Nearest screen point inside the padded margin box for a projected pin.
+ * Returns null when the pin is already inside (no camera move needed).
  *
- * Uses `projectAtZoom` so visibility is evaluated with the map’s real camera
- * projection (globe), not a flat-Mercator 2^Δz screen-scale approximation.
+ * Pair with MapLibre globe `easeTo({ center: pin, offset, zoom })` so
+ * `setLocationAtPoint` runs under the hood at a **locked** zoom (passing
+ * `zoom` prevents lat→zoom planet-size adjustment). Do not use planar
+ * `unproject(center + Δ)`.
  */
-export function zoomToKeepPointInPaddedViewport(options: {
-  mapWidth: number
-  mapHeight: number
-  padding: PanelPadding
-  margin: number
-  currentZoom: number
-  minZoom: number
-  /** Project the focus lng/lat at the given zoom with panel padding applied. */
-  projectAtZoom: (zoom: number) => { x: number; y: number }
-}): number {
-  const {
-    mapWidth,
-    mapHeight,
-    padding,
-    margin,
-    currentZoom,
-    minZoom,
-    projectAtZoom,
-  } = options
-
-  const visibleAt = (zoom: number): boolean => {
-    const { x, y } = projectAtZoom(zoom)
-    return pointInPaddedViewport(x, y, mapWidth, mapHeight, padding, margin)
+export function targetScreenPointInPaddedViewport(
+  x: number,
+  y: number,
+  mapWidth: number,
+  mapHeight: number,
+  padding: PanelPadding,
+  margin: number,
+): ScreenPoint | null {
+  if (pointInPaddedViewport(x, y, mapWidth, mapHeight, padding, margin)) {
+    return null
   }
 
-  if (visibleAt(currentZoom) || !(visibleAt(minZoom))) return currentZoom
+  const minX = padding.left + margin
+  const maxX = mapWidth - padding.right - margin
+  const minY = padding.top + margin
+  const maxY = mapHeight - padding.bottom - margin
 
-  // Max zoom in [minZoom, currentZoom] that keeps the point visible.
-  let lo = minZoom
-  let hi = currentZoom
-  for (let i = 0; i < PIN_PANEL_ZOOM_SEARCH_ITERATIONS; i++) {
-    const mid = (lo + hi) / 2
-    if (visibleAt(mid)) lo = mid
-    else hi = mid
+  if (maxX < minX || maxY < minY) return null
+
+  return {
+    x: Math.min(Math.max(x, minX), maxX),
+    y: Math.min(Math.max(y, minY), maxY),
   }
-  return lo
 }

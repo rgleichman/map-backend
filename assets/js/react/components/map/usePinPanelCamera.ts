@@ -1,15 +1,33 @@
-import { type RefObject, useEffect, useRef } from "react"
-import { type Map as MLMap, type LngLat, type PaddingOptions } from "maplibre-gl"
+import { type RefObject, useEffect } from "react"
+import { type Map as MLMap, type PaddingOptions } from "maplibre-gl"
 import type { Pin } from "../../types"
 import {
   DESKTOP_PIN_PANEL_PADDING_DURATION_MS,
   desktopPinPanelMapPaddingRight,
 } from "../../utils/siteLayout"
-import { PIN_PANEL_EDGE_MARGIN_PX, zoomToKeepPointInPaddedViewport } from "./pinPanelCamera"
+import {
+  PIN_PANEL_EDGE_MARGIN_PX,
+  targetScreenPointInPaddedViewport,
+} from "./pinPanelCamera"
+
+/** Re-solve at fixed zoom when globe coupling leaves residual screen error. */
+const PIN_PANEL_SPHERE_SOLVE_ITERATIONS = 4
 
 function mapPaddingForPinPanel(map: MLMap, panelOpen: boolean): PaddingOptions {
   const right = desktopPinPanelMapPaddingRight(map.getContainer().clientWidth, panelOpen)
   return { top: 0, bottom: 0, left: 0, right }
+}
+
+/** Visual center of the padded viewport (MapLibre `centerPoint` equivalent). */
+function paddedCenterPoint(
+  mapWidth: number,
+  mapHeight: number,
+  padding: { top: number; right: number; bottom: number; left: number },
+): { x: number; y: number } {
+  return {
+    x: padding.left + (mapWidth - padding.left - padding.right) / 2,
+    y: padding.top + (mapHeight - padding.top - padding.bottom) / 2,
+  }
 }
 
 type UsePinPanelCameraArgs = {
@@ -25,7 +43,9 @@ type UsePinPanelCameraArgs = {
 
 /**
  * Shift the globe left when the desktop pin panel covers the right side.
- * Zoom out if the focused pin would leave the visible area; restore zoom on close.
+ * If the focused pin would leave the visible area, rotate the sphere (lng+lat)
+ * so the pin sits just inside the padded margin — zoom is never changed.
+ * Closing clears padding only; center/bearing/zoom stay as they are.
  */
 export function usePinPanelCamera({
   mapRef,
@@ -37,13 +57,6 @@ export function usePinPanelCamera({
   pinsByIdRef,
   pinsRef,
 }: UsePinPanelCameraArgs): void {
-  const panelCameraBackupRef = useRef<{
-    center: LngLat
-    zoom: number
-    bearing: number
-    pitch: number
-  } | null>(null)
-
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
@@ -61,6 +74,34 @@ export function usePinPanelCamera({
       return null
     }
 
+    /**
+     * Sphere-accurate pan at a locked zoom: easeTo(center=pin, offset→target)
+     * uses MapLibre’s globe setLocationAtPoint under the hood, while `zoom`
+     * in options prevents the lat→zoom planet-size adjustment.
+     */
+    const placePinAtScreenPoint = (
+      lngLat: [number, number],
+      target: { x: number; y: number },
+      zoom: number,
+      panelPadding: { top: number; right: number; bottom: number; left: number },
+      mapWidth: number,
+      mapHeight: number,
+      bearing: number,
+      pitch: number,
+    ): void => {
+      const cp = paddedCenterPoint(mapWidth, mapHeight, panelPadding)
+      map.easeTo({
+        center: lngLat,
+        zoom,
+        bearing,
+        pitch,
+        padding: panelPadding,
+        offset: [target.x - cp.x, target.y - cp.y],
+        duration: 0,
+        animate: false,
+      })
+    }
+
     const applyPanelCamera = (animate: boolean) => {
       const padding = mapPaddingForPinPanel(map, true)
       const mapWidth = map.getContainer().clientWidth
@@ -72,36 +113,63 @@ export function usePinPanelCamera({
         left: padding.left ?? 0,
       }
 
-      let zoom = map.getZoom()
+      const sample = {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+        padding: map.getPadding(),
+      }
+
+      let nextCenter: { lng: number; lat: number } | undefined
       const lngLat = focusLngLat()
+
       if (lngLat) {
-        const sample = {
-          center: map.getCenter(),
-          zoom: map.getZoom(),
-          bearing: map.getBearing(),
-          pitch: map.getPitch(),
-          padding: map.getPadding(),
-        }
-        // Sample with the real globe transform (jumpTo is sync; restore before paint).
-        zoom = zoomToKeepPointInPaddedViewport({
-          mapWidth,
-          mapHeight,
+        // Apply padding first so centerPoint / project use the panel viewport.
+        map.jumpTo({
+          center: sample.center,
+          zoom: sample.zoom,
+          bearing: sample.bearing,
+          pitch: sample.pitch,
           padding: panelPadding,
-          margin: PIN_PANEL_EDGE_MARGIN_PX,
-          currentZoom: sample.zoom,
-          minZoom: map.getMinZoom(),
-          projectAtZoom: (z) => {
+        })
+
+        for (let i = 0; i < PIN_PANEL_SPHERE_SOLVE_ITERATIONS; i++) {
+          const projected = map.project(lngLat)
+          const target = targetScreenPointInPaddedViewport(
+            projected.x,
+            projected.y,
+            mapWidth,
+            mapHeight,
+            panelPadding,
+            PIN_PANEL_EDGE_MARGIN_PX,
+          )
+          if (!target) break
+
+          placePinAtScreenPoint(
+            lngLat,
+            target,
+            sample.zoom,
+            panelPadding,
+            mapWidth,
+            mapHeight,
+            sample.bearing,
+            sample.pitch,
+          )
+          nextCenter = { lng: map.getCenter().lng, lat: map.getCenter().lat }
+
+          // Keep zoom locked if anything drifted.
+          if (Math.abs(map.getZoom() - sample.zoom) > 1e-6) {
             map.jumpTo({
-              center: sample.center,
-              zoom: z,
+              center: [nextCenter.lng, nextCenter.lat],
+              zoom: sample.zoom,
               bearing: sample.bearing,
               pitch: sample.pitch,
               padding: panelPadding,
             })
-            const p = map.project(lngLat)
-            return { x: p.x, y: p.y }
-          },
-        })
+          }
+        }
+
         map.jumpTo({
           center: sample.center,
           zoom: sample.zoom,
@@ -117,30 +185,36 @@ export function usePinPanelCamera({
         Math.abs((current.right ?? 0) - panelPadding.right) < 1 &&
         Math.abs((current.bottom ?? 0) - panelPadding.bottom) < 1 &&
         Math.abs((current.left ?? 0) - panelPadding.left) < 1
-      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
-      if (samePadding && sameZoom) return
+      const sameCenter =
+        nextCenter == null ||
+        (Math.abs(map.getCenter().lng - nextCenter.lng) < 1e-7 &&
+          Math.abs(map.getCenter().lat - nextCenter.lat) < 1e-7)
+      if (samePadding && sameCenter) return
 
+      // Always pass zoom so globe easeTo does not auto-adjust on lat change.
+      const camera = {
+        padding: panelPadding,
+        zoom: sample.zoom,
+        ...(nextCenter ? { center: [nextCenter.lng, nextCenter.lat] as [number, number] } : {}),
+      }
       if (animate) {
-        map.easeTo({ padding: panelPadding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
+        map.easeTo({ ...camera, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
       } else {
-        map.jumpTo({ padding: panelPadding, zoom })
+        map.jumpTo(camera)
       }
     }
 
     const clearPanelCamera = (animate: boolean) => {
-      const backup = panelCameraBackupRef.current
-      panelCameraBackupRef.current = null
       const padding = zeroPadding
-      const zoom = backup?.zoom ?? map.getZoom()
       const current = map.getPadding()
       const samePadding =
         Math.abs((current.top ?? 0) - padding.top) < 1 &&
         Math.abs((current.right ?? 0) - padding.right) < 1 &&
         Math.abs((current.bottom ?? 0) - padding.bottom) < 1 &&
         Math.abs((current.left ?? 0) - padding.left) < 1
-      const sameZoom = Math.abs(map.getZoom() - zoom) < 0.01
-      if (samePadding && sameZoom) return
+      if (samePadding) return
 
+      const zoom = map.getZoom()
       if (animate) {
         map.easeTo({ padding, zoom, duration: DESKTOP_PIN_PANEL_PADDING_DURATION_MS })
       } else {
@@ -149,14 +223,6 @@ export function usePinPanelCamera({
     }
 
     if (pinPanelOpen) {
-      if (!panelCameraBackupRef.current) {
-        panelCameraBackupRef.current = {
-          center: map.getCenter(),
-          zoom: map.getZoom(),
-          bearing: map.getBearing(),
-          pitch: map.getPitch(),
-        }
-      }
       applyPanelCamera(true)
     } else {
       clearPanelCamera(true)
