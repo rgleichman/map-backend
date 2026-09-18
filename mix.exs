@@ -112,11 +112,11 @@ defmodule Storymap.MixProject do
       "dialyzer.setup": ["dialyzer --plt"],
       dialyzer: ["dialyzer --format short"],
       precommit: [
-        "compile --warning-as-errors",
+        "compile --warnings-as-errors",
         "deps.unlock --unused",
         "format",
         "tsc.run",
-        "test",
+        "test --raise",
         "vitest.run"
       ]
     ]
