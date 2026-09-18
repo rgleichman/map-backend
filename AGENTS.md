@@ -57,6 +57,7 @@ The application should work for both **desktop** and **cross-platform mobile web
 - **Always** use functional components with hooks (useState, useEffect, useCallback, useMemo)
 - **Always** structure React code in modular files: `components/`, `api/`, `types.ts`
 - **Always** use proper TypeScript types for API responses and component props; for backend `Ecto.Enum` fields exposed in JSON, use matching string union types (see **Typed enums** under Ecto guidelines)
+- **Garden product vocabulary:** prefer `utils/gardenCopy.ts` (`GardenCopy`, helpers) in React and `StorymapWeb.GardenCopy` in LiveView instead of scattering Pins→Plants (etc.) string literals. Keep the two modules in sync. Collection-save is `takeAClipping` / `take_a_clipping` only — not form persist.
 - **Never** mix React state management with Phoenix LiveView state
 - **Never** bypass CSRF protection in API calls; always include the token
 - **Callback stability when passed to children:** If a callback (e.g. `onMapClick`) is passed to a child that uses it in a `useEffect` (or similar) dependency array, **do not** add frequently-changing state to the callback's `useCallback` dependency array if that would cause the child's effect to re-run (e.g. re-initializing a map or heavy DOM). **Prefer** keeping the callback reference stable: use a ref (e.g. `someRef.current = value` and read `someRef.current` inside the callback) so the callback can keep a minimal dependency array. Before adding a new dependency to a callback that is passed down, check whether the child includes that callback in an effect's dependency list; if so, use a ref for the value instead of adding it to the callback's deps.
@@ -81,6 +82,7 @@ For **closed, fixed** categorical values on the React/JSON boundary (mirroring b
 - `promote_to_world_default`: `utils/promoteToWorldDefault.ts`
 - Map “open now” time filter: `TIME_FILTER_NOW` in `components/map/filters.ts`
 - Drawing canvas tools: `DrawingTool` in `utils/drawingPayload.ts`
+- Garden product vocabulary: `utils/gardenCopy.ts` (`GardenCopy`; LiveView: `StorymapWeb.GardenCopy`)
 
 **Open-ended** string domains (e.g. pin type **slug**, user-defined field keys) stay as strings. Pin identity is always a catalog slug (no `custom:` prefix); resolve rows via `findPinType` / `findPinTypeById` from `utils/customPinTypes.ts`.
 

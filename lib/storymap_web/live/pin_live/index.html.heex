@@ -2,10 +2,10 @@
   <div class="max-w-4xl mx-auto px-4 py-10">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-base-content mb-2">
-        Pins
+        {GardenCopy.plants()}
       </h1>
       <p class="text-base-content/70">
-        Explore all pins on the map, ordered by most recently updated
+        {GardenCopy.explore_all_plants()}
       </p>
     </div>
 
@@ -14,7 +14,7 @@
         id="pins-empty"
         class="hidden only:block rounded-xl border border-base-300 bg-base-200/30 p-8 text-center"
       >
-        <p class="text-base-content/70">No pins yet. Be the first to add one!</p>
+        <p class="text-base-content/70">{GardenCopy.no_plants_yet()}</p>
       </div>
 
       <div :for={{id, pin} <- @streams.pins} id={id}>

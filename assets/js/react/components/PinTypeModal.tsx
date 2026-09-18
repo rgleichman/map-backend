@@ -4,6 +4,7 @@ import { usePinTypes } from "../context/PinTypesContext"
 import PinTypeIcon from "./PinTypeIcon"
 import Button from "./ui/Button"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
+import { GardenCopy } from "../utils/gardenCopy"
 
 type Props = {
   onSelectType: (type: PinType) => void
@@ -17,15 +18,14 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain p-4">
       <div className="border-b border-base-300 pb-4">
         <h2 id="pin-type-modal-title" className="text-lg font-semibold text-base-content">
-          What type of pin is this?
+          {GardenCopy.whatTypeOfPlant}
         </h2>
       </div>
 
       <div className="space-y-3 py-4">
         {selectableTypes.length === 0 ? (
           <p className="text-sm text-base-content/70">
-            No pin types are enabled for this map. Community moderators can enable types in settings,
-            or create types on the pin types page.
+            {GardenCopy.noPlantTypesEnabled}
           </p>
         ) : null}
         {selectableTypes.map((type) => {

@@ -1,7 +1,7 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="max-w-3xl mx-auto px-4 py-10">
     <p class="text-sm text-base-content/60 mb-2">
-      <.link navigate={~p"/pin-types"} class="link">Pin types</.link>
+      <.link navigate={~p"/pin-types"} class="link">{GardenCopy.plant_types()}</.link>
     </p>
     <h1 class="text-3xl font-bold text-base-content mb-6">{@page_title}</h1>
 
@@ -16,12 +16,12 @@
     <.confirm_modal
       :if={@show_delete_modal}
       id="pin-type-delete-modal"
-      title="Delete this pin type?"
+      title={GardenCopy.delete_this_plant_type()}
       on_cancel="hide_delete_modal"
       on_confirm="delete"
       confirm_label="Delete"
     >
-      This cannot be undone. Pins using this type cannot be deleted while they exist.
+      {GardenCopy.plants_using_type_cannot_delete()}
     </.confirm_modal>
   </div>
 </Layouts.app>

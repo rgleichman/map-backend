@@ -18,6 +18,7 @@ import { searchPlaceSuggestions, type PlaceSuggestion } from "../utils/placeSear
 import { buildMapSearchOptions } from "../utils/mapSearchOptions"
 import { mapShellOverlayTop } from "../utils/siteLayout"
 import { MAP_SEARCH_SHELL_CLASS, SECTION_LABEL_CLASS } from "../utils/mapUiClasses"
+import { GardenCopy } from "../utils/gardenCopy"
 
 const FILTER_DEBOUNCE_MS = 150
 const PLACE_DEBOUNCE_MS = 500
@@ -246,7 +247,7 @@ export default function MapSearch({
           </button>
         ) : null}
         <label htmlFor={`${listboxId}-input`} className="sr-only">
-          Search pins and places
+          {GardenCopy.plantCatalogue}
         </label>
         <div className={expanded ? "relative" : "sr-only"}>
           <span className="pointer-events-none absolute left-2.5 top-1/2 z-[1] -translate-y-1/2 text-base-content/60">
@@ -262,7 +263,7 @@ export default function MapSearch({
             aria-controls={showList ? listboxId : undefined}
             aria-autocomplete="list"
             aria-activedescendant={comboboxActiveDescendant(listboxId, showList, highlightIndex)}
-            placeholder="Search"
+            placeholder={GardenCopy.plantCatalogue}
             autoComplete="off"
             value={inputValue}
             onChange={(e) => {
@@ -295,7 +296,7 @@ export default function MapSearch({
             {pinSuggestions.length > 0 && (
               <>
                 <li role="presentation" className={SECTION_HEADER_CLASS}>
-                  Pins
+                  {GardenCopy.plants}
                 </li>
                 {pinSuggestions.map((pin, i) => {
                   const index = i

@@ -4,6 +4,7 @@ defmodule StorymapWeb.PinTypeLive.Index do
 
   alias Storymap.PinTypes
   alias Storymap.PinTypes.Policy
+  alias StorymapWeb.GardenCopy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -11,7 +12,7 @@ defmodule StorymapWeb.PinTypeLive.Index do
 
     {:ok,
      socket
-     |> assign(:page_title, "Pin types")
+     |> assign(:page_title, GardenCopy.plant_types())
      |> assign(:pin_types, pin_types)
      |> assign(:logged_in?, logged_in?(socket))}
   end

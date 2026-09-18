@@ -2,14 +2,14 @@
   <div class="max-w-2xl mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold text-base-content mb-2">My contributions</h1>
     <p class="text-base-content/70 mb-6">
-      Pins you have created. Only you can see this list.
+      {GardenCopy.plants_you_have_created()}
     </p>
 
     <%= if @contributions == [] do %>
       <div class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center">
-        <p class="text-base-content/80">You have not created any pins yet.</p>
+        <p class="text-base-content/80">{GardenCopy.not_planted_anything_yet()}</p>
         <p class="mt-2 text-sm text-base-content/60">
-          Open the map and add a pin to see it here.
+          {GardenCopy.open_map_and_plant()}
         </p>
         <.button navigate={~p"/"} variant="primary" size="sm" class="mt-6">
           Go to map

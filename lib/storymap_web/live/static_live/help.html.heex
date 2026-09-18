@@ -14,7 +14,7 @@
         <h2 id="help-intro" class="text-xl font-semibold">What is Map Garden?</h2>
         <p class="text-base-content/80">
           Map Garden is a developing web app. Currently, it allows people to create points of
-          interest across the globe, with pin types for events, schedules, and community resources.
+          interest across the globe, with plant types for events, schedules, and community resources.
           Learn more on the <.link navigate={~p"/about"} class="link">About</.link>
           and <.link navigate={~p"/vision"} class="link">Vision</.link>
           pages.
@@ -29,21 +29,50 @@
             <span class="font-medium">Sign in</span>
             in the top right to create a new account or to log in to your existing account.
           </li>
-          <li>Use the search control in the map's top-left to find pins or places.</li>
           <li>
-            Search finds pins by name, description, or tag, and places by address or location.
+            Use the {GardenCopy.plant_catalogue()} (search control) in the map's top-left to find plants or places.
           </li>
           <li>
-            Use the filter button in the map's top-right to filter by pin type and other unique qualities.
-          </li>
-          <li>Note the key in the lower-left for understanding the pin types you are seeing.</li>
-          <li>
-            Clicking on the various pin types described by the key allows you to select them as a filter.
+            Search finds plants by name, description, or tag, and places by address or location.
           </li>
           <li>
-            To add a pin, sign in and click the map where you want the pin. You'll be asked to choose a pin type and fill in details.
+            Use the filter button in the map's top-right to filter by plant type and other unique qualities.
+          </li>
+          <li>
+            Note the key in the lower-left for understanding the plant types you are seeing.
+          </li>
+          <li>
+            Clicking on the various plant types described by the key allows you to select them as a filter.
+          </li>
+          <li>
+            To plant, sign in and click the map where you want the plant. You'll be asked to choose a plant type and fill in details.
           </li>
         </ul>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="help-vocabulary">
+        <h2 id="help-vocabulary" class="text-xl font-semibold">Vocabulary</h2>
+        <p class="text-base-content/80">
+          Map Garden uses gardening language for familiar map ideas:
+        </p>
+        <div class="overflow-x-auto rounded-lg border border-base-300">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th scope="col">Familiar term</th>
+                <th scope="col">In Map Garden</th>
+              </tr>
+            </thead>
+            <tbody class="text-base-content/80">
+              <%= for {familiar, garden} <- GardenCopy.vocabulary_rows() do %>
+                <tr>
+                  <td>{familiar}</td>
+                  <td>{garden}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="space-y-3" aria-labelledby="help-top-bar-guide">

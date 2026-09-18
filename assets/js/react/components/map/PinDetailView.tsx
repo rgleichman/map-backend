@@ -22,6 +22,7 @@ import {
   pinStatusLabel,
   showPinStatusBadge,
 } from "../../utils/pinStatus"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 const detailContentClasses = "text-sm text-base-content"
 
@@ -136,7 +137,7 @@ export default function PinDetailView({
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-xl font-bold flex-1 min-w-0">{pin.title}</h2>
         {onClose ? (
-          <CloseButton aria-label="Close pin details" onClick={onClose} className="shrink-0" />
+          <CloseButton aria-label={GardenCopy.closePlantDetails} onClick={onClose} className="shrink-0" />
         ) : null}
       </div>
       {showPinStatusBadge(pin.status) ? (
@@ -260,7 +261,7 @@ export default function PinDetailView({
             setReportOpen(true)
           }}
         >
-          Report pin
+          {GardenCopy.reportPlant}
         </Button>
       </div>
       {doneMessage ? <p className="mt-2 text-sm text-success">{doneMessage}</p> : null}
@@ -274,7 +275,7 @@ export default function PinDetailView({
             className="inline-flex items-center gap-1.5"
           >
             <PencilIcon className="size-4" />
-            Edit
+            {GardenCopy.tendYourPlant}
           </Button>
           <Button
             type="button"
@@ -284,7 +285,7 @@ export default function PinDetailView({
             className="inline-flex items-center gap-1.5"
           >
             <TrashIcon className="size-4" />
-            Delete
+            {GardenCopy.uproot}
           </Button>
         </div>
       )}

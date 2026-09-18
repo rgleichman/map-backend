@@ -16,6 +16,7 @@ import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
 import Button from "./ui/Button"
 import { TrashIcon } from "./ui/icons"
+import { GardenCopy, plantFormHeading, plantFormPrimaryLabel } from "../utils/gardenCopy"
 
 type Props = {
   /** When true (mobile add from placement), location was just set; can hide or reword "Set location on map". */
@@ -136,7 +137,7 @@ export default function PinModal({
   return (
     <div className="pin-modal-content flex min-h-0 w-full flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-        <h2 id={headingId} className="text-lg font-semibold mb-4">{mode === "edit" ? "Edit Pin" : "Add Pin"}</h2>
+        <h2 id={headingId} className="text-lg font-semibold mb-4">{plantFormHeading(mode)}</h2>
         <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
         <input
           id="pin-title"
@@ -305,11 +306,11 @@ export default function PinModal({
             className="inline-flex items-center gap-1.5"
           >
             <TrashIcon className="size-4" />
-            Delete
+            {GardenCopy.uproot}
           </Button>
         )}
         <Button type="button" variant="primary" onClick={onSave} disabled={saving}>
-          {saving ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save Pin" : "Add Pin")}
+          {plantFormPrimaryLabel(mode, saving)}
         </Button>
       </div>
     </div>

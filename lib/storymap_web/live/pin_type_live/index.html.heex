@@ -5,14 +5,14 @@
         <p class="text-sm text-base-content/60 mb-1">
           <.link navigate={~p"/map"} class="link">Map</.link>
         </p>
-        <h1 class="text-3xl font-bold text-base-content">Custom pin types</h1>
+        <h1 class="text-3xl font-bold text-base-content">{GardenCopy.custom_plant_types()}</h1>
         <p class="text-base-content/70 mt-2">
-          Global templates anyone can use when adding pins on the world map or in communities that enable them.
+          Global templates anyone can use when planting on the world map or in communities that enable them.
         </p>
       </div>
       <%= if @logged_in? && user_can_write?(@current_scope) do %>
         <.button navigate={~p"/pin-types/new"} variant="primary" id="pin-types-create-link">
-          Create pin type
+          {GardenCopy.create_plant_type()}
         </.button>
       <% else %>
         <.button navigate={~p"/users/log-in"} variant="primary">
@@ -23,7 +23,7 @@
 
     <div id="pin-types-list" class="space-y-3">
       <%= if @pin_types == [] do %>
-        <p class="text-base-content/60">No custom pin types yet.</p>
+        <p class="text-base-content/60">{GardenCopy.no_custom_plant_types_yet()}</p>
       <% end %>
       <%= for pin_type <- @pin_types do %>
         <%= if can_edit?(@current_scope, pin_type) do %>

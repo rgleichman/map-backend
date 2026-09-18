@@ -24,6 +24,7 @@ import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
 import { shouldApplyFocusIntent } from "./pinFocusIntent"
 import * as api from "./api/client"
+import { GardenCopy } from "./utils/gardenCopy"
 
 type Props = {
   userId?: number
@@ -333,8 +334,9 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
           <ConfirmDialog
             open={pendingDeletePinId != null}
-            title="Delete this pin?"
+            title={GardenCopy.uprootConfirmTitle}
             body="This cannot be undone."
+            confirmLabel={GardenCopy.uproot}
             confirming={saving && pendingDeletePinId != null}
             onCancel={cancelPendingDelete}
             onConfirm={() => void confirmPendingDelete()}
@@ -343,10 +345,10 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
           <ConfirmDialog
             open={pendingNearLocationSave != null}
             tone="warning"
-            title="This pin is near your location"
-            body="Posting here may reveal where you are right now. Move the pin first, or post anyway."
+            title={GardenCopy.nearLocationTitle}
+            body={GardenCopy.nearLocationBody}
             confirmLabel="Post anyway"
-            confirmingLabel="Adding…"
+            confirmingLabel={GardenCopy.planting}
             confirming={saving && pendingNearLocationSave != null}
             onCancel={cancelNearLocationSave}
             onConfirm={() => void confirmNearLocationSave()}

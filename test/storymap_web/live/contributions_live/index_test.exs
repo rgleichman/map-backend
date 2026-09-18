@@ -9,7 +9,7 @@ defmodule StorymapWeb.ContributionsLive.IndexTest do
   test "renders empty state", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/contributions")
     assert has_element?(view, "h1", "My contributions")
-    assert render(view) =~ "You have not created any pins yet"
+    assert render(view) =~ "You have not planted anything yet"
   end
 
   test "lists contributed pins with status", %{conn: conn, user: user} do

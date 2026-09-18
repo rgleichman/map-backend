@@ -9,6 +9,7 @@ defmodule StorymapWeb.PinLive.Index do
   alias Storymap.Pins.PinTypeColors
   alias Storymap.Pins.Policy
   alias Storymap.PinTypes.PinType
+  alias StorymapWeb.GardenCopy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,7 +26,7 @@ defmodule StorymapWeb.PinLive.Index do
   end
 
   def pin_type_label(%{pin_type: %PinType{label: label}}), do: label
-  def pin_type_label(_pin), do: "Pin"
+  def pin_type_label(_pin), do: GardenCopy.plant()
 
   def pin_type_color(%{pin_type: %PinType{marker_color: color, slug: slug}}) do
     color || PinTypeColors.color(slug)

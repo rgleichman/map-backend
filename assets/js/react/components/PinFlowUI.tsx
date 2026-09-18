@@ -7,6 +7,7 @@ import { useSubMap } from "../context/SubMapContext"
 import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import Button from "./ui/Button"
+import { GardenCopy, pinOverlayTitle } from "../utils/gardenCopy"
 
 type Props = {
   isDesktop: boolean
@@ -19,21 +20,6 @@ type Props = {
   onTagFilter?: (tag: string) => void
   isPinHearted?: (pinId: number) => boolean
   onTogglePinHeart?: (pinId: number) => Promise<ToggleHeartResult>
-}
-
-function pinOverlayLabel(mode: string | undefined): string {
-  switch (mode) {
-    case "select-type":
-      return "Choose pin type"
-    case "view":
-      return "Pin details"
-    case "edit":
-      return "Edit pin"
-    case "add":
-      return "Add pin"
-    default:
-      return "Pin"
-  }
 }
 
 export default function PinFlowUI({
@@ -184,7 +170,7 @@ export default function PinFlowUI({
           aria-label={
             modal?.mode === "select-type" || modal?.mode === "view"
               ? undefined
-              : pinOverlayLabel(modal?.mode)
+              : pinOverlayTitle(modal?.mode)
           }
           aria-labelledby={
             modal?.mode === "select-type"
@@ -229,7 +215,7 @@ export default function PinFlowUI({
                       dispatch({ type: "open_select_type", lat: placement.lat, lng: placement.lng, resetDraft: false })
                     }}
                   >
-                    Create pin
+                    {GardenCopy.plantBang}
                   </Button>
                 </>
               )

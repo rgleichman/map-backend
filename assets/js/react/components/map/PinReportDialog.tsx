@@ -1,6 +1,7 @@
 import React from "react"
 import ContentReportDialog from "./ContentReportDialog"
 import { ReportSubjectType } from "../../utils/reportSubjectType"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 type Props = {
   pinId: number
@@ -15,8 +16,8 @@ export default function PinReportDialog({ pinId, csrfToken, open, onClose, onSuc
     <ContentReportDialog
       subjectType={ReportSubjectType.Pin}
       subjectId={pinId}
-      title="Report this pin"
-      detailsPlaceholder="What is wrong with this pin?"
+      title={GardenCopy.reportThisPlant}
+      detailsPlaceholder={GardenCopy.reportPlantPlaceholder}
       csrfToken={csrfToken}
       open={open}
       onClose={onClose}

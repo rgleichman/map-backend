@@ -6,6 +6,7 @@ import PinTypePickerList from "./PinTypePickerList"
 import FloatingPanel from "./FloatingPanel"
 import Button from "./ui/Button"
 import { PencilIcon } from "./ui/icons"
+import { GardenCopy } from "../utils/gardenCopy"
 
 type Props = {
   /** When set, that row is highlighted (same source as map Filters). */
@@ -20,9 +21,9 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
 
   return (
     <FloatingPanel
-      triggerLabel="Pin types"
-      triggerAriaLabel="Show pin types legend"
-      title="Pin Types"
+      triggerLabel={GardenCopy.plantTypes}
+      triggerAriaLabel={GardenCopy.showPlantTypesLegend}
+      title={GardenCopy.plantTypesTitle}
       closeAriaLabel="Close legend"
       closeRef={closeRef}
       compact
@@ -43,7 +44,7 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
         className="w-full mt-1.5 shrink-0 inline-flex items-center justify-center gap-1.5"
       >
         <PencilIcon className="size-4" />
-        Add or Edit pin types
+        {GardenCopy.addOrEditPlantTypes}
       </Button>
     </FloatingPanel>
   )

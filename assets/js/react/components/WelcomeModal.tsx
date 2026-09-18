@@ -71,7 +71,7 @@ export default function WelcomeModal({ onClose }: Props) {
         <div className="px-5 py-4 overflow-y-auto space-y-4 text-sm sm:text-base">
           <p>
             Welcome to Map Garden! Map Garden is a developing web app. Currently, it allows people to
-            create points of interest across the globe, with pin types for scheduled events, recurring
+            create points of interest across the globe, with plant types for scheduled events, recurring
             offerings, and community resources.
           </p>
 
@@ -80,18 +80,18 @@ export default function WelcomeModal({ onClose }: Props) {
             <ul className="list-disc pl-5 space-y-1">
               <li>Click and drag to interact with the map.</li>
               <li>
-                Use <span className="font-medium">Sign in</span> in the top right to create an account so you can create pins.
+                Use <span className="font-medium">Sign in</span> in the top right to create an account so you can plant.
               </li>
-              <li>Use the search control in the map top-left to find pins or places.</li>
+              <li>Use the search control in the map top-left to find plants or places.</li>
               <li>
-                Search finds pins by name, description, or tag, and places by address or location.
+                Search finds plants by name, description, or tag, and places by address or location.
               </li>
               <li>
-                Use the filter button in the map top-right to filter by pin type and other unique qualities.
+                Use the filter button in the map top-right to filter by plant type and other unique qualities.
               </li>
-              <li>Note the key in the lower-left for understanding the pin types you are seeing.</li>
+              <li>Note the key in the lower-left for understanding the plant types you are seeing.</li>
               <li>
-                Clicking on the various pin types described by the key allows you to select them as a filter.
+                Clicking on the various plant types described by the key allows you to select them as a filter.
               </li>
             </ul>
           </div>

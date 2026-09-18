@@ -12,6 +12,7 @@ import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
 import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
 import { PinStatusValue } from "../utils/pinStatus"
+import { GardenCopy } from "../utils/gardenCopy"
 import type { CatalogPinType, Pin, PinType, SubMap } from "../types"
 import {
   isEscapeCloseableDesktopMode,
@@ -96,11 +97,11 @@ export function usePinWorkflow({
       return
     }
     if (userMuted) {
-      setApiError("Your account is muted and cannot add or edit pins.")
+      setApiError(GardenCopy.mutedCannotEditPlants)
       return
     }
     if (subMap && subMap.can_post === false) {
-      setApiError("You must join this community before adding pins.")
+      setApiError(GardenCopy.mustJoinBeforeAddingPlants)
       return
     }
     if (modalRef.current?.mode === "add" || modalRef.current?.mode === "edit") return

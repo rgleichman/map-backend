@@ -12,6 +12,7 @@ import {
   partsLte,
 } from "../../utils/datetime"
 import { pinCustomFieldsMatchQuery } from "../../utils/customFieldSearch"
+import { GardenCopy } from "../../utils/gardenCopy"
 
 export type TimeFilter = typeof TIME_FILTER_NOW | null
 
@@ -98,7 +99,7 @@ export function listActiveFilterChips(filter: FilterState, catalog: CatalogPinTy
     chips.push({ dimension: "hearted", label: "Saved pins" })
   }
   if (filter.mineOnly) {
-    chips.push({ dimension: "mine", label: "My pins" })
+    chips.push({ dimension: "mine", label: GardenCopy.myPlants })
   }
   const q = filter.query.trim()
   if (q !== "") {

@@ -13,6 +13,7 @@ import {
   type FilterState
 } from "./map/filters"
 import FloatingPanel from "./FloatingPanel"
+import { GardenCopy } from "../utils/gardenCopy"
 import CloseButton from "./ui/CloseButton"
 import Button from "./ui/Button"
 import HeartIcon from "./HeartIcon"
@@ -228,7 +229,7 @@ export default function MapFilters({
                 onClick={() => setFilter((f) => ({ ...f, mineOnly: !f.mineOnly }))}
                 className={filterChipClass(filter.mineOnly)}
               >
-                My pins
+                {GardenCopy.myPlants}
               </button>
               <button
                 type="button"
@@ -292,7 +293,7 @@ export default function MapFilters({
         </section>
 
         <section>
-          <p className={sectionTitle}>Pin type</p>
+          <p className={sectionTitle}>{GardenCopy.plantType}</p>
           <PinTypePickerList
             pinTypes={filterPinTypes}
             catalog={catalog}

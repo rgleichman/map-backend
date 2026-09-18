@@ -93,6 +93,7 @@ defmodule StorymapWeb do
       alias Phoenix.LiveView.JS
       alias StorymapWeb.Layouts
       alias StorymapWeb.Admin.EventView
+      alias StorymapWeb.GardenCopy
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

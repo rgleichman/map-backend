@@ -9,6 +9,7 @@ defmodule StorymapWeb.PinTypeLive.New do
   alias Storymap.PinTypes
   alias Storymap.PinTypes.PinType
   alias StorymapWeb.PinTypeLive.Form
+  alias StorymapWeb.GardenCopy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -16,7 +17,7 @@ defmodule StorymapWeb.PinTypeLive.New do
       %{user: _} ->
         {:ok,
          socket
-         |> assign(:page_title, "Create pin type")
+         |> assign(:page_title, GardenCopy.create_plant_type())
          |> assign(:fields, [Form.empty_field()])
          |> assign(:field_errors, %{})
          |> assign_form(%{})}
