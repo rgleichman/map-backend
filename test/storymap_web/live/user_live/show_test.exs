@@ -50,7 +50,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
     {:ok, _} = SubMaps.join(%Scope{user: user}, joined)
 
     {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
-    assert has_element?(view, "h2", "Communities")
+    assert has_element?(view, "h2", "Gardens")
     assert has_element?(view, "#profile-community-#{owned.id}", "Profile Owned")
     assert has_element?(view, "#profile-community-#{joined.id}", "Profile Joined")
     assert has_element?(view, "a[href='/m']", "See all (2)")
@@ -69,7 +69,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
       sub_map_fixture(%{"community_url" => "secret-comm", "name" => "Secret Community"}, other)
 
     {:ok, view, html} = live(conn, ~p"/user/#{other.id}")
-    refute has_element?(view, "h2", "Communities")
+    refute has_element?(view, "h2", "Gardens")
     refute has_element?(view, "h2", "Clippings")
     refute has_element?(view, "h2", "My contributions")
     refute html =~ "Secret save"
@@ -84,7 +84,7 @@ defmodule StorymapWeb.UserLive.ShowTest do
     {:ok, view, html} = live(conn, ~p"/user/#{user.id}")
     assert html =~ "You have not taken any clippings yet"
     assert html =~ "You have not created any pins yet"
-    assert html =~ "You have not joined any communities yet"
+    assert html =~ "You have not joined any gardens yet"
     refute has_element?(view, "a", "See all")
   end
 

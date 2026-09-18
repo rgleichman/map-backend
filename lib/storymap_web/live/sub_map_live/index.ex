@@ -4,13 +4,14 @@ defmodule StorymapWeb.SubMapLive.Index do
 
   alias Storymap.Accounts.Scope
   alias Storymap.SubMaps
+  alias StorymapWeb.GardenCopy
 
   @impl true
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:page_title, "Communities")
+     |> assign(:page_title, GardenCopy.gardens())
      |> assign(:search_query, "")
      |> load_my_memberships()
      |> load_sub_maps()}

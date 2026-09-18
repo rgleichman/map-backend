@@ -1,11 +1,11 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
   <div class="max-w-2xl mx-auto px-4 py-10">
     <p class="text-sm text-base-content/60 mb-2">
-      <.link navigate={~p"/m"} class="link">Communities</.link>
+      <.link navigate={~p"/m"} class="link">{GardenCopy.gardens()}</.link>
       <span class="mx-1">/</span>
       <.link navigate={~p"/m/#{@sub_map.community_url}/map"} class="link">{@sub_map.name}</.link>
     </p>
-    <h1 class="text-3xl font-bold text-base-content mb-6">Community settings</h1>
+    <h1 class="text-3xl font-bold text-base-content mb-6">{GardenCopy.garden_settings()}</h1>
 
     <.form
       for={@form}
@@ -21,13 +21,13 @@
       <.input
         field={@form[:contribution_mode]}
         type="select"
-        label="Who can add pins?"
+        label={GardenCopy.who_can_add_plants()}
         options={SubMap.contribution_mode_options()}
       />
       <.input
         field={@form[:promote_to_world_default]}
         type="select"
-        label="Show pins on world map"
+        label={GardenCopy.show_plants_on_world_map()}
         options={SubMap.promote_default_options()}
       />
       <.input
@@ -37,7 +37,7 @@
         options={SubMap.visibility_options()}
       />
       <p class="text-sm text-base-content/60">
-        Community URL: <span class="font-mono">/m/{@sub_map.community_url}</span>
+        {GardenCopy.garden_url()}: <span class="font-mono">/m/{@sub_map.community_url}</span>
       </p>
 
       <.pin_type_fields pin_types={@pin_types} enabled_pin_type_ids={@enabled_pin_type_ids} />

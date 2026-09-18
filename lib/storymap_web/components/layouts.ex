@@ -130,7 +130,7 @@ defmodule StorymapWeb.Layouts do
           class={nav_btn_classes(@communities_active?)}
           aria-current={if(@communities_active?, do: "page")}
         >
-          Communities
+          {GardenCopy.gardens()}
         </.link>
       <% else %>
         <.link
@@ -141,7 +141,7 @@ defmodule StorymapWeb.Layouts do
           ]}
           aria-current={if(@communities_active?, do: "page")}
         >
-          Communities
+          {GardenCopy.gardens()}
         </.link>
       <% end %>
     </li>

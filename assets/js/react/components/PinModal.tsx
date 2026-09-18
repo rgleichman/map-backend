@@ -286,7 +286,7 @@ export default function PinModal({
               <span>
                 <span className="font-medium">Also show on world map</span>
                 <span className="mt-0.5 block text-sm text-base-content/70">
-                  Visible on the main world map as well as this community.
+                  {GardenCopy.visibleOnWorldAndGarden}
                 </span>
               </span>
             </label>

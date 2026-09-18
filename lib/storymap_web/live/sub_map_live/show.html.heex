@@ -2,7 +2,7 @@
   <div class="max-w-3xl mx-auto px-4 py-10">
     <div class="space-y-2 mb-6">
       <p class="text-sm text-base-content/60">
-        <.link navigate={~p"/m"} class="link">Communities</.link>
+        <.link navigate={~p"/m"} class="link">{GardenCopy.gardens()}</.link>
         <span class="mx-1">/</span>
         <span class="font-mono">{@sub_map.community_url}</span>
       </p>
@@ -13,7 +13,7 @@
     </div>
 
     <div class="flex flex-wrap gap-4 text-sm text-base-content/80 mb-8" id="sub-map-stats">
-      <span>{@counts.pin_count} pins</span>
+      <span>{@counts.pin_count} plants</span>
       <span>{@counts.member_count} members</span>
       <span class="badge badge-ghost">{@sub_map.contribution_mode}</span>
     </div>
@@ -37,11 +37,11 @@
       <%= if @current_scope && @current_scope.user do %>
         <%= if @sub_map_membership do %>
           <.button type="button" id="sub-map-leave" phx-click="leave" variant="ghost">
-            Leave community
+            {GardenCopy.leave_garden()}
           </.button>
         <% else %>
           <.button type="button" id="sub-map-join" phx-click="join" variant="soft">
-            Join community
+            {GardenCopy.join_garden()}
           </.button>
         <% end %>
       <% end %>

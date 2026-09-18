@@ -3,6 +3,7 @@ defmodule StorymapWeb.SubMapLive.Show do
   use StorymapWeb, :live_view
 
   alias Storymap.SubMaps
+  alias StorymapWeb.GardenCopy
 
   on_mount {StorymapWeb.SubMapLive.OnMount, :load_sub_map}
 
@@ -20,7 +21,7 @@ defmodule StorymapWeb.SubMapLive.Show do
         {:noreply,
          socket
          |> assign(:sub_map_membership, membership)
-         |> put_flash(:info, "Joined community")}
+         |> put_flash(:info, GardenCopy.joined_garden())}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not join")}
@@ -33,7 +34,7 @@ defmodule StorymapWeb.SubMapLive.Show do
         {:noreply,
          socket
          |> assign(:sub_map_membership, nil)
-         |> put_flash(:info, "Left community")}
+         |> put_flash(:info, GardenCopy.left_garden())}
 
       {:error, :owner_cannot_leave} ->
         {:noreply, put_flash(socket, :error, "Owners cannot leave; transfer ownership first")}

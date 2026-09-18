@@ -6,6 +6,7 @@ defmodule StorymapWeb.SubMapLive.New do
 
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
+  alias StorymapWeb.GardenCopy
   alias StorymapWeb.SubMapLive.PinTypeForm
 
   @impl true
@@ -14,7 +15,7 @@ defmodule StorymapWeb.SubMapLive.New do
 
     {:ok,
      socket
-     |> assign(:page_title, "Create community")
+     |> assign(:page_title, GardenCopy.create_garden())
      |> assign(:form, to_form(changeset, as: :sub_map))
      |> PinTypeForm.assign_pin_types(nil)}
   end
@@ -37,7 +38,7 @@ defmodule StorymapWeb.SubMapLive.New do
       {:ok, sub_map} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Community created")
+         |> put_flash(:info, GardenCopy.garden_created())
          |> push_navigate(to: ~p"/m/#{sub_map.community_url}/map")}
 
       {:error, %Ecto.Changeset{} = changeset} ->

@@ -6,7 +6,7 @@ defmodule StorymapWeb.SubMapsRoutesTest do
   describe "sub-map discovery routes" do
     test "GET /m renders communities browse", %{conn: conn} do
       conn = get(conn, ~p"/m")
-      assert html_response(conn, 200) =~ "Communities"
+      assert html_response(conn, 200) =~ "Gardens"
       assert html_response(conn, 200) =~ ~s(id="sub-maps-empty")
     end
 
@@ -43,7 +43,7 @@ defmodule StorymapWeb.SubMapsRoutesTest do
 
     test "GET /m/new renders create placeholder", %{conn: conn} do
       conn = get(conn, ~p"/m/new")
-      assert html_response(conn, 200) =~ "Create a community"
+      assert html_response(conn, 200) =~ "Create a garden"
     end
 
     test "GET /m/:community_url/admin renders moderation placeholder", %{conn: conn, user: user} do
@@ -58,7 +58,7 @@ defmodule StorymapWeb.SubMapsRoutesTest do
 
       conn = get(conn, ~p"/m/#{sub_map.community_url}/settings")
       html = html_response(conn, 200)
-      assert html =~ "Community settings"
+      assert html =~ "Garden settings"
       assert html =~ ~s(id="sub-map-settings-form")
       assert html =~ ~s(id="community-color-field")
       assert html =~ ~s(id="sub_map_color")

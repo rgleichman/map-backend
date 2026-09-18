@@ -5,6 +5,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
   alias Storymap.Accounts.Scope
   alias Storymap.SubMaps
   alias Storymap.SubMaps.Policy
+  alias StorymapWeb.GardenCopy
 
   @spec on_mount(:load_sub_map, map(), map(), Phoenix.LiveView.Socket.t()) ::
           {:cont, Phoenix.LiveView.Socket.t()} | {:halt, Phoenix.LiveView.Socket.t()}
@@ -13,7 +14,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
       nil ->
         {:halt,
          socket
-         |> Phoenix.LiveView.put_flash(:error, "Community not found")
+         |> Phoenix.LiveView.put_flash(:error, GardenCopy.garden_not_found())
          |> Phoenix.LiveView.redirect(to: ~p"/m")}
 
       sub_map ->
@@ -38,7 +39,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
     else
       {:halt,
        socket
-       |> Phoenix.LiveView.put_flash(:error, "Moderator access required")
+       |> Phoenix.LiveView.put_flash(:error, GardenCopy.groundskeeper_access_required())
        |> Phoenix.LiveView.redirect(to: ~p"/m/#{socket.assigns.sub_map.community_url}/map")}
     end
   end
@@ -59,7 +60,7 @@ defmodule StorymapWeb.SubMapLive.OnMount do
     else
       {:halt,
        socket
-       |> Phoenix.LiveView.put_flash(:error, "Community owner access required")
+       |> Phoenix.LiveView.put_flash(:error, GardenCopy.garden_owner_access_required())
        |> Phoenix.LiveView.redirect(to: ~p"/m/#{sub_map.community_url}/map")}
     end
   end

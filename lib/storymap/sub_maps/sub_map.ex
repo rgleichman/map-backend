@@ -76,7 +76,7 @@ defmodule Storymap.SubMaps.SubMap do
     [
       {"Anyone logged in", :open},
       {"Members only", :members_only},
-      {"Requires moderator approval", :approval_required}
+      {"Requires groundskeeper approval", :approval_required}
     ]
   end
 

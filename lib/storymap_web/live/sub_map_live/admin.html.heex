@@ -2,12 +2,12 @@
   <div class="max-w-3xl mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold text-base-content mb-2">Moderation</h1>
     <p class="text-base-content/70 mb-6">
-      Pending pins for <span class="font-mono">{@sub_map.community_url}</span>
+      Pending plants for <span class="font-mono">{@sub_map.community_url}</span>
     </p>
 
     <div id="pending-pins" phx-update="stream" class="space-y-4">
       <div class="hidden only:block rounded-xl border border-base-300 p-6 text-center text-base-content/70">
-        No pins awaiting approval.
+        No plants awaiting approval.
       </div>
       <div
         :for={{id, pin} <- @streams.pending_pins}
@@ -46,7 +46,7 @@
     </div>
 
     <.button navigate={~p"/m/#{@sub_map.community_url}"} variant="ghost" class="mt-8">
-      Back to community
+      {GardenCopy.back_to_garden()}
     </.button>
   </div>
 </Layouts.app>

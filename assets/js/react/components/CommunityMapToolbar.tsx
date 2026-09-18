@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { SubMap } from "../types"
 import { ACTION_BTN_BASE_CLASS } from "../utils/actionUiClasses"
+import { GardenCopy } from "../utils/gardenCopy"
 import Button from "./ui/Button"
 
 type Props = {
@@ -83,7 +84,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   const identityLabel = (
     <span className="flex min-w-0 items-center gap-1.5 text-left">
       <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-base-content/50">
-        Community
+        {GardenCopy.garden}
       </span>
       <span className="truncate text-sm font-semibold leading-none text-base-content">{subMap.name}</span>
     </span>
@@ -91,7 +92,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
 
   return (
     <nav
-      aria-label="Community map"
+      aria-label={GardenCopy.gardenMap}
       className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-black/10 px-3 py-1 dark:border-white/10"
       style={{ backgroundColor: subMap.color }}
     >
@@ -157,7 +158,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
                       onLeave()
                     }}
                   >
-                    Leave
+                    <span>{GardenCopy.leaveGarden}</span>
                   </button>
                 )}
               </div>
@@ -177,7 +178,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
 
       {canJoin && (
         <Button variant="primary" size="sm" className="min-h-9" onClick={onJoin}>
-          Join
+          {GardenCopy.joinGarden}
         </Button>
       )}
     </nav>

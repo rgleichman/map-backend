@@ -4,6 +4,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
 
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
+  alias StorymapWeb.GardenCopy
   alias StorymapWeb.SubMapLive.PinTypeForm
 
   on_mount {StorymapWeb.SubMapLive.OnMount, :load_sub_map}
@@ -43,7 +44,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
          |> assign(:sub_map, sub_map)
          |> assign(:form, to_form(SubMap.changeset(sub_map, %{}), as: :sub_map))
          |> PinTypeForm.assign_pin_types(sub_map)
-         |> put_flash(:info, "Community settings saved")}
+         |> put_flash(:info, GardenCopy.garden_settings_saved())}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}
@@ -51,7 +52,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
       {:error, :forbidden} ->
         {:noreply,
          socket
-         |> put_flash(:error, "Community owner access required")
+         |> put_flash(:error, GardenCopy.garden_owner_access_required())
          |> push_navigate(to: ~p"/m/#{socket.assigns.sub_map.community_url}/map")}
     end
   end

@@ -3,14 +3,14 @@
     <div class="space-y-2 mb-8">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-2">
-          <h1 class="text-3xl font-bold text-base-content">Communities</h1>
+          <h1 class="text-3xl font-bold text-base-content">{GardenCopy.gardens()}</h1>
           <p class="text-base-content/70">
-            Curated pin collections with their own rules and moderators.
+            {GardenCopy.gardens_blurb()}
           </p>
         </div>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
           <.button navigate={~p"/m/new"} variant="primary" class="shrink-0" id="sub-maps-create">
-            Create a community
+            {GardenCopy.create_a_garden()}
           </.button>
         <% else %>
           <.button
@@ -28,7 +28,7 @@
     <%= if @my_memberships != [] do %>
       <section id="my-communities" class="mb-10 space-y-4">
         <div class="space-y-1">
-          <h2 class="text-xl font-semibold text-base-content">Your communities</h2>
+          <h2 class="text-xl font-semibold text-base-content">{GardenCopy.your_gardens()}</h2>
           <p class="text-sm text-base-content/70">
             Only you can see this list.
           </p>
@@ -45,7 +45,7 @@
                     <h3 class="card-title text-lg">{membership.sub_map.name}</h3>
                     <%= if membership.role in [:owner, :moderator] do %>
                       <span class="badge badge-sm badge-outline capitalize">
-                        {membership.role}
+                        {GardenCopy.membership_role_label(membership.role)}
                       </span>
                     <% end %>
                   </div>
@@ -61,13 +61,13 @@
     <% end %>
 
     <form id="sub-maps-search" phx-change="search" class="mb-8">
-      <label for="sub-maps-search-input" class="sr-only">Search communities</label>
+      <label for="sub-maps-search-input" class="sr-only">{GardenCopy.search_gardens()}</label>
       <input
         id="sub-maps-search-input"
         type="search"
         name="q"
         value={@search_query}
-        placeholder="Search by name or community URL…"
+        placeholder={GardenCopy.search_by_name_or_garden_url()}
         class="input input-bordered w-full max-w-md"
         autocomplete="off"
       />
@@ -79,15 +79,15 @@
         class="rounded-xl border border-base-300 bg-base-200/30 p-8 text-center space-y-4"
       >
         <p class="text-base-content/80">
-          No communities yet. Be the first to create one and start mapping together.
+          {GardenCopy.no_gardens_yet()}
         </p>
         <%= if @current_scope && @current_scope.user && user_can_write?(@current_scope) do %>
           <.button navigate={~p"/m/new"} variant="primary">
-            Create a community
+            {GardenCopy.create_a_garden()}
           </.button>
         <% else %>
           <.button navigate={~p"/users/log-in"} variant="primary">
-            Sign in to create a community
+            {GardenCopy.sign_in_to_create_garden()}
           </.button>
         <% end %>
       </div>
