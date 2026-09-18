@@ -4,9 +4,9 @@
       <div class="card bg-base-100 border border-base-300 shadow-sm">
         <div class="card-body">
           <h1 class="text-3xl font-bold mb-4 text-base-content">
-            404 - User Not Found
+            {GardenCopy.gardener_not_found()}
           </h1>
-          <p class="text-base-content/70">The user you are looking for does not exist.</p>
+          <p class="text-base-content/70">{GardenCopy.gardener_does_not_exist()}</p>
         </div>
       </div>
     </div>
@@ -14,7 +14,9 @@
     <div class="max-w-xl mx-auto px-4 py-10">
       <div class="card bg-base-100 border border-base-300 shadow-sm">
         <div class="card-body">
-          <h1 class="text-3xl font-bold mb-4 text-base-content">User {@user.id}</h1>
+          <h1 class="text-3xl font-bold mb-4 text-base-content">
+            {GardenCopy.gardener_label(@user.id)}
+          </h1>
 
           <%= if @own_profile? do %>
             <div class="mt-8 pt-6 border-t border-base-300">

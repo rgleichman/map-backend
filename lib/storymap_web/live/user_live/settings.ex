@@ -38,21 +38,21 @@ defmodule StorymapWeb.UserLive.Settings do
           class="w-full max-w-xs text-base font-semibold inline-flex items-center justify-center"
           phx-click="show_delete_modal"
         >
-          <.icon name="hero-trash" class="size-5 mr-2" /> Delete Account
+          <.icon name="hero-trash" class="size-5 mr-2" /> {GardenCopy.dramatically_leave_your_plot_behind()}
         </.button>
       </div>
 
       <.confirm_modal
         :if={@show_delete_modal}
         id="delete-account-modal"
-        title="Delete Account?"
+        title={GardenCopy.dramatically_leave_your_plot_behind_confirm_title()}
         on_cancel="hide_delete_modal"
         on_confirm="confirm_delete_account"
-        confirm_label="Confirm Delete"
+        confirm_label="Confirm"
         confirm_id="confirm-delete-btn"
         cancel_id="cancel-delete-btn"
       >
-        Are you sure you want to delete your account? This will delete all the pins and comments you have created and cannot be undone.
+        {GardenCopy.delete_account_confirm_body()}
       </.confirm_modal>
     </Layouts.app>
     """

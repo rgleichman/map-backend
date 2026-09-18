@@ -104,6 +104,7 @@ export const GardenCopy = {
   plantAlreadyLinked: "That plant is already linked.",
   plantUnavailableToLink: "That plant isn't available to link.",
   couldntFindThatPlant: "Couldn't find that plant.",
+  dramaticallyLeaveYourPlotBehind: "Dramatically leave your plot behind",
 } as const
 
 export type GardenCopyKey = keyof typeof GardenCopy

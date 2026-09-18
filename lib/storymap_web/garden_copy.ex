@@ -190,8 +190,32 @@ defmodule StorymapWeb.GardenCopy do
   @spec garden_tune() :: String.t()
   def garden_tune, do: "Garden Tune"
 
+  @spec gardener() :: String.t()
+  def gardener, do: "Gardener"
+
   @spec gardeners() :: String.t()
   def gardeners, do: "Gardeners"
+
+  @spec gardener_label(integer()) :: String.t()
+  def gardener_label(id) when is_integer(id), do: "#{gardener()} ##{id}"
+
+  @spec gardener_not_found() :: String.t()
+  def gardener_not_found, do: "404 - Gardener Not Found"
+
+  @spec gardener_does_not_exist() :: String.t()
+  def gardener_does_not_exist, do: "The gardener you are looking for does not exist."
+
+  @spec dramatically_leave_your_plot_behind() :: String.t()
+  def dramatically_leave_your_plot_behind, do: "Dramatically leave your plot behind"
+
+  @spec dramatically_leave_your_plot_behind_confirm_title() :: String.t()
+  def dramatically_leave_your_plot_behind_confirm_title,
+    do: "Dramatically leave your plot behind?"
+
+  @spec delete_account_confirm_body() :: String.t()
+  def delete_account_confirm_body,
+    do:
+      "Are you sure you want to dramatically leave your plot behind? This will delete your account along with all the plants and notes you have created and cannot be undone."
 
   @spec pollinator_path() :: String.t()
   def pollinator_path, do: "Pollinator Path"
@@ -217,8 +241,9 @@ defmodule StorymapWeb.GardenCopy do
       {"Moderators", groundskeepers()},
       {"Users", gardeners()},
       {"Tags", labels()},
-      {"Drawings", botanical_illustration()},
+      {"Drawing", botanical_illustration()},
       {"Music", garden_tune()},
+      {"Delete account", dramatically_leave_your_plot_behind()},
       {"Connections / pin links", pollinator_path()},
       {"Related pins", related_plants()}
     ]

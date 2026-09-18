@@ -212,7 +212,7 @@ defmodule StorymapWeb.CoreComponents do
       <.confirm_modal
         :if={@show_delete_modal}
         id="delete-account-modal"
-        title="Delete Account?"
+        title={GardenCopy.dramatically_leave_your_plot_behind_confirm_title()}
         on_cancel="hide_delete_modal"
         on_confirm="confirm_delete_account"
       >

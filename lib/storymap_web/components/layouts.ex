@@ -241,7 +241,7 @@ defmodule StorymapWeb.Layouts do
             aria-haspopup="menu"
             aria-label={gettext("Account menu")}
           >
-            <span class="truncate" title={"User ##{@current_scope.user.id}"}>
+            <span class="truncate" title={GardenCopy.gardener_label(@current_scope.user.id)}>
               Account
             </span>
             <.icon name="hero-chevron-down" class="size-4 shrink-0 opacity-60" />
@@ -258,9 +258,9 @@ defmodule StorymapWeb.Layouts do
                   @user_profile_active? && "active"
                 ]}
                 aria-current={if(@user_profile_active?, do: "page")}
-                title={"User ##{@current_scope.user.id}"}
+                title={GardenCopy.gardener_label(@current_scope.user.id)}
               >
-                User #{@current_scope.user.id}
+                {GardenCopy.gardener_label(@current_scope.user.id)}
               </.link>
             </li>
             <%= if Storymap.Admin.admin?(@current_scope.user) do %>
@@ -318,7 +318,7 @@ defmodule StorymapWeb.Layouts do
             ]}
             aria-current={if(@user_profile_active?, do: "page")}
           >
-            User #{@current_scope.user.id}
+            {GardenCopy.gardener_label(@current_scope.user.id)}
           </.link>
         </li>
         <.admin_nav_live_render
