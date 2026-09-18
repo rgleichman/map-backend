@@ -4,6 +4,7 @@ import PinLinkChips from "./PinLinkChips"
 import type { Pin } from "../types"
 import { explicitPickerLinks } from "../utils/pinLinks"
 import { linkedPinAddErrorMessage, validateLinkedPinAdd } from "../utils/linkedPinValidation"
+import { GardenCopy } from "../utils/gardenCopy"
 
 type Props = {
   pins: Pin[]
@@ -39,10 +40,8 @@ export default function RelatedPinsEditor({
 
   return (
     <div className="mb-4">
-      <p className="block font-medium mb-1">Related pins</p>
-      <p className="text-sm text-base-content/70 mb-2">
-        Search pins on this map, or paste a map link and press Enter (e.g. …/map?pin=89). You can also link pins by pasting a URL in the description or any text field.
-      </p>
+      <p className="block font-medium mb-1">{GardenCopy.relatedPlants}</p>
+      <p className="text-sm text-base-content/70 mb-2">{GardenCopy.relatedPlantsHint}</p>
       {linkedPinIds.length > 0 ? (
         <div className="mb-2">
           <PinLinkChips

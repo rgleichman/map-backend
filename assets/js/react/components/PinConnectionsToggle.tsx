@@ -3,6 +3,7 @@ import {
   MAP_OVERLAY_CONTROL_ACTIVE_CLASS,
   MAP_OVERLAY_CONTROL_CLASS,
 } from "../utils/mapUiClasses"
+import { GardenCopy } from "../utils/gardenCopy"
 
 type Props = {
   pressed: boolean
@@ -41,11 +42,11 @@ export default function PinConnectionsToggle({
           <circle cx="3" cy="8" r="1.5" fill="currentColor" stroke="none" />
           <circle cx="13" cy="8" r="1.5" fill="currentColor" stroke="none" />
         </svg>
-        <span>Connections</span>
+        <span>{GardenCopy.pollinatorPath}</span>
       </button>
       {showHint && (
         <p id={hintId} className="text-[11px] leading-snug text-base-content/60 text-right max-w-[11rem]">
-          Open a pin to see its connections
+          {GardenCopy.openPlantToSeePollinatorPath}
         </p>
       )}
     </div>

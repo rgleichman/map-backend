@@ -221,7 +221,7 @@ export default function PinDetailView({
       )}
       {relatedLinks.length > 0 ? (
         <div className="my-2">
-          <p className={`${detailContentClasses} font-semibold mb-1`}>Related pins</p>
+          <p className={`${detailContentClasses} font-semibold mb-1`}>{GardenCopy.relatedPlants}</p>
           <PinLinkChips links={relatedLinks} pins={pins} onNavigate={onNavigateToPin} />
         </div>
       ) : null}

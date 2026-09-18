@@ -94,9 +94,29 @@ export const GardenCopy = {
   gardenTune: "Garden Tune",
   pollinatorPath: "Pollinator Path",
   relatedPlants: "Related plants",
+  openPlantToSeePollinatorPath: "Open a plant to see its pollinator path",
+  relatedPlantsHint:
+    "Search plants on this map, or paste a map link and press Enter (e.g. …/map?pin=89). You can also link plants by pasting a URL in the description or any text field.",
+  searchPlantsToLink: "Search plants to link",
+  lookingUpPlant: "Looking up plant…",
+  noMatchingPlantsOnMap: "No matching plants on this map.",
+  cantLinkPlantToItself: "You can't link a plant to itself.",
+  plantAlreadyLinked: "That plant is already linked.",
+  plantUnavailableToLink: "That plant isn't available to link.",
+  couldntFindThatPlant: "Couldn't find that plant.",
 } as const
 
 export type GardenCopyKey = keyof typeof GardenCopy
+
+/** Hint when a map URL pin id is ready to link. */
+export function pressEnterToLinkPlant(pinId: number): string {
+  return `Press Enter to link plant #${pinId}`
+}
+
+/** Cap message for explicit related-plant links. */
+export function maxLinkedPlantsMessage(max: number): string {
+  return `You can link up to ${max} plants.`
+}
 
 export type PinOverlayMode = "select-type" | "view" | "edit" | "add" | string | undefined
 

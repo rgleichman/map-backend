@@ -1,5 +1,10 @@
 import type { Pin } from "../types"
 
+import {
+  GardenCopy,
+  maxLinkedPlantsMessage,
+} from "./gardenCopy"
+
 export const MAX_EXPLICIT_LINKED_PINS = 10
 
 type LinkedPinAddError =
@@ -9,10 +14,10 @@ type LinkedPinAddError =
   | "unavailable"
 
 const LINKED_PIN_ERROR_MESSAGES: Record<LinkedPinAddError, string> = {
-  self: "You can't link a pin to itself.",
-  already_linked: "That pin is already linked.",
-  max_links: `You can link up to ${MAX_EXPLICIT_LINKED_PINS} pins.`,
-  unavailable: "That pin isn't available to link.",
+  self: GardenCopy.cantLinkPlantToItself,
+  already_linked: GardenCopy.plantAlreadyLinked,
+  max_links: maxLinkedPlantsMessage(MAX_EXPLICIT_LINKED_PINS),
+  unavailable: GardenCopy.plantUnavailableToLink,
 }
 
 export function linkedPinAddErrorMessage(error: LinkedPinAddError): string {

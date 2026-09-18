@@ -14,6 +14,10 @@ import { searchPinSuggestions } from "../utils/pinSearchSuggestions"
 import { parsePinIdFromMapUrlInput, resolvePinForLink } from "../utils/resolvePinForLink"
 import { pinSearchExcerpt } from "../utils/pinSearchExcerpt"
 import PinSuggestionOption from "./PinSuggestionOption"
+import {
+  GardenCopy,
+  pressEnterToLinkPlant,
+} from "../utils/gardenCopy"
 
 type Props = {
   pins: Pin[]
@@ -76,7 +80,7 @@ export default function PinPicker({
   const tryAddPinById = useCallback(
     async (pinId: number) => {
       if (excluded.has(pinId)) {
-        onError?.("That pin is already linked.")
+        onError?.(GardenCopy.plantAlreadyLinked)
         return
       }
 
@@ -84,7 +88,7 @@ export default function PinPicker({
       try {
         const pin = await resolvePinForLink(pinId, pins)
         if (!pin) {
-          onError?.("Couldn't find that pin.")
+          onError?.(GardenCopy.couldntFindThatPlant)
           return
         }
         selectPin(pin)
@@ -98,7 +102,7 @@ export default function PinPicker({
   return (
     <div className="relative">
       <label htmlFor={`${listboxId}-input`} className="sr-only">
-        Search pins to link
+        {GardenCopy.searchPlantsToLink}
       </label>
       <input
         ref={inputRef}
@@ -142,13 +146,13 @@ export default function PinPicker({
         className={`w-full ${COMBOBOX_INPUT_CLASS} disabled:opacity-60`}
       />
       {resolving ? (
-        <p className="mt-1 text-sm text-base-content/60">Looking up pin…</p>
+        <p className="mt-1 text-sm text-base-content/60">{GardenCopy.lookingUpPlant}</p>
       ) : null}
       {!resolving && focused && pastedPinId != null ? (
-        <p className="mt-1 text-sm text-base-content/60">Press Enter to link pin #{pastedPinId}</p>
+        <p className="mt-1 text-sm text-base-content/60">{pressEnterToLinkPlant(pastedPinId)}</p>
       ) : null}
       {!resolving && focused && debouncedQuery.trim() !== "" && pastedPinId == null && suggestions.length === 0 ? (
-        <p className="mt-1 text-sm text-base-content/60">No matching pins on this map.</p>
+        <p className="mt-1 text-sm text-base-content/60">{GardenCopy.noMatchingPlantsOnMap}</p>
       ) : null}
       {showList && (
         <ul id={listboxId} role="listbox" className={`${COMBOBOX_LIST_CLASS} max-h-64`}>

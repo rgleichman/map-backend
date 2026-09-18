@@ -196,6 +196,9 @@ defmodule StorymapWeb.GardenCopy do
   @spec pollinator_path() :: String.t()
   def pollinator_path, do: "Pollinator Path"
 
+  @spec related_plants() :: String.t()
+  def related_plants, do: "Related plants"
+
   @doc """
   Rows for the Help page vocabulary table: `{familiar_term, garden_term}`.
   """
@@ -216,7 +219,8 @@ defmodule StorymapWeb.GardenCopy do
       {"Tags", labels()},
       {"Drawings", botanical_illustration()},
       {"Music", garden_tune()},
-      {"Connections / pin links", pollinator_path()}
+      {"Connections / pin links", pollinator_path()},
+      {"Related pins", related_plants()}
     ]
   end
 end
