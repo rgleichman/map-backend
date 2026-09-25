@@ -237,7 +237,7 @@ defmodule StorymapWeb.Layouts do
             type="button"
             variant="ghost"
             tabindex="0"
-            class="max-w-[14rem] gap-1 font-normal"
+            class="max-w-56 gap-1 font-normal"
             aria-haspopup="menu"
             aria-label={gettext("Account menu")}
           >
@@ -248,13 +248,13 @@ defmodule StorymapWeb.Layouts do
           </.button>
           <ul
             tabindex="0"
-            class="dropdown-content menu bg-base-200 rounded-box z-[60] w-56 p-2 shadow-lg border border-base-300"
+            class="dropdown-content menu bg-base-200 rounded-box z-60 w-56 p-2 shadow-lg border border-base-300"
           >
             <li>
               <.link
                 navigate={~p"/user/#{@current_scope.user.id}"}
                 class={[
-                  "rounded-lg text-xs font-normal normal-case max-w-[13rem] truncate",
+                  "rounded-lg text-xs font-normal normal-case max-w-52 truncate",
                   @user_profile_active? && "active"
                 ]}
                 aria-current={if(@user_profile_active?, do: "page")}
