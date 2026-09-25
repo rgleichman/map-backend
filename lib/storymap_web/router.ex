@@ -273,7 +273,6 @@ defmodule StorymapWeb.Router do
       live "/g/:community_url", SubMapLive.Show, :show
       live "/privacy-policy", StaticLive.Privacy, :show
       live "/about", StaticLive.About, :show
-      live "/vision", StaticLive.Vision, :show
       live "/help", StaticLive.Help, :show
     end
 

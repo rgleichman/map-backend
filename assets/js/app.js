@@ -179,9 +179,6 @@ const isMapPathname = (pathname) => {
   return /^\/(?:g|m)\/[^/]+\/map$/.test(path)
 }
 
-const FOOTER_LEGEND_PAD =
-  "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
-
 const initFooterNavActive = () => {
   const normalizePath = (p) => {
     const trimmed = (p || "").replace(/\/+$/, "")
@@ -204,7 +201,6 @@ const initFooterNavActive = () => {
         node.classList.add(cls)
       })
     })
-    footer.classList.toggle(FOOTER_LEGEND_PAD, mapPage)
   }
   const nodes = Array.from(document.querySelectorAll("[data-footer-nav][data-footer-path]"))
   nodes.forEach((node) => {

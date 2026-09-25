@@ -405,7 +405,7 @@ defmodule StorymapWeb.Layouts do
   end
 
   @doc """
-  Secondary nav for the About content cluster (About / Vision / Help / Privacy).
+  Secondary nav for the About content cluster (About / Help / Privacy).
   """
   attr :current_path, :string, required: true
 
@@ -415,7 +415,6 @@ defmodule StorymapWeb.Layouts do
     assigns =
       assigns
       |> assign(:about_active?, path == "/about")
-      |> assign(:vision_active?, path == "/vision")
       |> assign(:help_active?, path == "/help")
       |> assign(:privacy_active?, path == "/privacy-policy")
 
@@ -435,17 +434,6 @@ defmodule StorymapWeb.Layouts do
         aria-current={if(@about_active?, do: "page")}
       >
         About
-      </.link>
-      <.link
-        navigate={~p"/vision"}
-        class={[
-          "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-          "hover:bg-base-200 text-base-content/70",
-          @vision_active? && "bg-base-200 text-base-content font-semibold"
-        ]}
-        aria-current={if(@vision_active?, do: "page")}
-      >
-        Vision
       </.link>
       <.link
         navigate={~p"/help"}
@@ -518,23 +506,27 @@ defmodule StorymapWeb.Layouts do
       |> assign(:footer_link_map, footer_link_map)
       |> assign(:footer_link_content, footer_link_content)
 
-    active_classes = "font-semibold underline decoration-2 underline-offset-2"
+    # Underline only (no font-semibold) so active state does not change link width.
+    active_classes = "underline decoration-2 underline-offset-2"
     assigns = assign(assigns, :footer_active_classes, active_classes)
 
     ~H"""
     <%!-- z-30: below map React overlays (placement bar, floating pin panel) at z-40 --%>
+    <%!-- Symmetric gutters keep the nav viewport-centered on map and content pages
+         (avoids the jump from map-only left padding) while clearing the pin legend. --%>
     <div
       data-desktop-footer
       data-footer-chrome-map={@footer_link_map}
       data-footer-chrome-content={@footer_link_content}
-      class={[
-        "pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden pb-5 md:flex md:justify-center",
-        @map_page? &&
-          "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
-      ]}
+      class="pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden pb-5 md:flex md:items-end"
     >
+      <div
+        class="pointer-events-none w-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))] shrink-0"
+        aria-hidden="true"
+      >
+      </div>
       <nav
-        class="pointer-events-none flex flex-wrap items-center justify-center gap-2 sm:gap-4"
+        class="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 sm:gap-4"
         aria-label="Site links"
       >
         <.link
@@ -583,6 +575,11 @@ defmodule StorymapWeb.Layouts do
           © {current_year()} Map Garden
         </span>
       </nav>
+      <div
+        class="pointer-events-none w-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))] shrink-0"
+        aria-hidden="true"
+      >
+      </div>
     </div>
     """
   end

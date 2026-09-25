@@ -179,5 +179,5 @@ export function desktopPinPanelMapPaddingRight(
  * - --map-desktop-footer-reserve: footer band height on md+
  * - --map-help-button-reserve: right margin so MapLibre attribution clears the ? button
  * - mapShellOverlayBottomAboveHelp / MAP_HELP_BUTTON_CLEARANCE: vertical clearance for ?
- * - --map-pin-legend-*: footer left padding so links clear the legend column on map pages
+ * - --map-pin-legend-*: footer side gutters so links clear the legend column and stay centered
  */

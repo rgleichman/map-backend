@@ -40,17 +40,29 @@ defmodule StorymapWeb.LayoutsTest do
   end
 
   describe "desktop_floating_footer_links/1" do
-    test "map pages reserve left padding for the pin legend column", %{conn: conn} do
-      html = html_response(get(conn, ~p"/"), 200)
-      assert html =~ ~s(data-desktop-footer)
-      assert html =~ "--map-pin-legend-max-width"
-      assert html =~ "--map-pin-legend-inset"
+    test "map and content pages reserve symmetric gutters for the pin legend column", %{
+      conn: conn
+    } do
+      map_html = html_response(get(conn, ~p"/"), 200)
+      assert map_html =~ ~s(data-desktop-footer)
+      assert map_html =~ "--map-pin-legend-max-width"
+      assert map_html =~ "--map-pin-legend-inset"
+
+      about_html = html_response(get(conn, ~p"/about"), 200)
+      assert about_html =~ ~s(data-desktop-footer)
+      assert about_html =~ "--map-pin-legend-max-width"
+      assert about_html =~ "--map-pin-legend-inset"
     end
 
-    test "non-map pages do not reserve pin legend padding", %{conn: conn} do
-      html = html_response(get(conn, ~p"/about"), 200)
-      assert html =~ ~s(data-desktop-footer)
-      refute html =~ "--map-pin-legend-max-width"
+    test "footer does not use map-only left padding that shifts on navigation", %{conn: conn} do
+      map_html = html_response(get(conn, ~p"/"), 200)
+      about_html = html_response(get(conn, ~p"/about"), 200)
+
+      refute map_html =~
+               "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
+
+      refute about_html =~
+               "md:pl-[calc(var(--map-pin-legend-max-width)+var(--map-pin-legend-inset))]"
     end
 
     test "map and content chrome classes are available for client sync", %{conn: conn} do
