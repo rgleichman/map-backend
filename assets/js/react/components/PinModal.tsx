@@ -172,18 +172,6 @@ export default function PinModal({
           </div>
         ) : null}
 
-        {setAdHocFields ? (
-          <div className="mb-4">
-            <AdHocPinFields
-              fields={adHocFields}
-              onChange={setAdHocFields}
-              csrfToken={csrfToken}
-              pinId={pinId}
-              serverFieldIds={serverAdHocFieldIds}
-            />
-          </div>
-        ) : null}
-
         <div className="mb-4">
           <p id={locationLabelId} className="block font-medium mb-1">
             Location
@@ -292,6 +280,17 @@ export default function PinModal({
             </label>
           </div>
         )}
+        {setAdHocFields ? (
+          <div className="mb-4">
+            <AdHocPinFields
+              fields={adHocFields}
+              onChange={setAdHocFields}
+              csrfToken={csrfToken}
+              pinId={pinId}
+              serverFieldIds={serverAdHocFieldIds}
+            />
+          </div>
+        ) : null}
       </div>
       <div className="flex shrink-0 gap-2 justify-end border-t border-base-300 bg-base-100 p-4">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
