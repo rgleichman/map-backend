@@ -40,8 +40,8 @@ describe("truncateTitle", () => {
   })
 
   it("truncates long titles with an ellipsis", () => {
-    const long = "A".repeat(30)
-    expect(truncateTitle(long)).toHaveLength(22)
+    const long = "A".repeat(40)
+    expect(truncateTitle(long)).toHaveLength(36)
     expect(truncateTitle(long).endsWith("…")).toBe(true)
   })
 })
@@ -74,6 +74,32 @@ describe("toPinFeature", () => {
     expect(feature.properties.haloWidth).toBe(PIN_LABEL_HALO_WIDTH)
     expect(feature.properties.isNew).toBe(false)
     expect(feature.properties.isSelected).toBe(false)
+  })
+
+  it("appends a relative start-time suffix for upcoming one-time events", () => {
+    const start = new Date()
+    start.setDate(start.getDate() + 1)
+    start.setHours(13, 0, 0, 0)
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const startIso = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T13:00:00`
+    const pin = minimalPin({ title: "Party", start_time: startIso })
+    expect(toPinFeature(pin, []).properties.title).toBe("Party (1 pm tomorrow)")
+  })
+
+  it("keeps title-only labels for sentinel times and far-future starts", () => {
+    const far = new Date()
+    far.setDate(far.getDate() + 10)
+    far.setHours(13, 0, 0, 0)
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const farIso = `${far.getFullYear()}-${pad(far.getMonth() + 1)}-${pad(far.getDate())}T13:00:00`
+
+    expect(
+      toPinFeature(minimalPin({ title: "Cafe", start_time: "2000-01-01T09:00:00" }), [])
+        .properties.title,
+    ).toBe("Cafe")
+    expect(
+      toPinFeature(minimalPin({ title: "Party", start_time: farIso }), []).properties.title,
+    ).toBe("Party")
   })
 
   it("sets isNew and outlined icon when updated_at is after the last-visit watermark", () => {
@@ -124,9 +150,9 @@ describe("toPinFeature", () => {
   })
 
   it("still truncates titles when the pin is not selected", () => {
-    const long = "A".repeat(30)
+    const long = "A".repeat(40)
     const pin = minimalPin({ id: 1, title: long })
-    expect(toPinFeature(pin, [], null, 99).properties.title).toHaveLength(22)
+    expect(toPinFeature(pin, [], null, 99).properties.title).toHaveLength(36)
   })
 })
 

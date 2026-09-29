@@ -7,6 +7,7 @@ import {
   type PinMarkerMapOutline,
 } from "../../utils/pinTypeIcons"
 import { isPinNewSince } from "../../utils/mapLastVisit"
+import { formatPinMapLabel, formatPinMapTimeSuffix } from "../../utils/pinMapLabel"
 import { pinMapGeoJsonSyncPart, type PinFilterMatcher } from "./filters"
 import { PinStatusValue } from "../../utils/pinStatus"
 
@@ -34,7 +35,7 @@ export type PinFeatureSets = {
   dimmed: PinPointFeature[]
 }
 
-export const PIN_LABEL_MAX_LEN = 22
+export const PIN_LABEL_MAX_LEN = 36
 
 export const PIN_LABEL_HALO_WIDTH = 1.7
 export const PIN_LABEL_SELECTED_HALO_WIDTH = 3
@@ -164,7 +165,10 @@ export function toPinFeature(
   const isNew = isPinNewSince(pin, lastVisitWatermark)
   const isSelected = selectedPinId != null && pin.id === selectedPinId
   const isAwaiting = pin.status === PinStatusValue.Pending
-  const title = isSelected ? pin.title.trim() : truncateTitle(pin.title)
+  const title = formatPinMapLabel(pin.title, formatPinMapTimeSuffix(pin), {
+    maxLen: PIN_LABEL_MAX_LEN,
+    truncate: !isSelected,
+  })
   return {
     type: "Feature",
     geometry: { type: "Point", coordinates: [pin.longitude, pin.latitude] },
