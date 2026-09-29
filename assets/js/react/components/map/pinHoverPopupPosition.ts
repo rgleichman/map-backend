@@ -14,7 +14,7 @@ const BESIDE_PIN_OFFSET_X = PIN_MARKER_WIDTH_PX / 2 + GAP_PX
 
 export const PIN_HOVER_POPUP_PADDING = { top: 8, bottom: 8, left: 8, right: 8 } as const
 
-/** Edge padding for hover popups, plus extra right inset when the pin panel covers the map. */
+/** Edge padding for hover popups, plus extra right inset for the desktop rail column. */
 export function pinHoverPopupPadding(panelRightPx = 0): {
   top: number
   bottom: number

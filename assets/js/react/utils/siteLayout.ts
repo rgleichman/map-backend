@@ -144,24 +144,36 @@ export function desktopFieldEditorFloatingStyle(): Record<string, string> {
   }
 }
 
-/** Duration for MapLibre easeTo when shifting the globe for the pin panel. */
-export const DESKTOP_PIN_PANEL_PADDING_DURATION_MS = 300
+/**
+ * Right column reserved for the desktop floating rail (panel + edge inset).
+ * MapLibre padding always uses this on desktop so the globe focal area stays
+ * in the unobscured map — independent of whether a rail is currently open.
+ */
+export const DESKTOP_MAP_RIGHT_RESERVE_PX =
+  DESKTOP_PIN_PANEL_MAX_WIDTH_PX + DESKTOP_PIN_PANEL_INSET_PX
 
 /**
- * MapLibre right padding so the camera focal area sits in the unobscured map
- * when the desktop pin panel is open. Includes the panel’s right inset.
- * Caps at viewport width when the panel is full-bleed.
+ * MapLibre right padding for the permanent desktop rail column.
+ * Caps at viewport width when narrower than the reserve.
  */
-export function desktopPinPanelMapPaddingRight(
-  viewportWidthPx: number,
-  panelOpen: boolean,
-): number {
-  if (!panelOpen) return 0
-  const obscured = DESKTOP_PIN_PANEL_MAX_WIDTH_PX + DESKTOP_PIN_PANEL_INSET_PX
+export function desktopMapPaddingRight(viewportWidthPx: number): number {
   if (!Number.isFinite(viewportWidthPx) || viewportWidthPx <= 0) {
-    return obscured
+    return DESKTOP_MAP_RIGHT_RESERVE_PX
   }
-  return Math.min(obscured, viewportWidthPx)
+  return Math.min(DESKTOP_MAP_RIGHT_RESERVE_PX, viewportWidthPx)
+}
+
+/** Full MapLibre padding object; zero on mobile, right reserve on desktop. */
+export function desktopMapPadding(
+  viewportWidthPx: number,
+  isDesktop: boolean,
+): { top: number; right: number; bottom: number; left: number } {
+  return {
+    top: 0,
+    right: isDesktop ? desktopMapPaddingRight(viewportWidthPx) : 0,
+    bottom: 0,
+    left: 0,
+  }
 }
 
 /**

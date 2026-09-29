@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { Popup, type Map as MLMap } from "maplibre-gl"
 import type { CatalogPinType, Pin } from "../../types"
 import { PinTypesProvider } from "../../context/PinTypesContext"
-import { desktopPinPanelMapPaddingRight } from "../../utils/siteLayout"
+import { desktopMapPaddingRight } from "../../utils/siteLayout"
 import PinHoverTooltip from "./PinHoverTooltip"
 import { shouldShowPinHoverTooltip } from "./pinHoverVisibility"
 import { hoverPopupMaxSize } from "./pinHoverFields"
@@ -18,7 +18,6 @@ type UsePinHoverPopupArgs = {
   isDesktopRef: RefObject<boolean>
   placementActiveRef: RefObject<boolean>
   detailPinIdRef: RefObject<number | null | undefined>
-  pinPanelOpenRef: RefObject<boolean>
   isDesktop: boolean
   placementActive: boolean
   detailPinId: number | null | undefined
@@ -34,7 +33,6 @@ export function usePinHoverPopup({
   isDesktopRef,
   placementActiveRef,
   detailPinIdRef,
-  pinPanelOpenRef,
   isDesktop,
   placementActive,
   detailPinId,
@@ -85,10 +83,9 @@ export function usePinHoverPopup({
     ): void => {
       const point = map.project([pin.longitude, pin.latitude])
       const containerEl = map.getContainer()
-      const panelRight = desktopPinPanelMapPaddingRight(
-        containerEl.clientWidth,
-        pinPanelOpenRef.current,
-      )
+      const panelRight = isDesktopRef.current
+        ? desktopMapPaddingRight(containerEl.clientWidth)
+        : 0
       const padding = pinHoverPopupPadding(panelRight)
       popup.options.padding = padding
       popup.options.anchor = choosePinHoverPopupAnchor({
@@ -102,7 +99,7 @@ export function usePinHoverPopup({
       })
       popup.setLngLat([pin.longitude, pin.latitude])
     },
-    [pinPanelOpenRef],
+    [isDesktopRef],
   )
 
   const showHoverTooltip = useCallback(
@@ -120,10 +117,9 @@ export function usePinHoverPopup({
       }
 
       const containerEl = map.getContainer()
-      const panelRight = desktopPinPanelMapPaddingRight(
-        containerEl.clientWidth,
-        pinPanelOpenRef.current,
-      )
+      const panelRight = isDesktopRef.current
+        ? desktopMapPaddingRight(containerEl.clientWidth)
+        : 0
       const visibleWidth = Math.max(0, containerEl.clientWidth - panelRight)
       const { maxWidth, maxHeight } = hoverPopupMaxSize(
         visibleWidth,
@@ -189,7 +185,6 @@ export function usePinHoverPopup({
       clearHoverTooltip,
       detailPinIdRef,
       isDesktopRef,
-      pinPanelOpenRef,
       placementActiveRef,
       renderHoverTooltipContent,
     ],

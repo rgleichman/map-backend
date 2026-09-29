@@ -135,7 +135,6 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     editingPinId,
     detailPinId,
     showViewDetail,
-    showDesktopPanel,
     onPlacementMapClick,
   } = workflow
   onScopeChangeRef.current = dispatch
@@ -293,7 +292,6 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   onCameraRequestConsumed={() => setCameraRequest(null)}
                   isDesktop={isDesktop}
                   detailPinId={detailPinId}
-                  pinPanelOpen={showDesktopPanel}
                   placementActive={placement != null}
                   onMapClick={onMapClick}
                   onOpenPin={onOpenPin}

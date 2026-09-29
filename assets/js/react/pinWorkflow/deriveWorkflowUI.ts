@@ -7,7 +7,7 @@ export type WorkflowUIDerivation = {
   editingPinId: number | null
   /** Pin shown in the detail panel (view or edit); drives map focus / selection highlight. */
   detailPinId: number | null
-  /** Desktop right-rail panel is visible (shifts map padding). */
+  /** Desktop right-rail panel is visible. */
   showDesktopPanel: boolean
   showPlacementOverlay: boolean
   showEditForm: boolean

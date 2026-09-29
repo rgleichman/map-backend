@@ -47,13 +47,13 @@ import {
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
 import { usePinHoverPopup } from "./map/usePinHoverPopup"
-import { mapPaddingForPinPanel, usePinPanelCamera } from "./map/usePinPanelCamera"
 import { loadImage, registerCustomPinImages } from "./map/registerCustomPinImages"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
 import Button from "./ui/Button"
 import {
+  desktopMapPadding,
   mapShellOverlayBottomAboveHelp,
   mapShellTopRightOverlayTop,
 } from "../utils/siteLayout"
@@ -77,8 +77,6 @@ type Props = {
   isDesktop?: boolean
   /** Pin id currently shown in the detail panel (view or edit); drives selection highlight + link focus. */
   detailPinId?: number | null
-  /** Desktop right-rail open — shifts MapLibre padding so the globe sits in the visible area. */
-  pinPanelOpen?: boolean
   /** True while placing/editing a pin location (suppresses hover tooltips). */
   placementActive?: boolean
   onMapClick: (lng: number, lat: number) => void
@@ -111,7 +109,6 @@ export default function MapCanvas({
   onCameraRequestConsumed,
   isDesktop = false,
   detailPinId = null,
-  pinPanelOpen = false,
   placementActive = false,
   onMapClick,
   onOpenPin,
@@ -150,8 +147,6 @@ export default function MapCanvas({
   onMapClickRef.current = onMapClick
   const detailPinIdRef = useRef(detailPinId)
   detailPinIdRef.current = detailPinId
-  const pinPanelOpenRef = useRef(pinPanelOpen)
-  pinPanelOpenRef.current = pinPanelOpen
   const isDesktopRef = useRef(isDesktop)
   isDesktopRef.current = isDesktop
   const placementActiveRef = useRef(placementActive)
@@ -163,7 +158,6 @@ export default function MapCanvas({
     isDesktopRef,
     placementActiveRef,
     detailPinIdRef,
-    pinPanelOpenRef,
     isDesktop,
     placementActive,
     detailPinId,
@@ -264,11 +258,11 @@ export default function MapCanvas({
     [pinLinkBuildParams],
   )
 
-  /** Fly to a pin, padding for the desktop panel so it centers in the visible area. */
+  /** Fly to a pin, centering in the unobscured (left) map area on desktop. */
   function flyToPin(map: MLMap, pin: Pin): void {
     map.flyTo({
       center: [pin.longitude, pin.latitude],
-      padding: mapPaddingForPinPanel(map, isDesktopRef.current),
+      padding: desktopMapPadding(map.getContainer().clientWidth, isDesktopRef.current),
     })
   }
 
@@ -761,7 +755,7 @@ export default function MapCanvas({
       map.flyTo({
         center: [pendingLocation.lng, pendingLocation.lat],
         zoom: PIN_FOCUS_ZOOM,
-        padding: mapPaddingForPinPanel(map, pinPanelOpenRef.current),
+        padding: desktopMapPadding(map.getContainer().clientWidth, isDesktopRef.current),
       })
       const pinType: PinType = pendingPinType ?? "other"
       const typeChanged = pendingPinTypeRef.current !== pinType
@@ -789,16 +783,29 @@ export default function MapCanvas({
     }
   }, [pendingLocation, pendingPinType, mapReady])
 
-  usePinPanelCamera({
-    mapRef,
-    mapReady,
-    pinPanelOpen,
-    pinPanelOpenRef,
-    detailPinId,
-    pendingLocation,
-    pinsByIdRef,
-    pinsRef,
-  })
+  // Permanent desktop right-rail reserve so the globe focal area stays left.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const applyPadding = () => {
+      const padding = desktopMapPadding(map.getContainer().clientWidth, isDesktopRef.current)
+      const current = map.getPadding()
+      const same =
+        Math.abs((current.top ?? 0) - padding.top) < 1 &&
+        Math.abs((current.right ?? 0) - padding.right) < 1 &&
+        Math.abs((current.bottom ?? 0) - padding.bottom) < 1 &&
+        Math.abs((current.left ?? 0) - padding.left) < 1
+      if (same) return
+      map.jumpTo({ padding, zoom: map.getZoom() })
+    }
+
+    applyPadding()
+    map.on("resize", applyPadding)
+    return () => {
+      map.off("resize", applyPadding)
+    }
+  }, [mapReady, isDesktop])
 
   // Keep camera focus tracking in sync with the detail panel pin.
   useEffect(() => {
@@ -967,7 +974,10 @@ export default function MapCanvas({
           onSelectPlace={(place: PlaceSuggestion) => {
             const map = mapRef.current
             if (!map) return
-            const panelPadding = mapPaddingForPinPanel(map, pinPanelOpenRef.current)
+            const mapPadding = desktopMapPadding(
+              map.getContainer().clientWidth,
+              isDesktopRef.current,
+            )
             if (place.bbox) {
               map.fitBounds(
                 [
@@ -976,10 +986,10 @@ export default function MapCanvas({
                 ],
                 {
                   padding: {
-                    top: 48 + (panelPadding.top ?? 0),
-                    bottom: 48 + (panelPadding.bottom ?? 0),
-                    left: 48 + (panelPadding.left ?? 0),
-                    right: 48 + (panelPadding.right ?? 0),
+                    top: 48 + mapPadding.top,
+                    bottom: 48 + mapPadding.bottom,
+                    left: 48 + mapPadding.left,
+                    right: 48 + mapPadding.right,
                   },
                   maxZoom: PIN_FOCUS_ZOOM,
                   duration: 1000,
@@ -989,7 +999,7 @@ export default function MapCanvas({
               map.flyTo({
                 center: [place.longitude, place.latitude],
                 zoom: PIN_FOCUS_ZOOM,
-                padding: panelPadding,
+                padding: mapPadding,
               })
             }
           }}

@@ -1,28 +1,42 @@
 import { describe, expect, it } from "vitest"
 import {
-  DESKTOP_PIN_PANEL_INSET_PX,
-  DESKTOP_PIN_PANEL_MAX_WIDTH_PX,
-  desktopPinPanelMapPaddingRight,
+  DESKTOP_MAP_RIGHT_RESERVE_PX,
+  desktopMapPadding,
+  desktopMapPaddingRight,
 } from "./siteLayout"
 
-const obscured = DESKTOP_PIN_PANEL_MAX_WIDTH_PX + DESKTOP_PIN_PANEL_INSET_PX
-
-describe("desktopPinPanelMapPaddingRight", () => {
-  it("returns 0 when the panel is closed", () => {
-    expect(desktopPinPanelMapPaddingRight(1200, false)).toBe(0)
+describe("desktopMapPaddingRight", () => {
+  it("returns the rail reserve on a wide desktop viewport", () => {
+    expect(desktopMapPaddingRight(1200)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
   })
 
-  it("returns panel width plus inset on a wide desktop viewport", () => {
-    expect(desktopPinPanelMapPaddingRight(1200, true)).toBe(obscured)
+  it("caps at viewport width when narrower than the reserve", () => {
+    expect(desktopMapPaddingRight(320)).toBe(320)
   })
 
-  it("caps at viewport width when narrower than the panel max", () => {
-    expect(desktopPinPanelMapPaddingRight(320, true)).toBe(320)
+  it("falls back to the reserve for non-finite or non-positive viewport", () => {
+    expect(desktopMapPaddingRight(0)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
+    expect(desktopMapPaddingRight(-10)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
+    expect(desktopMapPaddingRight(Number.NaN)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
+  })
+})
+
+describe("desktopMapPadding", () => {
+  it("returns zero padding on mobile", () => {
+    expect(desktopMapPadding(1200, false)).toEqual({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    })
   })
 
-  it("falls back to panel+inset for non-finite or non-positive viewport", () => {
-    expect(desktopPinPanelMapPaddingRight(0, true)).toBe(obscured)
-    expect(desktopPinPanelMapPaddingRight(-10, true)).toBe(obscured)
-    expect(desktopPinPanelMapPaddingRight(Number.NaN, true)).toBe(obscured)
+  it("returns the right reserve on desktop", () => {
+    expect(desktopMapPadding(1200, true)).toEqual({
+      top: 0,
+      right: DESKTOP_MAP_RIGHT_RESERVE_PX,
+      bottom: 0,
+      left: 0,
+    })
   })
 })
