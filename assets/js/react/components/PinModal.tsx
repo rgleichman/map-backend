@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo } from "react"
 import ScheduleRruleBuilder from "./ScheduleRruleBuilder"
+import EventScheduleFields from "./EventScheduleFields"
 import AdHocPinFields from "./AdHocPinFields"
 import CustomPinFields from "./CustomPinFields"
 import RelatedPinsEditor from "./RelatedPinsEditor"
@@ -191,13 +192,13 @@ export default function PinModal({
             </label>
           </div>
         )}
-        {showTimeFields && (
+        {showTimeFields && isTimeOnly && (
           <div className="mb-4">
             <label htmlFor="pin-start-time" className="block font-medium mb-1">Start Time</label>
             <input
               id="pin-start-time"
               name="start_time"
-              type={isTimeOnly ? "time" : "datetime-local"}
+              type="time"
               value={startTime}
               onChange={e => setStartTime(e.target.value)}
               className="input input-bordered w-full mb-2"
@@ -206,19 +207,25 @@ export default function PinModal({
             <input
               id="pin-end-time"
               name="end_time"
-              type={isTimeOnly ? "time" : "datetime-local"}
+              type="time"
               value={endTime}
               onChange={e => setEndTime(e.target.value)}
               className="input input-bordered w-full mb-2"
             />
-            {isTimeOnly && (
-              <ScheduleRruleBuilder
-                value={scheduleRrule}
-                onChange={setScheduleRrule}
-                timezone={scheduleTimezone}
-              />
-            )}
+            <ScheduleRruleBuilder
+              value={scheduleRrule}
+              onChange={setScheduleRrule}
+              timezone={scheduleTimezone}
+            />
           </div>
+        )}
+        {showTimeFields && !isTimeOnly && (
+          <EventScheduleFields
+            startTime={startTime}
+            endTime={endTime}
+            setStartTime={setStartTime}
+            setEndTime={setEndTime}
+          />
         )}
         <div className="mb-4">
           <label htmlFor="pin-tag-input" className="block font-medium mb-1">{GardenCopy.labels}</label>
