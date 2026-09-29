@@ -285,8 +285,6 @@ export function usePinWorkflow({
     showEditForm,
     showAddForm,
     showViewDetail,
-    pinModalLat,
-    pinModalLng,
     locationAlreadySetFromPlacement,
   } = workflowUI
 
@@ -334,8 +332,6 @@ export function usePinWorkflow({
     showEditForm,
     showAddForm,
     showViewDetail,
-    pinModalLat,
-    pinModalLng,
     locationAlreadySetFromPlacement,
     pinType, title,
     description,

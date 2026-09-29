@@ -13,8 +13,6 @@ export type WorkflowUIDerivation = {
   showEditForm: boolean
   showAddForm: boolean
   showViewDetail: boolean
-  pinModalLat: number
-  pinModalLng: number
   locationAlreadySetFromPlacement: boolean
 }
 
@@ -65,19 +63,6 @@ export function deriveWorkflowUI({
   const showEditForm = modal?.mode === "edit" && !(placement?.intent === "edit")
   const showAddForm = modal?.mode === "add" && !(placement?.intent === "add")
   const showViewDetail = modal?.mode === "view"
-
-  const pinModalLat =
-    modal?.mode === "add"
-      ? (addLocation?.lat ?? modal.lat)
-      : modal?.mode === "edit"
-        ? (editLocation?.lat ?? modal.pin.latitude)
-        : 0
-  const pinModalLng =
-    modal?.mode === "add"
-      ? (addLocation?.lng ?? modal.lng)
-      : modal?.mode === "edit"
-        ? (editLocation?.lng ?? modal.pin.longitude)
-        : 0
   const locationAlreadySetFromPlacement = !isDesktop && modal?.mode === "add" && addLocation !== null
 
   return {
@@ -90,8 +75,6 @@ export function deriveWorkflowUI({
     showEditForm,
     showAddForm,
     showViewDetail,
-    pinModalLat,
-    pinModalLng,
     locationAlreadySetFromPlacement,
   }
 }

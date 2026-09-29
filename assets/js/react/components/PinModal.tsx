@@ -49,8 +49,6 @@ type Props = {
   linkedPinIds?: number[]
   onAddLinkedPin?: (pinId: number) => void
   onRemoveLinkedPin?: (pinId: number) => void
-  latitude: number
-  longitude: number
   onStartPickOnMap: () => void
   mode: "add" | "edit"
   onCancel: () => void
@@ -86,7 +84,6 @@ export default function PinModal({
   showPromoteToWorld = false,
   promoteToWorld = false,
   setPromoteToWorld,
-  latitude, longitude,
   onStartPickOnMap,
   mode, onCancel, onSave, onDelete, canDelete, saving = false,
   customData = {},
@@ -97,7 +94,6 @@ export default function PinModal({
   const { catalog } = usePinTypes()
   const uid = useId()
   const headingId = `${uid}-pin-modal-title`
-  const locationLabelId = `${uid}-pin-location-label`
   const open247Id = `${uid}-pin-open-24-7`
   const promoteWorldId = `${uid}-pin-promote-world`
   const availableTags = useMemo(() => deriveMapTags(pins), [pins])
@@ -124,8 +120,6 @@ export default function PinModal({
   const handleRemoveTag = (tag: string) => {
     setTags(tags.filter(t => t !== tag))
   }
-
-  const formatCoord = (n: number) => n.toFixed(5)
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -173,11 +167,8 @@ export default function PinModal({
         ) : null}
 
         <div className="mb-4">
-          <p id={locationLabelId} className="block font-medium mb-1">
+          <p className="block font-medium mb-1">
             Location
-          </p>
-          <p className="text-sm text-base-content/80 mb-2" aria-labelledby={locationLabelId}>
-            {formatCoord(latitude)}, {formatCoord(longitude)}
           </p>
           <div className="flex flex-wrap gap-2 mb-2">
             <Button type="button" size="sm" variant="ghost" onClick={onStartPickOnMap}>

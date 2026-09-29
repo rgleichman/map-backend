@@ -63,8 +63,6 @@ describe("deriveWorkflowUI", () => {
     expect(ui.showEditForm).toBe(false)
     expect(ui.showPlacementOverlay).toBe(false)
     expect(ui.showDesktopPanel).toBe(true)
-    expect(ui.pinModalLat).toBe(30.1)
-    expect(ui.pinModalLng).toBe(-97.1)
   })
 
   it("prefers placement over modal while picking a new location", () => {

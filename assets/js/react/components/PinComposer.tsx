@@ -23,8 +23,6 @@ type Props = {
   linkedPinIds: number[]
   pins: Pin[]
   showPromoteToWorld: boolean
-  latitude: number
-  longitude: number
   dispatch: React.Dispatch<PinWorkflowAction>
   onStartPickOnMap: () => void
   onCancel: () => void
@@ -54,8 +52,6 @@ export default function PinComposer({
   linkedPinIds,
   pins,
   showPromoteToWorld,
-  latitude,
-  longitude,
   dispatch,
   onStartPickOnMap,
   onCancel,
@@ -97,8 +93,6 @@ export default function PinComposer({
       pins={pins}
       onAddLinkedPin={(pinId) => dispatch({ type: "add_linked_pin", pinId })}
       onRemoveLinkedPin={(pinId) => dispatch({ type: "remove_linked_pin", pinId })}
-      latitude={latitude}
-      longitude={longitude}
       onStartPickOnMap={onStartPickOnMap}
       mode={mode}
       onCancel={onCancel}
