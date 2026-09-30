@@ -28,7 +28,7 @@ defmodule Storymap.MixProject do
 
   def cli do
     [
-      preferred_envs: [precommit: :test]
+      preferred_envs: [precommit: :test, "precommit.verify": :test]
     ]
   end
 
@@ -114,10 +114,8 @@ defmodule Storymap.MixProject do
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
-        "format",
-        "tsc.run",
-        "test --raise",
-        "vitest.run"
+        "format --check-formatted",
+        "precommit.verify"
       ]
     ]
   end

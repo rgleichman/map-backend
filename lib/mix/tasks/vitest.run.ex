@@ -5,16 +5,18 @@ defmodule Mix.Tasks.Vitest.Run do
   use Mix.Task
 
   @impl Mix.Task
+  @spec run([String.t()]) :: :ok
   def run(_args) do
     assets_dir = Path.join(File.cwd!(), "assets")
 
-    {output, exit_code} =
-      System.cmd(Mix.Tasks.NpmCmd.npx(), ["vitest", "run"], cd: assets_dir)
+    {output, exit_code} = Mix.Tasks.NpmCmd.run_bin(assets_dir, "vitest", ["run"])
 
     IO.write(output)
 
     if exit_code != 0 do
       System.halt(exit_code)
     end
+
+    :ok
   end
 end
