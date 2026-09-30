@@ -223,6 +223,9 @@ defmodule StorymapWeb.GardenCopy do
   @spec related_plants() :: String.t()
   def related_plants, do: "Related plants"
 
+  @spec scheduled_plants() :: String.t()
+  def scheduled_plants, do: "About to bloom"
+
   @doc """
   Rows for the Help page vocabulary table: `{familiar_term, garden_term}`.
   """
@@ -245,7 +248,8 @@ defmodule StorymapWeb.GardenCopy do
       {"Music", garden_tune()},
       {"Delete account", dramatically_leave_your_plot_behind()},
       {"Connections / pin links", pollinator_path()},
-      {"Related pins", related_plants()}
+      {"Related pins", related_plants()},
+      {"Scheduled pins", scheduled_plants()}
     ]
   end
 end

@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   filterPins,
+  isFilterCleared,
   isTodayRecurrenceDay,
   pinMapGeoJsonSyncPart,
   pinMatchesFilter,
   pinMatchesQuery,
+  CLEARED_FILTER,
   type FilterState,
 } from "./filters"
 import type { Pin } from "../../types"
@@ -41,6 +43,22 @@ function minimalPin(overrides: Partial<Pin>): Pin {
  * Weekday for recurrence is derived from the calendar date (year, month, day)
  * in a timezone-independent way, so it matches "today" in the pin's TZ regardless of host TZ.
  */
+describe("isFilterCleared", () => {
+  it("is true for CLEARED_FILTER / empty dimensions", () => {
+    expect(isFilterCleared(CLEARED_FILTER)).toBe(true)
+    expect(isFilterCleared({ ...CLEARED_FILTER, query: "  " })).toBe(true)
+  })
+
+  it("is false when any dimension is set", () => {
+    expect(isFilterCleared({ ...CLEARED_FILTER, tag: "x" })).toBe(false)
+    expect(isFilterCleared({ ...CLEARED_FILTER, time: "now" })).toBe(false)
+    expect(isFilterCleared({ ...CLEARED_FILTER, pinType: "event" })).toBe(false)
+    expect(isFilterCleared({ ...CLEARED_FILTER, query: "hello" })).toBe(false)
+    expect(isFilterCleared({ ...CLEARED_FILTER, heartedOnly: true })).toBe(false)
+    expect(isFilterCleared({ ...CLEARED_FILTER, mineOnly: true })).toBe(false)
+  })
+})
+
 describe("isTodayRecurrenceDay", () => {
   beforeEach(() => {
     vi.mocked(datetime.getNowInTimezone).mockReturnValue(NOW_PARTS)

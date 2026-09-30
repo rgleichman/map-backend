@@ -50,6 +50,18 @@ export const CLEARED_FILTER: FilterState = {
   mineOnly: false,
 }
 
+/** True when no filter dimension is active (same rules as MapFilters `hasActiveFilter`). */
+export function isFilterCleared(filter: FilterState): boolean {
+  return (
+    filter.tag === null &&
+    filter.time === null &&
+    filter.pinType === null &&
+    filter.query.trim() === "" &&
+    !filter.heartedOnly &&
+    !filter.mineOnly
+  )
+}
+
 /** Label shown on filter chips and in the time section. */
 export const TIME_FILTER_LABEL = "Open now or within 2 hours"
 

@@ -105,6 +105,7 @@ export const GardenCopy = {
   plantUnavailableToLink: "That plant isn't available to link.",
   couldntFindThatPlant: "Couldn't find that plant.",
   dramaticallyLeaveYourPlotBehind: "Dramatically leave your plot behind",
+  scheduledPlants: "About to bloom",
 } as const
 
 export type GardenCopyKey = keyof typeof GardenCopy

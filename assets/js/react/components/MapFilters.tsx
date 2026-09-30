@@ -7,6 +7,7 @@ import PinTypePickerList from "./PinTypePickerList"
 import {
   CLEARED_FILTER,
   clearFilterDimension,
+  isFilterCleared,
   listActiveFilterChips,
   TIME_FILTER_LABEL,
   TIME_FILTER_NOW,
@@ -125,13 +126,7 @@ export default function MapFilters({
   const { catalog } = usePinTypes()
   const tags = deriveMapTags(pins)
   const filterPinTypes = listFilterPinTypes(pins)
-  const hasActiveFilter =
-    filter.tag !== null ||
-    filter.time !== null ||
-    filter.pinType !== null ||
-    filter.query.trim() !== "" ||
-    filter.heartedOnly ||
-    filter.mineOnly
+  const hasActiveFilter = !isFilterCleared(filter)
   const filterChips = listActiveFilterChips(filter, catalog)
   const filtersSummary =
     filterChips.length > 0 ? filterChips.map((c) => c.label).join("; ") : "Map filters"

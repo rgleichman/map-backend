@@ -47,6 +47,7 @@ import {
   pinLinkLinePaint,
 } from "./map/pinLinkFeatures"
 import { usePinHoverPopup } from "./map/usePinHoverPopup"
+import type { MapBounds } from "../utils/pinScheduleSummary"
 import { loadImage, registerCustomPinImages } from "./map/registerCustomPinImages"
 import MapFilters from "./MapFilters"
 import PinConnectionsToggle from "./PinConnectionsToggle"
@@ -81,6 +82,8 @@ type Props = {
   placementActive?: boolean
   onMapClick: (lng: number, lat: number) => void
   onOpenPin: (pinId: number) => void
+  /** Fired when the map viewport bounds change (load / moveend / resize). */
+  onMapBoundsChange?: (bounds: MapBounds) => void
   /** Dismiss pin detail panel (e.g. empty map click). */
   onDismissPinDetail?: () => void
   /** When set, map shows the actual pin (highlighted) at this location and flies to it. */
@@ -99,6 +102,8 @@ type Props = {
   pinHeartsLoading?: boolean
   /** Community map brand color — CSS behind the globe when zoomed out. */
   mapBackgroundColor?: string
+  /** Optional desktop rail below pollinator path / filters (e.g. timed pins in view). */
+  topRightRail?: React.ReactNode
 }
 
 export default function MapCanvas({
@@ -112,6 +117,7 @@ export default function MapCanvas({
   placementActive = false,
   onMapClick,
   onOpenPin,
+  onMapBoundsChange,
   onDismissPinDetail,
   pendingLocation = null,
   pendingPinType = null,
@@ -123,6 +129,7 @@ export default function MapCanvas({
   onNavigateToPin,
   heartedPinIds = new Set(),
   pinHeartsLoading = false,
+  topRightRail = null,
   mapBackgroundColor,
 }: Props) {
   const { catalog } = usePinTypes()
@@ -143,6 +150,8 @@ export default function MapCanvas({
   onPlacementMapClickRef.current = onPlacementMapClick
   const onOpenPinRef = useRef(onOpenPin)
   onOpenPinRef.current = onOpenPin
+  const onMapBoundsChangeRef = useRef(onMapBoundsChange)
+  onMapBoundsChangeRef.current = onMapBoundsChange
   const onMapClickRef = useRef(onMapClick)
   onMapClickRef.current = onMapClick
   const detailPinIdRef = useRef(detailPinId)
@@ -828,6 +837,32 @@ export default function MapCanvas({
     }
   }, [mapReady, detailPinId])
 
+  // Report viewport bounds for the idle timed-pins rail (and similar).
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current
+    if (!map) return
+
+    const emitBounds = () => {
+      if (!onMapBoundsChangeRef.current) return
+      const b = map.getBounds()
+      onMapBoundsChangeRef.current({
+        west: b.getWest(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        north: b.getNorth(),
+      })
+    }
+
+    emitBounds()
+    map.on("moveend", emitBounds)
+    map.on("resize", emitBounds)
+    return () => {
+      map.off("moveend", emitBounds)
+      map.off("resize", emitBounds)
+    }
+  }, [mapReady])
+
   const savedFilterEmptyOnMap =
     filter.heartedOnly &&
     heartedPinIds.size > 0 &&
@@ -944,18 +979,25 @@ export default function MapCanvas({
               globalCapped={showConnections && pinLinkBuildResult.globalCapped}
             />
           </div>
-          <div className="pointer-events-none min-h-0 flex-1 flex flex-col items-end overflow-hidden">
-            <MapFilters
-              pins={pins}
-              filter={filter}
-              setFilter={setFilter}
-              openRef={filterPanelOpenRef}
-              position="inline"
-              panelTopOffset="0"
-              showSavedFilter={userId != null}
-              pinHeartsLoading={pinHeartsLoading}
-              savedFilterEmptyOnMap={savedFilterEmptyOnMap}
-            />
+          <div className="pointer-events-none min-h-0 flex-1 flex flex-col items-end gap-2 overflow-hidden">
+            <div className="pointer-events-none shrink-0 max-h-full overflow-hidden">
+              <MapFilters
+                pins={pins}
+                filter={filter}
+                setFilter={setFilter}
+                openRef={filterPanelOpenRef}
+                position="inline"
+                panelTopOffset="0"
+                showSavedFilter={userId != null}
+                pinHeartsLoading={pinHeartsLoading}
+                savedFilterEmptyOnMap={savedFilterEmptyOnMap}
+              />
+            </div>
+            {topRightRail ? (
+              <div className="pointer-events-auto shrink-0 max-h-full min-h-0 w-full flex justify-end">
+                {topRightRail}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

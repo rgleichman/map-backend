@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState, type Dispatch } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from "react"
 import MapCanvas from "./components/MapCanvas"
 import CommunityMapToolbar from "./components/CommunityMapToolbar"
 import MapShell from "./components/MapShell"
 import PinFlowUI from "./components/PinFlowUI"
 import PinTypeLegend from "./components/PinTypeLegend"
+import TimedPinsRail from "./components/TimedPinsRail"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
 import ErrorToast from "./components/ErrorToast"
@@ -19,9 +20,13 @@ import { useMapData } from "./hooks/useMapData"
 import type { PinFocusIntent } from "./hooks/mapHookTypes"
 import type { PinType } from "./types"
 import type { PinWorkflowAction } from "./pinWorkflow/types"
-import { CLEARED_FILTER } from "./components/map/filters"
+import { CLEARED_FILTER, isFilterCleared } from "./components/map/filters"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
+import {
+  listTimedPinsInView,
+  type MapBounds,
+} from "./utils/pinScheduleSummary"
 import { shouldApplyFocusIntent } from "./pinFocusIntent"
 import * as api from "./api/client"
 import { GardenCopy } from "./utils/gardenCopy"
@@ -135,6 +140,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     editingPinId,
     detailPinId,
     showViewDetail,
+    showDesktopPanel,
     onPlacementMapClick,
   } = workflow
   onScopeChangeRef.current = dispatch
@@ -142,8 +148,27 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const [showWelcome, setShowWelcome] = useState(false)
   const legendCloseRef = useRef<{ close(): void } | null>(null)
   const [cameraRequest, setCameraRequest] = useState<PinFocusIntent | null>(null)
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null)
   const lastAppliedFocusTokenRef = useRef(0)
   const lastHistoryCloseSeqRef = useRef(0)
+
+  const timedPinsInView = useMemo(
+    () => listTimedPinsInView(pins, mapBounds),
+    [pins, mapBounds],
+  )
+  const showTimedPinsRail =
+    isDesktop &&
+    !showDesktopPanel &&
+    placement == null &&
+    timedPinsInView.length > 0
+
+  const onMapBoundsChange = useCallback((bounds: MapBounds) => {
+    setMapBounds(bounds)
+  }, [])
+
+  useEffect(() => {
+    setMapBounds(null)
+  }, [communityUrl])
 
   useEffect(() => {
     try {
@@ -295,6 +320,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   placementActive={placement != null}
                   onMapClick={onMapClick}
                   onOpenPin={onOpenPin}
+                  onMapBoundsChange={onMapBoundsChange}
                   onDismissPinDetail={showViewDetail ? onCloseView : undefined}
                   pendingLocation={pendingLocation}
                   pendingPinType={pendingPinType}
@@ -306,6 +332,11 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   onNavigateToPin={handleNavigateToPin}
                   heartedPinIds={heartedPinIds}
                   pinHeartsLoading={pinHeartsLoading}
+                  topRightRail={
+                    showTimedPinsRail ? (
+                      <TimedPinsRail pins={timedPinsInView} onOpenPin={onOpenPin} />
+                    ) : null
+                  }
                 />
                 <PinTypeLegend
                   closeRef={legendCloseRef}
