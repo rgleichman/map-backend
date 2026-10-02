@@ -79,6 +79,10 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Offline hate-speech phrase filter. Production may override via
+# HATE_SPEECH_BLOCKLIST (comma-separated) in runtime.exs.
+config :storymap, Storymap.Moderation.ContentFilter, blocked_phrases: ["zzhatephrase"]
+
 # Site-wide trust scores (docs/TRUST.md). Soft-run: ledger/scores/vouch/approve
 # keep collecting signal; privilege gates (pending world, trust approve) stay off.
 config :storymap, Storymap.Trust,

@@ -74,6 +74,7 @@ export const GardenCopy = {
   noNotesYet: "No notes yet.",
   cannotPostNotes: "Your account cannot post notes.",
   couldNotPostNote: "Could not post note.",
+  noteRemovedPendingReview: "Your note was removed pending review.",
   deleteThisNote: "Delete this note?",
   reportThisNote: "Report this note",
   reportNotePlaceholder: "What is wrong with this note?",

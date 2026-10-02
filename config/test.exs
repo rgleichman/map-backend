@@ -40,6 +40,9 @@ config :logger, level: :warning
 # Disable rate limiting in tests
 config :storymap, StorymapWeb.Plugs.RateLimit, enabled: false
 
+# Deterministic nonsense token for hate-speech filter tests (not a real lexicon).
+config :storymap, Storymap.Moderation.ContentFilter, blocked_phrases: ["zzhatephrase"]
+
 # Trust: keep gates off; avoid GenServer recompute against sandbox DB
 config :storymap, Storymap.Trust,
   trust_gates_enabled: false,

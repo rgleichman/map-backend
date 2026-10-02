@@ -19,6 +19,7 @@ defmodule Storymap.Pins do
   }
 
   alias Storymap.Accounts.User
+  alias Storymap.Moderation.ContentFilter
   alias Storymap.PinTypes
   alias Storymap.PinTypes.{PinType, Validator}
   alias Storymap.PinTypes.Schema, as: PinTypeSchema
@@ -196,6 +197,7 @@ defmodule Storymap.Pins do
                  |> normalize_schedule(pin_type)
                  |> maybe_validate_sub_map_rules(sub_map, attrs_with_user, pin_type)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+                 |> maybe_hold_flagged_content()
                  |> Repo.insert(),
                {:ok, pin} <- References.sync(pin, attrs_with_user) do
             preload_pin_associations(pin)
@@ -238,6 +240,7 @@ defmodule Storymap.Pins do
                  |> normalize_schedule(pin_type)
                  |> maybe_validate_sub_map_rules(sub_map, attrs, pin_type)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
+                 |> maybe_hold_flagged_content()
                  |> Repo.update(),
                {:ok, pin} <- References.sync(pin, attrs) do
             preload_pin_associations(pin)
@@ -650,6 +653,17 @@ defmodule Storymap.Pins do
   end
 
   defp maybe_resubmit_rejected_pin(changeset, _pin, _sub_map, _user), do: changeset
+
+  @spec maybe_hold_flagged_content(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  defp maybe_hold_flagged_content(changeset) do
+    texts = ContentFilter.extract_pin_texts(changeset)
+
+    if ContentFilter.flagged_texts?(texts) do
+      Ecto.Changeset.put_change(changeset, :status, :pending)
+    else
+      changeset
+    end
+  end
 
   defp maybe_put_status(changeset, nil), do: changeset
 

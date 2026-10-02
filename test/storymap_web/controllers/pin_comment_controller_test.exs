@@ -53,7 +53,28 @@ defmodule StorymapWeb.PinCommentControllerTest do
           comment: %{body: "New comment"}
         })
 
-      assert %{"body" => "New comment", "is_author" => true} = json_response(conn, 201)["data"]
+      assert %{
+               "body" => "New comment",
+               "is_author" => true,
+               "deleted" => false,
+               "held_for_moderation" => false
+             } = json_response(conn, 201)["data"]
+    end
+
+    test "holds flagged comments and exposes held_for_moderation", %{conn: conn, user: user} do
+      pin = pin_fixture(%{}, user)
+
+      conn =
+        post(conn, ~p"/api/pins/#{pin.id}/comments", %{
+          comment: %{body: "zzhatephrase is bad"}
+        })
+
+      assert %{
+               "deleted" => true,
+               "held_for_moderation" => true,
+               "body" => "",
+               "is_author" => true
+             } = json_response(conn, 201)["data"]
     end
 
     test "returns 401 when unauthenticated", %{conn: conn} do

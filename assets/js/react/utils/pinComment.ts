@@ -1,4 +1,5 @@
 import type { PinComment } from "../types"
+import { GardenCopy } from "./gardenCopy"
 
 /** Derive authorship from author id or preserved is_author; broadcasts omit both. */
 export function isCommentAuthor(comment: PinComment, userId?: number): boolean {
@@ -12,6 +13,7 @@ export function mergeComment(existing: PinComment, incoming: PinComment): PinCom
     ...existing,
     body: incoming.body,
     deleted: incoming.deleted,
+    held_for_moderation: incoming.held_for_moderation ?? existing.held_for_moderation ?? false,
     inserted_at: incoming.inserted_at,
     updated_at: incoming.updated_at,
     author: incoming.author ?? existing.author,
@@ -70,4 +72,12 @@ export function applyCommentDeleted(
       r.id === commentId ? { ...r, body: "", deleted: true } : r
     ),
   }))
+}
+
+/** Author-facing label when a note was auto-held vs a normal soft-delete. */
+export function deletedCommentLabel(comment: PinComment, userId?: number): string {
+  if (comment.held_for_moderation && isCommentAuthor(comment, userId)) {
+    return GardenCopy.noteRemovedPendingReview
+  }
+  return "[deleted]"
 }

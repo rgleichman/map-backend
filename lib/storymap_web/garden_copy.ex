@@ -181,6 +181,9 @@ defmodule StorymapWeb.GardenCopy do
   @spec notes() :: String.t()
   def notes, do: "Notes"
 
+  @spec note_removed_pending_review() :: String.t()
+  def note_removed_pending_review, do: "Your note was removed pending review."
+
   @spec labels() :: String.t()
   def labels, do: "Labels"
 

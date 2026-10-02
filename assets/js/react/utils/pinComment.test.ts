@@ -4,6 +4,7 @@ import {
   applyCommentDeleted,
   applyCommentUpsert,
   commentCount,
+  deletedCommentLabel,
   isCommentAuthor,
   mergeComment,
 } from "./pinComment"
@@ -14,6 +15,7 @@ function comment(overrides: Partial<PinComment> & Pick<PinComment, "id">): PinCo
     parent_id: null,
     body: "hi",
     deleted: false,
+    held_for_moderation: false,
     author: null,
     is_author: false,
     inserted_at: "2026-01-01T12:00:00",
@@ -85,5 +87,28 @@ describe("commentCount", () => {
         comment({ id: 3 }),
       ])
     ).toBe(3)
+  })
+})
+
+describe("deletedCommentLabel", () => {
+  it("shows review message for author of held comments", () => {
+    const held = comment({
+      id: 1,
+      deleted: true,
+      held_for_moderation: true,
+      is_author: true,
+    })
+    expect(deletedCommentLabel(held, 9)).toBe("Your note was removed pending review.")
+  })
+
+  it("shows generic deleted for others", () => {
+    const held = comment({
+      id: 1,
+      deleted: true,
+      held_for_moderation: true,
+      is_author: false,
+      author: { id: 2 },
+    })
+    expect(deletedCommentLabel(held, 9)).toBe("[deleted]")
   })
 })

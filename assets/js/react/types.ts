@@ -116,6 +116,7 @@ export type PinComment = {
   parent_id: number | null
   body: string
   deleted: boolean
+  held_for_moderation: boolean
   author: PinCommentAuthor | null
   is_author: boolean
   inserted_at: string

@@ -36,6 +36,7 @@ defmodule StorymapWeb.PinCommentJSON do
       parent_id: comment.parent_id,
       body: comment_body(comment),
       deleted: PinComment.deleted?(comment),
+      held_for_moderation: comment.held_for_moderation == true,
       author: author_data(comment, current_user),
       is_author: author?(comment, current_user),
       inserted_at: JSONDateTime.to_iso_local(comment.inserted_at),

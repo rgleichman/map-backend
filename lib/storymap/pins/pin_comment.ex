@@ -12,6 +12,7 @@ defmodule Storymap.Pins.PinComment do
           parent_id: integer() | nil,
           body: String.t() | nil,
           deleted_at: DateTime.t() | nil,
+          held_for_moderation: boolean(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -19,6 +20,7 @@ defmodule Storymap.Pins.PinComment do
   schema "pin_comments" do
     field :body, :string
     field :deleted_at, :utc_datetime
+    field :held_for_moderation, :boolean, default: false
 
     belongs_to :pin, Storymap.Pins.Pin
     belongs_to :user, Storymap.Accounts.User
@@ -57,6 +59,12 @@ defmodule Storymap.Pins.PinComment do
   def delete_changeset(%__MODULE__{} = comment) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     change(comment, %{deleted_at: now})
+  end
+
+  @spec hold_for_moderation_changeset(t()) :: Ecto.Changeset.t()
+  def hold_for_moderation_changeset(%__MODULE__{} = comment) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    change(comment, %{deleted_at: now, held_for_moderation: true})
   end
 
   @spec deleted?(%__MODULE__{}) :: boolean()

@@ -8,6 +8,21 @@ end
 
 config :storymap, :maptiler_api_key, System.get_env("MAPTILER_API_KEY")
 
+# Optional comma-separated hate-speech blocklist (overrides compile-time config when set).
+case System.get_env("HATE_SPEECH_BLOCKLIST") do
+  nil ->
+    :ok
+
+  csv ->
+    phrases =
+      csv
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    config :storymap, Storymap.Moderation.ContentFilter, blocked_phrases: phrases
+end
+
 # Optional: custom tile cache directory (defaults to app_dir/priv/tile_cache)
 # config :storymap, :tile_cache_dir, "/var/cache/storymap/tiles"
 

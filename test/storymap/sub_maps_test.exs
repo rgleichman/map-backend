@@ -176,6 +176,32 @@ defmodule Storymap.SubMapsTest do
     assert pin.id in Enum.map(SubMaps.list_pins(sub_map, nil, nil), & &1.id)
   end
 
+  test "open contribution mode still holds hate-speech flagged pins as pending" do
+    owner = user_fixture()
+    member = user_fixture()
+
+    sub_map =
+      sub_map_fixture(%{"contribution_mode" => "open", "community_url" => "open-hate"}, owner)
+
+    {:ok, _} = SubMaps.join(%Scope{user: member}, sub_map)
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: member},
+        sub_map,
+        %{
+          "title" => "zzhatephrase garden",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    assert pin.status == :pending
+    assert [%{id: id}] = SubMaps.pending_pins(sub_map)
+    assert id == pin.id
+  end
+
   test "approve_pin/3 makes pin visible in community list" do
     owner = user_fixture()
     contributor = user_fixture()

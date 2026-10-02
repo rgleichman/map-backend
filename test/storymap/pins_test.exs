@@ -142,6 +142,24 @@ defmodule Storymap.PinsTest do
       assert "should be at most 5000 character(s)" in errors_on(changeset).description
     end
 
+    test "create_pin/2 holds flagged title as pending" do
+      user = user_fixture()
+      attrs = Map.put(@valid_attrs, "title", "contains zzhatephrase here")
+
+      assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
+      assert pin.status == :pending
+    end
+
+    test "update_pin/2 holds flagged description as pending" do
+      pin = pin_fixture()
+      assert pin.status == :approved
+
+      assert {:ok, %Pin{} = updated} =
+               Pins.update_pin(pin, %{"description" => "please avoid zzhatephrase"})
+
+      assert updated.status == :pending
+    end
+
     test "update_pin/2 with valid data updates the pin" do
       pin = pin_fixture()
       update_attrs = %{"title" => "some updated title", "latitude" => 456.7, "longitude" => 456.7}

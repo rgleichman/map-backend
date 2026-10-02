@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import type { PinComment } from "../../types"
 import { usePinComments } from "../../hooks/usePinComments"
 import PinCommentItem from "./PinCommentItem"
 import CommentComposer from "./CommentComposer"
@@ -52,8 +53,11 @@ export default function PinComments({
     setFormError(null)
     setSubmitting(true)
     try {
-      await createComment(body)
+      const data = await createComment(body)
       setNewBody("")
+      if (data.held_for_moderation) {
+        setFormError(GardenCopy.noteRemovedPendingReview)
+      }
     } catch (e) {
       setFormError(e instanceof Error ? e.message : GardenCopy.couldNotPostNote)
     } finally {
@@ -61,8 +65,20 @@ export default function PinComments({
     }
   }
 
-  const handleReply = async (parentId: number, body: string) => {
-    await createComment(body, parentId)
+  const handleReply = async (parentId: number, body: string): Promise<PinComment> => {
+    const data = await createComment(body, parentId)
+    if (data.held_for_moderation) {
+      setFormError(GardenCopy.noteRemovedPendingReview)
+    }
+    return data
+  }
+
+  const handleUpdate = async (id: number, body: string): Promise<PinComment> => {
+    const data = await updateComment(id, body)
+    if (data.held_for_moderation) {
+      setFormError(GardenCopy.noteRemovedPendingReview)
+    }
+    return data
   }
 
   return (
@@ -101,7 +117,7 @@ export default function PinComments({
                   csrfToken={csrfToken}
                   onNavigateToPin={onNavigateToPin}
                   onReply={handleReply}
-                  onUpdate={(id, body) => updateComment(id, body).then(() => undefined)}
+                  onUpdate={handleUpdate}
                   onDelete={(id, parentId) => deleteComment(id, parentId)}
                   onLoginRequired={() => setLoginOpen(true)}
                 />

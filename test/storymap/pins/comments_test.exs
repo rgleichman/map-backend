@@ -65,13 +65,46 @@ defmodule Storymap.Pins.CommentsTest do
 
       assert "comments are only allowed on approved pins" in errors_on(changeset).pin_id
     end
+
+    test "holds flagged comments for moderation and creates a report" do
+      pin = pin_fixture()
+      user = user_fixture()
+
+      assert {:ok, %PinComment{} = comment} =
+               Comments.create_comment(pin, user, %{"body" => "has zzhatephrase in it"})
+
+      assert PinComment.deleted?(comment)
+      assert comment.held_for_moderation
+      assert comment.body == "has zzhatephrase in it"
+
+      assert [%{category: :abusive_or_hateful, subject_type: "pin_comment", subject_id: id}] =
+               Storymap.Repo.all(Storymap.ContentReports.ContentReport)
+
+      assert id == comment.id
+    end
+  end
+
+  describe "update_comment/2" do
+    test "holds flagged updates for moderation" do
+      pin = pin_fixture()
+      user = user_fixture()
+      comment = pin_comment_fixture(%{"body" => "clean"}, pin, user)
+
+      assert {:ok, %PinComment{} = held} =
+               Comments.update_comment(comment, %{"body" => "now zzhatephrase"})
+
+      assert PinComment.deleted?(held)
+      assert held.held_for_moderation
+    end
   end
 
   describe "delete_comment/1" do
-    test "soft deletes a comment" do
+    test "soft deletes a comment without held_for_moderation" do
       comment = pin_comment_fixture()
 
-      assert {:ok, %PinComment{deleted_at: %DateTime{}}} = Comments.delete_comment(comment)
+      assert {:ok, %PinComment{deleted_at: %DateTime{}, held_for_moderation: false}} =
+               Comments.delete_comment(comment)
+
       assert PinComment.deleted?(Comments.get_comment!(comment.id))
     end
   end

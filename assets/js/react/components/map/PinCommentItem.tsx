@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import type { PinComment } from "../../types"
-import { isCommentAuthor } from "../../utils/pinComment"
+import { deletedCommentLabel, isCommentAuthor } from "../../utils/pinComment"
 import { formatCommentTimestamp } from "../../utils/popupFormatters"
 import { ReportSubjectType } from "../../utils/reportSubjectType"
 import LinkifiedText from "../LinkifiedText"
@@ -18,8 +18,8 @@ type Props = {
   userMuted?: boolean
   csrfToken?: string
   onNavigateToPin?: (pinId: number) => void
-  onReply: (parentId: number, body: string) => Promise<void>
-  onUpdate: (commentId: number, body: string) => Promise<void>
+  onReply: (parentId: number, body: string) => Promise<PinComment>
+  onUpdate: (commentId: number, body: string) => Promise<PinComment>
   onDelete: (commentId: number, parentId: number | null) => Promise<void>
   onLoginRequired: () => void
 }
@@ -76,9 +76,12 @@ export default function PinCommentItem({
       return
     }
     void runAction(async () => {
-      await onReply(comment.id, body)
+      const result = await onReply(comment.id, body)
       setReplyBody("")
       setReplyOpen(false)
+      if (result.held_for_moderation) {
+        setActionError(GardenCopy.noteRemovedPendingReview)
+      }
     })
   }
 
@@ -86,8 +89,11 @@ export default function PinCommentItem({
     const body = editBody.trim()
     if (!body) return
     void runAction(async () => {
-      await onUpdate(comment.id, body)
+      const result = await onUpdate(comment.id, body)
       setEditing(false)
+      if (result.held_for_moderation) {
+        setActionError(GardenCopy.noteRemovedPendingReview)
+      }
     })
   }
 
@@ -101,7 +107,9 @@ export default function PinCommentItem({
       </div>
 
       {comment.deleted ? (
-        <p className="mt-1 text-sm italic text-base-content/50">[deleted]</p>
+        <p className="mt-1 text-sm italic text-base-content/50">
+          {deletedCommentLabel(comment, userId)}
+        </p>
       ) : editing ? (
         <CommentComposer
           className="mt-1 space-y-2"

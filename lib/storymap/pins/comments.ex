@@ -5,6 +5,8 @@ defmodule Storymap.Pins.Comments do
   import Ecto.Query
 
   alias Storymap.Accounts.User
+  alias Storymap.ContentReports
+  alias Storymap.Moderation.ContentFilter
   alias Storymap.Pins.Pin
   alias Storymap.Pins.PinComment
   alias Storymap.Repo
@@ -55,10 +57,7 @@ defmodule Storymap.Pins.Comments do
     %PinComment{}
     |> PinComment.create_changeset(attrs, pin_id: pin.id, user_id: user.id, parent: parent)
     |> Repo.insert()
-    |> case do
-      {:ok, comment} -> {:ok, preload_comment(comment)}
-      {:error, _} = err -> err
-    end
+    |> maybe_hold_flagged_comment()
   end
 
   def create_comment(%Pin{}, %User{}, _attrs) do
@@ -72,10 +71,7 @@ defmodule Storymap.Pins.Comments do
     comment
     |> PinComment.update_changeset(attrs)
     |> Repo.update()
-    |> case do
-      {:ok, comment} -> {:ok, preload_comment(comment)}
-      {:error, _} = err -> err
-    end
+    |> maybe_hold_flagged_comment()
   end
 
   @spec delete_comment(PinComment.t()) :: Types.ecto_result(PinComment.t())
@@ -88,6 +84,35 @@ defmodule Storymap.Pins.Comments do
       {:error, _} = err -> err
     end
   end
+
+  @spec maybe_hold_flagged_comment(Types.ecto_result(PinComment.t())) ::
+          Types.ecto_result(PinComment.t())
+  defp maybe_hold_flagged_comment({:ok, %PinComment{} = comment}) do
+    if ContentFilter.flagged?(comment.body) do
+      _ =
+        ContentReports.create_report(
+          %{
+            "subject_type" => "pin_comment",
+            "subject_id" => comment.id,
+            "category" => "abusive_or_hateful",
+            "details" => "Automatically held by hate speech filter."
+          },
+          nil
+        )
+
+      comment
+      |> PinComment.hold_for_moderation_changeset()
+      |> Repo.update()
+      |> case do
+        {:ok, held} -> {:ok, preload_comment(held)}
+        {:error, _} = err -> err
+      end
+    else
+      {:ok, preload_comment(comment)}
+    end
+  end
+
+  defp maybe_hold_flagged_comment({:error, _} = err), do: err
 
   defp replies_query do
     from(r in PinComment,
