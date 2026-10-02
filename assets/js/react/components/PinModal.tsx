@@ -15,9 +15,11 @@ import {
 } from "../utils/scheduleCapabilities"
 import { deriveMapTags } from "../utils/tagSuggestions"
 import RemovableChip from "./RemovableChip"
+import PinTypeBadge from "./PinTypeBadge"
 import Button from "./ui/Button"
-import { TrashIcon } from "./ui/icons"
+import { PencilIcon, TrashIcon } from "./ui/icons"
 import { GardenCopy, plantFormHeading, plantFormPrimaryLabel } from "../utils/gardenCopy"
+import { getPinTypeLabel } from "../utils/pinTypeIcons"
 
 type Props = {
   /** When true (mobile add from placement), location was just set; can hide or reword "Set location on map". */
@@ -133,6 +135,26 @@ export default function PinModal({
     <div className="pin-modal-content flex min-h-0 w-full flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         <h2 id={headingId} className="text-lg font-semibold mb-4">{plantFormHeading(mode)}</h2>
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-sm font-medium text-base-content/70 shrink-0">
+              {GardenCopy.plantType}
+            </span>
+            <PinTypeBadge pinType={pinType} catalog={catalog} />
+            <span className="text-sm font-medium truncate">
+              {getPinTypeLabel(pinType, catalog)}
+            </span>
+          </div>
+          <Button
+            href="/pin-types"
+            variant="ghost"
+            size="sm"
+            className="inline-flex items-center gap-1.5 shrink-0"
+          >
+            <PencilIcon className="size-4" />
+            {GardenCopy.addOrEditPlantTypes}
+          </Button>
+        </div>
         <label htmlFor="pin-title" className="block font-medium mb-1">Title</label>
         <input
           id="pin-title"
