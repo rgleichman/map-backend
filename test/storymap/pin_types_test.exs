@@ -7,6 +7,7 @@ defmodule Storymap.PinTypesTest do
   alias Storymap.Accounts.Scope
   alias Storymap.PinTypes
   alias Storymap.PinTypes.PinType
+  alias Storymap.Repo
 
   describe "create_pin_type/2" do
     test "creates a global custom pin type" do
@@ -74,6 +75,56 @@ defmodule Storymap.PinTypesTest do
                PinTypes.update_pin_type(scope, pin_type, %{"label" => "Renamed"})
 
       assert {:error, :forbidden} = PinTypes.delete_pin_type(scope, pin_type)
+    end
+
+    test "allows renaming a system type that keeps its reserved slug" do
+      admin =
+        user_fixture()
+        |> Ecto.Changeset.change(%{admin_level: 1})
+        |> Repo.update!()
+
+      scope = %Scope{user: admin}
+      system = PinTypes.get_by_slug("one_time")
+      assert system.is_system
+
+      assert {:ok, updated} =
+               PinTypes.update_pin_type(scope, system, %{"label" => "Party Event"})
+
+      assert updated.label == "Party Event"
+      assert updated.slug == "one_time"
+    end
+
+    test "normalizes slug casing when updating a reserved system slug" do
+      admin =
+        user_fixture()
+        |> Ecto.Changeset.change(%{admin_level: 1})
+        |> Repo.update!()
+
+      scope = %Scope{user: admin}
+      system = PinTypes.get_by_slug("one_time")
+
+      assert {:ok, updated} =
+               PinTypes.update_pin_type(scope, system, %{
+                 "label" => "Party Event",
+                 "slug" => "ONE_TIME"
+               })
+
+      assert updated.slug == "one_time"
+      refute Map.has_key?(PinType.changeset(system, %{"slug" => "ONE_TIME"}).changes, :slug)
+    end
+
+    test "still rejects claiming a reserved slug on create" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:error, changeset} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Hijack",
+                 "slug" => "one_time",
+                 "schema" => %{"fields" => []}
+               })
+
+      assert {"is reserved", _} = changeset.errors[:slug]
     end
   end
 

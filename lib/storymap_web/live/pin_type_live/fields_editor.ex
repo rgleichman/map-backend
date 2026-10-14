@@ -24,6 +24,11 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
       class="space-y-6"
     >
       <.input field={@form[:label]} type="text" label="Label" required />
+      <%= if @form[:slug].errors != [] do %>
+        <p :for={error <- @form[:slug].errors} class="text-error text-sm" id="pin-type-slug-error">
+          Slug {translate_error(error)}
+        </p>
+      <% end %>
       <.input field={@form[:description]} type="textarea" label="Description" />
       <div>
         <.input

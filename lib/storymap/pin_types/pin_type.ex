@@ -88,15 +88,43 @@ defmodule Storymap.PinTypes.PinType do
   end
 
   defp put_slug(changeset) do
+    existing = changeset.data.slug
+
     slug =
-      case get_change(changeset, :slug) || get_field(changeset, :slug) do
+      case get_change(changeset, :slug) || existing do
         nil -> Slug.generate_from_label(get_field(changeset, :label) || "")
         slug -> Slug.normalize(slug)
       end
 
-    case Slug.validate(slug || "") do
-      {:ok, normalized} -> put_change(changeset, :slug, normalized)
-      {:error, reason} -> add_error(changeset, :slug, Slug.error_message(reason))
+    case accept_slug(slug, existing) do
+      {:ok, normalized} ->
+        # Always put_change so a cast with different casing is cleared; Ecto
+        # discards the change when the value matches the persisted slug.
+        put_change(changeset, :slug, normalized)
+
+      {:error, reason} ->
+        add_error(changeset, :slug, Slug.error_message(reason))
+    end
+  end
+
+  # Seeded system rows keep reserved slugs (`one_time`, etc.); edits to label/schema
+  # must not fail reserved-slug validation when the slug is unchanged.
+  defp accept_slug(nil, _existing), do: {:error, :required}
+
+  defp accept_slug(slug, existing) when is_binary(slug) do
+    case Slug.validate(slug) do
+      {:ok, normalized} ->
+        {:ok, normalized}
+
+      {:error, :reserved} ->
+        if is_binary(existing) and slug == Slug.normalize(existing) do
+          {:ok, slug}
+        else
+          {:error, :reserved}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

@@ -23,13 +23,18 @@ defmodule StorymapWeb.SubMapLive.Settings do
   end
 
   @impl true
-  def handle_event("validate", %{"sub_map" => params}, socket) do
+  def handle_event("validate", params, socket) do
+    sub_map_params = Map.get(params, "sub_map", %{})
+
     changeset =
       socket.assigns.sub_map
-      |> SubMap.changeset(params)
+      |> SubMap.changeset(sub_map_params)
       |> Map.put(:action, :validate)
 
-    {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}
+    {:noreply,
+     socket
+     |> assign(form: to_form(changeset, as: :sub_map))
+     |> PinTypeForm.sync_enabled_ids(params)}
   end
 
   def handle_event("save", params, socket) do
@@ -47,7 +52,10 @@ defmodule StorymapWeb.SubMapLive.Settings do
          |> put_flash(:info, GardenCopy.garden_settings_saved())}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset, as: :sub_map))}
+        {:noreply,
+         socket
+         |> assign(form: to_form(changeset, as: :sub_map))
+         |> PinTypeForm.sync_enabled_ids(params)}
 
       {:error, :forbidden} ->
         {:noreply,
