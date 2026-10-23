@@ -10,8 +10,8 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "typescript": "^5.9.3",
-    "vite": "8.0.16",
-    "vitest": "4.1.8"
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "std-env": "4.1.0"
