@@ -40,6 +40,20 @@ defmodule Storymap.PinTypesTest do
       assert pin_type.icon == "grapes"
     end
 
+    test "allows blank icon" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:ok, pin_type} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "No Glyph",
+                 "icon" => "",
+                 "schema" => %{"fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]}
+               })
+
+      assert pin_type.icon == nil
+    end
+
     test "rejects unknown icon" do
       user = user_fixture()
       scope = %Scope{user: user}
@@ -249,6 +263,17 @@ defmodule Storymap.PinTypesTest do
                PinTypes.update_pin_type(scope, pin_type, %{"label" => "Renamed Arcade"})
 
       assert updated.label == "Renamed Arcade"
+    end
+
+    test "update_pin_type/3 can clear icon" do
+      user = user_fixture()
+      pin_type = pin_type_fixture(%{"icon" => "grapes"}, user)
+      scope = %Scope{user: user}
+
+      assert {:ok, updated} =
+               PinTypes.update_pin_type(scope, pin_type, %{"icon" => ""})
+
+      assert updated.icon == nil
     end
 
     test "update_pin_type/3 accepts atom keys" do

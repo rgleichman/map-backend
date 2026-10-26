@@ -161,10 +161,10 @@ defmodule Storymap.PinTypes.PinType do
 
   defp validate_icon(changeset) do
     validate_change(changeset, :icon, fn :icon, icon ->
-      if Icons.valid?(icon) do
-        []
-      else
-        [icon: "is not a known marker glyph"]
+      cond do
+        is_nil(icon) -> []
+        Icons.valid?(icon) -> []
+        true -> [icon: "is not a known marker glyph"]
       end
     end)
   end
