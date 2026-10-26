@@ -8,7 +8,9 @@ import {
   AWAITING_PIN_OUTLINE_STROKE,
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
+  layerFillOpacity,
   NEW_PIN_OUTLINE_STROKE,
+  PIN_ICON_DEFS,
   SELECTED_PIN_OUTLINE_STROKE,
 } from "./pinTypeIcons"
 
@@ -43,6 +45,21 @@ describe("PinTypeIcon", () => {
   })
 })
 
+describe("plant icon layers", () => {
+  it("keeps grapes light and ink layers for recoloring", () => {
+    const layers = PIN_ICON_DEFS.grapes.layers.map((layer) => layer.name)
+    expect(layers).toContain("light")
+    expect(layers).toContain("ink")
+    expect(PIN_ICON_DEFS.grapes.style).toBe("fill")
+  })
+
+  it("maps artist gray inks to visible currentColor opacities", () => {
+    expect(layerFillOpacity(0)).toBe(1)
+    expect(layerFillOpacity(107)).toBe(0.72)
+    expect(layerFillOpacity(215)).toBe(0.28)
+  })
+})
+
 describe("createPinTypeMarkerSVG", () => {
   it("returns a base64 svg data URL", () => {
     const dataUrl = createPinTypeMarkerSVG("one_time", [])
@@ -51,6 +68,28 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).toContain("<svg")
     expect(svg).toContain("</svg>")
     expect(svg).toContain("<path")
+  })
+
+  it("renders plant icons with separate gray-layer opacities", () => {
+    const dataUrl = createPinTypeMarkerSVG("vine", [
+      {
+        id: 1,
+        slug: "vine",
+        label: "Vine",
+        description: "Vine",
+        marker_color: "#166534",
+        icon: "grapes",
+        schema: { fields: [] },
+        pin_type: "vine",
+        enabled: true,
+        inserted_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      } as any,
+    ])
+
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain('fill-opacity="0.28"')
+    expect(svg).toContain('fill-opacity="1"')
   })
 
   it("renders custom pin types with the builtin other icon (no injected markup)", () => {

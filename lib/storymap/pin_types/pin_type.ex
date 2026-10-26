@@ -6,6 +6,7 @@ defmodule Storymap.PinTypes.PinType do
   import Ecto.Changeset
 
   alias Storymap.Accounts.User
+  alias Storymap.PinTypes.Icons
   alias Storymap.PinTypes.Slug
 
   @time_modes [:none, :one_time, :hours]
@@ -82,6 +83,8 @@ defmodule Storymap.PinTypes.PinType do
     )
     |> validate_length(:label, max: 120)
     |> validate_length(:description, max: 2000)
+    |> normalize_icon()
+    |> validate_icon()
     |> validate_schema_shape()
     |> unique_constraint(:slug)
     |> foreign_key_constraint(:created_by_user_id)
@@ -135,6 +138,35 @@ defmodule Storymap.PinTypes.PinType do
       :ok -> changeset
       {:error, message} -> add_error(changeset, :schema, message)
     end
+  end
+
+  defp normalize_icon(changeset) do
+    case get_change(changeset, :icon) do
+      nil ->
+        changeset
+
+      icon when is_binary(icon) ->
+        icon = String.trim(icon)
+
+        if icon == "" do
+          put_change(changeset, :icon, nil)
+        else
+          put_change(changeset, :icon, icon)
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp validate_icon(changeset) do
+    validate_change(changeset, :icon, fn :icon, icon ->
+      if Icons.valid?(icon) do
+        []
+      else
+        [icon: "is not a known marker glyph"]
+      end
+    end)
   end
 
   defp normalize_marker_color(changeset) do

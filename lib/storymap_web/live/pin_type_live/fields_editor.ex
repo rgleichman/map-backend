@@ -5,6 +5,7 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
 
   import StorymapWeb.CoreComponents
 
+  alias Storymap.PinTypes.Icons
   alias Storymap.PinTypes.PinType
   alias StorymapWeb.PinTypeLive.Form
 
@@ -64,6 +65,45 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
           </label>
         </div>
         <span class="text-sm text-base-content/60 pb-2 font-mono">{marker_color}</span>
+      </div>
+
+      <% selected_icon = @form[:icon].value || "star" %>
+      <div class="fieldset mb-2">
+        <span class="label mb-1">Icon</span>
+        <div
+          id="pin-type-icon-picker"
+          role="radiogroup"
+          aria-label="Icon"
+          class="grid grid-cols-4 sm:grid-cols-5 gap-2"
+        >
+          <%= for {name, icon} <- Icons.all() do %>
+            <% selected? = selected_icon == name %>
+            <label
+              id={"pin-type-icon-#{name}"}
+              class={[
+                "flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2",
+                "cursor-pointer origin-center transition-[transform,background-color,border-color]",
+                "active:scale-[0.9] focus-within:ring-2 focus-within:ring-primary",
+                selected? && "border-primary bg-primary/10 text-primary",
+                not selected? &&
+                  "border-base-300 text-base-content hover:bg-base-200/60 dark:hover:bg-base-200/40"
+              ]}
+            >
+              <input
+                type="radio"
+                name={@form[:icon].name}
+                value={name}
+                checked={selected?}
+                class="sr-only"
+              />
+              <.pin_glyph name={name} class="size-7" />
+              <span class="text-[10px] leading-tight text-center truncate w-full">{icon["label"]}</span>
+            </label>
+          <% end %>
+        </div>
+        <p :for={error <- @form[:icon].errors} class="text-error text-sm mt-1">
+          {translate_error(error)}
+        </p>
       </div>
 
       <.input
@@ -220,6 +260,45 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
         Add field
       </.button>
     </div>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :class, :string, default: "size-6"
+
+  def pin_glyph(assigns) do
+    icon = Icons.get(assigns.name) || Icons.get("star")
+    assigns = assign(assigns, :icon, icon)
+
+    ~H"""
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class={@class} aria-hidden="true">
+      <%= if @icon["style"] == "stroke" do %>
+        <g
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            :for={path <- Enum.flat_map(@icon["layers"], & &1["paths"])}
+            d={path["d"]}
+          />
+        </g>
+      <% else %>
+        <g
+          :for={layer <- @icon["layers"]}
+          fill="currentColor"
+          fill-opacity={Icons.layer_opacity(layer["gray"])}
+        >
+          <path
+            :for={path <- layer["paths"]}
+            d={path["d"]}
+            fill-rule={path["fillRule"] || "nonzero"}
+          />
+        </g>
+      <% end %>
+    </svg>
     """
   end
 end

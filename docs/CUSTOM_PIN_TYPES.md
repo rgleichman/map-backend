@@ -1,6 +1,7 @@
 # Pin types
 
-Unified global catalog of pin templates (system seeds + user-defined). See also [SUB_MAPS.md](SUB_MAPS.md).
+Unified global catalog of pin templates (system seeds + user-defined). See also
+[SUB_MAPS.md](SUB_MAPS.md) and [PIN_ICONS.md](PIN_ICONS.md) (marker glyphs).
 
 ## Overview
 

@@ -1,7 +1,12 @@
 import React from "react"
 import type { CatalogPinType, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
-import { ICON_PATH_DEFS, isStrokeIcon, pinIconName } from "../utils/pinTypeIcons"
+import {
+  PIN_ICON_DEFS,
+  isStrokeIcon,
+  layerFillOpacity,
+  pinIconName,
+} from "../utils/pinTypeIcons"
 import { findPinType } from "../utils/customPinTypes"
 
 type Props = {
@@ -20,8 +25,8 @@ export default function PinTypeIcon({
   const catalog = catalogProp ?? contextCatalog
   const catalogType = findPinType(pinType, catalog)
   const iconKey = pinIconName(catalogType?.icon, pinType)
+  const def = PIN_ICON_DEFS[iconKey]
   const stroke = isStrokeIcon(iconKey)
-  const paths = ICON_PATH_DEFS[iconKey]
 
   return (
     <svg
@@ -41,16 +46,22 @@ export default function PinTypeIcon({
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          {paths.map((p) => (
-            <path key={p.d} d={p.d} />
-          ))}
+          {def.layers.flatMap((layer) =>
+            layer.paths.map((p) => <path key={p.d} d={p.d} />),
+          )}
         </g>
       ) : (
-        <g fill="currentColor">
-          {paths.map((p) => (
-            <path key={p.d} d={p.d} fillRule={p.fillRule} clipRule={p.clipRule} />
-          ))}
-        </g>
+        def.layers.map((layer) => (
+          <g
+            key={layer.name}
+            fill="currentColor"
+            fillOpacity={layerFillOpacity(layer.gray)}
+          >
+            {layer.paths.map((p) => (
+              <path key={p.d} d={p.d} fillRule={p.fillRule} clipRule={p.clipRule} />
+            ))}
+          </g>
+        ))
       )}
     </svg>
   )

@@ -26,6 +26,34 @@ defmodule Storymap.PinTypesTest do
       assert PinTypes.get_by_slug(slug)
     end
 
+    test "persists a plant icon" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:ok, pin_type} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Vineyard",
+                 "icon" => "grapes",
+                 "schema" => %{"fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]}
+               })
+
+      assert pin_type.icon == "grapes"
+    end
+
+    test "rejects unknown icon" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:error, changeset} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Unknown Icon",
+                 "icon" => "not-a-glyph",
+                 "schema" => %{"fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]}
+               })
+
+      assert "is not a known marker glyph" in errors_on(changeset).icon
+    end
+
     test "rejects invalid marker_color" do
       user = user_fixture()
       scope = %Scope{user: user}

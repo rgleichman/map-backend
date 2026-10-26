@@ -1,21 +1,36 @@
+import pinIconsJson from "../../../shared/pin_icons.json"
 import type { CatalogPinType, PinIconName as PinIconNameType, PinType } from "../types"
 import {
   DEFAULT_PIN_TYPE_COLORS,
-  getPinTypeColorEntry,
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
 import { findPinType, markerColor } from "./customPinTypes"
 
-/**
- * Pin type icon path data: carrot from priv/static/images/carrot.svg (Lucide), rest from Heroicons (MIT).
- * https://github.com/tailwindlabs/heroicons
- */
 type SvgPathDef = {
   d: string
   fillRule?: "evenodd" | "nonzero"
   clipRule?: "evenodd" | "nonzero"
 }
+
+export type PinIconLayer = {
+  name: string
+  gray: number
+  paths: SvgPathDef[]
+}
+
+export type PinIconDef = {
+  label: string
+  style: "fill" | "stroke"
+  layers: PinIconLayer[]
+}
+
+type PinIconsFile = {
+  order: PinIconNameType[]
+  icons: Record<PinIconNameType, PinIconDef>
+}
+
+const PIN_ICONS_FILE = pinIconsJson as PinIconsFile
 
 /** Glyph names a catalog row may reference through `icon`. */
 export const PinIcon = {
@@ -23,7 +38,27 @@ export const PinIcon = {
   Calendar: "calendar",
   Building: "building",
   Star: "star",
+  Pinecone: "pinecone",
+  Grapes: "grapes",
+  Sprout: "sprout",
+  Leaf: "leaf",
+  Bud: "bud",
+  Cotton: "cotton",
+  Daisy: "daisy",
+  Sprig: "sprig",
+  Berries: "berries",
+  Trowel: "trowel",
+  Mushrooms: "mushrooms",
+  Hop: "hop",
+  Dandelion: "dandelion",
+  Seed: "seed",
+  Toadstools: "toadstools",
+  Fiddlehead: "fiddlehead",
 } as const satisfies Record<string, PinIconNameType>
+
+export const PIN_ICON_DEFS: Record<PinIconNameType, PinIconDef> = PIN_ICONS_FILE.icons
+
+export const PIN_ICON_ORDER: readonly PinIconNameType[] = PIN_ICONS_FILE.order
 
 export const DEFAULT_PIN_ICON = PinIcon.Star
 
@@ -35,39 +70,19 @@ const SLUG_ICON_FALLBACKS: Record<string, PinIconNameType> = {
   other: PinIcon.Star,
 }
 
-/** carrot: Lucide (stroke). calendar/building/star: Heroicons 24 solid (fill). */
-export const ICON_PATH_DEFS: Record<PinIconNameType, SvgPathDef[]> = {
-  [PinIcon.Carrot]: [
-    {
-      d: "M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"
-    },
-    { d: "M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" },
-    { d: "M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" },
-  ],
-  [PinIcon.Calendar]: [
-    {
-      d: "M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z",
-      fillRule: "evenodd",
-      clipRule: "evenodd"
-    }
-  ],
-  [PinIcon.Building]: [
-    {
-      d: "M5.223 2.25c-.497 0-.974.198-1.325.55l-1.3 1.298A3.75 3.75 0 0 0 7.5 9.75c.627.47 1.406.75 2.25.75.844 0 1.624-.28 2.25-.75.626.47 1.406.75 2.25.75.844 0 1.623-.28 2.25-.75a3.75 3.75 0 0 0 4.902-5.652l-1.3-1.299a1.875 1.875 0 0 0-1.325-.549H5.223Z"
-    },
-    {
-      d: "M3 20.25v-8.755c1.42.674 3.08.673 4.5 0A5.234 5.234 0 0 0 9.75 12c.804 0 1.568-.182 2.25-.506a5.234 5.234 0 0 0 2.25.506c.804 0 1.567-.182 2.25-.506 1.42.674 3.08.675 4.5.001v8.755h.75a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1 0-1.5H3Zm3-6a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3Zm8.25-.75a.75.75 0 0 0-.75.75v5.25c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75v-5.25a.75.75 0 0 0-.75-.75h-3Z",
-      fillRule: "evenodd",
-      clipRule: "evenodd"
-    }
-  ],
-  [PinIcon.Star]: [
-    {
-      d: "M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.267 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.267-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z",
-      fillRule: "evenodd",
-      clipRule: "evenodd"
-    }
-  ]
+export function isPinIconName(value: string): value is PinIconNameType {
+  return value in PIN_ICON_DEFS
+}
+
+/**
+ * Opacity of `currentColor` for an artist gray ink (0 = black, 255 = paper).
+ * Stepped so light fills stay visible when recolored.
+ */
+export function layerFillOpacity(gray: number): number {
+  if (gray <= 20) return 1
+  if (gray <= 120) return 0.72
+  if (gray <= 185) return 0.48
+  return 0.28
 }
 
 export type PinTypeConfig = PinTypeColorEntry & {
@@ -80,14 +95,14 @@ export function pinIconName(
   icon: string | null | undefined,
   slug?: string | null
 ): PinIconNameType {
-  if (icon && icon in ICON_PATH_DEFS) return icon as PinIconNameType
+  if (icon && isPinIconName(icon)) return icon
   if (icon && icon in SLUG_ICON_FALLBACKS) return SLUG_ICON_FALLBACKS[icon]
   if (slug && slug in SLUG_ICON_FALLBACKS) return SLUG_ICON_FALLBACKS[slug]
   return DEFAULT_PIN_ICON
 }
 
 export function isStrokeIcon(iconKey: PinIconNameType): boolean {
-  return iconKey === PinIcon.Carrot
+  return PIN_ICON_DEFS[iconKey]?.style === "stroke"
 }
 
 /** Colors, label, description and glyph for a pin type slug, driven by the catalog. */
@@ -157,6 +172,69 @@ export function getPinTypeMarkerImageId(
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 
+function pathAttrs(p: SvgPathDef): string[] {
+  const attrs: string[] = [`d="${p.d}"`]
+  if (p.fillRule) attrs.push(`fill-rule="${p.fillRule}"`)
+  if (p.clipRule) attrs.push(`clip-rule="${p.clipRule}"`)
+  return attrs
+}
+
+function iconLayerMarkup(iconKey: PinIconNameType): string {
+  const def = PIN_ICON_DEFS[iconKey]
+  if (def.style === "stroke") {
+    return def.layers
+      .flatMap((layer) => layer.paths)
+      .map((p) => `<path ${pathAttrs(p).join(" ")} />`)
+      .join("")
+  }
+
+  return def.layers
+    .map((layer) => {
+      const paths = layer.paths
+        .map((p) => `<path ${pathAttrs(p).join(" ")} />`)
+        .join("")
+      return `<g fill-opacity="${layerFillOpacity(layer.gray)}">${paths}</g>`
+    })
+    .join("")
+}
+
+function appendIconGlyph(
+  iconGroup: SVGGElement,
+  iconKey: PinIconNameType,
+  iconFill: string,
+): void {
+  const def = PIN_ICON_DEFS[iconKey]
+  if (def.style === "stroke") {
+    iconGroup.setAttribute("fill", "none")
+    iconGroup.setAttribute("stroke", iconFill)
+    iconGroup.setAttribute("stroke-width", "2")
+    iconGroup.setAttribute("stroke-linecap", "round")
+    iconGroup.setAttribute("stroke-linejoin", "round")
+    iconGroup.setAttribute("color", iconFill)
+    for (const p of def.layers.flatMap((layer) => layer.paths)) {
+      const path = document.createElementNS(SVG_NS, "path")
+      path.setAttribute("d", p.d)
+      iconGroup.appendChild(path)
+    }
+    return
+  }
+
+  iconGroup.setAttribute("fill", iconFill)
+  for (const layer of def.layers) {
+    const layerGroup = document.createElementNS(SVG_NS, "g")
+    layerGroup.setAttribute("fill", iconFill)
+    layerGroup.setAttribute("fill-opacity", String(layerFillOpacity(layer.gray)))
+    for (const p of layer.paths) {
+      const path = document.createElementNS(SVG_NS, "path")
+      path.setAttribute("d", p.d)
+      if (p.fillRule) path.setAttribute("fill-rule", p.fillRule)
+      if (p.clipRule) path.setAttribute("clip-rule", p.clipRule)
+      layerGroup.appendChild(path)
+    }
+    iconGroup.appendChild(layerGroup)
+  }
+}
+
 function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   if (outline === "pending") return "currentColor"
   if (outline === "selected") return SELECTED_PIN_OUTLINE_STROKE
@@ -192,16 +270,7 @@ function buildPinMarkerSVGStringFallback(
   const mainPathFillOpacity = translucent ? "0.72" : "1"
   const circleFillOpacity = translucent ? "0.85" : "1"
   const shadowFilter = outlined ? "" : ' filter="url(#shadow)"'
-  const iconPaths = ICON_PATH_DEFS[iconKey]
-
-  const iconMarkup = iconPaths
-    .map((p) => {
-      const attrs: string[] = [`d="${p.d}"`]
-      if (p.fillRule) attrs.push(`fill-rule="${p.fillRule}"`)
-      if (p.clipRule) attrs.push(`clip-rule="${p.clipRule}"`)
-      return `<path ${attrs.join(" ")} />`
-    })
-    .join("")
+  const iconMarkup = iconLayerMarkup(iconKey)
 
   const mainTeardrop =
     outline === "selected"
@@ -237,12 +306,10 @@ function buildPinMarkerSVGElement(
   const config = resolvePinTypeConfig(pinType, catalog)
   const iconFill = config.textColor
   const iconKey = config.iconKey
-  const strokeIcon = isStrokeIcon(iconKey)
   const outlined = outline != null
   const translucent = outline === "new" || outline === "pending" || outline === "awaiting"
   const mainPathFillOpacity = translucent ? "0.72" : "1"
   const circleFillOpacity = translucent ? "0.85" : "1"
-  const iconPaths = ICON_PATH_DEFS[iconKey]
   const stroke = markerOutlineStroke(outline)
 
   const svg = document.createElementNS(SVG_NS, "svg")
@@ -306,25 +373,7 @@ function buildPinMarkerSVGElement(
 
   const iconGroup = document.createElementNS(SVG_NS, "g")
   iconGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)
-  if (strokeIcon) {
-    iconGroup.setAttribute("fill", "none")
-    iconGroup.setAttribute("stroke", iconFill)
-    iconGroup.setAttribute("stroke-width", "2")
-    iconGroup.setAttribute("stroke-linecap", "round")
-    iconGroup.setAttribute("stroke-linejoin", "round")
-    iconGroup.setAttribute("color", iconFill)
-  } else {
-    iconGroup.setAttribute("fill", iconFill)
-  }
-
-  for (const p of iconPaths) {
-    const path = document.createElementNS(SVG_NS, "path")
-    path.setAttribute("d", p.d)
-    if (p.fillRule) path.setAttribute("fill-rule", p.fillRule)
-    if (p.clipRule) path.setAttribute("clip-rule", p.clipRule)
-    iconGroup.appendChild(path)
-  }
-
+  appendIconGlyph(iconGroup, iconKey, iconFill)
   rootGroup.appendChild(iconGroup)
   return svg
 }

@@ -121,7 +121,7 @@ defmodule StorymapWeb.PinTypeLive.New do
   end
 
   defp assign_form(socket, params) do
-    attrs = Form.attrs_from_params(params)
+    attrs = params |> Form.attrs_from_params() |> Map.put_new("icon", "star")
     changeset = PinTypes.change_pin_type(%PinType{}, attrs)
     assign(socket, form: to_form(changeset, as: :pin_type))
   end

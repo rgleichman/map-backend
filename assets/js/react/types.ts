@@ -13,7 +13,27 @@ export type PinType = string
 export type PinTimeMode = "none" | "one_time" | "hours"
 
 /** Marker glyphs available to catalog rows via `icon`. */
-export type PinIconName = "carrot" | "calendar" | "building" | "star"
+export type PinIconName =
+  | "carrot"
+  | "calendar"
+  | "building"
+  | "star"
+  | "pinecone"
+  | "grapes"
+  | "sprout"
+  | "leaf"
+  | "bud"
+  | "cotton"
+  | "daisy"
+  | "sprig"
+  | "berries"
+  | "trowel"
+  | "mushrooms"
+  | "hop"
+  | "dandelion"
+  | "seed"
+  | "toadstools"
+  | "fiddlehead"
 
 export type PinStatus = "pending" | "approved" | "rejected" | "archived"
 
