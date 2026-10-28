@@ -76,6 +76,15 @@ export function SpeakerWaveIcon({ className, size = 16 }: IconProps) {
   )
 }
 
+/** Heroicons outline chevron-down. */
+export function ChevronDownIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg {...baseSvgProps(size, className)}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </svg>
+  )
+}
+
 /** Heroicons outline speaker-x-mark (muted). */
 export function SpeakerXMarkIcon({ className, size = 16 }: IconProps) {
   return (

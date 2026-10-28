@@ -19,6 +19,7 @@ import PinTypeBadge from "./PinTypeBadge"
 import Button from "./ui/Button"
 import { PencilIcon, TrashIcon } from "./ui/icons"
 import { GardenCopy, plantFormHeading, plantFormPrimaryLabel } from "../utils/gardenCopy"
+import GardenRulesCallout from "./GardenRulesCallout"
 import { getPinTypeLabel } from "../utils/pinTypeIcons"
 
 type Props = {
@@ -135,6 +136,7 @@ export default function PinModal({
     <div className="pin-modal-content flex min-h-0 w-full flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         <h2 id={headingId} className="text-lg font-semibold mb-4">{plantFormHeading(mode)}</h2>
+        <GardenRulesCallout className="mb-4" />
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-medium text-base-content/70 shrink-0">

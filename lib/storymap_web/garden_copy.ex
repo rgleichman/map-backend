@@ -109,6 +109,24 @@ defmodule StorymapWeb.GardenCopy do
   @spec garden_settings() :: String.t()
   def garden_settings, do: "Garden settings"
 
+  @spec garden_rules() :: String.t()
+  def garden_rules, do: "Garden rules"
+
+  @spec about_this_garden() :: String.t()
+  def about_this_garden, do: "About this garden"
+
+  @spec read_all_rules() :: String.t()
+  def read_all_rules, do: "Read all"
+
+  @spec close_about_this_garden() :: String.t()
+  def close_about_this_garden, do: "Close about this garden"
+
+  @spec show_garden_rules() :: String.t()
+  def show_garden_rules, do: "Show garden rules"
+
+  @spec hide_garden_rules() :: String.t()
+  def hide_garden_rules, do: "Hide garden rules"
+
   @spec join_garden() :: String.t()
   def join_garden, do: "Join garden"
 

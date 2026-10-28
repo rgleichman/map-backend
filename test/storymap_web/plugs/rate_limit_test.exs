@@ -6,7 +6,7 @@ defmodule StorymapWeb.Plugs.RateLimitTest do
   @table :storymap_rate_limit
 
   setup do
-    RateLimit.purge_expired()
+    RateLimit.reset_table_for_tests()
     :ok
   end
 

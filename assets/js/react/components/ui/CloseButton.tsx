@@ -1,4 +1,4 @@
-import React from "react"
+import React, { forwardRef } from "react"
 import { CLOSE_BTN_CLASS, CLOSE_BTN_SQUARE_CLASS, CLOSE_ICON_CLASS } from "../../utils/actionUiClasses"
 import { CloseIcon } from "./icons"
 
@@ -10,14 +10,13 @@ type Props = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children" | "a
   className?: string
 }
 
-export default function CloseButton({
-  square = false,
-  className,
-  type = "button",
-  ...rest
-}: Props) {
+const CloseButton = forwardRef<HTMLButtonElement, Props>(function CloseButton(
+  { square = false, className, type = "button", ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type={type}
       className={[square ? CLOSE_BTN_SQUARE_CLASS : CLOSE_BTN_CLASS, className]
         .filter(Boolean)
@@ -27,4 +26,6 @@ export default function CloseButton({
       <CloseIcon className={CLOSE_ICON_CLASS} size={16} />
     </button>
   )
-}
+})
+
+export default CloseButton

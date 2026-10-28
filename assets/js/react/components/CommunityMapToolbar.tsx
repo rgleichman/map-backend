@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { SubMap } from "../types"
 import { ACTION_BTN_BASE_CLASS } from "../utils/actionUiClasses"
+import { gardenAboutToolbarEntry } from "../utils/gardenAbout"
 import { GardenCopy } from "../utils/gardenCopy"
+import GardenAboutSheet from "./GardenAboutSheet"
 import Button from "./ui/Button"
 
 type Props = {
@@ -51,6 +53,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const pendingCount = subMap.pending_count ?? 0
   const showModeration = Boolean(subMap.can_moderate)
@@ -58,8 +61,15 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   const isMember = Boolean(userId && subMap.membership)
   const canJoin = Boolean(userId && !subMap.membership)
   const hasMenuItems = showModeration || showSettings || isMember
+  const aboutEntry = gardenAboutToolbarEntry(subMap, hasMenuItems)
+  const hasAbout = aboutEntry !== "hidden"
 
   const closeMenu = useCallback(() => setMenuOpen(false), [])
+  const openAbout = useCallback(() => {
+    setMenuOpen(false)
+    setAboutOpen(true)
+  }, [])
+  const closeAbout = useCallback(() => setAboutOpen(false), [])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -91,96 +101,120 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   )
 
   return (
-    <nav
-      aria-label={GardenCopy.gardenMap}
-      className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-black/10 px-3 py-1 dark:border-white/10"
-      style={{ backgroundColor: subMap.color }}
-    >
-      <div ref={rootRef} className="relative min-w-0">
-        {hasMenuItems ? (
-          <>
+    <>
+      <nav
+        aria-label={GardenCopy.gardenMap}
+        className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-black/10 px-3 py-1 dark:border-white/10"
+        style={{ backgroundColor: subMap.color }}
+      >
+        <div ref={rootRef} className="relative min-w-0">
+          {hasMenuItems ? (
+            <>
+              <button
+                type="button"
+                className={[identityChipClass, menuOpen && "bg-base-200 dark:bg-base-300"]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-expanded={menuOpen}
+                aria-controls={menuId}
+                aria-haspopup="menu"
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {identityLabel}
+                {showModeration && pendingCount > 0 && (
+                  <span className="badge badge-warning badge-sm shrink-0">{pendingCount}</span>
+                )}
+                <ChevronDownIcon
+                  className={`shrink-0 text-base-content/60 transition-transform ${menuOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {menuOpen && (
+                <div
+                  id={menuId}
+                  role="menu"
+                  aria-label={`${subMap.name} actions`}
+                  className="absolute left-0 z-40 mt-1 min-w-[12rem] rounded-lg border border-base-300 bg-base-100 p-1 shadow-lg dark:bg-base-200"
+                >
+                  {hasAbout && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      id="garden-about-menu-item"
+                      className={menuItemClass}
+                      onClick={openAbout}
+                    >
+                      <span>{GardenCopy.aboutThisGarden}</span>
+                    </button>
+                  )}
+                  {showModeration && (
+                    <a
+                      role="menuitem"
+                      href={`/g/${encodeURIComponent(subMap.community_url)}/admin`}
+                      className={menuItemClass}
+                      onClick={closeMenu}
+                    >
+                      <span>Moderation</span>
+                      {pendingCount > 0 && (
+                        <span className="badge badge-warning badge-sm">{pendingCount}</span>
+                      )}
+                    </a>
+                  )}
+                  {showSettings && (
+                    <a
+                      role="menuitem"
+                      href={`/g/${encodeURIComponent(subMap.community_url)}/settings`}
+                      className={menuItemClass}
+                      onClick={closeMenu}
+                    >
+                      Settings
+                    </a>
+                  )}
+                  {isMember && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={`${menuItemClass} text-error hover:bg-error/10`}
+                      onClick={() => {
+                        closeMenu()
+                        onLeave()
+                      }}
+                    >
+                      <span>{GardenCopy.leaveGarden}</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          ) : hasAbout ? (
             <button
               type="button"
-              className={[identityChipClass, menuOpen && "bg-base-200 dark:bg-base-300"]
-                .filter(Boolean)
-                .join(" ")}
-              aria-expanded={menuOpen}
-              aria-controls={menuId}
-              aria-haspopup="menu"
-              onClick={() => setMenuOpen((open) => !open)}
+              id="garden-about-chip"
+              className={identityChipClass}
+              aria-haspopup="dialog"
+              onClick={openAbout}
             >
               {identityLabel}
-              {showModeration && pendingCount > 0 && (
-                <span className="badge badge-warning badge-sm shrink-0">{pendingCount}</span>
-              )}
-              <ChevronDownIcon
-                className={`shrink-0 text-base-content/60 transition-transform ${menuOpen ? "rotate-180" : ""}`}
-              />
             </button>
+          ) : (
+            <div
+              className={[
+                "flex max-w-[min(100vw-8rem,22rem)] items-center rounded-md px-2 py-1.5",
+                "border border-solid border-base-300/80 bg-base-100 text-base-content dark:bg-base-200",
+              ].join(" ")}
+            >
+              {identityLabel}
+            </div>
+          )}
+        </div>
 
-            {menuOpen && (
-              <div
-                id={menuId}
-                role="menu"
-                aria-label={`${subMap.name} actions`}
-                className="absolute left-0 z-40 mt-1 min-w-[12rem] rounded-lg border border-base-300 bg-base-100 p-1 shadow-lg dark:bg-base-200"
-              >
-                {showModeration && (
-                  <a
-                    role="menuitem"
-                    href={`/g/${encodeURIComponent(subMap.community_url)}/admin`}
-                    className={menuItemClass}
-                    onClick={closeMenu}
-                  >
-                    <span>Moderation</span>
-                    {pendingCount > 0 && (
-                      <span className="badge badge-warning badge-sm">{pendingCount}</span>
-                    )}
-                  </a>
-                )}
-                {showSettings && (
-                  <a
-                    role="menuitem"
-                    href={`/g/${encodeURIComponent(subMap.community_url)}/settings`}
-                    className={menuItemClass}
-                    onClick={closeMenu}
-                  >
-                    Settings
-                  </a>
-                )}
-                {isMember && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`${menuItemClass} text-error hover:bg-error/10`}
-                    onClick={() => {
-                      closeMenu()
-                      onLeave()
-                    }}
-                  >
-                    <span>{GardenCopy.leaveGarden}</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <div
-            className={[
-              "flex max-w-[min(100vw-8rem,22rem)] items-center rounded-md px-2 py-1.5",
-              "border border-solid border-base-300/80 bg-base-100 text-base-content dark:bg-base-200",
-            ].join(" ")}
-          >
-            {identityLabel}
-          </div>
+        {canJoin && (
+          <Button variant="primary" size="sm" className="min-h-9" onClick={onJoin}>
+            {GardenCopy.joinGarden}
+          </Button>
         )}
-      </div>
-
-      {canJoin && (
-        <Button variant="primary" size="sm" className="min-h-9" onClick={onJoin}>
-          {GardenCopy.joinGarden}
-        </Button>
-      )}
-    </nav>
+      </nav>
+      <GardenAboutSheet open={aboutOpen} subMap={subMap} onClose={closeAbout} />
+    </>
   )
 }

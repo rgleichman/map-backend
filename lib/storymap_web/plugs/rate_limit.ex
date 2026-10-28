@@ -109,6 +109,14 @@ defmodule StorymapWeb.Plugs.RateLimit do
     end
   end
 
+  @doc false
+  @spec reset_table_for_tests() :: :ok
+  def reset_table_for_tests do
+    ensure_table!()
+    :ets.delete_all_objects(@table)
+    :ok
+  end
+
   @doc """
   Deletes ETS rows whose window has ended. Keys (including IP substrings) are dropped
   shortly after they no longer affect rate limiting.

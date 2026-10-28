@@ -9,7 +9,7 @@ defmodule StorymapWeb.RateLimitBeforeAuthTest do
   @table :storymap_rate_limit
 
   setup do
-    RateLimit.purge_expired()
+    RateLimit.reset_table_for_tests()
 
     mod = RateLimit
     previous = Application.get_env(:storymap, mod, [])
@@ -17,7 +17,7 @@ defmodule StorymapWeb.RateLimitBeforeAuthTest do
 
     on_exit(fn ->
       Application.put_env(:storymap, mod, previous)
-      RateLimit.purge_expired()
+      RateLimit.reset_table_for_tests()
     end)
 
     conn =

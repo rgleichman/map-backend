@@ -2,6 +2,7 @@ import React from "react"
 import type { PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import PinTypeIcon from "./PinTypeIcon"
+import GardenRulesCallout from "./GardenRulesCallout"
 import Button from "./ui/Button"
 import { resolvePinTypeConfig } from "../utils/pinTypeIcons"
 import { GardenCopy } from "../utils/gardenCopy"
@@ -21,6 +22,8 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
           {GardenCopy.whatTypeOfPlant}
         </h2>
       </div>
+
+      <GardenRulesCallout className="mt-4" />
 
       <div className="space-y-3 py-4">
         {selectableTypes.length === 0 ? (
