@@ -11,10 +11,13 @@ defmodule StorymapWeb.PinCommentControllerTest do
   describe "index" do
     test "lists comments for a visible pin", %{conn: conn} do
       pin = pin_fixture()
-      pin_comment_fixture(%{"body" => "Hello"}, pin)
+      comment = pin_comment_fixture(%{"body" => "Hello"}, pin)
 
       conn = get(conn, ~p"/api/pins/#{pin.id}/comments")
-      assert [%{"body" => "Hello"}] = json_response(conn, 200)["data"]
+      assert [data] = json_response(conn, 200)["data"]
+      assert data["body"] == "Hello"
+      assert data["inserted_at"] == DateTime.to_iso8601(comment.inserted_at)
+      assert String.ends_with?(data["inserted_at"], "Z")
     end
 
     test "returns 404 for hidden pin", %{conn: conn} do
@@ -53,12 +56,17 @@ defmodule StorymapWeb.PinCommentControllerTest do
           comment: %{body: "New comment"}
         })
 
+      data = json_response(conn, 201)["data"]
+
       assert %{
                "body" => "New comment",
                "is_author" => true,
                "deleted" => false,
                "held_for_moderation" => false
-             } = json_response(conn, 201)["data"]
+             } = data
+
+      assert String.ends_with?(data["inserted_at"], "Z")
+      assert {:ok, _, 0} = DateTime.from_iso8601(data["inserted_at"])
     end
 
     test "holds flagged comments and exposes held_for_moderation", %{conn: conn, user: user} do

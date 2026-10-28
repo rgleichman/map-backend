@@ -20,8 +20,8 @@ function comment(overrides: Partial<PinComment> & Pick<PinComment, "id">): PinCo
     held_for_moderation: false,
     author: null,
     is_author: false,
-    inserted_at: "2026-01-01T12:00:00",
-    updated_at: "2026-01-01T12:00:00",
+    inserted_at: "2026-01-01T12:00:00Z",
+    updated_at: "2026-01-01T12:00:00Z",
     replies: [],
     ...overrides,
   }

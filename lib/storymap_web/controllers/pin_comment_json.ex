@@ -39,8 +39,8 @@ defmodule StorymapWeb.PinCommentJSON do
       held_for_moderation: comment.held_for_moderation == true,
       author: author_data(comment, current_user),
       is_author: author?(comment, current_user),
-      inserted_at: JSONDateTime.to_iso_local(comment.inserted_at),
-      updated_at: JSONDateTime.to_iso_local(comment.updated_at)
+      inserted_at: JSONDateTime.to_iso8601(comment.inserted_at),
+      updated_at: JSONDateTime.to_iso8601(comment.updated_at)
     }
   end
 
