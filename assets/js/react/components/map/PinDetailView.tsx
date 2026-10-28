@@ -23,6 +23,7 @@ import {
   showPinStatusBadge,
 } from "../../utils/pinStatus"
 import { GardenCopy } from "../../utils/gardenCopy"
+import { canModeratePinComments } from "../../utils/pinComment"
 
 const detailContentClasses = "text-sm text-base-content"
 
@@ -303,6 +304,7 @@ export default function PinDetailView({
         communityUrl={communityUrl}
         userId={userId}
         userMuted={userMuted}
+        canModerateComments={canModeratePinComments(pin)}
         csrfToken={csrfToken}
         onNavigateToPin={onNavigateToPin}
       />

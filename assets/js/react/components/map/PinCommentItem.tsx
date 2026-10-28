@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import type { PinComment } from "../../types"
-import { deletedCommentLabel, isCommentAuthor } from "../../utils/pinComment"
+import { canDeleteComment, deletedCommentLabel, isCommentAuthor } from "../../utils/pinComment"
 import { formatCommentTimestamp } from "../../utils/popupFormatters"
 import { ReportSubjectType } from "../../utils/reportSubjectType"
 import LinkifiedText from "../LinkifiedText"
@@ -16,6 +16,7 @@ type Props = {
   depth?: number
   userId?: number
   userMuted?: boolean
+  canModerateComments?: boolean
   csrfToken?: string
   onNavigateToPin?: (pinId: number) => void
   onReply: (parentId: number, body: string) => Promise<PinComment>
@@ -33,6 +34,7 @@ export default function PinCommentItem({
   depth = 0,
   userId,
   userMuted = false,
+  canModerateComments = false,
   csrfToken,
   onNavigateToPin,
   onReply,
@@ -54,7 +56,13 @@ export default function PinCommentItem({
   const canInteract = Boolean(userId) && !userMuted && !comment.deleted
   const canReply = canInteract && depth === 0
   const canEdit = canInteract && isAuthor
-  const canDelete = canInteract && isAuthor
+  const canDelete = canDeleteComment({
+    deleted: comment.deleted,
+    userId,
+    userMuted,
+    isAuthor,
+    canModerate: canModerateComments,
+  })
 
   const runAction = async (fn: () => Promise<void>) => {
     setActionError(null)
@@ -235,6 +243,7 @@ export default function PinCommentItem({
           depth={1}
           userId={userId}
           userMuted={userMuted}
+          canModerateComments={canModerateComments}
           csrfToken={csrfToken}
           onNavigateToPin={onNavigateToPin}
           onReply={onReply}

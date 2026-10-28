@@ -142,5 +142,99 @@ defmodule StorymapWeb.PinCommentControllerTest do
       conn = delete(conn, ~p"/api/pins/#{pin.id}/comments/#{comment.id}")
       assert %{"deleted" => true} = json_response(conn, 200)["data"]
     end
+
+    test "plant owner deletes another user's comment", %{conn: conn, user: owner} do
+      commenter = user_fixture()
+      pin = pin_fixture(%{}, owner)
+      comment = pin_comment_fixture(%{}, pin, commenter)
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/comments/#{comment.id}")
+      assert %{"deleted" => true} = json_response(conn, 200)["data"]
+    end
+
+    test "site pin moderator deletes another user's comment", %{conn: conn} do
+      author = user_fixture()
+      pin = pin_fixture(%{}, author)
+      comment = pin_comment_fixture(%{}, pin, author)
+      admin = user_fixture(%{admin_level: 1})
+      conn = log_in_user(conn, admin)
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/comments/#{comment.id}")
+      assert %{"deleted" => true} = json_response(conn, 200)["data"]
+    end
+
+    test "garden moderator deletes another user's comment", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = user_fixture()
+      commenter = user_fixture()
+      moderator = user_fixture()
+
+      sub_map =
+        sub_map_fixture(%{"community_url" => "comment-delete-mod"}, owner)
+
+      {:ok, _} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: commenter}, sub_map)
+
+      {:ok, membership} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: moderator}, sub_map)
+
+      membership
+      |> Storymap.SubMaps.Membership.changeset(%{"role" => "moderator"})
+      |> Storymap.Repo.update!()
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      comment = pin_comment_fixture(%{}, pin, commenter)
+      conn = log_in_user(conn, moderator)
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/comments/#{comment.id}")
+      assert %{"deleted" => true} = json_response(conn, 200)["data"]
+    end
+
+    test "forbids garden member from deleting another user's comment", %{conn: conn} do
+      import Storymap.SubMapsFixtures
+
+      owner = user_fixture()
+      commenter = user_fixture()
+      member = user_fixture()
+
+      sub_map =
+        sub_map_fixture(%{"community_url" => "comment-delete-member"}, owner)
+
+      {:ok, _} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: commenter}, sub_map)
+
+      {:ok, _} =
+        Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: member}, sub_map)
+
+      {:ok, pin} =
+        Storymap.SubMaps.create_pin_in_sub_map(
+          %Storymap.Accounts.Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type" => "other"
+          }
+        )
+
+      comment = pin_comment_fixture(%{}, pin, commenter)
+      conn = log_in_user(conn, member)
+
+      conn = delete(conn, ~p"/api/pins/#{pin.id}/comments/#{comment.id}")
+      assert json_response(conn, 403)
+    end
   end
 end

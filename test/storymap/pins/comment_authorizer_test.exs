@@ -10,6 +10,7 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
   alias Storymap.Pins.PinComment
   alias Storymap.Repo
   alias Storymap.SubMaps
+  alias Storymap.SubMaps.Membership
 
   describe "authorize_create/3" do
     setup do
@@ -48,19 +49,42 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
 
   describe "authorize_delete/4 world pin" do
     setup do
-      author = user_fixture()
+      owner = user_fixture()
+      commenter = user_fixture()
       admin = user_fixture(%{admin_level: 1})
-      pin = pin_fixture(%{}, author)
-      comment = insert_comment!(pin, author)
-      %{author: author, admin: admin, pin: pin, comment: comment}
+      stranger = user_fixture()
+      pin = pin_fixture(%{}, owner)
+      comment = insert_comment!(pin, commenter)
+
+      %{
+        owner: owner,
+        commenter: commenter,
+        admin: admin,
+        stranger: stranger,
+        pin: pin,
+        comment: comment
+      }
     end
 
-    test "allows comment author", %{author: author, pin: pin, comment: comment} do
-      assert :ok = CommentAuthorizer.authorize_delete(author, pin, comment, [])
+    test "allows comment author", %{commenter: commenter, pin: pin, comment: comment} do
+      assert :ok = CommentAuthorizer.authorize_delete(commenter, pin, comment, [])
     end
 
     test "allows site pin moderator", %{admin: admin, pin: pin, comment: comment} do
       assert :ok = CommentAuthorizer.authorize_delete(admin, pin, comment, [])
+    end
+
+    test "allows pin owner to delete another user's comment", %{
+      owner: owner,
+      pin: pin,
+      comment: comment
+    } do
+      assert :ok = CommentAuthorizer.authorize_delete(owner, pin, comment, [])
+    end
+
+    test "forbids a stranger", %{stranger: stranger, pin: pin, comment: comment} do
+      assert {:error, :forbidden} =
+               CommentAuthorizer.authorize_delete(stranger, pin, comment, [])
     end
   end
 
@@ -68,6 +92,8 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
     setup do
       owner = user_fixture()
       commenter = user_fixture()
+      moderator = user_fixture()
+      member = user_fixture()
 
       sub_map =
         sub_map_fixture(
@@ -88,14 +114,26 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
         )
 
       pin = Repo.preload(pin, :sub_map)
-      membership = SubMaps.get_membership(sub_map.id, owner.id)
+
+      {:ok, _} = SubMaps.join(%Scope{user: commenter}, sub_map)
+      {:ok, _} = SubMaps.join(%Scope{user: member}, sub_map)
+      {:ok, mod_membership} = SubMaps.join(%Scope{user: moderator}, sub_map)
+
+      mod_membership =
+        mod_membership
+        |> Membership.changeset(%{"role" => "moderator"})
+        |> Repo.update!()
 
       %{
         owner: owner,
         commenter: commenter,
+        moderator: moderator,
+        member: member,
         sub_map: sub_map,
         pin: pin,
-        membership: membership
+        owner_membership: SubMaps.get_membership(sub_map.id, owner.id),
+        mod_membership: mod_membership,
+        member_membership: SubMaps.get_membership(sub_map.id, member.id)
       }
     end
 
@@ -104,14 +142,46 @@ defmodule Storymap.Pins.CommentAuthorizerTest do
       commenter: commenter,
       sub_map: sub_map,
       pin: pin,
-      membership: membership
+      owner_membership: owner_membership
     } do
       comment = insert_comment!(pin, commenter)
 
       assert :ok =
                CommentAuthorizer.authorize_delete(owner, pin, comment,
                  sub_map: sub_map,
-                 membership: membership
+                 membership: owner_membership
+               )
+    end
+
+    test "allows garden moderator to delete another user's comment", %{
+      moderator: moderator,
+      commenter: commenter,
+      sub_map: sub_map,
+      pin: pin,
+      mod_membership: mod_membership
+    } do
+      comment = insert_comment!(pin, commenter)
+
+      assert :ok =
+               CommentAuthorizer.authorize_delete(moderator, pin, comment,
+                 sub_map: sub_map,
+                 membership: mod_membership
+               )
+    end
+
+    test "forbids a regular garden member", %{
+      member: member,
+      commenter: commenter,
+      sub_map: sub_map,
+      pin: pin,
+      member_membership: member_membership
+    } do
+      comment = insert_comment!(pin, commenter)
+
+      assert {:error, :forbidden} =
+               CommentAuthorizer.authorize_delete(member, pin, comment,
+                 sub_map: sub_map,
+                 membership: member_membership
                )
     end
   end

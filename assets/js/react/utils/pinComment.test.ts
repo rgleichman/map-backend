@@ -3,6 +3,8 @@ import type { PinComment } from "../types"
 import {
   applyCommentDeleted,
   applyCommentUpsert,
+  canDeleteComment,
+  canModeratePinComments,
   commentCount,
   deletedCommentLabel,
   isCommentAuthor,
@@ -87,6 +89,53 @@ describe("commentCount", () => {
         comment({ id: 3 }),
       ])
     ).toBe(3)
+  })
+})
+
+describe("canModeratePinComments", () => {
+  it("is true for pin owners and garden/site mods (is_owner)", () => {
+    expect(canModeratePinComments({ is_owner: true, created_by_me: false })).toBe(true)
+  })
+
+  it("is true for plant owners who cannot edit (created_by_me)", () => {
+    expect(canModeratePinComments({ is_owner: false, created_by_me: true })).toBe(true)
+  })
+
+  it("is false for regular viewers", () => {
+    expect(canModeratePinComments({ is_owner: false, created_by_me: false })).toBe(false)
+    expect(canModeratePinComments({})).toBe(false)
+  })
+})
+
+describe("canDeleteComment", () => {
+  const base = {
+    deleted: false,
+    userId: 9,
+    userMuted: false,
+    isAuthor: false,
+    canModerate: false,
+  }
+
+  it("allows the author", () => {
+    expect(canDeleteComment({ ...base, isAuthor: true })).toBe(true)
+  })
+
+  it("allows a moderator who is not the author", () => {
+    expect(canDeleteComment({ ...base, canModerate: true })).toBe(true)
+  })
+
+  it("forbids a logged-in viewer who is neither", () => {
+    expect(canDeleteComment(base)).toBe(false)
+  })
+
+  it("forbids muted users even when they could moderate", () => {
+    expect(canDeleteComment({ ...base, isAuthor: true, userMuted: true })).toBe(false)
+    expect(canDeleteComment({ ...base, canModerate: true, userMuted: true })).toBe(false)
+  })
+
+  it("forbids guests and already-deleted comments", () => {
+    expect(canDeleteComment({ ...base, isAuthor: true, userId: undefined })).toBe(false)
+    expect(canDeleteComment({ ...base, isAuthor: true, deleted: true })).toBe(false)
   })
 })
 

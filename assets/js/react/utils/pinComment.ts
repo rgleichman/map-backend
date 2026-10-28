@@ -1,10 +1,35 @@
-import type { PinComment } from "../types"
+import type { Pin, PinComment } from "../types"
 import { GardenCopy } from "./gardenCopy"
 
 /** Derive authorship from author id or preserved is_author; broadcasts omit both. */
 export function isCommentAuthor(comment: PinComment, userId?: number): boolean {
   if (comment.is_author) return true
   return userId != null && comment.author?.id === userId
+}
+
+/** Site admins, garden mods, and plant owners — matches pin JSON capability flags. */
+export function canModeratePinComments(pin: Pick<Pin, "is_owner" | "created_by_me">): boolean {
+  return pin.is_owner === true || pin.created_by_me === true
+}
+
+type CanDeleteCommentOpts = {
+  deleted: boolean
+  userId?: number
+  userMuted?: boolean
+  isAuthor: boolean
+  canModerate?: boolean
+}
+
+/** Delete is for the author or a pin/garden/site moderator; muted users never see it. */
+export function canDeleteComment({
+  deleted,
+  userId,
+  userMuted = false,
+  isAuthor,
+  canModerate = false,
+}: CanDeleteCommentOpts): boolean {
+  if (!userId || userMuted || deleted) return false
+  return isAuthor || canModerate
 }
 
 /** Merge broadcast/HTTP upserts without clobbering a known is_author from list load. */

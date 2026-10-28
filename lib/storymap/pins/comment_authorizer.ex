@@ -51,10 +51,7 @@ defmodule Storymap.Pins.CommentAuthorizer do
       comment.user_id == user.id ->
         :ok
 
-      Policy.can_modify_pin?(user, pin) ->
-        :ok
-
-      pin.sub_map_id && sub_map_moderator?(user, pin, opts) ->
+      can_moderate_comments?(user, pin, opts) ->
         :ok
 
       true ->
@@ -62,9 +59,15 @@ defmodule Storymap.Pins.CommentAuthorizer do
     end
   end
 
+  @spec can_moderate_comments?(User.t(), Pin.t(), keyword()) :: boolean()
+  defp can_moderate_comments?(%User{} = user, %Pin{} = pin, opts) do
+    Policy.can_modify_pin?(user, pin) or sub_map_moderator?(user, pin, opts)
+  end
+
+  @spec sub_map_moderator?(User.t(), Pin.t(), keyword()) :: boolean()
   defp sub_map_moderator?(%User{} = user, %Pin{} = pin, opts) do
     sub_map = SubMaps.resolve_for_pin(Keyword.get(opts, :sub_map), pin)
     membership = Keyword.get(opts, :membership)
-    sub_map && SubMapPolicy.can_moderate?(user, sub_map, membership)
+    sub_map != nil and SubMapPolicy.can_moderate?(user, sub_map, membership)
   end
 end

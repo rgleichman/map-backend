@@ -11,6 +11,7 @@ type Props = {
   communityUrl?: string
   userId?: number
   userMuted?: boolean
+  canModerateComments?: boolean
   csrfToken?: string
   onNavigateToPin?: (pinId: number) => void
 }
@@ -20,6 +21,7 @@ export default function PinComments({
   communityUrl,
   userId,
   userMuted = false,
+  canModerateComments = false,
   csrfToken,
   onNavigateToPin,
 }: Props) {
@@ -114,6 +116,7 @@ export default function PinComments({
                   comment={comment}
                   userId={userId}
                   userMuted={userMuted}
+                  canModerateComments={canModerateComments}
                   csrfToken={csrfToken}
                   onNavigateToPin={onNavigateToPin}
                   onReply={handleReply}
