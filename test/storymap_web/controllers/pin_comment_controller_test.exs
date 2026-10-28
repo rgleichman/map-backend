@@ -4,6 +4,10 @@ defmodule StorymapWeb.PinCommentControllerTest do
   import Storymap.AccountsFixtures
   import Storymap.PinsFixtures
 
+  alias Storymap.Pins.PinComment
+  alias Storymap.Repo
+  alias StorymapWeb.JSON.DateTime, as: JSONDateTime
+
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
@@ -16,8 +20,8 @@ defmodule StorymapWeb.PinCommentControllerTest do
       conn = get(conn, ~p"/api/pins/#{pin.id}/comments")
       assert [data] = json_response(conn, 200)["data"]
       assert data["body"] == "Hello"
-      assert data["inserted_at"] == DateTime.to_iso8601(comment.inserted_at)
-      assert String.ends_with?(data["inserted_at"], "Z")
+      assert data["inserted_at"] == JSONDateTime.to_iso8601(comment.inserted_at)
+      assert data["updated_at"] == JSONDateTime.to_iso8601(comment.updated_at)
     end
 
     test "returns 404 for hidden pin", %{conn: conn} do
@@ -59,14 +63,16 @@ defmodule StorymapWeb.PinCommentControllerTest do
       data = json_response(conn, 201)["data"]
 
       assert %{
+               "id" => id,
                "body" => "New comment",
                "is_author" => true,
                "deleted" => false,
                "held_for_moderation" => false
              } = data
 
-      assert String.ends_with?(data["inserted_at"], "Z")
-      assert {:ok, _, 0} = DateTime.from_iso8601(data["inserted_at"])
+      comment = Repo.get!(PinComment, id)
+      assert data["inserted_at"] == JSONDateTime.to_iso8601(comment.inserted_at)
+      assert data["updated_at"] == JSONDateTime.to_iso8601(comment.updated_at)
     end
 
     test "holds flagged comments and exposes held_for_moderation", %{conn: conn, user: user} do
