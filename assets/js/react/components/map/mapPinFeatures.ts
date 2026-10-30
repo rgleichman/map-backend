@@ -178,6 +178,7 @@ export function toPinFeature(
       pin_type: pin.pin_type,
       pin_type_icon: getPinTypeMarkerImageId(
         pin.pin_type,
+        catalog,
         mapOutlineForPin(isSelected, isAwaiting, isNew),
       ),
       haloColor: isSelected ? SELECTED_PIN_OUTLINE_STROKE : desaturateHex(pinColor),

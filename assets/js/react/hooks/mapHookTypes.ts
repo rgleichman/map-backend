@@ -49,4 +49,6 @@ export type UseMapDataResult = {
   apiError: string | null
   setApiError: Dispatch<SetStateAction<string | null>>
   updateOrAddPin: (pin: Pin) => void
+  /** Silent catalog + sub-map refresh (no pin reload, no loading flash). */
+  refreshCatalog: () => Promise<void>
 }

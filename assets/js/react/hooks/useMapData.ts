@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CatalogPinType, Pin, SubMap } from "../types"
 import { DEFAULT_FILTER, type FilterState } from "../components/map/filters"
-import { loadMapData } from "../loadMapData"
+import { bindCatalogRefreshOnOverlayClose, loadMapCatalog, loadMapData } from "../loadMapData"
 import {
   applyOwnedMarkerDeletedRefetch,
   refetchPinAfterMarkerDeleted,
@@ -31,6 +31,8 @@ export function useMapData({
   const [apiError, setApiError] = useState<string | null>(null)
   const pinsRef = useRef(pins)
   pinsRef.current = pins
+  const communityUrlRef = useRef(communityUrl)
+  communityUrlRef.current = communityUrl
 
   const updateOrAddPin = useCallback((pin: Pin) => {
     setPins((prevPins) => upsertPinIntoList(prevPins, pin))
@@ -86,6 +88,20 @@ export function useMapData({
     }
   }, [communityUrl])
 
+  const refreshCatalog = useCallback(async () => {
+    const url = communityUrlRef.current
+    const catalog = await loadMapCatalog(url)
+    if (communityUrlRef.current !== url) return
+    setPinTypes(catalog.pinTypes)
+    setSubMap(catalog.subMap)
+  }, [])
+
+  useEffect(() => bindCatalogRefreshOnOverlayClose(() => {
+    void refreshCatalog().catch(() => {
+      // Keep the in-memory catalog; overlay close should not flash an error.
+    })
+  }), [refreshCatalog])
+
   const navigateToPinRef = useRef(navigateToPin)
   navigateToPinRef.current = navigateToPin
 
@@ -121,5 +137,6 @@ export function useMapData({
     apiError,
     setApiError,
     updateOrAddPin,
+    refreshCatalog,
   }
 }

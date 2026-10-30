@@ -8,6 +8,7 @@ import {
   AWAITING_PIN_OUTLINE_STROKE,
   createPinTypeMarkerElement,
   createPinTypeMarkerSVG,
+  getPinTypeMarkerImageId,
   layerFillOpacity,
   NEW_PIN_OUTLINE_STROKE,
   PIN_ICON_DEFS,
@@ -57,6 +58,36 @@ describe("plant icon layers", () => {
     expect(layerFillOpacity(0)).toBe(1)
     expect(layerFillOpacity(107)).toBe(0.72)
     expect(layerFillOpacity(215)).toBe(0.28)
+  })
+})
+
+describe("getPinTypeMarkerImageId", () => {
+  it("includes resolved glyph and marker color", () => {
+    expect(getPinTypeMarkerImageId("scheduled", [])).toBe("pin-icon-scheduled-calendar-3b82f6")
+  })
+
+  it("changes when the catalog icon or color changes", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "scheduled",
+        label: "Scheduled",
+        marker_color: "#166534",
+        icon: "grapes",
+        schema: { fields: [] },
+        pin_type: "scheduled",
+        enabled: true,
+      },
+    ]
+    expect(getPinTypeMarkerImageId("scheduled", catalog)).toBe(
+      "pin-icon-scheduled-grapes-166534",
+    )
+    expect(getPinTypeMarkerImageId("scheduled", catalog, "new")).toBe(
+      "pin-icon-scheduled-grapes-166534-new",
+    )
+    expect(getPinTypeMarkerImageId("scheduled", catalog)).not.toBe(
+      getPinTypeMarkerImageId("scheduled", []),
+    )
   })
 })
 

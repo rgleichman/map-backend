@@ -64,7 +64,6 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const {
     pins,
     subMap,
-    setSubMap,
     pinTypes,
     filter,
     setFilter,
@@ -74,6 +73,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     setApiError,
     updateOrAddPin,
     setPins,
+    refreshCatalog,
   } = useMapData({
     communityUrl,
     onScopeChange,
@@ -261,11 +261,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     setFilter((f) => ({ ...f, pinType: f.pinType === pinType ? null : pinType }))
   }, [setFilter])
 
-  const refreshSubMap = useCallback(async () => {
-    if (!communityUrl) return
-    const { data } = await api.getSubMap(communityUrl)
-    setSubMap(data)
-  }, [communityUrl, setSubMap])
+  const refreshSubMap = refreshCatalog
 
   const onJoinCommunity = useCallback(async () => {
     if (!communityUrl) return

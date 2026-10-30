@@ -18,7 +18,7 @@ import {
   truncateTitle,
   type PinPointFeature,
 } from "./mapPinFeatures"
-import { SELECTED_PIN_OUTLINE_STROKE } from "../../utils/pinTypeIcons"
+import { getPinTypeMarkerImageId, SELECTED_PIN_OUTLINE_STROKE } from "../../utils/pinTypeIcons"
 
 function minimalPin(overrides: Partial<Pin>): Pin {
   return {
@@ -69,7 +69,7 @@ describe("toPinFeature", () => {
     expect(feature.properties.pin_id).toBe(42)
     expect(feature.properties.title).toBe("Coffee Shop")
     expect(feature.properties.pin_type).toBe("scheduled")
-    expect(feature.properties.pin_type_icon).toBe("pin-icon-scheduled")
+    expect(feature.properties.pin_type_icon).toBe(getPinTypeMarkerImageId("scheduled", []))
     expect(feature.properties.haloColor).toMatch(/^#[0-9a-f]{6}$/i)
     expect(feature.properties.haloWidth).toBe(PIN_LABEL_HALO_WIDTH)
     expect(feature.properties.isNew).toBe(false)
@@ -110,8 +110,10 @@ describe("toPinFeature", () => {
     const watermark = new Date("2025-06-01T12:00:00.000Z")
     const feature = toPinFeature(pin, [], watermark)
     expect(feature.properties.isNew).toBe(true)
-    expect(feature.properties.pin_type_icon).toBe("pin-icon-scheduled-new")
-    expect(toPinFeature(pin, [], null).properties.pin_type_icon).toBe("pin-icon-scheduled")
+    expect(feature.properties.pin_type_icon).toBe(getPinTypeMarkerImageId("scheduled", [], "new"))
+    expect(toPinFeature(pin, [], null).properties.pin_type_icon).toBe(
+      getPinTypeMarkerImageId("scheduled", []),
+    )
   })
 
   it("highlights the selected pin with primary outline, full title, and thicker halo", () => {
@@ -127,7 +129,9 @@ describe("toPinFeature", () => {
 
     expect(feature.properties.isSelected).toBe(true)
     expect(feature.properties.isNew).toBe(true)
-    expect(feature.properties.pin_type_icon).toBe("pin-icon-scheduled-selected")
+    expect(feature.properties.pin_type_icon).toBe(
+      getPinTypeMarkerImageId("scheduled", [], "selected"),
+    )
     expect(feature.properties.title).toBe(long.trim())
     expect(feature.properties.haloWidth).toBe(PIN_LABEL_SELECTED_HALO_WIDTH)
     expect(feature.properties.haloColor).toBe(SELECTED_PIN_OUTLINE_STROKE)
@@ -142,10 +146,31 @@ describe("toPinFeature", () => {
     })
     const watermark = new Date("2025-06-01T12:00:00.000Z")
     expect(toPinFeature(pin, [], watermark).properties.pin_type_icon).toBe(
-      "pin-icon-scheduled-awaiting",
+      getPinTypeMarkerImageId("scheduled", [], "awaiting"),
     )
     expect(toPinFeature(pin, [], watermark, 3).properties.pin_type_icon).toBe(
-      "pin-icon-scheduled-selected",
+      getPinTypeMarkerImageId("scheduled", [], "selected"),
+    )
+  })
+
+  it("changes pin_type_icon when the catalog icon changes", () => {
+    const pin = minimalPin({ pin_type: "scheduled" })
+    const calendarType: CatalogPinType = {
+      id: 10,
+      slug: "scheduled",
+      label: "Scheduled",
+      marker_color: "#3b82f6",
+      icon: "calendar",
+      schema: { fields: [] },
+      pin_type: "scheduled",
+      enabled: true,
+    }
+    const grapesType = { ...calendarType, icon: "grapes" }
+    expect(toPinFeature(pin, [calendarType]).properties.pin_type_icon).toBe(
+      getPinTypeMarkerImageId("scheduled", [calendarType]),
+    )
+    expect(toPinFeature(pin, [grapesType]).properties.pin_type_icon).not.toBe(
+      toPinFeature(pin, [calendarType]).properties.pin_type_icon,
     )
   })
 

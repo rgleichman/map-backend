@@ -158,12 +158,22 @@ export const AWAITING_PIN_OUTLINE_STROKE = "#0ea5e9"
 
 const AWAITING_STROKE_DASHARRAY = "8 6"
 
-/** Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image). */
+function markerImageColorToken(color: string): string {
+  return color.replace(/^#/, "").toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
+/**
+ * Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image).
+ * Includes resolved glyph + marker color so catalog edits change the GeoJSON `icon-image`.
+ */
 export function getPinTypeMarkerImageId(
   pinType: PinType,
+  catalog: CatalogPinType[] = [],
   outline?: PinMarkerMapOutline,
 ): string {
-  const base = `pin-icon-${pinType || DEFAULT_PIN_ICON}`
+  const config = resolvePinTypeConfig(pinType, catalog)
+  const slug = pinType || DEFAULT_PIN_ICON
+  const base = `pin-icon-${slug}-${config.iconKey}-${markerImageColorToken(config.color)}`
   if (outline === "selected") return `${base}-selected`
   if (outline === "new") return `${base}-new`
   if (outline === "awaiting") return `${base}-awaiting`
