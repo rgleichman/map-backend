@@ -187,9 +187,17 @@ export function desktopMapPadding(
  * - 40: floating pin panel, placement bar
  * - 50+: modals
  *
+ * #react-root is `absolute z-0` so LiveView sheets (z-10 / z-45) stay above the map.
+ * That stacking context traps in-tree z-40, so it cannot paint over the body-level
+ * footer at z-30. The placement bar portals to document.body (and sets
+ * PIN_PLACEMENT_ACTIVE_BODY_CLASS) so Plant! draws over About / Help.
+ *
  * Bottom layout tokens (CSS vars in app.css, measured in app.js):
  * - --map-desktop-footer-reserve: footer band height on md+
  * - --map-help-button-reserve: right margin so MapLibre attribution clears the ? button
  * - mapShellOverlayBottomAboveHelp / MAP_HELP_BUTTON_CLEARANCE: vertical clearance for ?
  * - --map-pin-legend-*: footer side gutters so links clear the legend column and stay centered
  */
+
+/** Body class while the pin placement action bar is open. Hides desktop footer links. */
+export const PIN_PLACEMENT_ACTIVE_BODY_CLASS = "pin-placement-active"

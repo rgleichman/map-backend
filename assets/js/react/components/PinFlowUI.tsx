@@ -1,4 +1,5 @@
-import React, { useId } from "react"
+import React, { useEffect, useId } from "react"
+import { createPortal } from "react-dom"
 import PinComposer from "./PinComposer"
 import PinOverlay from "./PinOverlay"
 import PinTypeModal from "./PinTypeModal"
@@ -8,6 +9,7 @@ import type { PinWorkflow } from "../hooks/usePinWorkflow"
 import type { ToggleHeartResult } from "../types"
 import Button from "./ui/Button"
 import { GardenCopy, pinOverlayTitle } from "../utils/gardenCopy"
+import { PIN_PLACEMENT_ACTIVE_BODY_CLASS } from "../utils/siteLayout"
 
 type Props = {
   isDesktop: boolean
@@ -71,6 +73,12 @@ export default function PinFlowUI({
     linkedPinIds,
     pins,
   } = workflow
+
+  useEffect(() => {
+    if (!showPlacementOverlay) return
+    document.body.classList.add(PIN_PLACEMENT_ACTIVE_BODY_CLASS)
+    return () => document.body.classList.remove(PIN_PLACEMENT_ACTIVE_BODY_CLASS)
+  }, [showPlacementOverlay])
 
   const composerProps = modal && (modal.mode === "add" || modal.mode === "edit") ? {
     csrfToken,
@@ -157,6 +165,65 @@ export default function PinFlowUI({
     </>
   ) : null
 
+  const placementBar =
+    showPlacementOverlay && placement ? (
+      <div
+        data-placement-bar
+        className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg"
+      >
+        <div className="mx-auto w-full max-w-md flex gap-2 justify-center">
+          {placement.intent === "add" ? (
+            modal?.mode === "add" ? (
+              <>
+                <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    if (!placement || placement.intent !== "add") return
+                    dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
+                    dispatch({ type: "set_placement", placement: null })
+                  }}
+                >
+                  Confirm
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    if (!placement || placement.intent !== "add") return
+                    dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
+                    dispatch({ type: "open_select_type", lat: placement.lat, lng: placement.lng, resetDraft: false })
+                  }}
+                >
+                  {GardenCopy.plantBang}
+                </Button>
+              </>
+            )
+          ) : (
+            <>
+              <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  if (!placement || placement.intent !== "edit") return
+                  dispatch({ type: "set_edit_location", lat: placement.lat, lng: placement.lng })
+                  dispatch({ type: "set_placement", placement: null })
+                }}
+              >
+                Confirm
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    ) : null
+
   return (
     <>
       {showOverlay && overlayBody ? (
@@ -180,60 +247,7 @@ export default function PinFlowUI({
         </PinOverlay>
       ) : null}
 
-      {showPlacementOverlay && placement && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-base-100/95 border-t border-base-300 shadow-lg">
-          <div className="mx-auto w-full max-w-md flex gap-2 justify-center">
-            {placement.intent === "add" ? (
-              modal?.mode === "add" ? (
-                <>
-                  <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => {
-                      if (!placement || placement.intent !== "add") return
-                      dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
-                      dispatch({ type: "set_placement", placement: null })
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => {
-                      if (!placement || placement.intent !== "add") return
-                      dispatch({ type: "set_add_location", lat: placement.lat, lng: placement.lng })
-                      dispatch({ type: "open_select_type", lat: placement.lat, lng: placement.lng, resetDraft: false })
-                    }}
-                  >
-                    {GardenCopy.plantBang}
-                  </Button>
-                </>
-              )
-            ) : (
-              <>
-                <Button type="button" variant="ghost" onClick={() => dispatch({ type: "set_placement", placement: null })}>Cancel</Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => {
-                    if (!placement || placement.intent !== "edit") return
-                    dispatch({ type: "set_edit_location", lat: placement.lat, lng: placement.lng })
-                    dispatch({ type: "set_placement", placement: null })
-                  }}
-                >
-                  Confirm
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {placementBar ? createPortal(placementBar, document.body) : null}
     </>
   )
 }

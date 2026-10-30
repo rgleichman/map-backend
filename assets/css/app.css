@@ -228,6 +228,14 @@ body.content-overlay-open .maplibregl-control-container {
   pointer-events: none !important;
 }
 
+/* Placement action bar portals above the footer; hide About/Help so they don't
+   show through the bar's translucent background. Height is kept so the footer
+   reserve (legend, etc.) does not jump. */
+body.pin-placement-active [data-desktop-footer] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Global height constraints to prevent scrollbar overflow */
 html,
 body {

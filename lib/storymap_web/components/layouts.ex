@@ -549,7 +549,7 @@ defmodule StorymapWeb.Layouts do
     assigns = assign(assigns, :footer_active_classes, active_classes)
 
     ~H"""
-    <%!-- z-30: below map React overlays (placement bar, floating pin panel) at z-40 --%>
+    <%!-- z-30: below map React overlays. Placement bar portals to body at z-40. --%>
     <%!-- Symmetric gutters keep the nav viewport-centered on map and content pages
          (avoids the jump from map-only left padding) while clearing the pin legend. --%>
     <div

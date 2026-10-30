@@ -387,7 +387,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
             onConfirm={() => void confirmNearLocationSave()}
           />
 
-          {!contentOverlayOpen && (
+          {!contentOverlayOpen && placement == null && (
             <Button
               type="button"
               variant="ghost"
