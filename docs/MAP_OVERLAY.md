@@ -103,6 +103,8 @@ Keep these. Overlay and pin-URL bugs come from breaking them.
 
 6. **Remember last map path only for map URLs.** Overlay close reads
    `sessionStorage` `mapgarden:lastMapPath`. Default `/` if missing.
+   `?pin=` writes (`syncMapPinSearch`) must update last-map-path, not only
+   `history.replaceState`.
 
 7. **Re-classify in JS after LiveView nav.** Do not trust stale
    `@conn.request_path` on root chrome (`data-nav-*`, footer, page padding,
@@ -126,7 +128,9 @@ Keep these. Overlay and pin-URL bugs come from breaking them.
     (microtask, then `phx:page-loading-stop` if the dying node is still
     present). Overlay→overlay keeps chrome hidden. Keep hiding chrome
     under an overlay; do not leave map toolbar/search/filters visible
-    under the sheet.
+    under the sheet. `#react-root` inert (`aria-hidden`,
+    `pointer-events-none`) is owned by occupancy, not by
+    `site_chrome.js` querying `[data-content-overlay]`.
 
 12. **Auth return paths stay allowlisted.** Login `user_return_to` must not
     use the LiveView websocket URI (`/live/...`). Prefer the LiveView’s

@@ -8,6 +8,7 @@ import {
   parsePinIdFromSearch,
   parseMapPinLink,
   rememberLastMapPath,
+  syncMapPinSearch,
 } from "./mapRoute"
 
 /** Keep in sync with `test/storymap_web/components/layouts_test.exs` and `test/storymap_web/map_paths_test.exs`. */
@@ -149,5 +150,52 @@ describe("rememberLastMapPath", () => {
 
     rememberLastMapPath("/about", "")
     expect(store[LAST_MAP_PATH_KEY]).toBe("/g/foo/map?pin=3")
+  })
+})
+
+describe("syncMapPinSearch", () => {
+  const store: Record<string, string> = {}
+  let href = "/"
+
+  beforeEach(() => {
+    for (const key of Object.keys(store)) delete store[key]
+    href = "/g/foo/map"
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => store[key] ?? null,
+        setItem: (key: string, value: string) => {
+          store[key] = value
+        },
+      },
+    })
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        dispatchEvent: () => true,
+        location: { pathname: "/g/foo/map", search: "" },
+        history: {
+          replaceState: (_state: unknown, _title: string, url: string) => {
+            href = url
+          },
+        },
+      },
+    })
+  })
+
+  it("writes pin query and last map path together", () => {
+    syncMapPinSearch(12, "/g/foo/map")
+    expect(href).toBe("/g/foo/map?pin=12")
+    expect(store[LAST_MAP_PATH_KEY]).toBe("/g/foo/map?pin=12")
+
+    syncMapPinSearch(null, "/g/foo/map")
+    expect(href).toBe("/g/foo/map")
+    expect(store[LAST_MAP_PATH_KEY]).toBe("/g/foo/map")
+  })
+
+  it("does not write pin query onto overlay paths", () => {
+    syncMapPinSearch(12, "/about")
+    expect(href).toBe("/g/foo/map")
+    expect(store[LAST_MAP_PATH_KEY]).toBeUndefined()
   })
 })

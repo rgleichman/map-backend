@@ -24,7 +24,7 @@ import { CLEARED_FILTER, isFilterCleared } from "./components/map/filters"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
 import { useContentOverlayOpen } from "./utils/contentOverlay"
-import { isMapPathname } from "./mapRoute"
+import { syncMapPinSearch } from "./mapRoute"
 import {
   listTimedPinsInView,
   type MapBounds,
@@ -203,14 +203,8 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   }, [modal, setApiError])
 
   const syncPinUrl = useCallback((pinId: number | null) => {
-    const path = window.location.pathname || "/map"
-    if (!isMapPathname(path)) return
-    if (pinId == null) {
-      window.history.replaceState(null, "", path)
-      return
-    }
     // Address bar only — never creates a focus intent (avoids MapCanvas ↔ detail races).
-    window.history.replaceState(null, "", `${path}?pin=${pinId}`)
+    syncMapPinSearch(pinId)
   }, [])
 
   const onOpenPin = useCallback((pinId: number) => {

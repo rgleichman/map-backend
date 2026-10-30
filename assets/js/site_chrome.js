@@ -37,18 +37,6 @@ export const syncSiteChrome = () => {
     el.classList.toggle(PAGE_BLEED_CLASS, !mapPage)
   })
 
-  const map = document.getElementById("react-root")
-  const overlayOpen = Boolean(document.querySelector("[data-content-overlay]"))
-  if (map) {
-    if (overlayOpen) {
-      map.setAttribute("aria-hidden", "true")
-      map.classList.add("pointer-events-none")
-    } else {
-      map.removeAttribute("aria-hidden")
-      map.classList.remove("pointer-events-none")
-    }
-  }
-
   const path = lastMapPath()
   document.querySelectorAll("[data-back-to-map]").forEach((el) => {
     el.setAttribute("href", path)
@@ -59,4 +47,6 @@ export const initSiteChrome = () => {
   syncSiteChrome()
   window.addEventListener("phx:page-loading-stop", syncSiteChrome)
   window.addEventListener("map:route-change", syncSiteChrome)
+  window.addEventListener("map:overlay-open", syncSiteChrome)
+  window.addEventListener("map:overlay-close", syncSiteChrome)
 }

@@ -57,6 +57,19 @@ export function mapPathForScope(communityUrl?: string | null): string {
   return WORLD_MAP_PATH
 }
 
+/** Write `?pin=` on a map URL and persist it for overlay close. */
+export function syncMapPinSearch(
+  pinId: number | null,
+  pathname: string = typeof window !== "undefined" ? window.location.pathname : ROOT_PATH,
+): void {
+  if (typeof window === "undefined") return
+  if (!isMapPathname(pathname)) return
+  const path = normalizePathname(pathname)
+  const search = pinId == null ? "" : `?pin=${pinId}`
+  window.history.replaceState(null, "", search ? `${path}${search}` : path)
+  rememberLastMapPath(path, search)
+}
+
 /** Persist the current map URL so overlay close can return here. */
 export function rememberLastMapPath(
   pathname: string = typeof window !== "undefined" ? window.location.pathname : ROOT_PATH,
