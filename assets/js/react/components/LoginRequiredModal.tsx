@@ -4,7 +4,7 @@ import CloseButton from "./ui/CloseButton"
 
 export function LoginLink({ children = "log in" }: { children?: ReactNode }) {
   return (
-    <a href="/users/log-in" className="link link-primary font-medium">
+    <a href="/users/log-in" data-phx-link="redirect" data-phx-link-state="push" className="link link-primary font-medium">
       {children}
     </a>
   )
@@ -48,7 +48,7 @@ export default function LoginRequiredModal({
         </div>
         <p className="mb-6">{message}</p>
         <div className="flex gap-2 justify-end">
-          <Button ref={signInRef} href="/users/log-in" variant="primary">
+          <Button ref={signInRef} href="/users/log-in" data-phx-link="redirect" data-phx-link-state="push" variant="primary">
             Sign in
           </Button>
         </div>

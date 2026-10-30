@@ -11,19 +11,6 @@ defmodule StorymapWeb.MapControllerTest do
     {:ok, conn: conn, cache_dir: dir}
   end
 
-  describe "GET /" do
-    test "renders map page with brand", %{conn: conn} do
-      conn =
-        conn
-        |> delete_req_header("accept")
-        |> get(~p"/")
-
-      html = html_response(conn, 200)
-      assert html =~ "Map Garden"
-      assert html =~ "(beta)"
-    end
-  end
-
   describe "GET /api/map/style" do
     test "returns style with projection and rewritten tile source URLs", %{conn: conn} do
       conn = get(conn, ~p"/api/map/style")

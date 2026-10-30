@@ -64,6 +64,16 @@ defmodule StorymapWeb.UserAuthTest do
       assert redirected_to(conn) == "/hello"
     end
 
+    test "redirects to allowlisted return_to param", %{conn: conn, user: user} do
+      conn = UserAuth.log_in_user(conn, user, %{"return_to" => "/saved"})
+      assert redirected_to(conn) == "/saved"
+    end
+
+    test "ignores unsafe return_to param", %{conn: conn, user: user} do
+      conn = UserAuth.log_in_user(conn, user, %{"return_to" => "https://evil.example"})
+      assert redirected_to(conn) == ~p"/"
+    end
+
     test "writes a cookie if remember_me is configured", %{conn: conn, user: user} do
       conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
       assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
@@ -245,6 +255,27 @@ defmodule StorymapWeb.UserAuthTest do
     end
   end
 
+  describe "allowed_return_to/1" do
+    test "accepts internal paths and rejects open redirects" do
+      assert UserAuth.allowed_return_to("/saved") == "/saved"
+      assert UserAuth.allowed_return_to("/g/foo/map?pin=1") == "/g/foo/map?pin=1"
+      refute UserAuth.allowed_return_to("//evil.example")
+      refute UserAuth.allowed_return_to("https://evil.example")
+      refute UserAuth.allowed_return_to("/users/log-in")
+      refute UserAuth.allowed_return_to("/live/websocket")
+    end
+  end
+
+  describe "login_path/1" do
+    test "encodes allowlisted return_to as a query string" do
+      assert UserAuth.login_path(nil) == "/users/log-in"
+
+      uri = URI.parse(UserAuth.login_path("/saved"))
+      assert uri.path == "/users/log-in"
+      assert URI.decode_query(uri.query)["return_to"] == "/saved"
+    end
+  end
+
   describe "on_mount :require_authenticated" do
     test "authenticates current_scope based on a valid user_token", %{conn: conn, user: user} do
       user_token = Accounts.generate_user_session_token(user)
@@ -279,6 +310,28 @@ defmodule StorymapWeb.UserAuthTest do
 
       {:halt, updated_socket} = UserAuth.on_mount(:require_authenticated, %{}, session, socket)
       assert updated_socket.assigns.current_scope == nil
+    end
+
+    test "redirect includes return_to for the requested live view", %{conn: conn} do
+      session = conn |> get_session()
+
+      socket = %LiveView.Socket{
+        endpoint: StorymapWeb.Endpoint,
+        view: StorymapWeb.SavedLive.Index,
+        assigns: %{__changed__: %{}, flash: %{}}
+      }
+
+      {:halt, updated_socket} = UserAuth.on_mount(:require_authenticated, %{}, session, socket)
+
+      to =
+        case updated_socket.redirected do
+          {:redirect, %{to: to}} -> to
+          {:live, :redirect, %{to: to}} -> to
+        end
+
+      uri = URI.parse(to)
+      assert uri.path == "/users/log-in"
+      assert URI.decode_query(uri.query || "")["return_to"] == "/saved"
     end
   end
 

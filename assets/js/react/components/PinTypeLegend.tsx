@@ -39,6 +39,8 @@ export default function PinTypeLegend({ selectedPinType = null, onTogglePinType,
       />
       <Button
         href="/pin-types"
+        data-phx-link="redirect"
+        data-phx-link-state="push"
         variant="primary"
         size="sm"
         className="w-full mt-1.5 shrink-0 inline-flex items-center justify-center gap-1.5"

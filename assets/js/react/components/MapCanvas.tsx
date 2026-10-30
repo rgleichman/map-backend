@@ -720,6 +720,14 @@ export default function MapCanvas({
     }
   }, [styleUrl])
 
+  useEffect(() => {
+    const onOverlayClose = () => {
+      mapRef.current?.resize()
+    }
+    window.addEventListener("map:overlay-close", onOverlayClose)
+    return () => window.removeEventListener("map:overlay-close", onOverlayClose)
+  }, [])
+
   // Center on user location once on first load (skip when opening a shared pin link).
   // Use flyTo instead of GeolocateControl.trigger() — fitBounds from the initial globe
   // view (zoom 2) can overshoot maxZoom; the button path starts from a regional zoom.
@@ -961,6 +969,7 @@ export default function MapCanvas({
       )}
       {mapReady && !drawerOpen && (
         <div
+          data-map-chrome
           className={[
             "absolute right-2 z-10 flex flex-col items-end gap-2 pointer-events-none",
             searchActive && "max-sm:hidden",
@@ -1002,6 +1011,7 @@ export default function MapCanvas({
         </div>
       )}
       {mapReady && !drawerOpen && (
+        <div data-map-chrome>
         <MapSearch
           pins={pins}
           filter={filter}
@@ -1046,9 +1056,10 @@ export default function MapCanvas({
             }
           }}
         />
+        </div>
       )}
       {onPlacementMapClick && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+        <div data-map-chrome className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
           <div className="bg-primary text-primary-content rounded shadow px-4 py-2 text-sm font-medium">
             Click or tap on the map to set location
           </div>

@@ -179,29 +179,42 @@ defmodule StorymapWeb.CoreComponents do
   attr :aria_label, :string, required: true
   attr :square, :boolean, default: false
   attr :class, :any, default: nil
-  attr :rest, :global, include: ~w(disabled type phx-click id)
+  attr :rest, :global, include: ~w(disabled type phx-click id navigate href patch)
 
   def close_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      aria-label={@aria_label}
-      class={[
-        "inline-flex items-center justify-center shrink-0 cursor-pointer select-none",
-        "border-0 shadow-none bg-transparent origin-center group",
-        "text-base-content/70 hover:bg-base-200/90 dark:hover:bg-base-300/70 hover:text-base-content",
-        "transition-[background-color,color,opacity,transform] duration-150 ease-out",
-        "active:scale-[0.9] active:duration-75",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
-        if(@square, do: "size-9 min-h-9 min-w-9 rounded-md", else: "size-8 min-h-8 rounded-full"),
-        @class
-      ]}
-      {@rest}
-    >
-      <.icon name="hero-x-mark" class="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-    </button>
-    """
+    rest = assigns.rest
+
+    assigns =
+      assign(assigns,
+        class: [
+          "inline-flex items-center justify-center shrink-0 cursor-pointer select-none",
+          "border-0 shadow-none bg-transparent origin-center group",
+          "text-base-content/70 hover:bg-base-200/90 dark:hover:bg-base-300/70 hover:text-base-content",
+          "transition-[background-color,color,opacity,transform] duration-150 ease-out",
+          "active:scale-[0.9] active:duration-75",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-base-100",
+          if(assigns.square,
+            do: "size-9 min-h-9 min-w-9 rounded-md",
+            else: "size-8 min-h-8 rounded-full"
+          ),
+          assigns.class
+        ]
+      )
+
+    if rest[:href] || rest[:navigate] || rest[:patch] do
+      ~H"""
+      <.link aria-label={@aria_label} class={@class} {@rest}>
+        <.icon name="hero-x-mark" class="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+      </.link>
+      """
+    else
+      ~H"""
+      <button type="button" aria-label={@aria_label} class={@class} {@rest}>
+        <.icon name="hero-x-mark" class="size-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+      </button>
+      """
+    end
   end
 
   @doc """
@@ -233,6 +246,7 @@ defmodule StorymapWeb.CoreComponents do
     ~H"""
     <div
       id={@id}
+      data-confirm-modal
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       phx-click-away={@on_cancel}
     >

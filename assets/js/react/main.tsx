@@ -2,13 +2,19 @@ import React from "react"
 import { createRoot } from "react-dom/client"
 import { setWorkerUrl } from "maplibre-gl"
 import App from "./App"
+import { bindContentOverlayEvents } from "./utils/contentOverlay"
+
+function csrfFromMeta(): string | undefined {
+  return document.querySelector("meta[name='csrf-token']")?.getAttribute("content") ?? undefined
+}
+
+bindContentOverlayEvents()
 
 const container = document.getElementById("react-root") as HTMLDivElement | null
 if (container) {
-  const { userId, csrf, styleUrl, communityUrl, userMuted, maplibreWorkerUrl } =
+  const { userId, styleUrl, communityUrl, userMuted, maplibreWorkerUrl } =
     container.dataset as {
       userId?: string
-      csrf?: string
       styleUrl?: string
       communityUrl?: string
       userMuted?: string
@@ -25,9 +31,9 @@ if (container) {
       <App
         userId={userId ? parseInt(userId, 10) : undefined}
         userMuted={userMuted === "true"}
-        csrfToken={csrf}
+        csrfToken={csrfFromMeta()}
         styleUrl={styleUrl}
-        communityUrl={communityUrl}
+        communityUrl={communityUrl || undefined}
       />
     </React.StrictMode>
   )

@@ -28,6 +28,7 @@ defmodule Storymap.Pins do
   alias Storymap.Trust
   alias Storymap.Trust.Ledger
   alias Storymap.Trust.Policy, as: TrustPolicy
+  alias StorymapWeb.MapPaths
   alias Storymap.Types
 
   @blob_field_types BlobFieldType.values()
@@ -159,18 +160,18 @@ defmodule Storymap.Pins do
   """
   @spec map_path_for_pin(Pin.t()) :: String.t()
   def map_path_for_pin(%Pin{id: id, sub_map: %SubMap{community_url: url}}) do
-    "/g/#{url}/map?pin=#{id}"
+    MapPaths.map_path_with_pin(url, id)
   end
 
   @spec map_path_for_pin(Pin.t()) :: String.t()
   def map_path_for_pin(%Pin{id: id}) do
-    "/map?pin=#{id}"
+    MapPaths.map_path_with_pin(nil, id)
   end
 
   @spec map_path_for_pin(integer()) :: String.t()
   def map_path_for_pin(pin_id) when is_integer(pin_id) do
     case get_pin(pin_id) do
-      nil -> "/map?pin=#{pin_id}"
+      nil -> MapPaths.map_path_with_pin(nil, pin_id)
       pin -> map_path_for_pin(pin)
     end
   end

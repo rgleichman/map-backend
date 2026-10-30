@@ -80,12 +80,30 @@
           </div>
         </div>
 
-        <!-- Page content -->
-        <div class={[
-          "flex-1 min-h-0 overflow-y-auto",
-          unless(map_full_bleed_path?(@conn.request_path), do: "md:pb-24")
-        ]}>
-          {@inner_content}
+        <!-- Page content: map layer persists; LiveView overlays sit above it. -->
+        <div
+          data-page-content
+          class={[
+            "relative flex-1 min-h-0",
+            unless(map_full_bleed_path?(@conn.request_path), do: "md:pb-24")
+          ]}
+        >
+          <div
+            id="react-root"
+            data-user-id={@current_scope && @current_scope.user && @current_scope.user.id}
+            data-user-muted={
+              @current_scope && @current_scope.user &&
+                Storymap.Accounts.Policy.muted?(@current_scope.user)
+            }
+            data-style-url={~p"/api/map/style"}
+            data-maplibre-worker-url={~p"/assets/js/maplibre-gl-worker.js"}
+            data-community-url={map_community_url(@conn.request_path)}
+            class="absolute inset-0 z-0 h-full w-full"
+          >
+          </div>
+          <div class="relative z-10 h-full pointer-events-none overflow-y-auto">
+            {@inner_content}
+          </div>
         </div>
       </div>
 

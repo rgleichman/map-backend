@@ -2,6 +2,8 @@ defmodule StorymapWeb.PinTypeLive.Edit do
   @moduledoc "Edit a global custom pin type."
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
+
   import StorymapWeb.PinTypeLive.FieldsEditor
 
   alias Storymap.PinTypes

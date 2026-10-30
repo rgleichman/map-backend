@@ -37,7 +37,8 @@ defmodule StorymapWeb.UserAuth do
   """
   @spec log_in_user(Plug.Conn.t(), User.t(), map()) :: Plug.Conn.t()
   def log_in_user(conn, user, params \\ %{}) do
-    user_return_to = get_session(conn, :user_return_to)
+    user_return_to =
+      allowed_return_to(params["return_to"]) || get_session(conn, :user_return_to)
 
     conn
     |> create_or_extend_session(user, params)
@@ -232,16 +233,24 @@ defmodule StorymapWeb.UserAuth do
 
   @spec on_mount(:require_authenticated, map(), map(), Phoenix.LiveView.Socket.t()) ::
           on_mount_result()
-  def on_mount(:require_authenticated, _params, session, socket) do
+  def on_mount(:require_authenticated, params, session, socket) do
     socket = mount_current_scope(socket, session)
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
       {:cont, socket}
     else
+      to = login_path(live_return_to(socket, params))
+
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+        |> then(fn socket ->
+          if Phoenix.LiveView.connected?(socket) do
+            Phoenix.LiveView.push_navigate(socket, to: to)
+          else
+            Phoenix.LiveView.redirect(socket, to: to)
+          end
+        end)
 
       {:halt, socket}
     end
@@ -310,6 +319,57 @@ defmodule StorymapWeb.UserAuth do
   def signed_in_path(_), do: ~p"/"
 
   @doc """
+  Internal path allowed as a post-login return location, or nil if unsafe.
+  """
+  @spec allowed_return_to(term()) :: String.t() | nil
+  def allowed_return_to(path) when is_binary(path) do
+    cond do
+      not String.starts_with?(path, "/") -> nil
+      String.starts_with?(path, "//") -> nil
+      String.contains?(path, "://") -> nil
+      String.contains?(path, "\\") -> nil
+      String.starts_with?(path, "/users/log-in") -> nil
+      String.starts_with?(path, "/users/log-out") -> nil
+      String.starts_with?(path, "/users/register") -> nil
+      path == "/live" or String.starts_with?(path, "/live/") -> nil
+      true -> path
+    end
+  end
+
+  def allowed_return_to(_), do: nil
+
+  @doc "Login path, optionally carrying an allowlisted `return_to` query."
+  @spec login_path(String.t() | nil) :: String.t()
+  def login_path(return_to) do
+    case allowed_return_to(return_to) do
+      nil -> ~p"/users/log-in"
+      path -> ~p"/users/log-in?#{%{return_to: path}}"
+    end
+  end
+
+  @doc """
+  Stores `:user_return_to` for unauthenticated GETs of auth-only LiveView pages
+  and for `/users/log-in?return_to=`.
+  """
+  @spec maybe_store_live_return_to(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
+  def maybe_store_live_return_to(conn, _opts) do
+    conn = fetch_query_params(conn)
+
+    cond do
+      conn.method != "GET" ->
+        conn
+
+      current_scope_user?(conn) ->
+        conn
+
+      true ->
+        conn
+        |> maybe_store_protected_path()
+        |> maybe_store_login_return_to_param()
+    end
+  end
+
+  @doc """
   Plug for routes that require the user to be authenticated.
   """
   @spec require_authenticated_user(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
@@ -354,4 +414,84 @@ defmodule StorymapWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
+
+  defp current_scope_user?(conn) do
+    match?(%{user: %{id: _}}, conn.assigns[:current_scope])
+  end
+
+  defp maybe_store_protected_path(conn) do
+    if protected_live_path?(conn.request_path) do
+      put_session(conn, :user_return_to, current_path(conn))
+    else
+      conn
+    end
+  end
+
+  defp maybe_store_login_return_to_param(conn) do
+    if String.starts_with?(conn.request_path, "/users/log-in") do
+      case allowed_return_to(conn.query_params["return_to"]) do
+        nil -> conn
+        path -> put_session(conn, :user_return_to, path)
+      end
+    else
+      conn
+    end
+  end
+
+  @spec protected_live_path?(String.t()) :: boolean()
+  defp protected_live_path?(path) do
+    path =
+      path
+      |> String.split("?")
+      |> hd()
+      |> String.trim_trailing("/")
+
+    path in ["/saved", "/contributions", "/users/settings", "/g/new", "/pin-types/new"] or
+      String.starts_with?(path, "/users/settings/") or
+      String.match?(path, ~r"^/g/[^/]+/(settings|admin)$") or
+      String.match?(path, ~r"^/pin-types/[^/]+/edit$")
+  end
+
+  @spec live_return_to(Phoenix.LiveView.Socket.t(), map()) :: String.t() | nil
+  defp live_return_to(socket, params) when is_map(params) do
+    case {socket.view, params} do
+      {StorymapWeb.SavedLive.Index, _} ->
+        ~p"/saved"
+
+      {StorymapWeb.ContributionsLive.Index, _} ->
+        ~p"/contributions"
+
+      {StorymapWeb.UserLive.Settings, _} ->
+        ~p"/users/settings"
+
+      {StorymapWeb.PinTypeLive.New, _} ->
+        ~p"/pin-types/new"
+
+      {StorymapWeb.PinTypeLive.Edit, %{"id" => id}} ->
+        ~p"/pin-types/#{id}/edit"
+
+      {StorymapWeb.SubMapLive.New, _} ->
+        ~p"/g/new"
+
+      {StorymapWeb.SubMapLive.Settings, %{"community_url" => url}} ->
+        ~p"/g/#{url}/settings"
+
+      {StorymapWeb.SubMapLive.Admin, %{"community_url" => url}} ->
+        ~p"/g/#{url}/admin"
+
+      {StorymapWeb.AdminLive.Users, _} ->
+        ~p"/admin/users"
+
+      {StorymapWeb.AdminLive.Activity, _} ->
+        ~p"/admin/activity"
+
+      {StorymapWeb.AdminLive.Reports, _} ->
+        ~p"/admin/reports"
+
+      _ ->
+        nil
+    end
+  end
+
+  defp live_return_to(_socket, _params), do: nil
 end

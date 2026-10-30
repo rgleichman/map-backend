@@ -4,6 +4,7 @@ defmodule StorymapWeb.SubMapLive.Admin do
 
   alias Storymap.SubMaps
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
   on_mount {StorymapWeb.SubMapLive.OnMount, :load_sub_map}
   on_mount {StorymapWeb.SubMapLive.OnMount, :require_moderator}
 

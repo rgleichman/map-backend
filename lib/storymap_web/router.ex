@@ -13,6 +13,7 @@ defmodule StorymapWeb.Router do
     plug :protect_from_forgery
     plug StorymapWeb.Plugs.ContentSecurityPolicy
     plug :fetch_current_scope_for_user
+    plug :maybe_store_live_return_to
   end
 
   pipeline :api do
@@ -53,13 +54,6 @@ defmodule StorymapWeb.Router do
 
   scope "/", StorymapWeb do
     pipe_through :browser
-
-    # / and /map serve the main map page
-    get "/", MapController, :index
-    get "/map", MapController, :index
-
-    # Garden map (scoped pins; see docs/SUB_MAPS.md)
-    get "/g/:community_url/map", MapController, :sub_map
 
     # Legacy `/m` garden URLs
     get "/m", GardenRedirectController, :from_m
@@ -225,19 +219,6 @@ defmodule StorymapWeb.Router do
   scope "/", StorymapWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    live_session :require_authenticated_user,
-      on_mount: [{StorymapWeb.UserAuth, :require_authenticated}] do
-      live "/users/settings", UserLive.Settings, :edit
-      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
-      live "/saved", SavedLive.Index, :index
-      live "/contributions", ContributionsLive.Index, :index
-      live "/g/new", SubMapLive.New, :new
-      live "/g/:community_url/settings", SubMapLive.Settings, :edit
-      live "/g/:community_url/admin", SubMapLive.Admin, :index
-      live "/pin-types/new", PinTypeLive.New, :new
-      live "/pin-types/:id/edit", PinTypeLive.Edit, :edit
-    end
-
     live_session :require_admin,
       on_mount: [
         {StorymapWeb.UserAuth, :require_authenticated},
@@ -260,17 +241,29 @@ defmodule StorymapWeb.Router do
 
     live_session :current_user,
       on_mount: [{StorymapWeb.UserAuth, :mount_current_scope}] do
+      live "/", MapLive, :index
+      live "/map", MapLive, :index
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
+      live "/users/settings", UserLive.Settings, :edit
+      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+      live "/saved", SavedLive.Index, :index
+      live "/contributions", ContributionsLive.Index, :index
       # Public user profile page
       live "/user/:user_id", UserLive.Show, :show
       # Public pins list page
       live "/pins", PinLive.Index, :index
+      live "/pin-types/new", PinTypeLive.New, :new
+      live "/pin-types/:id/edit", PinTypeLive.Edit, :edit
       live "/pin-types", PinTypeLive.Index, :index
       # Garden discovery (see docs/SUB_MAPS.md)
-      live "/g", SubMapLive.Index, :index
+      live "/g/new", SubMapLive.New, :new
+      live "/g/:community_url/map", MapLive, :sub_map
+      live "/g/:community_url/settings", SubMapLive.Settings, :edit
+      live "/g/:community_url/admin", SubMapLive.Admin, :index
       live "/g/:community_url", SubMapLive.Show, :show
+      live "/g", SubMapLive.Index, :index
       live "/privacy-policy", StaticLive.Privacy, :show
       live "/about", StaticLive.About, :show
       live "/help", StaticLive.Help, :show

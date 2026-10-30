@@ -7,6 +7,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
   alias StorymapWeb.GardenCopy
   alias StorymapWeb.SubMapLive.PinTypeForm
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
   on_mount {StorymapWeb.SubMapLive.OnMount, :load_sub_map}
   on_mount {StorymapWeb.SubMapLive.OnMount, :require_owner}
 

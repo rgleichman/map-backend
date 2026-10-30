@@ -2,10 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import * as api from "../api/client"
 import {
   communityUrlFromPathname,
+  isMapPathname,
   mapPathForScope,
   mapPathWithPinQuery,
   parsePinIdFromSearch,
+  rememberLastMapPath,
 } from "../mapRoute"
+import { livePatch } from "../utils/liveNav"
 import type { PinFocusIntent, UseMapScopeParams, UseMapScopeResult } from "./mapHookTypes"
 
 export type { NavigateToPin, PinFocusIntent, UseMapScopeParams, UseMapScopeResult } from "./mapHookTypes"
@@ -37,16 +40,23 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
   }, [])
 
   const setCommunityScope = useCallback<UseMapScopeResult["setCommunityScope"]>((url, options) => {
+    const next = url ?? undefined
     const path =
       options?.pinId != null
-        ? mapPathWithPinQuery(url, options.pinId)
-        : mapPathForScope(url)
-    if (options?.replace) {
+        ? mapPathWithPinQuery(next, options.pinId)
+        : mapPathForScope(next)
+    const onMap = isMapPathname(window.location.pathname)
+    const current = communityUrlFromPathname(window.location.pathname)
+    if (next !== current) {
+      // Patch only works while MapLive owns the URL. Don't desync React scope
+      // from LiveView when a content overlay is open.
+      if (!onMap) return
+      livePatch(path, options?.replace)
+    } else if (options?.pinId != null && onMap) {
       window.history.replaceState(null, "", path)
-    } else {
-      window.history.pushState(null, "", path)
     }
-    setCommunityUrl(url ?? undefined)
+    setCommunityUrl(next)
+    rememberLastMapPath()
     if (options?.pinId == null) {
       setFocusIntent(null)
     }
@@ -61,8 +71,10 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
   }, [setCommunityScope])
 
   useEffect(() => {
+    rememberLastMapPath()
     const onPopState = () => {
       setCommunityUrl(communityUrlFromPathname(window.location.pathname))
+      rememberLastMapPath()
       const pinId = parsePinIdFromSearch()
       if (pinId != null) {
         requestFocus(pinId)
@@ -71,19 +83,40 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
         setHistoryCloseSeq((n) => n + 1)
       }
     }
+    const onSetScope = (event: Event) => {
+      const detail = (event as CustomEvent<{ community_url?: string | null; pin_id?: number | null }>).detail
+      if (!detail) return
+      const next = detail.community_url || undefined
+      if (next !== communityUrlRef.current) {
+        setCommunityUrl(next)
+      }
+      if (detail.pin_id != null) {
+        requestFocus(detail.pin_id)
+      }
+      rememberLastMapPath()
+    }
     window.addEventListener("popstate", onPopState)
-    return () => window.removeEventListener("popstate", onPopState)
+    window.addEventListener("map:set-scope", onSetScope)
+    return () => {
+      window.removeEventListener("popstate", onPopState)
+      window.removeEventListener("map:set-scope", onSetScope)
+    }
   }, [requestFocus])
 
   const navigateToPin = useCallback<UseMapScopeResult["navigateToPin"]>(async (pinId, pins) => {
+    const onMap = () => isMapPathname(window.location.pathname)
     const focusPin = () => {
       requestFocus(pinId)
-      window.history.replaceState(null, "", mapPathWithPinQuery(communityUrlRef.current, pinId))
+      if (onMap()) {
+        window.history.replaceState(null, "", mapPathWithPinQuery(communityUrlRef.current, pinId))
+        rememberLastMapPath()
+      }
     }
 
     const existing = pins.find((p) => p.id === pinId)
     if (existing) {
       resolvingPinIdsRef.current.delete(pinId)
+      if (!onMap()) return existing
       focusPin()
       return existing
     }
@@ -93,6 +126,7 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
 
     try {
       const { data } = await api.getPin(pinId)
+      if (!onMap()) return null
       if (data.community?.community_url) {
         setCommunityScope(data.community.community_url, { replace: true, pinId })
       } else {
@@ -101,7 +135,10 @@ export function useMapScope({ datasetCommunityUrl }: UseMapScopeParams): UseMapS
       focusPin()
       return data
     } catch {
-      window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
+      if (onMap()) {
+        window.history.replaceState(null, "", mapPathForScope(communityUrlRef.current))
+        rememberLastMapPath()
+      }
       setFocusIntent(null)
       return null
     } finally {

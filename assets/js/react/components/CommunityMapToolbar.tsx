@@ -72,6 +72,15 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   const closeAbout = useCallback(() => setAboutOpen(false), [])
 
   useEffect(() => {
+    const onOverlayOpen = () => {
+      setMenuOpen(false)
+      setAboutOpen(false)
+    }
+    window.addEventListener("map:overlay-open", onOverlayOpen)
+    return () => window.removeEventListener("map:overlay-open", onOverlayOpen)
+  }, [])
+
+  useEffect(() => {
     if (!menuOpen) return
 
     const onPointerDown = (event: MouseEvent | PointerEvent) => {
@@ -103,6 +112,7 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
   return (
     <>
       <nav
+        data-map-chrome
         aria-label={GardenCopy.gardenMap}
         className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-black/10 px-3 py-1 dark:border-white/10"
         style={{ backgroundColor: subMap.color }}
@@ -151,6 +161,8 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
                     <a
                       role="menuitem"
                       href={`/g/${encodeURIComponent(subMap.community_url)}/admin`}
+                      data-phx-link="redirect"
+                      data-phx-link-state="push"
                       className={menuItemClass}
                       onClick={closeMenu}
                     >
@@ -164,6 +176,8 @@ export default function CommunityMapToolbar({ subMap, userId, onJoin, onLeave }:
                     <a
                       role="menuitem"
                       href={`/g/${encodeURIComponent(subMap.community_url)}/settings`}
+                      data-phx-link="redirect"
+                      data-phx-link-state="push"
                       className={menuItemClass}
                       onClick={closeMenu}
                     >

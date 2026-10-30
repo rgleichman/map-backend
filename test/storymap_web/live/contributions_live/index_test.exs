@@ -28,6 +28,7 @@ defmodule StorymapWeb.ContributionsLive.IndexTest do
 
   test "requires authentication", %{conn: conn} do
     conn = recycle(conn) |> delete_req_header("authorization")
-    assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, ~p"/contributions")
+    assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/contributions")
+    assert URI.parse(to).path == "/users/log-in"
   end
 end

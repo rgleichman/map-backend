@@ -38,6 +38,7 @@ export default function GardenAboutSheet({ open, subMap, onClose }: Props) {
 
   return (
     <div
+      data-map-chrome
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4"
       role="dialog"
       aria-modal="true"

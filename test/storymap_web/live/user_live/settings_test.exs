@@ -19,7 +19,7 @@ defmodule StorymapWeb.UserLive.SettingsTest do
       assert {:error, redirect} = live(conn, ~p"/users/settings")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/users/log-in"
+      assert URI.parse(path).path == "/users/log-in"
       assert %{"error" => "You must log in to access this page."} = flash
     end
 
@@ -134,7 +134,7 @@ defmodule StorymapWeb.UserLive.SettingsTest do
       conn = build_conn()
       {:error, redirect} = live(conn, ~p"/users/settings/confirm-email/#{token}")
       assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/users/log-in"
+      assert URI.parse(path).path == "/users/log-in"
       assert %{"error" => message} = flash
       assert message == "You must log in to access this page."
     end

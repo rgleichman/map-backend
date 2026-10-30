@@ -5,6 +5,8 @@ defmodule StorymapWeb.Layouts do
   """
   use StorymapWeb, :html
 
+  alias StorymapWeb.MapPaths
+
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
   # skeleton of your application, namely HTML headers
@@ -34,15 +36,48 @@ defmodule StorymapWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :overlay, :boolean,
+    default: true,
+    doc: "When false (map page), skip the content overlay so the map stays interactive."
+
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <main id="main-content" class="flex-1 h-full" tabindex="-1">
-      <div class="h-full">
-        {render_slot(@inner_block)}
+    <%= if @overlay do %>
+      <div
+        id="content-overlay"
+        phx-hook="ContentOverlay"
+        data-content-overlay
+        class="pointer-events-auto fixed inset-x-0 bottom-0 top-(--site-header-height) z-45 flex flex-col"
+      >
+        <div
+          data-overlay-backdrop
+          class="absolute inset-0 bg-black/40"
+          aria-hidden="true"
+        >
+        </div>
+        <div class="pointer-events-none relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-6 md:pb-24">
+          <div class="pointer-events-auto relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-xl">
+            <div class="flex shrink-0 items-center justify-end px-2 pt-2">
+              <.close_button
+                id="content-overlay-close"
+                navigate={~p"/"}
+                data-back-to-map
+                aria_label="Close page and back to map"
+              />
+            </div>
+            <main id="main-content" class="min-h-0 flex-1 overflow-y-auto px-4 pb-8" tabindex="-1">
+              {render_slot(@inner_block)}
+            </main>
+          </div>
+        </div>
       </div>
-    </main>
+    <% else %>
+      <main id="main-content" class="pointer-events-none sr-only" tabindex="-1">
+        {render_slot(@inner_block)}
+      </main>
+    <% end %>
 
     <.flash_group flash={@flash} />
     """
@@ -127,6 +162,7 @@ defmodule StorymapWeb.Layouts do
       <%= if @variant == "desktop" do %>
         <.link
           navigate={~p"/g"}
+          data-nav-gardens
           class={nav_btn_classes(@communities_active?)}
           aria-current={if(@communities_active?, do: "page")}
         >
@@ -135,6 +171,7 @@ defmodule StorymapWeb.Layouts do
       <% else %>
         <.link
           navigate={~p"/g"}
+          data-nav-gardens
           class={[
             "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
             @communities_active? && "bg-base-300 font-medium"
@@ -145,20 +182,21 @@ defmodule StorymapWeb.Layouts do
         </.link>
       <% end %>
     </li>
-    <%= if @current_path != "/" && @current_path != "/map" && !map_full_bleed_path?(@current_path) do %>
-      <li>
-        <%= if @variant == "desktop" do %>
-          <.link navigate={~p"/"} class={nav_btn_classes(false)}>Map</.link>
-        <% else %>
-          <.link
-            navigate={~p"/"}
-            class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
-          >
-            Map
-          </.link>
-        <% end %>
-      </li>
-    <% end %>
+    <li
+      data-nav-map-link
+      class={map_full_bleed_path?(@current_path) && "hidden"}
+    >
+      <%= if @variant == "desktop" do %>
+        <.link navigate={~p"/"} class={nav_btn_classes(false)}>Map</.link>
+      <% else %>
+        <.link
+          navigate={~p"/"}
+          class="block w-full text-left py-3 px-4 drawer-close hover:bg-base-300"
+        >
+          Map
+        </.link>
+      <% end %>
+    </li>
     <li>
       <%= if @variant == "desktop" do %>
         <.button id="party-button" type="button" variant="action" aria-label="Party mode">
@@ -285,7 +323,7 @@ defmodule StorymapWeb.Layouts do
             <% end %>
             <li>
               <.link
-                href={~p"/saved"}
+                navigate={~p"/saved"}
                 class={["rounded-lg", @saved_active? && "active"]}
                 aria-current={if(@saved_active?, do: "page")}
               >
@@ -294,7 +332,7 @@ defmodule StorymapWeb.Layouts do
             </li>
             <li>
               <.link
-                href={~p"/users/settings"}
+                navigate={~p"/users/settings"}
                 class={["rounded-lg", @settings_active? && "active"]}
                 aria-current={if(@settings_active?, do: "page")}
               >
@@ -345,7 +383,7 @@ defmodule StorymapWeb.Layouts do
         <% end %>
         <li>
           <.link
-            href={~p"/saved"}
+            navigate={~p"/saved"}
             class={[
               "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
               @saved_active? && "bg-base-300 font-medium"
@@ -357,7 +395,7 @@ defmodule StorymapWeb.Layouts do
         </li>
         <li>
           <.link
-            href={~p"/users/settings"}
+            navigate={~p"/users/settings"}
             class={[
               "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
               @settings_active? && "bg-base-300 font-medium"
@@ -381,7 +419,7 @@ defmodule StorymapWeb.Layouts do
       <li>
         <%= if @variant == "desktop" do %>
           <.link
-            href={~p"/users/log-in"}
+            navigate={~p"/users/log-in"}
             class={nav_btn_classes(@login_active?)}
             aria-current={if(@login_active?, do: "page")}
           >
@@ -389,7 +427,7 @@ defmodule StorymapWeb.Layouts do
           </.link>
         <% else %>
           <.link
-            href={~p"/users/log-in"}
+            navigate={~p"/users/log-in"}
             class={[
               "block w-full text-left py-3 px-4 drawer-close hover:bg-base-300",
               @login_active? && "bg-base-300 font-medium"
@@ -608,13 +646,7 @@ defmodule StorymapWeb.Layouts do
   @doc "True for map pages that should not have content bottom padding (`md:pb-24`)."
   @spec map_full_bleed_path?(String.t()) :: boolean()
   def map_full_bleed_path?(request_path) when is_binary(request_path) do
-    case normalize_request_path_for_layout(request_path) do
-      "/" -> true
-      "/map" -> true
-      "/g/" <> rest -> String.ends_with?(rest, "/map")
-      "/m/" <> rest -> String.ends_with?(rest, "/map")
-      _ -> false
-    end
+    MapPaths.map_pathname?(request_path)
   end
 
   @doc "Alias for `map_full_bleed_path?/1`."
@@ -622,17 +654,12 @@ defmodule StorymapWeb.Layouts do
   def full_viewport_map_path?(request_path), do: map_full_bleed_path?(request_path)
 
   @spec garden_nav_active?(String.t()) :: boolean()
-  defp garden_nav_active?(path) do
-    path in ["/g", "/m"] or String.starts_with?(path, "/g/") or String.starts_with?(path, "/m/")
-  end
+  defp garden_nav_active?(path), do: MapPaths.garden_nav_active?(path)
 
-  defp normalize_request_path_for_layout(path) do
-    path
-    |> String.trim_trailing("/")
-    |> case do
-      "" -> "/"
-      p -> p
-    end
+  @doc "Community slug from a garden map request path, or nil for the world map."
+  @spec map_community_url(String.t()) :: String.t() | nil
+  def map_community_url(request_path) when is_binary(request_path) do
+    MapPaths.community_url(request_path)
   end
 
   defp nav_btn_classes(active?) do

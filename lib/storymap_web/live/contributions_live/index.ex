@@ -1,6 +1,8 @@
 defmodule StorymapWeb.ContributionsLive.Index do
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
+
   alias Storymap.Pins
 
   @impl true

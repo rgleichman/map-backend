@@ -17,7 +17,7 @@ function messageWithLoginLink(message: string): ReactNode {
   return (
     <>
       {message.slice(0, start)}
-      <a href="/users/log-in" className="underline font-semibold hover:opacity-90">
+      <a href="/users/log-in" data-phx-link="redirect" data-phx-link-state="push" className="underline font-semibold hover:opacity-90">
         {match[0]}
       </a>
       {message.slice(end)}

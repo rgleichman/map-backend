@@ -8,10 +8,18 @@ defmodule StorymapWeb.SubMapLive.Show do
   on_mount {StorymapWeb.SubMapLive.OnMount, :load_sub_map}
 
   @impl true
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
-    sub_map = socket.assigns.sub_map
+    path = ~p"/g/#{socket.assigns.sub_map.community_url}/map"
 
-    {:ok, redirect(socket, to: ~p"/g/#{sub_map.community_url}/map")}
+    socket =
+      if connected?(socket) do
+        push_navigate(socket, to: path)
+      else
+        redirect(socket, to: path)
+      end
+
+    {:ok, socket}
   end
 
   @impl true

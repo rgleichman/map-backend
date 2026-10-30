@@ -23,6 +23,8 @@ import type { PinWorkflowAction } from "./pinWorkflow/types"
 import { CLEARED_FILTER, isFilterCleared } from "./components/map/filters"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
+import { useContentOverlayOpen } from "./utils/contentOverlay"
+import { isMapPathname } from "./mapRoute"
 import {
   listTimedPinsInView,
   type MapBounds,
@@ -43,6 +45,7 @@ const WELCOME_SEEN_STORAGE_KEY = "mapgarden:welcomeSeenV1"
 
 export default function App({ userId, userMuted = false, csrfToken, styleUrl = "/api/map/style", communityUrl: datasetCommunityUrl }: Props) {
   const isDesktop = useIsDesktop()
+  const contentOverlayOpen = useContentOverlayOpen()
   const onScopeChangeRef = useRef<Dispatch<PinWorkflowAction> | null>(null)
   const onScopeChange = useCallback(() => {
     onScopeChangeRef.current?.({ type: "close_all" })
@@ -201,6 +204,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
 
   const syncPinUrl = useCallback((pinId: number | null) => {
     const path = window.location.pathname || "/map"
+    if (!isMapPathname(path)) return
     if (pinId == null) {
       window.history.replaceState(null, "", path)
       return
@@ -213,6 +217,10 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
     legendCloseRef.current?.close()
     onView(pinId)
   }, [onView])
+
+  useEffect(() => {
+    if (contentOverlayOpen) dispatch({ type: "close_all" })
+  }, [contentOverlayOpen, dispatch])
 
   // Apply one-shot focus intent into workflow + camera (not via MapCanvas selectPin).
   useEffect(() => {
@@ -338,11 +346,13 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                     ) : null
                   }
                 />
-                <PinTypeLegend
-                  closeRef={legendCloseRef}
-                  selectedPinType={filter.pinType}
-                  onTogglePinType={toggleMapPinTypeFilter}
-                />
+                {!contentOverlayOpen && (
+                  <PinTypeLegend
+                    closeRef={legendCloseRef}
+                    selectedPinType={filter.pinType}
+                    onTogglePinType={toggleMapPinTypeFilter}
+                  />
+                )}
                 {loading && mapInitialized && (
                   <div
                     className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/20 pointer-events-none"
@@ -355,14 +365,14 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
               </>
             )}
           </MapShell>
-          {modal?.mode === "login-required" && (
+          {modal?.mode === "login-required" && !contentOverlayOpen && (
             <LoginRequiredModal onClose={() => dispatch({ type: "close_all" })} />
           )}
 
-          {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+          {showWelcome && !contentOverlayOpen && <WelcomeModal onClose={closeWelcome} />}
 
           <ConfirmDialog
-            open={pendingDeletePinId != null}
+            open={!contentOverlayOpen && pendingDeletePinId != null}
             title={GardenCopy.uprootConfirmTitle}
             body="This cannot be undone."
             confirmLabel={GardenCopy.uproot}
@@ -372,7 +382,7 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
           />
 
           <ConfirmDialog
-            open={pendingNearLocationSave != null}
+            open={!contentOverlayOpen && pendingNearLocationSave != null}
             tone="warning"
             title={GardenCopy.nearLocationTitle}
             body={GardenCopy.nearLocationBody}
@@ -383,37 +393,41 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
             onConfirm={() => void confirmNearLocationSave()}
           />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={openWelcome}
-            aria-label="Open help"
-            title="Help"
-            className="fixed right-3 z-30 size-8 min-h-8 p-0 rounded-full bg-base-100/90 border border-solid border-base-300 shadow hover:bg-base-200"
-            style={{ bottom: mapPageFixedBottom() }}
-          >
-            ?
-          </Button>
+          {!contentOverlayOpen && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={openWelcome}
+              aria-label="Open help"
+              title="Help"
+              className="fixed right-3 z-30 size-8 min-h-8 p-0 rounded-full bg-base-100/90 border border-solid border-base-300 shadow hover:bg-base-200"
+              style={{ bottom: mapPageFixedBottom() }}
+            >
+              ?
+            </Button>
+          )}
 
-          <PinFlowUI
-            isDesktop={isDesktop}
-            workflow={workflow}
-            communityUrl={communityUrl}
-            userId={userId}
-            userMuted={userMuted}
-            onSelectCommunity={onSelectCommunity}
-            onNavigateToPin={handleNavigateToPin}
-            onTagFilter={handleTagFilter}
-            isPinHearted={isHearted}
-            onTogglePinHeart={handleTogglePinHeart}
-          />
+          {!contentOverlayOpen && (
+            <PinFlowUI
+              isDesktop={isDesktop}
+              workflow={workflow}
+              communityUrl={communityUrl}
+              userId={userId}
+              userMuted={userMuted}
+              onSelectCommunity={onSelectCommunity}
+              onNavigateToPin={handleNavigateToPin}
+              onTagFilter={handleTagFilter}
+              isPinHearted={isHearted}
+              onTogglePinHeart={handleTogglePinHeart}
+            />
+          )}
 
-          {timeError && <ErrorToast message={timeError} prefix="⏰ " />}
-          {formError && <ErrorToast message={formError} />}
-          {apiError && <ErrorToast message={apiError} />}
-          {infoMessage && <ErrorToast message={infoMessage} tone="info" />}
-          {pinHeartsLoadError && <ErrorToast message={pinHeartsLoadError} />}
+          {!contentOverlayOpen && timeError && <ErrorToast message={timeError} prefix="⏰ " />}
+          {!contentOverlayOpen && formError && <ErrorToast message={formError} />}
+          {!contentOverlayOpen && apiError && <ErrorToast message={apiError} />}
+          {!contentOverlayOpen && infoMessage && <ErrorToast message={infoMessage} tone="info" />}
+          {!contentOverlayOpen && pinHeartsLoadError && <ErrorToast message={pinHeartsLoadError} />}
         </div>
       </SubMapProvider>
     </PinTypesProvider>

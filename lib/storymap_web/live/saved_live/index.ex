@@ -1,11 +1,14 @@
 defmodule StorymapWeb.SavedLive.Index do
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
+
   alias Storymap.Pins
   alias Storymap.Pins.{HeartAuthorizer, Hearts}
   alias StorymapWeb.GardenCopy
 
   @impl true
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
 

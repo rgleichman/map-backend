@@ -39,6 +39,7 @@ defmodule StorymapWeb.UserLive.Login do
           id="login_form_magic"
           action={~p"/users/log-in"}
           phx-submit="submit_magic"
+          phx-hook="ReturnTo"
         >
           <.input
             readonly={false}
@@ -65,12 +66,33 @@ defmodule StorymapWeb.UserLive.Login do
   end
 
   @impl true
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
     email = Phoenix.Flash.get(socket.assigns.flash, :email) || ""
 
     form = to_form(%{"email" => email}, as: "user")
 
     {:ok, assign(socket, form: form, trigger_submit: false)}
+  end
+
+  @impl true
+  @spec handle_params(map(), String.t(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
+  def handle_params(params, _uri, socket) do
+    case StorymapWeb.UserAuth.allowed_return_to(params["return_to"]) do
+      nil ->
+        {:noreply, socket}
+
+      path ->
+        socket =
+          if connected?(socket) do
+            push_event(socket, "store_return_to", %{path: path})
+          else
+            socket
+          end
+
+        {:noreply, socket}
+    end
   end
 
   @impl true

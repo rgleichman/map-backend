@@ -221,6 +221,13 @@
   margin-right: var(--map-help-button-reserve);
 }
 
+/* LiveView content overlay: map stays visible, chrome and controls are inert. */
+body.content-overlay-open [data-map-chrome],
+body.content-overlay-open .maplibregl-control-container {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* Global height constraints to prevent scrollbar overflow */
 html,
 body {

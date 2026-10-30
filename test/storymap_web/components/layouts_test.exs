@@ -30,6 +30,16 @@ defmodule StorymapWeb.LayoutsTest do
     end
   end
 
+  describe "map_community_url/1" do
+    test "reads garden slug from map paths" do
+      assert Layouts.map_community_url("/g/stories/map") == "stories"
+      assert Layouts.map_community_url("/g/stories/map/") == "stories"
+      refute Layouts.map_community_url("/")
+      refute Layouts.map_community_url("/about")
+      refute Layouts.map_community_url("/g/stories")
+    end
+  end
+
   describe "full_viewport_map_path?/1" do
     test "aliases map_full_bleed_path?/1" do
       assert Layouts.full_viewport_map_path?("/map") == Layouts.map_full_bleed_path?("/map")

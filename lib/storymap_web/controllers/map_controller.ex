@@ -4,14 +4,6 @@ defmodule StorymapWeb.MapController do
   alias MapLibre
   alias Storymap.TileCache
 
-  def index(conn, _params) do
-    render(conn, :map)
-  end
-
-  def sub_map(conn, %{"community_url" => community_url}) do
-    render(conn, :sub_map, community_url: community_url)
-  end
-
   def style(conn, _params) do
     maptiler_key = Application.get_env(:storymap, :maptiler_api_key)
 

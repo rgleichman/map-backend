@@ -243,7 +243,7 @@ export default function MapFilters({
             {savedFilterEmptyOnMap && (
               <p className="text-sm text-base-content/60 mt-2">
                 {GardenCopy.noClippingsOnMap}{" "}
-                <a href="/saved" className="link link-primary">
+                <a href="/saved" data-phx-link="redirect" data-phx-link-state="push" className="link link-primary">
                   {GardenCopy.viewAllClippings}
                 </a>
               </p>

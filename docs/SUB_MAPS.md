@@ -4,7 +4,8 @@ This document records product and technical decisions for **sub-maps**: user-cre
 community-governed collections of pins with optional visibility on the world map.
 
 Related: [SPEC.md](../SPEC.md) (world map behavior), [TRUST.md](TRUST.md)
-(site-wide trust / content moderation strategy).
+(site-wide trust / content moderation strategy), [MAP_OVERLAY.md](MAP_OVERLAY.md)
+(persistent map + LiveView overlay).
 
 ---
 

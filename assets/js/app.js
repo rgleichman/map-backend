@@ -22,6 +22,11 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
 import { LocalTime } from "./hooks/local_time"
+import { MapLive } from "./hooks/map_live"
+import { ContentOverlay } from "./hooks/content_overlay"
+import { ReturnTo } from "./hooks/return_to"
+import { initSiteChrome } from "./site_chrome"
+import { isMapPathname } from "./react/mapRoute"
 import topbar from "../vendor/topbar"
 import "./map_socket.js"
 // React map is loaded dynamically below when #react-root is present
@@ -30,7 +35,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: { ...colocatedHooks, LocalTime },
+  hooks: { ...colocatedHooks, LocalTime, MapLive, ContentOverlay, ReturnTo },
 })
 
 // Show progress bar on live navigation and form submits
@@ -172,12 +177,6 @@ window.addEventListener("phx:page-loading-stop", initPartyMode)
 // Desktop floating footer active link highlighting + map/content chrome.
 // The footer lives in the root layout (outside LiveView inner content), so it doesn't re-render
 // on navigation. Instead, update styles on page load + LiveView navigation.
-const isMapPathname = (pathname) => {
-  const trimmed = (pathname || "").replace(/\/+$/, "")
-  const path = trimmed === "" ? "/" : trimmed
-  if (path === "/" || path === "/map") return true
-  return /^\/(?:g|m)\/[^/]+\/map$/.test(path)
-}
 
 const initFooterNavActive = () => {
   const normalizePath = (p) => {
@@ -263,6 +262,8 @@ if (document.readyState === "loading") {
 window.addEventListener("phx:page-loading-stop", initDesktopFooterReserve)
 window.addEventListener("map:route-change", initDesktopFooterReserve)
 window.matchMedia(DESKTOP_FOOTER_MQ).addEventListener("change", updateDesktopFooterReserve)
+
+initSiteChrome()
 
 // Close drawer when clicking drawer-close elements
 const initDrawerClose = () => {

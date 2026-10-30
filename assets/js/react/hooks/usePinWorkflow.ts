@@ -13,6 +13,7 @@ import { parseApiErrorMessage } from "../utils/apiErrors"
 import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
 import { PinStatusValue } from "../utils/pinStatus"
 import { GardenCopy } from "../utils/gardenCopy"
+import { isContentOverlayOpen } from "../utils/contentOverlay"
 import type { CatalogPinType, Pin, PinType, SubMap } from "../types"
 import {
   isEscapeCloseableDesktopMode,
@@ -78,6 +79,7 @@ export function usePinWorkflow({
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
+      if (isContentOverlayOpen()) return
       const { modal: m, isDesktop: desktop, dispatch: d } = escapePanelRef.current
       if (desktop && isEscapeCloseableDesktopMode(m)) {
         e.preventDefault()

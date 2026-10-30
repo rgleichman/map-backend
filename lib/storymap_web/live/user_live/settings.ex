@@ -1,6 +1,7 @@
 defmodule StorymapWeb.UserLive.Settings do
   use StorymapWeb, :live_view
 
+  on_mount {StorymapWeb.UserAuth, :require_authenticated}
   on_mount {StorymapWeb.UserAuth, :require_sudo_mode}
 
   alias Storymap.Accounts

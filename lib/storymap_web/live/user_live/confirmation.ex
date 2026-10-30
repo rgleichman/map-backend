@@ -16,6 +16,7 @@ defmodule StorymapWeb.UserLive.Confirmation do
           :if={!@user.confirmed_at}
           for={@form}
           id="confirmation_form"
+          phx-hook="ReturnTo"
           phx-mounted={JS.focus_first()}
           action={~p"/users/log-in?_action=confirmed"}
           phx-trigger-action={@trigger_submit}
@@ -46,6 +47,7 @@ defmodule StorymapWeb.UserLive.Confirmation do
           :if={@user.confirmed_at}
           for={@form}
           id="login_form"
+          phx-hook="ReturnTo"
           phx-mounted={JS.focus_first()}
           action={~p"/users/log-in"}
           phx-trigger-action={@trigger_submit}

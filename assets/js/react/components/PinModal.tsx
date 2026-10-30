@@ -149,6 +149,8 @@ export default function PinModal({
           </div>
           <Button
             href="/pin-types"
+            data-phx-link="redirect"
+            data-phx-link-state="push"
             variant="ghost"
             size="sm"
             className="inline-flex items-center gap-1.5 shrink-0"

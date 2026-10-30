@@ -1,5 +1,67 @@
-import { describe, expect, it } from "vitest"
-import { parsePinIdFromSearch, parseMapPinLink } from "./mapRoute"
+import { beforeEach, describe, expect, it } from "vitest"
+import {
+  gardenNavActive,
+  isMapPathname,
+  LAST_MAP_PATH_KEY,
+  mapPathForScope,
+  mapPathWithPinQuery,
+  parsePinIdFromSearch,
+  parseMapPinLink,
+  rememberLastMapPath,
+} from "./mapRoute"
+
+/** Keep in sync with `test/storymap_web/components/layouts_test.exs` and `test/storymap_web/map_paths_test.exs`. */
+describe("isMapPathname", () => {
+  it("treats home and map paths as map pages, including trailing slashes", () => {
+    expect(isMapPathname("/")).toBe(true)
+    expect(isMapPathname("/map")).toBe(true)
+    expect(isMapPathname("/map/")).toBe(true)
+  })
+
+  it("treats garden map paths as map pages", () => {
+    expect(isMapPathname("/g/stories/map")).toBe(true)
+    expect(isMapPathname("/g/stories/map/")).toBe(true)
+    expect(isMapPathname("/g/stories")).toBe(false)
+    expect(isMapPathname("/g")).toBe(false)
+  })
+
+  it("treats legacy /m garden map paths as map pages", () => {
+    expect(isMapPathname("/m/stories/map")).toBe(true)
+    expect(isMapPathname("/m/stories/map/")).toBe(true)
+    expect(isMapPathname("/m/stories")).toBe(false)
+    expect(isMapPathname("/m")).toBe(false)
+  })
+
+  it("rejects other paths", () => {
+    expect(isMapPathname("/privacy-policy")).toBe(false)
+    expect(isMapPathname("/map/extra")).toBe(false)
+    expect(isMapPathname("/about")).toBe(false)
+  })
+})
+
+describe("gardenNavActive", () => {
+  it("is current on garden index and garden pages, not maps", () => {
+    expect(gardenNavActive("/g")).toBe(true)
+    expect(gardenNavActive("/g/")).toBe(true)
+    expect(gardenNavActive("/g/stories")).toBe(true)
+    expect(gardenNavActive("/g/stories/settings")).toBe(true)
+    expect(gardenNavActive("/g/stories/map")).toBe(false)
+    expect(gardenNavActive("/m")).toBe(true)
+    expect(gardenNavActive("/m/stories")).toBe(true)
+    expect(gardenNavActive("/m/stories/map")).toBe(false)
+    expect(gardenNavActive("/")).toBe(false)
+    expect(gardenNavActive("/about")).toBe(false)
+  })
+})
+
+describe("mapPathForScope", () => {
+  it("builds canonical /g garden map paths", () => {
+    expect(mapPathForScope()).toBe("/map")
+    expect(mapPathForScope("stories")).toBe("/g/stories/map")
+    expect(mapPathWithPinQuery("stories", 12)).toBe("/g/stories/map?pin=12")
+    expect(mapPathWithPinQuery(null, 12)).toBe("/map?pin=12")
+  })
+})
 
 const ORIGIN = "https://mapgarden.net"
 
@@ -51,5 +113,41 @@ describe("parsePinIdFromSearch", () => {
   it("returns null when pin is missing or invalid", () => {
     expect(parsePinIdFromSearch("")).toBeNull()
     expect(parsePinIdFromSearch("?pin=abc")).toBeNull()
+  })
+})
+
+describe("rememberLastMapPath", () => {
+  const store: Record<string, string> = {}
+
+  beforeEach(() => {
+    for (const key of Object.keys(store)) delete store[key]
+    const sessionStorageMock = {
+      getItem: (key: string) => store[key] ?? null,
+      setItem: (key: string, value: string) => {
+        store[key] = value
+      },
+      clear: () => {
+        for (const key of Object.keys(store)) delete store[key]
+      },
+    }
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      value: sessionStorageMock,
+    })
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        dispatchEvent: () => true,
+        location: { pathname: "/", search: "" },
+      },
+    })
+  })
+
+  it("stores map paths and ignores overlay paths", () => {
+    rememberLastMapPath("/g/foo/map", "?pin=3")
+    expect(store[LAST_MAP_PATH_KEY]).toBe("/g/foo/map?pin=3")
+
+    rememberLastMapPath("/about", "")
+    expect(store[LAST_MAP_PATH_KEY]).toBe("/g/foo/map?pin=3")
   })
 })
