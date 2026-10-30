@@ -40,13 +40,18 @@ sr-only `<main>` plus `#map-live-bridge` (`phx-hook="MapLive"`).
 
 1. Navigate to a non-map LiveView (`live_redirect` / `<.link navigate>`).
 2. `Layouts.app` mounts `#content-overlay` with `phx-hook="ContentOverlay"`.
-3. The hook adds `body.content-overlay-open`, sets `#react-root` to
-   `aria-hidden` + `pointer-events-none`, and dispatches `map:overlay-open`.
+3. The hook **acquires** document occupancy (`acquireContentOverlay` in
+   `contentOverlay.ts`): `body.content-overlay-open`, `#react-root`
+   `aria-hidden` + `pointer-events-none`, and `map:overlay-open` only if
+   occupancy was previously zero.
 4. CSS hides `[data-map-chrome]` and MapLibre controls while the overlay is
    open. The map canvas stays visible underneath the dimmer.
 5. Close (X, Escape, backdrop) clicks `[data-back-to-map]`, whose `href` is
    the last map URL from `sessionStorage` (`LAST_MAP_PATH_KEY`).
-6. `destroyed` removes the body class, restores the map, dispatches
+6. Hook `destroyed` aborts Escape/backdrop listeners, then **releases**
+   occupancy. Close commits on a microtask (and again on
+   `phx:page-loading-stop` if the dying overlay node is still in the tree)
+   only when no `[data-content-overlay]` remains. About→Help must not fire
    `map:overlay-close`. Overlay listeners use `AbortController`.
 
 Root chrome (`nav`, footer, `#react-root` data attrs) lives **outside**
@@ -115,14 +120,22 @@ Keep these. Overlay and pin-URL bugs come from breaking them.
 10. **Clean overlay listeners.** `ContentOverlay` uses one `AbortController`
     per mount; abort on destroy (and before remount).
 
-11. **Auth return paths stay allowlisted.** Login `user_return_to` must not
+11. **Overlay occupancy is document-level, not hook lifetime.**
+    `destroyed` must not drop `content-overlay-open` or dispatch
+    `map:overlay-close` until no `[data-content-overlay]` remains
+    (microtask, then `phx:page-loading-stop` if the dying node is still
+    present). Overlay→overlay keeps chrome hidden. Keep hiding chrome
+    under an overlay; do not leave map toolbar/search/filters visible
+    under the sheet.
+
+12. **Auth return paths stay allowlisted.** Login `user_return_to` must not
     use the LiveView websocket URI (`/live/...`). Prefer the LiveView’s
     `socket.view` + params (or an allowlisted `return_to` query).
 
-12. **Same OTP app is OK; no cycle.** `Storymap.Pins.map_path_for_pin/1` may
+13. **Same OTP app is OK; no cycle.** `Storymap.Pins.map_path_for_pin/1` may
     call `MapPaths`. `MapPaths` must not import `Pins` or other contexts.
 
-13. **Change a prefix in three places:** `router.ex` (and `~p` call sites),
+14. **Change a prefix in three places:** `router.ex` (and `~p` call sites),
     `MapPaths`, `mapRoute.ts`. Classifiers/builders are not verified routes.
 
 ---
@@ -135,6 +148,7 @@ Keep these. Overlay and pin-URL bugs come from breaking them.
 | Overlay sheet | `Layouts.app` in `lib/storymap_web/components/layouts.ex` |
 | Persistent mount | `lib/storymap_web/components/layouts/root.html.heex` |
 | Overlay hook | `assets/js/hooks/content_overlay.js` |
+| Overlay occupancy | `assets/js/react/utils/contentOverlay.ts` |
 | MapLive → React | `assets/js/hooks/map_live.js` (`map:set-scope`) |
 | Chrome sync | `assets/js/site_chrome.js` |
 | Scope + pin URLs | `assets/js/react/hooks/useMapScope.ts` |

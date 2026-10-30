@@ -1,4 +1,5 @@
 import { LAST_MAP_PATH_KEY } from "../react/mapRoute"
+import { acquireContentOverlay, releaseContentOverlay } from "../react/utils/contentOverlay"
 
 const lastMapPath = () => {
   try {
@@ -26,13 +27,7 @@ export const ContentOverlay = {
     const close = this.el.querySelector("[data-back-to-map]")
     if (close) close.setAttribute("href", lastMapPath())
 
-    document.body.classList.add("content-overlay-open")
-    const map = document.getElementById("react-root")
-    if (map) {
-      map.setAttribute("aria-hidden", "true")
-      map.classList.add("pointer-events-none")
-    }
-    window.dispatchEvent(new CustomEvent("map:overlay-open"))
+    acquireContentOverlay()
 
     window.addEventListener(
       "keydown",
@@ -56,12 +51,6 @@ export const ContentOverlay = {
   destroyed() {
     this._overlayAbort?.abort()
     this._overlayAbort = undefined
-    document.body.classList.remove("content-overlay-open")
-    const map = document.getElementById("react-root")
-    if (map) {
-      map.removeAttribute("aria-hidden")
-      map.classList.remove("pointer-events-none")
-    }
-    window.dispatchEvent(new CustomEvent("map:overlay-close"))
+    releaseContentOverlay()
   },
 }
