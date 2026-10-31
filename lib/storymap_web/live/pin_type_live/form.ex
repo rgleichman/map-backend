@@ -71,6 +71,7 @@ defmodule StorymapWeb.PinTypeLive.Form do
       "label",
       "description",
       "marker_color",
+      "icon_background_color",
       "icon",
       "slug",
       "enabled",

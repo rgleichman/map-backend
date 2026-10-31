@@ -210,7 +210,8 @@ export function buildPinLinkSyncKey(params: BuildPinLinkGeoJsonParams): string {
     ),
   )
   const catalogParts = params.catalog.map(
-    (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
+    (c) =>
+      `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon_background_color ?? ""}:${c.icon ?? ""}`,
   )
   const backlinkParts = (params.backlinks ?? [])
     .map((l) => `${l.pin_id}:${l.source_field ?? ""}`)

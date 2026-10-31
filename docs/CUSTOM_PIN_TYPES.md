@@ -11,6 +11,8 @@ Unified global catalog of pin templates (system seeds + user-defined). See also
 - **Per-pin extras:** `pins.ad_hoc_fields` (jsonb ordered list of `{id, label, type, options?, value?}`) — not stored inside `custom_data`
 - **Schedule:** `time_mode` and `allow_open_24_7` on the type; times live on pin columns (`start_time`, `end_time`, `schedule_rrule`, `schedule_timezone`)
 - **System types:** seeded rows with `is_system: true` (`one_time`, `scheduled`, `food_bank`, `other`) — non-deletable; labels/colors from `assets/shared/pin_type_colors.json`
+- **Icon color:** UI label for `marker_color` (glyph fill on the map)
+- **Icon background:** `icon_background_color` (map disc fill; nil/`null` is `#000000`)
 
 ## System types
 

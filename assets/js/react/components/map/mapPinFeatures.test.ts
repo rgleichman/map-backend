@@ -245,8 +245,14 @@ describe("buildPinGeoJsonSyncKey", () => {
       clearedKey,
       [{ ...customType, marker_color: "#445566" }],
     )
+    const key4 = buildPinGeoJsonSyncKey(
+      [pin],
+      clearedKey,
+      [{ ...customType, icon_background_color: "#fef08a" }],
+    )
     expect(key1).not.toBe(key2)
     expect(key2).not.toBe(key3)
+    expect(key2).not.toBe(key4)
   })
 
   it("changes when last-visit watermark changes", () => {

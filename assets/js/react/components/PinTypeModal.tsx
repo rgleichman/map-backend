@@ -44,9 +44,9 @@ export default function PinTypeModal({ onSelectType, onCancel }: Props) {
                 <span
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
                   style={{
-                    backgroundColor: config.backgroundColor,
+                    backgroundColor: config.iconBackgroundColor,
                     border: `2px solid ${config.borderColor}`,
-                    color: config.textColor,
+                    color: config.color,
                   }}
                 >
                   <PinTypeIcon pinType={type} size={24} />

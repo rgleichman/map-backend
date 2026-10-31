@@ -3,6 +3,9 @@ import type { CatalogPinType, CustomFieldSchema, PinType } from "../types"
 /** Fallback marker color for catalog rows without `marker_color`. */
 export const DEFAULT_MARKER_COLOR = "#6366f1"
 
+/** Map disc fill when a catalog row has no `icon_background_color`. */
+export const DEFAULT_ICON_BACKGROUND_COLOR = "#000000"
+
 /** Slug of a catalog row (`pin_type` mirrors `slug` on the wire). */
 export function pinTypeSlug(pinType: CatalogPinType): string {
   return pinType.slug || pinType.pin_type || ""
@@ -30,6 +33,11 @@ export function schemaFields(pinType: CatalogPinType | undefined): CustomFieldSc
 
 export function markerColor(pinType: CatalogPinType | undefined): string | null {
   return pinType?.marker_color || null
+}
+
+/** Disc fill for a catalog row; blank/nil is black so existing types keep the current look. */
+export function iconBackgroundColor(pinType: CatalogPinType | undefined): string {
+  return pinType?.icon_background_color || DEFAULT_ICON_BACKGROUND_COLOR
 }
 
 /** Slugs the user can pick from, in catalog order (enabled rows only). */

@@ -20,6 +20,7 @@ defmodule Storymap.PinTypes.PinType do
           label: String.t() | nil,
           description: String.t() | nil,
           marker_color: String.t() | nil,
+          icon_background_color: String.t() | nil,
           icon: String.t() | nil,
           schema: map(),
           time_mode: time_mode(),
@@ -36,6 +37,7 @@ defmodule Storymap.PinTypes.PinType do
     field :label, :string
     field :description, :string
     field :marker_color, :string
+    field :icon_background_color, :string
     field :icon, :string
     field :schema, :map, default: %{}
     field :time_mode, Ecto.Enum, values: @time_modes, default: :none
@@ -68,6 +70,7 @@ defmodule Storymap.PinTypes.PinType do
       :label,
       :description,
       :marker_color,
+      :icon_background_color,
       :icon,
       :schema,
       :time_mode,
@@ -76,11 +79,10 @@ defmodule Storymap.PinTypes.PinType do
     ])
     |> validate_required([:label, :schema])
     |> put_slug()
-    |> normalize_marker_color()
-    |> validate_length(:marker_color, is: 7)
-    |> validate_format(:marker_color, @hex_color_regex,
-      message: "must be a hex color like #RRGGBB"
-    )
+    |> normalize_hex_color(:marker_color)
+    |> validate_hex_color(:marker_color)
+    |> normalize_hex_color(:icon_background_color)
+    |> validate_hex_color(:icon_background_color)
     |> validate_length(:label, max: 120)
     |> validate_length(:description, max: 2000)
     |> normalize_icon()
@@ -169,22 +171,35 @@ defmodule Storymap.PinTypes.PinType do
     end)
   end
 
-  defp normalize_marker_color(changeset) do
-    case get_change(changeset, :marker_color) do
+  @spec normalize_hex_color(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  defp normalize_hex_color(changeset, field) do
+    case get_change(changeset, field) do
       nil ->
         changeset
 
       color when is_binary(color) ->
-        color = String.trim(color)
-
-        if color == "" do
-          put_change(changeset, :marker_color, nil)
-        else
-          put_change(changeset, :marker_color, String.downcase(color))
-        end
+        put_change(changeset, field, normalize_hex_string(color))
 
       _ ->
         changeset
     end
+  end
+
+  @spec normalize_hex_string(String.t()) :: String.t() | nil
+  defp normalize_hex_string(color) do
+    color = color |> String.trim() |> String.downcase()
+
+    cond do
+      color == "" -> nil
+      String.match?(color, ~r/^[0-9a-f]{6}$/) -> "#" <> color
+      true -> color
+    end
+  end
+
+  @spec validate_hex_color(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  defp validate_hex_color(changeset, field) do
+    validate_format(changeset, field, @hex_color_regex,
+      message: "must be a hex color like #RRGGBB"
+    )
   end
 end

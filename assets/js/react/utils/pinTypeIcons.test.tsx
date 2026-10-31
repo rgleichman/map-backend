@@ -65,7 +65,9 @@ describe("plant icon layers", () => {
 
 describe("getPinTypeMarkerImageId", () => {
   it("includes resolved glyph and marker color", () => {
-    expect(getPinTypeMarkerImageId("scheduled", [])).toBe("pin-icon-scheduled-calendar-3b82f6")
+    expect(getPinTypeMarkerImageId("scheduled", [])).toBe(
+      "pin-icon-scheduled-calendar-3b82f6-000000",
+    )
   })
 
   it("changes when the catalog icon or color changes", () => {
@@ -82,13 +84,35 @@ describe("getPinTypeMarkerImageId", () => {
       },
     ]
     expect(getPinTypeMarkerImageId("scheduled", catalog)).toBe(
-      "pin-icon-scheduled-grapes-166534",
+      "pin-icon-scheduled-grapes-166534-000000",
     )
     expect(getPinTypeMarkerImageId("scheduled", catalog, "new")).toBe(
-      "pin-icon-scheduled-grapes-166534-new",
+      "pin-icon-scheduled-grapes-166534-000000-new",
     )
     expect(getPinTypeMarkerImageId("scheduled", catalog)).not.toBe(
       getPinTypeMarkerImageId("scheduled", []),
+    )
+  })
+
+  it("changes when the catalog disc color changes", () => {
+    const catalog = [
+      {
+        id: 1,
+        slug: "scheduled",
+        label: "Scheduled",
+        marker_color: "#166534",
+        icon_background_color: "#fef08a",
+        icon: "grapes",
+        schema: { fields: [] },
+        pin_type: "scheduled",
+        enabled: true,
+      },
+    ]
+    expect(getPinTypeMarkerImageId("scheduled", catalog)).toBe(
+      "pin-icon-scheduled-grapes-166534-fef08a",
+    )
+    expect(getPinTypeMarkerImageId("scheduled", catalog)).not.toBe(
+      getPinTypeMarkerImageId("scheduled", [{ ...catalog[0], icon_background_color: null }]),
     )
   })
 })
@@ -131,6 +155,29 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).toContain('fill="#000000"')
     expect(svg).toContain('fill="#fef08a"')
     expect(svg).not.toContain("feDropShadow")
+  })
+
+  it("fills the disc with catalog icon_background_color", () => {
+    const dataUrl = createPinTypeMarkerSVG("pale", [
+      {
+        id: 1,
+        slug: "pale",
+        label: "Pale",
+        description: "Pale",
+        marker_color: "#fef08a",
+        icon_background_color: "#1e3a8a",
+        icon: "star",
+        schema: { fields: [] },
+        pin_type: "pale",
+        enabled: true,
+        inserted_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      } as any,
+    ])
+
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain('fill="#1e3a8a"')
+    expect(svg).toContain('fill="#fef08a"')
   })
 
   it("renders plant icons with separate gray-layer opacities", () => {

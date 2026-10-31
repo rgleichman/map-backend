@@ -68,6 +68,22 @@ defmodule Storymap.PinTypesTest do
       assert "is not a known marker glyph" in errors_on(changeset).icon
     end
 
+    test "normalizes 6-digit hex without a hash" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:ok, pin_type} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Bare Hex",
+                 "marker_color" => "FEF08A",
+                 "icon_background_color" => "1e3a8a",
+                 "schema" => %{"fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]}
+               })
+
+      assert pin_type.marker_color == "#fef08a"
+      assert pin_type.icon_background_color == "#1e3a8a"
+    end
+
     test "rejects invalid marker_color" do
       user = user_fixture()
       scope = %Scope{user: user}
@@ -80,6 +96,20 @@ defmodule Storymap.PinTypesTest do
                })
 
       assert "must be a hex color like #RRGGBB" in errors_on(changeset).marker_color
+    end
+
+    test "rejects invalid icon_background_color" do
+      user = user_fixture()
+      scope = %Scope{user: user}
+
+      assert {:error, changeset} =
+               PinTypes.create_pin_type(scope, %{
+                 "label" => "Bad Disc",
+                 "icon_background_color" => "black",
+                 "schema" => %{"fields" => [%{"key" => "x", "label" => "X", "type" => "text"}]}
+               })
+
+      assert "must be a hex color like #RRGGBB" in errors_on(changeset).icon_background_color
     end
 
     test "rejects invalid schema" do

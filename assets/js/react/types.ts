@@ -62,6 +62,7 @@ export type CatalogPinType = {
   label: string
   description?: string | null
   marker_color?: string | null
+  icon_background_color?: string | null
   icon?: string | null
   schema: { fields: CustomFieldSchema[] }
   time_mode?: PinTimeMode

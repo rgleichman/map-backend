@@ -5,7 +5,7 @@ import {
   PIN_TYPE_COLORS,
   type PinTypeColorEntry
 } from "./pinTypeColors"
-import { findPinType, markerColor } from "./customPinTypes"
+import { findPinType, iconBackgroundColor, markerColor } from "./customPinTypes"
 
 type SvgPathDef = {
   d: string
@@ -88,6 +88,8 @@ export function layerFillOpacity(gray: number): number {
 export type PinTypeConfig = PinTypeColorEntry & {
   /** Which glyph to render for this pin type. */
   iconKey: PinIconNameType
+  /** Map disc fill (`icon_background_color`, default black). */
+  iconBackgroundColor: string
 }
 
 /** Glyph for a catalog row: explicit `icon`, then slug fallback, then default. */
@@ -123,10 +125,11 @@ export function resolvePinTypeConfig(
     label: catalogType?.label ?? (hasPalette ? palette.label : pinType || palette.label),
     description: catalogType?.description ?? (hasPalette ? palette.description : ""),
     iconKey: pinIconName(catalogType?.icon, pinType),
+    iconBackgroundColor: iconBackgroundColor(catalogType),
   }
 }
 
-/** On-map pin image size (square canvas; glyph sits on a black disc). */
+/** On-map pin image size (square canvas; glyph sits on a colored disc). */
 export const PIN_MARKER_WIDTH_PX = 50
 export const PIN_MARKER_HEIGHT_PX = 50
 
@@ -136,7 +139,6 @@ const MARKER_ICON_TRANSFORM = "translate(25,25) scale(1.666) translate(-12,-12)"
 /** Extra viewBox room so a 10px disc outline is not clipped at the canvas edge. */
 const MARKER_VIEWBOX = "-6 -6 62 62"
 
-const MARKER_BG_FILL = "#000000"
 const MARKER_BG_CX = 25
 const MARKER_BG_CY = 25
 const MARKER_BG_R = 22.5
@@ -175,7 +177,7 @@ function markerImageColorToken(color: string): string {
 
 /**
  * Image id used in MapLibre for pin-type marker icons (for use with map.addImage / icon-image).
- * Includes resolved glyph + marker color so catalog edits change the GeoJSON `icon-image`.
+ * Includes resolved glyph, icon color, and disc color so catalog edits change the GeoJSON `icon-image`.
  */
 export function getPinTypeMarkerImageId(
   pinType: PinType,
@@ -184,7 +186,7 @@ export function getPinTypeMarkerImageId(
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
   const slug = pinType || DEFAULT_PIN_ICON
-  const base = `pin-icon-${slug}-${config.iconKey}-${markerImageColorToken(config.color)}`
+  const base = `pin-icon-${slug}-${config.iconKey}-${markerImageColorToken(config.color)}-${markerImageColorToken(config.iconBackgroundColor)}`
   if (outline === "selected") return `${base}-selected`
   if (outline === "new") return `${base}-new`
   if (outline === "awaiting") return `${base}-awaiting`
@@ -264,18 +266,23 @@ function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   return null
 }
 
-function markerBackgroundAttrs(stroke: string | null, outline: PinMarkerOutline | null): string {
+function markerBackgroundAttrs(
+  fill: string,
+  stroke: string | null,
+  outline: PinMarkerOutline | null,
+): string {
   const strokeAttrs =
     stroke != null
       ? ` stroke="${stroke}" stroke-width="${MARKER_OUTLINE_STROKE_WIDTH}"`
       : ""
   const dash =
     outline === "awaiting" ? ` stroke-dasharray="${AWAITING_STROKE_DASHARRAY}"` : ""
-  return `cx="${MARKER_BG_CX}" cy="${MARKER_BG_CY}" r="${MARKER_BG_R}" fill="${MARKER_BG_FILL}"${strokeAttrs}${dash}`
+  return `cx="${MARKER_BG_CX}" cy="${MARKER_BG_CY}" r="${MARKER_BG_R}" fill="${fill}"${strokeAttrs}${dash}`
 }
 
 function appendMarkerBackground(
   svg: SVGSVGElement,
+  fill: string,
   stroke: string | null,
   outline: PinMarkerOutline | null,
 ): void {
@@ -283,7 +290,7 @@ function appendMarkerBackground(
   circle.setAttribute("cx", String(MARKER_BG_CX))
   circle.setAttribute("cy", String(MARKER_BG_CY))
   circle.setAttribute("r", String(MARKER_BG_R))
-  circle.setAttribute("fill", MARKER_BG_FILL)
+  circle.setAttribute("fill", fill)
   if (stroke != null) {
     circle.setAttribute("stroke", stroke)
     circle.setAttribute("stroke-width", MARKER_OUTLINE_STROKE_WIDTH)
@@ -311,7 +318,7 @@ function buildPinMarkerSVGStringFallback(
 
   return `
     <svg width="${PIN_MARKER_WIDTH_PX}" height="${PIN_MARKER_HEIGHT_PX}" viewBox="${MARKER_VIEWBOX}" xmlns="${SVG_NS}">
-      <circle ${markerBackgroundAttrs(stroke, outline)}/>
+      <circle ${markerBackgroundAttrs(config.iconBackgroundColor, stroke, outline)}/>
       <g transform="${MARKER_ICON_TRANSFORM}">
         <g ${iconGroupAttrs}>
           ${iconMarkup}
@@ -337,7 +344,7 @@ function buildPinMarkerSVGElement(
   svg.setAttribute("viewBox", MARKER_VIEWBOX)
   svg.setAttribute("xmlns", SVG_NS)
 
-  appendMarkerBackground(svg, stroke, outline)
+  appendMarkerBackground(svg, config.iconBackgroundColor, stroke, outline)
 
   const rootGroup = document.createElementNS(SVG_NS, "g")
   rootGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)

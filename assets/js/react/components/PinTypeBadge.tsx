@@ -35,9 +35,9 @@ export default function PinTypeBadge({
         .join(" ")}
       aria-hidden
       style={{
-        backgroundColor: config.color,
+        backgroundColor: config.iconBackgroundColor,
         border: `2px solid ${config.borderColor}`,
-        color: config.textColor,
+        color: config.color,
       }}
     >
       <PinTypeIcon pinType={pinType} catalog={catalog} size={icon} />

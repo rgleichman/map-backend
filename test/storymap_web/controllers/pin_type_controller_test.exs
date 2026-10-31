@@ -28,6 +28,8 @@ defmodule StorymapWeb.PinTypeControllerTest do
       assert data["slug"] == pin_type.slug
       assert data["enabled"] == true
       assert data["time_mode"] == "none"
+      assert Map.has_key?(data, "icon_background_color")
+      assert data["icon_background_color"] == pin_type.icon_background_color
     end
 
     test "returns 404 for disabled custom pin type", %{conn: conn} do

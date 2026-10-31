@@ -21,6 +21,7 @@ import "phoenix_html"
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/storymap"
+import { ColorHexField } from "./hooks/color_hex_field"
 import { LocalTime } from "./hooks/local_time"
 import { MapLive } from "./hooks/map_live"
 import { ContentOverlay } from "./hooks/content_overlay"
@@ -35,7 +36,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: { ...colocatedHooks, LocalTime, MapLive, ContentOverlay, ReturnTo },
+  hooks: { ...colocatedHooks, ColorHexField, LocalTime, MapLive, ContentOverlay, ReturnTo },
 })
 
 // Show progress bar on live navigation and form submits

@@ -174,6 +174,7 @@ defmodule StorymapWeb.PinTypeLive.Edit do
       "label" => pin_type.label,
       "description" => pin_type.description,
       "marker_color" => pin_type.marker_color,
+      "icon_background_color" => pin_type.icon_background_color,
       "icon" => pin_type.icon,
       "slug" => pin_type.slug,
       "time_mode" => pin_type.time_mode,

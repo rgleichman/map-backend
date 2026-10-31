@@ -23,6 +23,29 @@ defmodule Storymap.Pins.PinTypeColors do
 
   def color(_), do: @fallback_color
 
+  @doc """
+  Palette color for a known system slug, or nil.
+
+  Used when a catalog row has no `marker_color` so the editor can match the map.
+  """
+  @spec known_color(String.t() | nil) :: String.t() | nil
+  def known_color(slug) when is_binary(slug) do
+    case Map.get(@colors, slug) do
+      %{"color" => color} -> color
+      _ -> nil
+    end
+  end
+
+  def known_color(_), do: nil
+
+  @doc """
+  Map glyph color when `marker_color` is unset and the slug is not a system type.
+
+  Matches JS `DEFAULT_PIN_TYPE_COLORS` (`other`).
+  """
+  @spec map_fallback_color() :: String.t()
+  def map_fallback_color, do: color("other")
+
   @doc "Returns the full color entry map for a pin type, or the default type."
   @spec get(String.t() | any()) :: map()
   def get(pin_type) when is_binary(pin_type) do

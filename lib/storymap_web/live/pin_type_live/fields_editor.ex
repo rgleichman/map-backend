@@ -5,9 +5,13 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
 
   import StorymapWeb.CoreComponents
 
+  alias Storymap.Pins.PinTypeColors
   alias Storymap.PinTypes.Icons
   alias Storymap.PinTypes.PinType
   alias StorymapWeb.PinTypeLive.Form
+
+  # Map disc fill when `icon_background_color` is nil (see customPinTypes.ts).
+  @default_icon_background "#000000"
 
   attr :form, Phoenix.HTML.Form, required: true
   attr :fields, :list, required: true
@@ -50,21 +54,30 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
         label="Allow pins of this type to be marked open 24/7"
       />
 
-      <% marker_color = @form[:marker_color].value || "#6366f1" %>
-      <div class="flex items-end gap-3">
-        <div class="fieldset mb-2">
-          <label>
-            <span class="label mb-1">Marker color</span>
-            <input
-              type="color"
-              name={@form[:marker_color].name}
-              id={@form[:marker_color].id}
-              value={marker_color}
-              class="h-10 w-14 cursor-pointer rounded border border-base-300 bg-base-100"
-            />
-          </label>
+      <% icon_color = preview_icon_color(@form) %>
+      <% icon_background = preview_icon_background(@form) %>
+      <% preview_icon = @form[:icon].value || "star" %>
+      <div class="flex flex-wrap items-start gap-5">
+        <div
+          id="pin-type-icon-preview"
+          class="mt-6 flex size-10 shrink-0 items-center justify-center rounded-full"
+          style={"background-color: #{icon_background}; color: #{icon_color}"}
+          aria-hidden="true"
+        >
+          <.pin_glyph name={preview_icon} class="size-6" />
         </div>
-        <span class="text-sm text-base-content/60 pb-2 font-mono">{marker_color}</span>
+        <.color_hex_input
+          field={@form[:marker_color]}
+          label="Icon color"
+          default={icon_color}
+          preview_style="color"
+        />
+        <.color_hex_input
+          field={@form[:icon_background_color]}
+          label="Icon background"
+          default={icon_background}
+          preview_style="backgroundColor"
+        />
       </div>
 
       <% selected_icon = @form[:icon].value || "star" %>
@@ -261,6 +274,97 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
       </.button>
     </div>
     """
+  end
+
+  attr :field, Phoenix.HTML.FormField, required: true
+  attr :label, :string, required: true
+  attr :default, :string, required: true
+  attr :preview_style, :string, required: true, values: ["color", "backgroundColor"]
+
+  def color_hex_input(assigns) do
+    field = assigns.field
+    errors = Enum.map(field.errors, &translate_error/1)
+
+    assigns =
+      assign(assigns,
+        errors: errors,
+        swatch: hex_swatch_value(field.value, assigns.default),
+        text: hex_text_value(field.value)
+      )
+
+    ~H"""
+    <div
+      class="fieldset mb-0 min-w-0"
+      id={"pin-type-color-hex-#{@field.field}"}
+      phx-hook="ColorHexField"
+      data-preview-style={@preview_style}
+    >
+      <span class="label mb-1">{@label}</span>
+      <div class="flex items-center gap-2">
+        <input
+          type="color"
+          id={"#{@field.id}-swatch"}
+          value={@swatch}
+          aria-label={"Pick #{@label}"}
+          phx-update="ignore"
+          class={[
+            "h-8 w-8 shrink-0 cursor-pointer rounded-md border border-base-300 bg-base-100",
+            "p-0 overflow-hidden",
+            "[&::-webkit-color-swatch-wrapper]:p-0",
+            "[&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-[0.25rem]",
+            "[&::-moz-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-[0.25rem]"
+          ]}
+        />
+        <input
+          type="text"
+          name={@field.name}
+          id={@field.id}
+          value={@text}
+          placeholder={@default}
+          maxlength="7"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label={"#{@label} hex"}
+          data-color-hex
+          class={[
+            "input input-sm font-mono w-[8.5rem]",
+            @errors != [] && "input-error"
+          ]}
+        />
+      </div>
+      <p :for={msg <- @errors} class="text-error text-sm mt-1">{msg}</p>
+    </div>
+    """
+  end
+
+  @spec preview_icon_color(Phoenix.HTML.Form.t()) :: String.t()
+  defp preview_icon_color(form) do
+    parsed_hex(form[:marker_color].value) ||
+      PinTypeColors.known_color(form[:slug].value) ||
+      PinTypeColors.map_fallback_color()
+  end
+
+  @spec preview_icon_background(Phoenix.HTML.Form.t()) :: String.t()
+  defp preview_icon_background(form) do
+    parsed_hex(form[:icon_background_color].value) || @default_icon_background
+  end
+
+  @spec hex_swatch_value(term(), String.t()) :: String.t()
+  defp hex_swatch_value(value, default), do: parsed_hex(value) || default
+
+  @spec hex_text_value(term()) :: String.t()
+  defp hex_text_value(value) when is_binary(value), do: value
+  defp hex_text_value(_), do: ""
+
+  @spec parsed_hex(term()) :: String.t() | nil
+  defp parsed_hex(value) do
+    color = value |> to_string() |> String.trim()
+
+    cond do
+      String.match?(color, ~r/^#[0-9A-Fa-f]{6}$/) -> color
+      String.match?(color, ~r/^[0-9A-Fa-f]{6}$/) -> "#" <> color
+      true -> nil
+    end
   end
 
   attr :name, :string, required: true

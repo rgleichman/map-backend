@@ -217,7 +217,8 @@ export function buildPinGeoJsonSyncKey(
 ): string {
   const pinParts = pins.map(pinMapGeoJsonSyncPart)
   const catalogParts = catalog.map(
-    (c) => `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon ?? ""}`,
+    (c) =>
+      `${c.id}:${c.pin_type}:${c.marker_color ?? ""}:${c.icon_background_color ?? ""}:${c.icon ?? ""}`,
   )
   return `${pinParts.join("|")}::${filterSyncKey}::${catalogParts.join("|")}::lv:${lastVisitWatermarkMs ?? "none"}::sel:${selectedPinId ?? "none"}`
 }

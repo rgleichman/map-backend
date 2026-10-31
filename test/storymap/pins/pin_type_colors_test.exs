@@ -14,4 +14,14 @@ defmodule Storymap.Pins.PinTypeColorsTest do
     assert PinTypeColors.color("invalid") == "#f97316"
     assert PinTypeColors.color(nil) == "#6b7280"
   end
+
+  test "known_color/1 is nil for unknown slugs" do
+    assert PinTypeColors.known_color("other") == "#a855f7"
+    assert PinTypeColors.known_color("invalid") == nil
+    assert PinTypeColors.known_color(nil) == nil
+  end
+
+  test "map_fallback_color/0 matches the other palette" do
+    assert PinTypeColors.map_fallback_color() == "#a855f7"
+  end
 end
