@@ -192,7 +192,7 @@
   color: var(--color-base-content) !important;
 }
 
-/* Pending placement marker: teardrop outline uses currentColor (primary).
+/* Pending placement marker: black disc outline uses currentColor (primary).
    New-since-last-visit markers use a baked amber stroke in MapLibre images instead. */
 .pin-marker--pending {
   color: var(--color-primary);

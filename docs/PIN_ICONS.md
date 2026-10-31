@@ -55,7 +55,9 @@ are not from the plant sheet.
 
 ## Recolor
 
-Icons inherit the pin type’s marker text color (`currentColor` / `textColor`).
+UI glyphs (`PinTypeIcon`, LiveView `<.pin_glyph>`) inherit `currentColor` /
+`textColor`. Map marker images paint the same paths with the pin type’s marker
+color (`config.color`) so types stay distinct without teardrop chrome.
 Each layer’s original `gray` maps to fill-opacity so light fills stay visible:
 
 | Gray | Opacity |
@@ -77,7 +79,9 @@ ignore gray and draw at full opacity.
 - **LiveView picker:** `/pin-types/new` and `/pin-types/:id/edit` render
   `<.pin_glyph>` from the compiled JSON (path data is never taken from the form).
 - **Map / React:** `pinIconName` resolves catalog `icon` → `PIN_ICON_DEFS`;
-  MapLibre markers compose the teardrop with layered SVG (`createPinTypeMarkerSVG`).
+  MapLibre markers draw the layered glyph on a flat black disc at 50×50
+  (`createPinTypeMarkerSVG`), with a colored ring for selected / new / awaiting /
+  pending.
 - **TypeScript union:** `PinIconName` in `assets/js/react/types.ts` must stay in
   sync with JSON keys and `PinIcon` in `pinTypeIcons.tsx`.
 

@@ -82,7 +82,8 @@ export const pinLabelLayout: maplibregl.SymbolLayerSpecification["layout"] = {
   "text-font": ["Open Sans Bold", "sans-serif"],
   "text-size": 14,
   "text-anchor": "top",
-  "text-offset": [0, 0],
+  // Image is 50px with viewBox padding below the disc; pull the title up under the icon.
+  "text-offset": [0, -0.5],
   "text-allow-overlap": true,
   "text-ignore-placement": true,
 }

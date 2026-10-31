@@ -12,6 +12,8 @@ import {
   layerFillOpacity,
   NEW_PIN_OUTLINE_STROKE,
   PIN_ICON_DEFS,
+  PIN_MARKER_HEIGHT_PX,
+  PIN_MARKER_WIDTH_PX,
   SELECTED_PIN_OUTLINE_STROKE,
 } from "./pinTypeIcons"
 
@@ -99,6 +101,36 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).toContain("<svg")
     expect(svg).toContain("</svg>")
     expect(svg).toContain("<path")
+    expect(svg).toContain(`width="${PIN_MARKER_WIDTH_PX}"`)
+    expect(svg).toContain(`height="${PIN_MARKER_HEIGHT_PX}"`)
+    expect(svg).not.toContain("M20 0 C28 0 35 7")
+    expect(svg).toContain("<circle")
+    expect(svg).toContain('fill="#000000"')
+    expect(svg).not.toContain("feDropShadow")
+    expect(svg).not.toContain('stroke="#111827"')
+  })
+
+  it("sits light marker colors on a flat black disc", () => {
+    const dataUrl = createPinTypeMarkerSVG("pale", [
+      {
+        id: 1,
+        slug: "pale",
+        label: "Pale",
+        description: "Pale",
+        marker_color: "#fef08a",
+        icon: "star",
+        schema: { fields: [] },
+        pin_type: "pale",
+        enabled: true,
+        inserted_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      } as any,
+    ])
+
+    const svg = decodeDataUrlBase64(dataUrl)
+    expect(svg).toContain('fill="#000000"')
+    expect(svg).toContain('fill="#fef08a"')
+    expect(svg).not.toContain("feDropShadow")
   })
 
   it("renders plant icons with separate gray-layer opacities", () => {
@@ -153,11 +185,11 @@ describe("createPinTypeMarkerSVG", () => {
     expect(svg).toContain('stroke-width="10"')
   })
 
-  it("bakes opaque dark-theme primary stroke for selected outline", () => {
+  it("bakes dark-theme primary stroke for selected outline", () => {
     const dataUrl = createPinTypeMarkerSVG("scheduled", [], "selected")
     const svg = decodeDataUrlBase64(dataUrl)
     expect(svg).toContain(`stroke="${SELECTED_PIN_OUTLINE_STROKE}"`)
-    expect(svg).toContain(`fill="${SELECTED_PIN_OUTLINE_STROKE}"`)
+    expect(svg).toContain('fill="#000000"')
     expect(svg).toContain('stroke-width="10"')
   })
 
@@ -175,15 +207,18 @@ describe("createPinTypeMarkerElement", () => {
     const el = createPinTypeMarkerElement("scheduled", [])
     expect(el.querySelector("svg")).not.toBeNull()
     expect(el.childElementCount).toBe(1)
+    expect(el.style.width).toBe(`${PIN_MARKER_WIDTH_PX}px`)
+    expect(el.style.height).toBe(`${PIN_MARKER_HEIGHT_PX}px`)
   })
 
-  it.runIf(typeof document !== "undefined")("renders pending marker with outline path", () => {
+  it.runIf(typeof document !== "undefined")("renders pending marker with disc outline", () => {
     const el = createPinTypeMarkerElement("scheduled", [], true)
     const svg = el.querySelector("svg")
     expect(svg).not.toBeNull()
-    // Outline path uses stroke-width=10 (teardrop outline for pending state)
-    expect(svg!.querySelector('path[stroke-width="10"]')).not.toBeNull()
-    expect(svg!.querySelector('path[stroke="currentColor"]')).not.toBeNull()
+    expect(svg!.getAttribute("width")).toBe(String(PIN_MARKER_WIDTH_PX))
+    expect(svg!.getAttribute("height")).toBe(String(PIN_MARKER_HEIGHT_PX))
+    expect(svg!.querySelector('[stroke-width="10"]')).not.toBeNull()
+    expect(svg!.querySelector('[stroke="currentColor"]')).not.toBeNull()
   })
 })
 

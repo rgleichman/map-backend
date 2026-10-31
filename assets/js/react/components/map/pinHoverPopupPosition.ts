@@ -1,15 +1,17 @@
 import type { Offset, PositionAnchor } from "maplibre-gl"
+import {
+  PIN_MARKER_HEIGHT_PX,
+  PIN_MARKER_WIDTH_PX,
+} from "../../utils/pinTypeIcons"
 
-/** Matches DOM / SVG teardrop marker (`createPinTypeMarkerElement`). */
-export const PIN_MARKER_HEIGHT_PX = 50
-export const PIN_MARKER_WIDTH_PX = 40
+export { PIN_MARKER_HEIGHT_PX, PIN_MARKER_WIDTH_PX }
 
 const GAP_PX = 8
 
-/** Clear the pin body when the popup sits above the tip (`bottom*` anchors). */
+/** Clear the pin body when the popup sits above the icon (`bottom*` anchors). */
 const ABOVE_PIN_OFFSET_Y = -(PIN_MARKER_HEIGHT_PX + GAP_PX)
 
-/** Clear half the marker width when the popup sits beside the tip (`left`/`right`). */
+/** Clear half the marker width when the popup sits beside the icon (`left`/`right`). */
 const BESIDE_PIN_OFFSET_X = PIN_MARKER_WIDTH_PX / 2 + GAP_PX
 
 export const PIN_HOVER_POPUP_PADDING = { top: 8, bottom: 8, left: 8, right: 8 } as const
@@ -31,7 +33,7 @@ export function pinHoverPopupPadding(panelRightPx = 0): {
 
 /**
  * Per-anchor pixel offsets. Bottom anchors lift by marker height; left/right
- * shift by half marker width so the popup clears the teardrop (lng/lat is the tip).
+ * shift by half marker width so the popup clears the icon (lng/lat is the bottom).
  */
 export const pinHoverPopupOffset = {
   center: [0, 0],

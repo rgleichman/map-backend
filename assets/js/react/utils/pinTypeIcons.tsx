@@ -126,14 +126,25 @@ export function resolvePinTypeConfig(
   }
 }
 
-/** Icon transform to fit 24x24 viewBox into circle (matches DOM marker). */
-const MARKER_ICON_TRANSFORM = "translate(20,14) scale(0.833) translate(-12,-12)"
+/** On-map pin image size (square canvas; glyph sits on a black disc). */
+export const PIN_MARKER_WIDTH_PX = 50
+export const PIN_MARKER_HEIGHT_PX = 50
 
-const TEARDROP_PATH =
-  "M20 0 C28 0 35 7 35 16 C35 28 20 50 20 50 C20 50 5 28 5 16 C5 7 12 0 20 0 Z"
+/** Icon transform: 24×24 viewBox scaled to ~40px, centered on the 50×50 canvas. */
+const MARKER_ICON_TRANSFORM = "translate(25,25) scale(1.666) translate(-12,-12)"
+
+/** Extra viewBox room so a 10px disc outline is not clipped at the canvas edge. */
+const MARKER_VIEWBOX = "-6 -6 62 62"
+
+const MARKER_BG_FILL = "#000000"
+const MARKER_BG_CX = 25
+const MARKER_BG_CY = 25
+const MARKER_BG_R = 22.5
+
+const MARKER_OUTLINE_STROKE_WIDTH = "10"
 
 /**
- * Teardrop outline styles used when building marker SVGs.
+ * Disc outline styles used when building marker SVGs.
  * - pending: stroke via CSS `currentColor` (DOM placement; see `.pin-marker--pending`)
  * - selected: baked light green (dark-theme primary) for MapLibre selected-pin images
  * - new: baked amber stroke for MapLibre “new since last visit” images
@@ -144,7 +155,7 @@ export type PinMarkerOutline = "pending" | "selected" | "new" | "awaiting"
 /** MapLibre image ids that use a baked outline variant. */
 export type PinMarkerMapOutline = Extract<PinMarkerOutline, "selected" | "new" | "awaiting">
 
-/** Stroke for “new since last visit” teardrop outline (not `--color-primary`). */
+/** Stroke for “new since last visit” disc outline (not `--color-primary`). */
 export const NEW_PIN_OUTLINE_STROKE = "#f59e0b"
 
 /**
@@ -253,54 +264,56 @@ function markerOutlineStroke(outline: PinMarkerOutline | null): string | null {
   return null
 }
 
+function markerBackgroundAttrs(stroke: string | null, outline: PinMarkerOutline | null): string {
+  const strokeAttrs =
+    stroke != null
+      ? ` stroke="${stroke}" stroke-width="${MARKER_OUTLINE_STROKE_WIDTH}"`
+      : ""
+  const dash =
+    outline === "awaiting" ? ` stroke-dasharray="${AWAITING_STROKE_DASHARRAY}"` : ""
+  return `cx="${MARKER_BG_CX}" cy="${MARKER_BG_CY}" r="${MARKER_BG_R}" fill="${MARKER_BG_FILL}"${strokeAttrs}${dash}`
+}
+
+function appendMarkerBackground(
+  svg: SVGSVGElement,
+  stroke: string | null,
+  outline: PinMarkerOutline | null,
+): void {
+  const circle = document.createElementNS(SVG_NS, "circle")
+  circle.setAttribute("cx", String(MARKER_BG_CX))
+  circle.setAttribute("cy", String(MARKER_BG_CY))
+  circle.setAttribute("r", String(MARKER_BG_R))
+  circle.setAttribute("fill", MARKER_BG_FILL)
+  if (stroke != null) {
+    circle.setAttribute("stroke", stroke)
+    circle.setAttribute("stroke-width", MARKER_OUTLINE_STROKE_WIDTH)
+  }
+  if (outline === "awaiting") {
+    circle.setAttribute("stroke-dasharray", AWAITING_STROKE_DASHARRAY)
+  }
+  svg.appendChild(circle)
+}
+
 function buildPinMarkerSVGStringFallback(
   pinType: PinType,
   outline: PinMarkerOutline | null,
   catalog: CatalogPinType[] = [],
 ): string {
   const config = resolvePinTypeConfig(pinType, catalog)
-  const iconFill = config.textColor
+  const iconFill = config.color
   const iconKey = config.iconKey
   const iconGroupAttrs = isStrokeIcon(iconKey)
     ? `fill="none" stroke="${iconFill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="${iconFill}"`
     : `fill="${iconFill}"`
 
   const stroke = markerOutlineStroke(outline)
-  const outlined = stroke != null
-  // “new” / pending / awaiting stay slightly translucent; selected is fully opaque so map labels cannot show through.
-  const translucent = outline === "new" || outline === "pending" || outline === "awaiting"
-  const outlinePath = outlined
-    ? outline === "selected"
-      ? `<path d="${TEARDROP_PATH}" fill="${stroke}" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>
-        <path d="${TEARDROP_PATH}" fill="${config.color}" fill-opacity="1"/>`
-      : outline === "awaiting"
-        ? `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round" stroke-dasharray="${AWAITING_STROKE_DASHARRAY}"/>`
-        : `<path d="${TEARDROP_PATH}" fill="none" stroke="${stroke}" stroke-width="10" stroke-linejoin="round"/>`
-    : ""
-  const mainPathFillOpacity = translucent ? "0.72" : "1"
-  const circleFillOpacity = translucent ? "0.85" : "1"
-  const shadowFilter = outlined ? "" : ' filter="url(#shadow)"'
   const iconMarkup = iconLayerMarkup(iconKey)
 
-  const mainTeardrop =
-    outline === "selected"
-      ? "" // already drawn opaque over the outline fill above
-      : `<path d="${TEARDROP_PATH}"
-              fill="${config.color}"
-              fill-opacity="${mainPathFillOpacity}"${shadowFilter}/>`
-
   return `
-    <svg width="40" height="50" viewBox="-3 -3 46 56" xmlns="${SVG_NS}">
-      <defs>
-        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
-        </filter>
-      </defs>
-      <g transform="translate(3, 3)">
-        ${outlinePath}
-        ${mainTeardrop}
-        <circle cx="20" cy="15" r="12" fill="${config.backgroundColor}" fill-opacity="${circleFillOpacity}"/>
-        <g transform="${MARKER_ICON_TRANSFORM}" ${iconGroupAttrs}>
+    <svg width="${PIN_MARKER_WIDTH_PX}" height="${PIN_MARKER_HEIGHT_PX}" viewBox="${MARKER_VIEWBOX}" xmlns="${SVG_NS}">
+      <circle ${markerBackgroundAttrs(stroke, outline)}/>
+      <g transform="${MARKER_ICON_TRANSFORM}">
+        <g ${iconGroupAttrs}>
           ${iconMarkup}
         </g>
       </g>
@@ -314,75 +327,23 @@ function buildPinMarkerSVGElement(
   catalog: CatalogPinType[] = [],
 ): SVGSVGElement {
   const config = resolvePinTypeConfig(pinType, catalog)
-  const iconFill = config.textColor
+  const iconFill = config.color
   const iconKey = config.iconKey
-  const outlined = outline != null
-  const translucent = outline === "new" || outline === "pending" || outline === "awaiting"
-  const mainPathFillOpacity = translucent ? "0.72" : "1"
-  const circleFillOpacity = translucent ? "0.85" : "1"
   const stroke = markerOutlineStroke(outline)
 
   const svg = document.createElementNS(SVG_NS, "svg")
-  svg.setAttribute("width", "40")
-  svg.setAttribute("height", "50")
-  svg.setAttribute("viewBox", "-3 -3 46 56")
+  svg.setAttribute("width", String(PIN_MARKER_WIDTH_PX))
+  svg.setAttribute("height", String(PIN_MARKER_HEIGHT_PX))
+  svg.setAttribute("viewBox", MARKER_VIEWBOX)
   svg.setAttribute("xmlns", SVG_NS)
 
-  const defs = document.createElementNS(SVG_NS, "defs")
-  if (!outlined) {
-    const filter = document.createElementNS(SVG_NS, "filter")
-    filter.setAttribute("id", "shadow")
-    filter.setAttribute("x", "-50%")
-    filter.setAttribute("y", "-50%")
-    filter.setAttribute("width", "200%")
-    filter.setAttribute("height", "200%")
-
-    const dropShadow = document.createElementNS(SVG_NS, "feDropShadow")
-    dropShadow.setAttribute("dx", "0")
-    dropShadow.setAttribute("dy", "2")
-    dropShadow.setAttribute("stdDeviation", "3")
-    dropShadow.setAttribute("flood-opacity", "0.3")
-
-    filter.appendChild(dropShadow)
-    defs.appendChild(filter)
-  }
-  svg.appendChild(defs)
+  appendMarkerBackground(svg, stroke, outline)
 
   const rootGroup = document.createElementNS(SVG_NS, "g")
-  rootGroup.setAttribute("transform", "translate(3, 3)")
+  rootGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)
   svg.appendChild(rootGroup)
 
-  if (stroke != null) {
-    const outlinePath = document.createElementNS(SVG_NS, "path")
-    outlinePath.setAttribute("d", TEARDROP_PATH)
-    outlinePath.setAttribute("stroke", stroke)
-    outlinePath.setAttribute("stroke-width", "10")
-    outlinePath.setAttribute("stroke-linejoin", "round")
-    // Selected: opaque fill under the stroke so nothing shows through the halo.
-    outlinePath.setAttribute("fill", outline === "selected" ? stroke : "none")
-    if (outline === "awaiting") {
-      outlinePath.setAttribute("stroke-dasharray", AWAITING_STROKE_DASHARRAY)
-    }
-    rootGroup.appendChild(outlinePath)
-  }
-
-  const teardrop = document.createElementNS(SVG_NS, "path")
-  teardrop.setAttribute("d", TEARDROP_PATH)
-  teardrop.setAttribute("fill", config.color)
-  teardrop.setAttribute("fill-opacity", mainPathFillOpacity)
-  if (!outlined) teardrop.setAttribute("filter", "url(#shadow)")
-  rootGroup.appendChild(teardrop)
-
-  const circle = document.createElementNS(SVG_NS, "circle")
-  circle.setAttribute("cx", "20")
-  circle.setAttribute("cy", "15")
-  circle.setAttribute("r", "12")
-  circle.setAttribute("fill", config.backgroundColor)
-  circle.setAttribute("fill-opacity", circleFillOpacity)
-  rootGroup.appendChild(circle)
-
   const iconGroup = document.createElementNS(SVG_NS, "g")
-  iconGroup.setAttribute("transform", MARKER_ICON_TRANSFORM)
   appendIconGlyph(iconGroup, iconKey, iconFill)
   rootGroup.appendChild(iconGroup)
   return svg
@@ -408,8 +369,8 @@ export function createPinTypeMarkerSVG(
 }
 
 /**
- * DOM placement marker (teardrop + icon). When `pending`, draws a primary-colored
- * outline via `currentColor` (pair with `.pin-marker--pending`).
+ * DOM placement marker (glyph on a black disc). When `pending`, draws a
+ * primary-colored disc outline via `currentColor` (pair with `.pin-marker--pending`).
  */
 export function createPinTypeMarkerElement(
   pinType: PinType,
@@ -419,7 +380,7 @@ export function createPinTypeMarkerElement(
   const outline: PinMarkerOutline | null = pending ? "pending" : null
   const svg = buildPinMarkerSVGElement(pinType, outline, catalog)
   const wrap = document.createElement("div")
-  wrap.style.cssText = "width: 40px; height: 50px; cursor: pointer; line-height: 0;"
+  wrap.style.cssText = `width: ${PIN_MARKER_WIDTH_PX}px; height: ${PIN_MARKER_HEIGHT_PX}px; cursor: pointer; line-height: 0;`
   wrap.appendChild(svg)
   return wrap
 }
