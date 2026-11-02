@@ -51,10 +51,9 @@ describe("garden about content", () => {
 })
 
 describe("shouldShowGardenRulesCallout", () => {
-  it("shows when the garden has rules, including while editing", () => {
-    const withRules = minimalSubMap({ rules: "Stay on paths" })
-    expect(shouldShowGardenRulesCallout(withRules)).toBe(true)
-    expect(shouldShowGardenRulesCallout(minimalSubMap())).toBe(false)
+  it("shows for any garden while adding or editing, with or without rules", () => {
+    expect(shouldShowGardenRulesCallout(minimalSubMap({ rules: "Stay on paths" }))).toBe(true)
+    expect(shouldShowGardenRulesCallout(minimalSubMap())).toBe(true)
     expect(shouldShowGardenRulesCallout(null)).toBe(false)
   })
 })

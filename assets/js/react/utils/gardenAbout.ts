@@ -24,9 +24,9 @@ export function hasGardenRules(subMap: SubMap | null | undefined): boolean {
   return gardenRulesText(subMap) != null
 }
 
-/** Callout while adding or editing a plant on a garden that has rules. */
+/** Callout while adding or editing a plant on a garden (name always; rules when present). */
 export function shouldShowGardenRulesCallout(subMap: SubMap | null | undefined): boolean {
-  return hasGardenRules(subMap)
+  return subMap != null
 }
 
 export type GardenAboutToolbarEntry = "hidden" | "chip" | "menu"
