@@ -762,18 +762,13 @@ export default function MapCanvas({
     }
   }, [mapReady, cameraRequest])
 
-  // Pending location: actual pin (highlighted) + flyTo
+  // Pending location: actual pin (highlighted); keep current camera (no auto-zoom)
   const pendingPinTypeRef = useRef<PinType | null>(null)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
     if (pendingLocation) {
-      map.flyTo({
-        center: [pendingLocation.lng, pendingLocation.lat],
-        zoom: PIN_FOCUS_ZOOM,
-        padding: desktopMapPadding(map.getContainer().clientWidth, isDesktopRef.current),
-      })
       const pinType: PinType = pendingPinType ?? "other"
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
@@ -1012,50 +1007,50 @@ export default function MapCanvas({
       )}
       {mapReady && !drawerOpen && (
         <div data-map-chrome>
-        <MapSearch
-          pins={pins}
-          filter={filter}
-          setFilter={setFilter}
-          onFocusChange={setSearchActive}
-          pinMatches={pinFilterMatcher}
-          onSelectPin={(pin) => {
-            const map = mapRef.current
-            if (!map) return
-            selectPin(map, pin, { flyTo: true })
-          }}
-          onSelectPlace={(place: PlaceSuggestion) => {
-            const map = mapRef.current
-            if (!map) return
-            const mapPadding = desktopMapPadding(
-              map.getContainer().clientWidth,
-              isDesktopRef.current,
-            )
-            if (place.bbox) {
-              map.fitBounds(
-                [
-                  [place.bbox[0], place.bbox[1]],
-                  [place.bbox[2], place.bbox[3]],
-                ],
-                {
-                  padding: {
-                    top: 48 + mapPadding.top,
-                    bottom: 48 + mapPadding.bottom,
-                    left: 48 + mapPadding.left,
-                    right: 48 + mapPadding.right,
-                  },
-                  maxZoom: PIN_FOCUS_ZOOM,
-                  duration: 1000,
-                },
+          <MapSearch
+            pins={pins}
+            filter={filter}
+            setFilter={setFilter}
+            onFocusChange={setSearchActive}
+            pinMatches={pinFilterMatcher}
+            onSelectPin={(pin) => {
+              const map = mapRef.current
+              if (!map) return
+              selectPin(map, pin, { flyTo: true })
+            }}
+            onSelectPlace={(place: PlaceSuggestion) => {
+              const map = mapRef.current
+              if (!map) return
+              const mapPadding = desktopMapPadding(
+                map.getContainer().clientWidth,
+                isDesktopRef.current,
               )
-            } else {
-              map.flyTo({
-                center: [place.longitude, place.latitude],
-                zoom: PIN_FOCUS_ZOOM,
-                padding: mapPadding,
-              })
-            }
-          }}
-        />
+              if (place.bbox) {
+                map.fitBounds(
+                  [
+                    [place.bbox[0], place.bbox[1]],
+                    [place.bbox[2], place.bbox[3]],
+                  ],
+                  {
+                    padding: {
+                      top: 48 + mapPadding.top,
+                      bottom: 48 + mapPadding.bottom,
+                      left: 48 + mapPadding.left,
+                      right: 48 + mapPadding.right,
+                    },
+                    maxZoom: PIN_FOCUS_ZOOM,
+                    duration: 1000,
+                  },
+                )
+              } else {
+                map.flyTo({
+                  center: [place.longitude, place.latitude],
+                  zoom: PIN_FOCUS_ZOOM,
+                  padding: mapPadding,
+                })
+              }
+            }}
+          />
         </div>
       )}
       {onPlacementMapClick && (
