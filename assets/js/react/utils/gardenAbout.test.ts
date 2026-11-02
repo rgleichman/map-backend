@@ -56,6 +56,13 @@ describe("shouldShowGardenRulesCallout", () => {
     expect(shouldShowGardenRulesCallout(minimalSubMap())).toBe(true)
     expect(shouldShowGardenRulesCallout(null)).toBe(false)
   })
+
+  it("shows from pin community when editing on the world map (no context subMap)", () => {
+    expect(
+      shouldShowGardenRulesCallout(null, { community_url: "bbq-austin", name: "BBQ Austin" }),
+    ).toBe(true)
+    expect(shouldShowGardenRulesCallout(null, null)).toBe(false)
+  })
 })
 
 describe("gardenAboutToolbarEntry", () => {

@@ -1,5 +1,7 @@
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
+import * as api from "../api/client"
 import { useSubMap } from "../context/SubMapContext"
+import type { PinCommunity, SubMap } from "../types"
 import { gardenRulesText, shouldShowGardenRulesCallout } from "../utils/gardenAbout"
 import { GardenCopy } from "../utils/gardenCopy"
 import GardenAboutSheet from "./GardenAboutSheet"
@@ -9,19 +11,51 @@ import { ChevronDownIcon } from "./ui/icons"
 
 type Props = {
   className?: string
+  /** Pin's garden when editing on the world map (context subMap is null). */
+  community?: PinCommunity | null
 }
 
-export default function GardenRulesCallout({ className }: Props) {
-  const { subMap } = useSubMap()
+export default function GardenRulesCallout({ className, community = null }: Props) {
+  const { subMap: contextSubMap } = useSubMap()
+  const [fetchedSubMap, setFetchedSubMap] = useState<SubMap | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
-  const rules = gardenRulesText(subMap)
-  const show = shouldShowGardenRulesCallout(subMap)
+
+  useEffect(() => {
+    if (contextSubMap != null) {
+      setFetchedSubMap(null)
+      return
+    }
+    const url = community?.community_url
+    if (!url) {
+      setFetchedSubMap(null)
+      return
+    }
+
+    let cancelled = false
+    api
+      .getSubMap(url)
+      .then(({ data }) => {
+        if (!cancelled) setFetchedSubMap(data)
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedSubMap(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [contextSubMap, community?.community_url])
+
+  const resolvedSubMap = contextSubMap ?? fetchedSubMap
+  const gardenName = contextSubMap?.name ?? community?.name ?? fetchedSubMap?.name ?? null
+  const rules = gardenRulesText(resolvedSubMap)
+  const show = shouldShowGardenRulesCallout(contextSubMap, community)
 
   const openAbout = useCallback(() => setAboutOpen(true), [])
   const closeAbout = useCallback(() => setAboutOpen(false), [])
 
-  if (!show || !subMap) return null
+  if (!show || gardenName == null) return null
 
   return (
     <>
@@ -39,7 +73,7 @@ export default function GardenRulesCallout({ className }: Props) {
             {GardenCopy.garden}
           </span>
           <span className="truncate text-sm font-semibold leading-none text-base-content">
-            {subMap.name}
+            {gardenName}
           </span>
         </div>
         {rules != null ? (
@@ -79,7 +113,9 @@ export default function GardenRulesCallout({ className }: Props) {
           </>
         ) : null}
       </div>
-      <GardenAboutSheet open={aboutOpen} subMap={subMap} onClose={closeAbout} />
+      {resolvedSubMap != null ? (
+        <GardenAboutSheet open={aboutOpen} subMap={resolvedSubMap} onClose={closeAbout} />
+      ) : null}
     </>
   )
 }

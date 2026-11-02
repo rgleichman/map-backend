@@ -5,7 +5,7 @@ import AdHocPinFields from "./AdHocPinFields"
 import CustomPinFields from "./CustomPinFields"
 import RelatedPinsEditor from "./RelatedPinsEditor"
 import TagCombobox from "./TagCombobox"
-import type { AdHocField, Pin, PinType } from "../types"
+import type { AdHocField, Pin, PinCommunity, PinType } from "../types"
 import { usePinTypes } from "../context/PinTypesContext"
 import { findPinType, schemaFields } from "../utils/customPinTypes"
 import {
@@ -28,6 +28,8 @@ type Props = {
   pinType: PinType
   csrfToken?: string
   pinId?: number | null
+  /** Garden of the pin being edited (for world-map edit callout). */
+  community?: PinCommunity | null
   title: string
   setTitle: (t: string) => void
   description: string
@@ -72,6 +74,7 @@ export default function PinModal({
   pinType,
   csrfToken,
   pinId = null,
+  community = null,
   title, setTitle,
   description, setDescription,
   tags, setTags,
@@ -136,7 +139,7 @@ export default function PinModal({
     <div className="pin-modal-content flex min-h-0 w-full flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         <h2 id={headingId} className="text-lg font-semibold mb-4">{plantFormHeading(mode)}</h2>
-        <GardenRulesCallout className="mb-4" />
+        <GardenRulesCallout className="mb-4" community={community} />
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-medium text-base-content/70 shrink-0">

@@ -84,6 +84,7 @@ export default function PinFlowUI({
     csrfToken,
     pinId: modal.mode === "edit" ? modal.pin.id : null,
     pinType: modal.mode === "add" ? (pinType ?? "") : modal.pin.pin_type,
+    community: modal.mode === "edit" ? (modal.pin.community ?? null) : null,
     title,
     description,
     tags,

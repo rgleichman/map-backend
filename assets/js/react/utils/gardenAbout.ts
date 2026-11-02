@@ -1,4 +1,4 @@
-import type { SubMap } from "../types"
+import type { PinCommunity, SubMap } from "../types"
 
 /** Trimmed text, or null when missing/whitespace-only. */
 export function presentGardenText(value: string | null | undefined): string | null {
@@ -24,9 +24,15 @@ export function hasGardenRules(subMap: SubMap | null | undefined): boolean {
   return gardenRulesText(subMap) != null
 }
 
-/** Callout while adding or editing a plant on a garden (name always; rules when present). */
-export function shouldShowGardenRulesCallout(subMap: SubMap | null | undefined): boolean {
-  return subMap != null
+/**
+ * Callout while adding or editing a plant on a garden (name always; rules when present).
+ * Context `subMap` covers garden maps; `community` covers editing a garden plant on the world map.
+ */
+export function shouldShowGardenRulesCallout(
+  subMap: SubMap | null | undefined,
+  community?: PinCommunity | null,
+): boolean {
+  return subMap != null || community != null
 }
 
 export type GardenAboutToolbarEntry = "hidden" | "chip" | "menu"

@@ -1,6 +1,6 @@
 import React from "react"
 import PinModal from "./PinModal"
-import type { AdHocField, Pin, PinType } from "../types"
+import type { AdHocField, Pin, PinCommunity, PinType } from "../types"
 import type { PinWorkflowAction } from "../pinWorkflow/types"
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   csrfToken?: string
   pinId?: number | null
   pinType: PinType
+  /** Garden of the pin being edited (for world-map edit callout). */
+  community?: PinCommunity | null
   title: string
   description: string
   tags: string[]
@@ -38,6 +40,7 @@ export default function PinComposer({
   csrfToken,
   pinId,
   pinType,
+  community = null,
   title,
   description,
   tags,
@@ -66,6 +69,7 @@ export default function PinComposer({
       pinType={pinType}
       csrfToken={csrfToken}
       pinId={pinId}
+      community={community}
       title={title}
       setTitle={(t) => dispatch({ type: "set_title", title: t })}
       description={description}
