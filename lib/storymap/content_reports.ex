@@ -10,12 +10,15 @@ defmodule Storymap.ContentReports do
   import Ecto.Query
   import Storymap.Admin, only: [is_admin_level: 1]
 
+  alias Storymap.Accounts
   alias Storymap.Accounts.Scope
   alias Storymap.Accounts.User
   alias Storymap.AdminActivity
   alias Storymap.AdminPubSub
   alias Storymap.ContentReports.ContentReport
   alias Storymap.Pins
+  alias Storymap.Pins.Authorizer
+  alias Storymap.Pins.AuthorizerOpts
   alias Storymap.Pins.Comments
   alias Storymap.Pins.Pin
   alias Storymap.Pins.PinComment
@@ -34,16 +37,21 @@ defmodule Storymap.ContentReports do
 
   @doc """
   Creates a report for an existing pin or pin comment. Notifies admins via AdminPubSub.
+
+  Subject pins must be showable to the reporter (same rules as pin show). Pass
+  `skip_visibility: true` for trusted system callers (e.g. auto-moderation).
   """
-  @spec create_report(create_attrs() | keyword(), integer() | nil) ::
+  @spec create_report(create_attrs() | keyword(), integer() | nil, keyword()) ::
           Types.ecto_result(ContentReport.t()) | create_error()
-  def create_report(attrs, reporter_user_id \\ nil)
+  def create_report(attrs, reporter_user_id \\ nil, opts \\ [])
       when is_map(attrs) or is_list(attrs) do
     attrs = for {k, v} <- Enum.into(attrs, %{}), into: %{}, do: {to_string(k), v}
+    viewer = resolve_viewer(reporter_user_id, opts)
 
     with {:ok, subject_type, subject_id} <- fetch_subject(attrs),
          :ok <- ensure_subject_type(subject_type),
-         {:ok, attrs, activity_metadata} <- resolve_subject(subject_type, subject_id, attrs) do
+         {:ok, attrs, activity_metadata} <-
+           resolve_subject(subject_type, subject_id, attrs, viewer) do
       ContentReport.create_changeset(attrs, reporter_user_id: reporter_user_id)
       |> Repo.insert()
       |> case do
@@ -86,56 +94,84 @@ defmodule Storymap.ContentReports do
 
   def report_pin_id(_), do: nil
 
-  @spec resolve_subject(String.t(), integer(), create_attrs()) :: resolve_result()
-  defp resolve_subject("pin", pin_id, attrs) do
+  @spec resolve_viewer(integer() | nil, keyword()) :: User.t() | nil | :system
+  defp resolve_viewer(reporter_user_id, opts) do
+    cond do
+      Keyword.get(opts, :skip_visibility, false) ->
+        :system
+
+      match?(%User{}, Keyword.get(opts, :viewer)) ->
+        Keyword.fetch!(opts, :viewer)
+
+      is_integer(reporter_user_id) ->
+        Accounts.get_user(reporter_user_id)
+
+      true ->
+        nil
+    end
+  end
+
+  @spec authorize_report_pin(User.t() | nil | :system, Pin.t()) :: :ok | {:error, :not_found}
+  defp authorize_report_pin(:system, %Pin{}), do: :ok
+
+  defp authorize_report_pin(viewer, %Pin{} = pin) do
+    opts = AuthorizerOpts.for_pin(viewer, pin)
+    Authorizer.authorize_show(viewer, pin, opts)
+  end
+
+  @spec resolve_subject(String.t(), integer(), create_attrs(), User.t() | nil | :system) ::
+          resolve_result()
+  defp resolve_subject("pin", pin_id, attrs, viewer) do
     case Pins.get_pin(pin_id) do
       %Pin{} = pin ->
-        attrs =
-          attrs
-          |> Map.put("subject_label", pin.title)
-          |> Map.put("subject_type", "pin")
-          |> Map.put("subject_id", pin_id)
-          |> Map.put("sub_map_id", pin.sub_map_id)
+        with :ok <- authorize_report_pin(viewer, pin) do
+          attrs =
+            attrs
+            |> Map.put("subject_label", pin.title)
+            |> Map.put("subject_type", "pin")
+            |> Map.put("subject_id", pin_id)
+            |> Map.put("sub_map_id", pin.sub_map_id)
 
-        activity = %{
-          "pin_id" => pin.id,
-          "category" => Map.get(attrs, "category"),
-          "title" => pin.title
-        }
+          activity = %{
+            "pin_id" => pin.id,
+            "category" => Map.get(attrs, "category"),
+            "title" => pin.title
+          }
 
-        {:ok, attrs, activity}
+          {:ok, attrs, activity}
+        end
 
       nil ->
         {:error, :not_found}
     end
   end
 
-  defp resolve_subject("pin_comment", comment_id, attrs) do
+  defp resolve_subject("pin_comment", comment_id, attrs, viewer) do
     case Comments.get_comment(comment_id) do
-      %PinComment{deleted_at: nil} = comment ->
-        comment = Repo.preload(comment, :pin)
-
-        case comment.pin do
+      %PinComment{deleted_at: nil, pin_id: pin_id} = comment ->
+        case Pins.get_pin(pin_id) do
           %Pin{} = pin ->
-            attrs =
-              attrs
-              |> Map.put("subject_label", "Comment on «#{pin.title}»")
-              |> put_comment_report_details(comment.body)
-              |> Map.put("subject_type", "pin_comment")
-              |> Map.put("subject_id", comment_id)
-              |> Map.put("sub_map_id", pin.sub_map_id)
+            with :ok <- authorize_report_pin(viewer, pin) do
+              attrs =
+                attrs
+                |> Map.put("subject_label", "Comment on «#{pin.title}»")
+                |> put_comment_report_details(comment.body)
+                |> Map.put("subject_type", "pin_comment")
+                |> Map.put("subject_id", comment_id)
+                |> Map.put("sub_map_id", pin.sub_map_id)
 
-            activity = %{
-              "comment_id" => comment.id,
-              "comment_body" => comment.body,
-              "pin_id" => pin.id,
-              "category" => Map.get(attrs, "category"),
-              "title" => pin.title
-            }
+              activity = %{
+                "comment_id" => comment.id,
+                "comment_body" => comment.body,
+                "pin_id" => pin.id,
+                "category" => Map.get(attrs, "category"),
+                "title" => pin.title
+              }
 
-            {:ok, attrs, activity}
+              {:ok, attrs, activity}
+            end
 
-          _ ->
+          nil ->
             {:error, :not_found}
         end
 
@@ -147,7 +183,7 @@ defmodule Storymap.ContentReports do
     end
   end
 
-  defp resolve_subject(_, _, _), do: {:error, :not_found}
+  defp resolve_subject(_, _, _, _), do: {:error, :not_found}
 
   @spec fetch_subject(create_attrs()) ::
           {:ok, String.t(), integer()} | {:error, :invalid_subject}

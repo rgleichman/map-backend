@@ -168,6 +168,49 @@ defmodule Storymap.ContentReportsTest do
              )
   end
 
+  test "create_report returns not_found for non-visible pin (same as missing)" do
+    owner = user_fixture()
+    pin = pin_fixture(%{"title" => "Pending only"}, owner)
+    pin = Repo.update!(Ecto.Changeset.change(pin, %{status: :pending}))
+    stranger = user_fixture()
+
+    assert {:error, :not_found} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin",
+                 "subject_id" => pin.id,
+                 "category" => "inaccurate"
+               },
+               stranger.id
+             )
+
+    assert {:error, :not_found} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin",
+                 "subject_id" => pin.id,
+                 "category" => "inaccurate"
+               },
+               nil
+             )
+  end
+
+  test "create_report allows owner to report their own non-world-visible pin" do
+    owner = user_fixture()
+    pin = pin_fixture(%{"title" => "My pending pin"}, owner)
+    pin = Repo.update!(Ecto.Changeset.change(pin, %{status: :pending}))
+
+    assert {:ok, %ContentReport{}} =
+             ContentReports.create_report(
+               %{
+                 "subject_type" => "pin",
+                 "subject_id" => pin.id,
+                 "category" => "inaccurate"
+               },
+               owner.id
+             )
+  end
+
   test "report_pin_id resolves pin from pin and pin_comment reports" do
     pin = pin_fixture(%{"title" => "Target pin"})
     comment = pin_comment_fixture(%{}, pin)

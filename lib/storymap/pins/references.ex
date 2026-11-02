@@ -21,22 +21,30 @@ defmodule Storymap.Pins.References do
     text_refs = extract_text_references(pin)
     rows = build_reference_rows(source_id, explicit_ids, text_refs)
 
-    with :ok <- validate_reference_rows(pin, rows) do
-      _ =
-        from(r in PinReference, where: r.source_pin_id == ^source_id)
-        |> Repo.delete_all()
-
-      Enum.each(rows, fn row_attrs ->
-        %PinReference{}
-        |> PinReference.changeset(row_attrs)
-        |> Repo.insert!()
-      end)
-
+    with :ok <- validate_reference_rows(pin, rows),
+         :ok <- replace_reference_rows(source_id, rows) do
       {:ok, pin}
     end
   end
 
   def sync(%Pin{} = pin, _attrs), do: {:ok, pin}
+
+  @spec replace_reference_rows(integer(), [map()]) :: :ok | {:error, Ecto.Changeset.t()}
+  defp replace_reference_rows(source_id, rows) do
+    _ =
+      from(r in PinReference, where: r.source_pin_id == ^source_id)
+      |> Repo.delete_all()
+
+    Enum.reduce_while(rows, :ok, fn row_attrs, :ok ->
+      %PinReference{}
+      |> PinReference.changeset(row_attrs)
+      |> Repo.insert()
+      |> case do
+        {:ok, _} -> {:cont, :ok}
+        {:error, %Ecto.Changeset{} = changeset} -> {:halt, {:error, changeset}}
+      end
+    end)
+  end
 
   defp normalize_linked_pin_ids(ids) when is_list(ids) do
     ids
@@ -102,7 +110,8 @@ defmodule Storymap.Pins.References do
         refs
       end
 
-    refs ++ custom_text_field_refs(pin, origin)
+    (refs ++ custom_text_field_refs(pin, origin))
+    |> Enum.uniq_by(fn {target_id, _} -> target_id end)
   end
 
   defp field_text_refs(text, source_field, origin) do

@@ -49,7 +49,8 @@ defmodule StorymapWeb.UserSocket do
             {:ok, assign(socket, :user_id, user_id)}
 
           {:error, _reason} ->
-            :error
+            # Invalid/expired tokens must not block anonymous channels (e.g. map:world).
+            {:ok, socket}
         end
     end
   end

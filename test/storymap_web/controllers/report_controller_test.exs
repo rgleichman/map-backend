@@ -51,6 +51,19 @@ defmodule StorymapWeb.ReportControllerTest do
       assert json_response(conn, 404)
     end
 
+    test "returns 404 when pin is not visible (same as not found)", %{conn: conn} do
+      owner = Storymap.AccountsFixtures.user_fixture()
+      pin = pin_fixture(%{"latitude" => 41.88, "longitude" => -87.63}, owner)
+
+      pin =
+        Storymap.Repo.update!(Ecto.Changeset.change(pin, %{status: :pending}))
+
+      attrs = Map.put(@report_attrs, :subject_id, pin.id)
+      conn = post(conn, ~p"/api/reports", report: attrs)
+      assert json_response(conn, 404)
+      refute Storymap.Repo.get_by(Storymap.ContentReports.ContentReport, subject_id: pin.id)
+    end
+
     test "creates report for pin_comment", %{conn: conn, pin: pin} do
       comment = pin_comment_fixture(%{"body" => "Bad comment"}, pin)
 

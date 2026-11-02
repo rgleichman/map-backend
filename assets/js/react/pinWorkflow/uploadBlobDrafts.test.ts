@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { Pin } from "../types"
 import { BlobFieldType } from "../utils/blobFieldType"
-import { uploadBlobDrafts } from "./uploadBlobDrafts"
+import { MISSING_BLOB_REF_ERROR, uploadBlobDrafts } from "./uploadBlobDrafts"
 
 const upsertSpy = vi.fn()
 
@@ -77,5 +77,44 @@ describe("uploadBlobDrafts", () => {
       { id: "ad_hoc_song", label: "Jam", type: BlobFieldType.Music, value: { ref: 101 } },
       { id: "ad_hoc_draw", label: "Sketch", type: BlobFieldType.Drawing, value: { ref: 202 } },
     ])
+  })
+
+  it("uploads schema field drafts into custom_data", async () => {
+    upsertSpy.mockResolvedValueOnce({ ref: 55 })
+
+    const result = await uploadBlobDrafts(
+      "csrf",
+      pin(),
+      { song: { type: BlobFieldType.Music, payload: "tempo=90" } },
+      {}
+    )
+
+    expect(result.custom_data).toEqual({ song: { ref: 55 } })
+  })
+
+  it("throws when a schema field upsert returns no ref", async () => {
+    upsertSpy.mockResolvedValueOnce(undefined)
+
+    await expect(
+      uploadBlobDrafts(
+        "csrf",
+        pin(),
+        { song: { type: BlobFieldType.Music, payload: "tempo=90" } },
+        {}
+      )
+    ).rejects.toThrow(MISSING_BLOB_REF_ERROR)
+  })
+
+  it("throws when an ad-hoc field upsert returns no ref", async () => {
+    upsertSpy.mockResolvedValueOnce(undefined)
+
+    await expect(
+      uploadBlobDrafts(
+        "csrf",
+        pin(),
+        {},
+        { ad_hoc_song: { type: BlobFieldType.Music, payload: "tempo=120" } }
+      )
+    ).rejects.toThrow(MISSING_BLOB_REF_ERROR)
   })
 })

@@ -97,7 +97,8 @@ defmodule Storymap.Pins.Comments do
             "category" => "abusive_or_hateful",
             "details" => "Automatically held by hate speech filter."
           },
-          nil
+          nil,
+          skip_visibility: true
         )
 
       comment
