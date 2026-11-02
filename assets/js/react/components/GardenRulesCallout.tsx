@@ -22,15 +22,14 @@ export default function GardenRulesCallout({ className, community = null }: Prop
   const [aboutOpen, setAboutOpen] = useState(false)
 
   useEffect(() => {
-    if (contextSubMap != null) {
-      setFetchedSubMap(null)
-      return
-    }
+    setFetchedSubMap(null)
+    setExpanded(false)
+    setAboutOpen(false)
+
+    if (contextSubMap != null) return
+
     const url = community?.community_url
-    if (!url) {
-      setFetchedSubMap(null)
-      return
-    }
+    if (!url) return
 
     let cancelled = false
     api

@@ -153,6 +153,7 @@ export default function PinFlowUI({
       )}
       {showComposer && composerProps && (
         <PinComposer
+          key={composerProps.pinId ?? "add"}
           locationAlreadySetFromPlacement={locationAlreadySetFromPlacement}
           {...composerProps}
         />
