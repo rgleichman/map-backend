@@ -112,12 +112,31 @@ Fetching a blob (`GET`) currently requires the same permission as updating the p
 
 ### Composing on a pin
 
-1. Place a pin using that custom type and **save the pin first** (music API needs `pin_id`).
-2. Edit the pin → the music field shows a **16-step sequencer** (8 notes, tempo, preview, undo, clear).
-3. **Save** uploads the payload and stores `{ "ref": id }` in `custom_data`.
+1. Place a pin using that custom type. Compose music/drawing in the form (stored client-side as drafts until Save).
+2. **Save** sends pin attrs plus nested `field_blobs` in one request. The server writes the pin, upserts blobs, and stores `{ "ref": id }` in `custom_data` / ad-hoc fields in a single transaction, then broadcasts the complete pin.
+3. On later edit, the music field shows a **16-step sequencer** (8 notes, tempo, preview, undo, clear). Saving the pin again can include updated `field_blobs`, or the field editor can upsert via the dedicated music/drawing endpoints (those also broadcast `:updated`).
 4. **Remove** deletes the blob and clears the reference.
 
 On edit, if a reference already exists, the score loads automatically.
+
+### Nested `field_blobs` on pin create/update
+
+```json
+{
+  "pin": {
+    "title": "Jam spot",
+    "pin_type": "song-pin",
+    "latitude": 30.0,
+    "longitude": -97.0,
+    "tags": [],
+    "field_blobs": [
+      { "field_key": "song", "type": "music", "payload": "..." }
+    ]
+  }
+}
+```
+
+Required music/drawing schema fields must be satisfied by a nested blob on create, or by an existing ref (and/or nested blob) on update.
 
 ### Playing in a popup
 
@@ -129,7 +148,7 @@ Pin popups show **Play** for music fields with a saved reference. The client fet
 |------|------|
 | Blob schema | `lib/storymap/pins/pin_field_blob.ex` |
 | Context (upsert/delete/get) | `lib/storymap/pins.ex` |
-| API controller | `lib/storymap_web/controllers/pin_music_field_controller.ex` |
+| API controller | `lib/storymap_web/controllers/pin_field_blob_controller.ex` |
 | Field type in schema validator | `lib/storymap/pin_types/schema.ex`, `validator.ex` |
 | Score parse/serialize | `assets/js/react/utils/musicScore.ts` |
 | Sequencer UI | `assets/js/react/components/music/` |
@@ -137,7 +156,7 @@ Pin popups show **Play** for music fields with a saved reference. The client fet
 
 ## Limits and validation
 
-- Payload max size: **262,144 bytes** (app + DB constraint).
+- Payload max size: **1,048,576 bytes** (app + DB constraint).
 - `custom_data` max size: **16,384 bytes** (unchanged; music refs are tiny).
 - Music field values in `custom_data` must be a positive integer id or `%{"ref" => id}`.
 - No external audio URLs or file uploads — in-app composition only.

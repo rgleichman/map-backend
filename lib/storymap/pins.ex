@@ -180,6 +180,7 @@ defmodule Storymap.Pins do
   def create_pin(attrs, user_id, opts \\ []) do
     attrs_with_user = Map.put(stringify_keys(attrs), "user_id", user_id)
     sub_map = Keyword.get(opts, :sub_map)
+    {field_blobs, attrs_with_user} = pop_field_blobs(attrs_with_user)
 
     tags = Map.get(attrs_with_user, "tags", [])
 
@@ -196,14 +197,17 @@ defmodule Storymap.Pins do
                  |> maybe_put_privileged_create_fields(sub_map, attrs_with_user)
                  |> validate_custom_pin_data(pin_type)
                  |> normalize_schedule(pin_type)
-                 |> maybe_validate_sub_map_rules(sub_map, attrs_with_user, pin_type)
+                 |> maybe_validate_sub_map_rules(sub_map, attrs_with_user, pin_type, nil)
                  |> Ecto.Changeset.put_assoc(:tags, tag_structs)
                  |> maybe_hold_flagged_content()
                  |> Repo.insert(),
-               {:ok, pin} <- References.sync(pin, attrs_with_user) do
+               {:ok, pin} <- References.sync(pin, attrs_with_user),
+               {:ok, pin} <- apply_field_blobs(pin, field_blobs),
+               {:ok, pin} <- scrub_invalid_blob_refs(pin, pin_type),
+               :ok <- ensure_required_blob_fields(pin, pin_type) do
             preload_pin_associations(pin)
           else
-            {:error, %Ecto.Changeset{} = changeset} -> Repo.rollback(changeset)
+            {:error, reason} -> Repo.rollback(blob_error_changeset(reason))
           end
         end)
         |> normalize_transaction_result()
@@ -224,35 +228,44 @@ defmodule Storymap.Pins do
       |> stringify_keys()
       |> then(&Visibility.sanitize_attrs_visible_on_world_map(&1, sub_map, pin, user, membership))
 
-    tags = Map.get(attrs, "tags", [])
+    {field_blobs, attrs} = pop_field_blobs(attrs)
+    tags_provided? = Map.has_key?(attrs, "tags")
     {pin_type, type_error} = resolve_pin_type_for(pin, attrs)
     attrs = put_pin_type_id(attrs, pin_type)
 
-    case Storymap.Tags.get_or_create_tags_by_names(tags) do
-      {:ok, tag_structs} ->
-        Repo.transaction(fn ->
-          with {:ok, pin} <-
-                 pin
-                 |> Pin.changeset(attrs)
-                 |> maybe_add_pin_type_error(type_error)
-                 |> maybe_put_visible_on_world_map(attrs)
-                 |> maybe_resubmit_rejected_pin(pin, sub_map, user)
-                 |> validate_custom_pin_data(pin_type)
-                 |> normalize_schedule(pin_type)
-                 |> maybe_validate_sub_map_rules(sub_map, attrs, pin_type)
-                 |> Ecto.Changeset.put_assoc(:tags, tag_structs)
-                 |> maybe_hold_flagged_content()
-                 |> Repo.update(),
-               {:ok, pin} <- References.sync(pin, attrs) do
-            preload_pin_associations(pin)
-          else
-            {:error, %Ecto.Changeset{} = changeset} -> Repo.rollback(changeset)
-          end
-        end)
-        |> normalize_transaction_result()
+    with {:ok, tag_structs} <- resolve_tags_for_update(attrs, tags_provided?) do
+      Repo.transaction(fn ->
+        changeset =
+          pin
+          |> Pin.changeset(attrs)
+          |> maybe_add_pin_type_error(type_error)
+          |> maybe_put_visible_on_world_map(attrs)
+          |> maybe_resubmit_rejected_pin(pin, sub_map, user)
+          |> validate_custom_pin_data(pin_type)
+          |> normalize_schedule(pin_type)
+          |> maybe_validate_sub_map_rules(sub_map, attrs, pin_type, pin)
 
-      {:error, changeset} ->
-        {:error, changeset}
+        changeset =
+          if tags_provided? do
+            Ecto.Changeset.put_assoc(changeset, :tags, tag_structs)
+          else
+            changeset
+          end
+
+        with {:ok, pin} <-
+               changeset
+               |> maybe_hold_flagged_content()
+               |> Repo.update(),
+             {:ok, pin} <- References.sync(pin, attrs),
+             {:ok, pin} <- apply_field_blobs(pin, field_blobs),
+             {:ok, pin} <- scrub_invalid_blob_refs(pin, pin_type),
+             :ok <- ensure_required_blob_fields(pin, pin_type) do
+          preload_pin_associations(pin)
+        else
+          {:error, reason} -> Repo.rollback(blob_error_changeset(reason))
+        end
+      end)
+      |> normalize_transaction_result()
     end
   end
 
@@ -287,6 +300,25 @@ defmodule Storymap.Pins do
           Types.ecto_ok(blob_upsert_result()) | Types.ecto_err() | blob_error()
   def upsert_field_blob(%Pin{} = pin, field_key, type, attrs)
       when is_binary(field_key) and type in @blob_field_types and is_map(attrs) do
+    Repo.transaction(fn ->
+      case upsert_field_blob_in_txn(pin, field_key, type, attrs) do
+        {:ok, result} -> result
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+      {:error, :invalid_blob_field} -> {:error, :invalid_blob_field}
+      {:error, :required_blob_field} -> {:error, :required_blob_field}
+    end
+  end
+
+  @doc false
+  @spec upsert_field_blob_in_txn(Pin.t(), String.t(), PinFieldBlob.blob_type(), map()) ::
+          Types.ecto_ok(blob_upsert_result()) | Types.ecto_err() | blob_error()
+  def upsert_field_blob_in_txn(%Pin{} = pin, field_key, type, attrs)
+      when is_binary(field_key) and type in @blob_field_types and is_map(attrs) do
     with {:ok, target} <- resolve_blob_field(pin, field_key, type) do
       format = BlobFieldType.default_format(type)
       version = Map.get(attrs, "version") || Map.get(attrs, :version) || 1
@@ -303,29 +335,27 @@ defmodule Storymap.Pins do
           payload: payload
         })
 
-      Repo.transaction(fn ->
-        {:ok, blob} =
-          Repo.insert(
-            changeset,
-            on_conflict: [
-              set: [
-                format: format,
-                version: version,
-                payload: payload,
-                updated_at: DateTime.utc_now(:second)
-              ]
-            ],
-            conflict_target: [:pin_id, :field_key, :type],
-            returning: true
-          )
+      case Repo.insert(
+             changeset,
+             on_conflict: [
+               set: [
+                 format: format,
+                 version: version,
+                 payload: payload,
+                 updated_at: DateTime.utc_now(:second)
+               ]
+             ],
+             conflict_target: [:pin_id, :field_key, :type],
+             returning: true
+           ) do
+        {:ok, blob} ->
+          case put_blob_ref(pin, target, field_key, blob.id) do
+            {:ok, pin} -> {:ok, %{pin: pin, blob: blob}}
+            {:error, %Ecto.Changeset{} = cs} -> {:error, cs}
+          end
 
-        {:ok, pin} = put_blob_ref(pin, target, field_key, blob.id)
-
-        %{pin: pin, blob: blob}
-      end)
-      |> case do
-        {:ok, result} -> {:ok, result}
-        {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+        {:error, %Ecto.Changeset{} = cs} ->
+          {:error, cs}
       end
     end
   end
@@ -348,8 +378,10 @@ defmodule Storymap.Pins do
           )
           |> Repo.delete_all()
 
-        {:ok, pin} = clear_blob_ref(pin, target, field_key)
-        pin
+        case clear_blob_ref(pin, target, field_key) do
+          {:ok, pin} -> pin
+          {:error, reason} -> Repo.rollback(reason)
+        end
       end)
       |> case do
         {:ok, pin} -> {:ok, pin}
@@ -485,9 +517,9 @@ defmodule Storymap.Pins do
 
   defp maybe_add_pin_type_error(changeset, _error), do: changeset
 
-  defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs, pin_type) do
+  defp maybe_validate_sub_map_rules(changeset, %SubMap{} = sub_map, attrs, pin_type, pin) do
     settings = PinTypeSettings.normalize_settings(sub_map.settings || %{})
-    tag_names = Map.get(attrs, "tags", [])
+    tag_names = tag_names_for_validation(pin, attrs)
 
     changeset
     |> validate_pin_type_allowed(sub_map, pin_type)
@@ -495,8 +527,188 @@ defmodule Storymap.Pins do
     |> validate_description_required(settings)
   end
 
-  defp maybe_validate_sub_map_rules(changeset, nil, _attrs, pin_type) do
+  defp maybe_validate_sub_map_rules(changeset, nil, _attrs, pin_type, _pin) do
     validate_world_pin_type_allowed(changeset, pin_type)
+  end
+
+  @spec tag_names_for_validation(Pin.t() | nil, map()) :: [String.t()]
+  defp tag_names_for_validation(_pin, attrs) when is_map_key(attrs, "tags") do
+    attrs |> Map.get("tags", []) |> List.wrap()
+  end
+
+  defp tag_names_for_validation(%Pin{} = pin, _attrs) do
+    pin
+    |> ensure_tags_preloaded()
+    |> Map.get(:tags, [])
+    |> Enum.map(& &1.name)
+  end
+
+  defp tag_names_for_validation(nil, _attrs), do: []
+
+  @spec ensure_tags_preloaded(Pin.t()) :: Pin.t()
+  defp ensure_tags_preloaded(%Pin{tags: %Ecto.Association.NotLoaded{}} = pin),
+    do: Repo.preload(pin, :tags)
+
+  defp ensure_tags_preloaded(%Pin{} = pin), do: pin
+
+  @spec resolve_tags_for_update(map(), boolean()) ::
+          {:ok, [Storymap.Tags.Tag.t()] | nil} | {:error, Ecto.Changeset.t()}
+  defp resolve_tags_for_update(_attrs, false), do: {:ok, nil}
+
+  defp resolve_tags_for_update(attrs, true) do
+    Storymap.Tags.get_or_create_tags_by_names(Map.get(attrs, "tags", []))
+  end
+
+  @spec pop_field_blobs(map()) :: {[map()], map()}
+  defp pop_field_blobs(attrs) when is_map(attrs) do
+    {blobs, attrs} = Map.pop(attrs, "field_blobs", [])
+    {normalize_field_blobs(blobs), attrs}
+  end
+
+  @spec normalize_field_blobs(term()) :: [map()]
+  defp normalize_field_blobs(blobs) when is_list(blobs) do
+    Enum.map(blobs, fn
+      %{} = blob -> stringify_keys(blob)
+      _ -> %{}
+    end)
+  end
+
+  defp normalize_field_blobs(_), do: []
+
+  @spec apply_field_blobs(Pin.t(), [map()]) ::
+          Types.ecto_ok(Pin.t()) | Types.ecto_err() | blob_error()
+  defp apply_field_blobs(%Pin{} = pin, []), do: {:ok, pin}
+
+  defp apply_field_blobs(%Pin{} = pin, blobs) when is_list(blobs) do
+    Enum.reduce_while(blobs, {:ok, pin}, fn blob, {:ok, acc_pin} ->
+      field_key = Map.get(blob, "field_key")
+      type = parse_blob_type(Map.get(blob, "type"))
+
+      cond do
+        not is_binary(field_key) or field_key == "" ->
+          {:halt, {:error, blob_attr_error("field_key is required")}}
+
+        type == nil ->
+          {:halt, {:error, blob_attr_error("type is invalid")}}
+
+        true ->
+          case upsert_field_blob_in_txn(acc_pin, field_key, type, blob) do
+            {:ok, %{pin: next_pin}} -> {:cont, {:ok, next_pin}}
+            {:error, reason} -> {:halt, {:error, reason}}
+          end
+      end
+    end)
+  end
+
+  @spec parse_blob_type(term()) :: PinFieldBlob.blob_type() | nil
+  defp parse_blob_type(type) when type in @blob_field_types, do: type
+
+  defp parse_blob_type(type) when is_binary(type) do
+    if type in Enum.map(@blob_field_types, &to_string/1) do
+      String.to_existing_atom(type)
+    else
+      nil
+    end
+  end
+
+  defp parse_blob_type(_), do: nil
+
+  @spec ensure_required_blob_fields(Pin.t(), PinType.t() | nil) ::
+          :ok | {:error, Ecto.Changeset.t()}
+  defp ensure_required_blob_fields(%Pin{} = pin, %PinType{} = pin_type) do
+    missing =
+      PinTypeSchema.fields(pin_type.schema)
+      |> Enum.filter(&required_blob_field?/1)
+      |> Enum.reject(fn field -> blob_row_present?(pin, field) end)
+      |> Enum.map(&field_label/1)
+
+    if missing == [] do
+      :ok
+    else
+      {:error,
+       %Pin{}
+       |> Ecto.Changeset.change()
+       |> add_error(:custom_data, "missing required fields: #{Enum.join(missing, ", ")}")}
+    end
+  end
+
+  defp ensure_required_blob_fields(_pin, _pin_type), do: :ok
+
+  @doc false
+  @spec scrub_invalid_blob_refs(Pin.t(), PinType.t() | nil) :: Types.ecto_result(Pin.t())
+  defp scrub_invalid_blob_refs(%Pin{} = pin, %PinType{} = pin_type) do
+    blob_fields =
+      PinTypeSchema.fields(pin_type.schema)
+      |> Enum.filter(&BlobFieldType.blob_field?(field_type(&1)))
+
+    custom_data = pin.custom_data || %{}
+
+    cleaned =
+      Enum.reduce(blob_fields, custom_data, fn field, data ->
+        key = field_key(field)
+
+        cond do
+          not is_binary(key) ->
+            data
+
+          blob_row_present?(pin, field) ->
+            data
+
+          Map.has_key?(data, key) ->
+            Map.delete(data, key)
+
+          true ->
+            data
+        end
+      end)
+
+    if cleaned == custom_data do
+      {:ok, pin}
+    else
+      update_pin_fields(pin, %{"custom_data" => cleaned})
+    end
+  end
+
+  defp scrub_invalid_blob_refs(%Pin{} = pin, _pin_type), do: {:ok, pin}
+
+  defp required_blob_field?(field) do
+    required_field?(field) and BlobFieldType.blob_field?(field_type(field))
+  end
+
+  defp field_label(field) do
+    Map.get(field, "label") || Map.get(field, :label) || field_key(field) || "field"
+  end
+
+  @spec blob_row_present?(Pin.t(), map()) :: boolean()
+  defp blob_row_present?(%Pin{id: pin_id}, field) when is_integer(pin_id) do
+    key = field_key(field)
+    type = parse_blob_type(field_type(field))
+    is_binary(key) and type != nil and get_field_blob(pin_id, key, type) != nil
+  end
+
+  defp blob_row_present?(_pin, _field), do: false
+
+  @spec blob_error_changeset(term()) :: Ecto.Changeset.t()
+  defp blob_error_changeset(%Ecto.Changeset{} = changeset), do: changeset
+
+  defp blob_error_changeset(:invalid_blob_field) do
+    blob_attr_error("is not a valid blob field for this pin")
+  end
+
+  defp blob_error_changeset(:required_blob_field) do
+    blob_attr_error("cannot delete required field")
+  end
+
+  defp blob_error_changeset(other) when is_atom(other) do
+    blob_attr_error(to_string(other))
+  end
+
+  defp blob_error_changeset(_), do: blob_attr_error("is invalid")
+
+  defp blob_attr_error(message) do
+    %Pin{}
+    |> Ecto.Changeset.change()
+    |> add_error(:field_blobs, message)
   end
 
   defp validate_custom_pin_data(changeset, %PinType{enabled: true} = pin_type) do
@@ -660,7 +872,9 @@ defmodule Storymap.Pins do
     texts = ContentFilter.extract_pin_texts(changeset)
 
     if ContentFilter.flagged_texts?(texts) do
-      Ecto.Changeset.put_change(changeset, :status, :pending)
+      changeset
+      |> Ecto.Changeset.put_change(:status, :pending)
+      |> Ecto.Changeset.put_change(:held_for_moderation, true)
     else
       changeset
     end

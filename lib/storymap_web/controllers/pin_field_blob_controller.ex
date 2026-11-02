@@ -4,6 +4,7 @@ defmodule StorymapWeb.PinFieldBlobController do
   alias Storymap.Pins
   alias Storymap.Pins.{Authorizer, AuthorizerOpts}
   alias StorymapWeb.ConnAuth
+  alias StorymapWeb.PinBroadcast
 
   action_fallback StorymapWeb.FallbackController
 
@@ -47,6 +48,7 @@ defmodule StorymapWeb.PinFieldBlobController do
            {:ok, %{pin: pin}} <-
              Pins.upsert_field_blob(pin, field_key, type, field_blob_params(params)) do
         pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+        PinBroadcast.broadcast_pin_event(pin, :updated)
 
         conn
         |> put_view(StorymapWeb.PinJSON)
@@ -83,6 +85,7 @@ defmodule StorymapWeb.PinFieldBlobController do
       with :ok <- Authorizer.authorize_update(current_user, pin, opts),
            {:ok, pin} <- Pins.delete_field_blob(pin, field_key, type) do
         pin = Storymap.Repo.preload(pin, [:tags, :sub_map])
+        PinBroadcast.broadcast_pin_event(pin, :updated)
 
         conn
         |> put_view(StorymapWeb.PinJSON)

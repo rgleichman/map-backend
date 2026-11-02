@@ -1,6 +1,8 @@
 defmodule Storymap.PinsTest do
   use Storymap.DataCase, async: true
 
+  import Ecto.Query
+
   alias Storymap.Pins
 
   import Storymap.PinsFixtures
@@ -148,6 +150,7 @@ defmodule Storymap.PinsTest do
 
       assert {:ok, %Pin{} = pin} = Pins.create_pin(attrs, user.id)
       assert pin.status == :pending
+      assert pin.held_for_moderation == true
     end
 
     test "update_pin/2 holds flagged description as pending" do
@@ -158,6 +161,67 @@ defmodule Storymap.PinsTest do
                Pins.update_pin(pin, %{"description" => "please avoid zzhatephrase"})
 
       assert updated.status == :pending
+      assert updated.held_for_moderation == true
+    end
+
+    test "create_pin rejects forged required blob refs without a blob row" do
+      user = user_fixture()
+
+      pin_type =
+        pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+              ]
+            }
+          },
+          user
+        )
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Pins.create_pin(
+                 %{
+                   "title" => "Forged ref",
+                   "latitude" => 1.0,
+                   "longitude" => 2.0,
+                   "pin_type_id" => pin_type.id,
+                   "custom_data" => %{"song" => %{"ref" => 9_999_999}}
+                 },
+                 user.id
+               )
+
+      assert "missing required fields: Song" in errors_on(changeset).custom_data
+    end
+
+    test "create_pin scrubs forged optional blob refs from custom_data" do
+      user = user_fixture()
+
+      pin_type =
+        pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{"key" => "song", "label" => "Song", "type" => "music", "required" => false}
+              ]
+            }
+          },
+          user
+        )
+
+      assert {:ok, pin} =
+               Pins.create_pin(
+                 %{
+                   "title" => "Optional forged",
+                   "latitude" => 1.0,
+                   "longitude" => 2.0,
+                   "pin_type_id" => pin_type.id,
+                   "custom_data" => %{"song" => %{"ref" => 9_999_999}}
+                 },
+                 user.id
+               )
+
+      refute Map.has_key?(pin.custom_data, "song")
     end
 
     test "update_pin/2 with valid data updates the pin" do
@@ -168,6 +232,193 @@ defmodule Storymap.PinsTest do
       assert pin.title == "some updated title"
       assert pin.latitude == 456.7
       assert pin.longitude == 456.7
+    end
+
+    test "update_pin/2 without tags or linked_pin_ids preserves associations" do
+      user = user_fixture()
+      target = pin_fixture(%{"title" => "Target"}, user)
+
+      {:ok, pin} =
+        Pins.create_pin(
+          %{
+            "title" => "Source",
+            "latitude" => 1.0,
+            "longitude" => 2.0,
+            "pin_type" => "one_time",
+            "tags" => ["keep-me"],
+            "linked_pin_ids" => [target.id]
+          },
+          user.id
+        )
+
+      assert Enum.map(pin.tags, & &1.name) == ["keep-me"]
+
+      assert {:ok, updated} =
+               Pins.update_pin(pin, %{"title" => "Renamed only"})
+
+      assert updated.title == "Renamed only"
+      assert Enum.map(updated.tags, & &1.name) == ["keep-me"]
+
+      refs =
+        Storymap.Repo.all(
+          from r in Storymap.Pins.PinReference,
+            where: r.source_pin_id == ^updated.id and r.kind == :explicit
+        )
+
+      assert Enum.map(refs, & &1.target_pin_id) == [target.id]
+    end
+
+    test "update_pin/2 with empty tags and linked_pin_ids clears associations" do
+      user = user_fixture()
+      target = pin_fixture(%{"title" => "Target"}, user)
+
+      {:ok, pin} =
+        Pins.create_pin(
+          %{
+            "title" => "Source",
+            "latitude" => 1.0,
+            "longitude" => 2.0,
+            "pin_type" => "one_time",
+            "tags" => ["gone"],
+            "linked_pin_ids" => [target.id]
+          },
+          user.id
+        )
+
+      assert {:ok, updated} =
+               Pins.update_pin(pin, %{
+                 "title" => "Cleared",
+                 "tags" => [],
+                 "linked_pin_ids" => []
+               })
+
+      assert updated.tags == []
+
+      refs =
+        Storymap.Repo.all(
+          from r in Storymap.Pins.PinReference, where: r.source_pin_id == ^updated.id
+        )
+
+      assert refs == []
+    end
+
+    test "update_pin/3 title-only preserves required tags on community pin" do
+      owner = user_fixture()
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "community_url" => "preserve-tags",
+            "settings" => %{"required_tags" => ["bbq"]}
+          },
+          owner
+        )
+
+      pin_type = simple_pin_type_fixture(%{}, owner)
+      :ok = Storymap.SubMaps.PinTypeSettings.replace_enabled_pin_types(sub_map, [pin_type.id])
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(
+          %Scope{user: owner},
+          sub_map,
+          %{
+            "title" => "Spot",
+            "latitude" => 30.0,
+            "longitude" => -97.0,
+            "pin_type_id" => pin_type.id,
+            "tags" => ["bbq"]
+          }
+        )
+
+      assert {:ok, updated} =
+               Pins.update_pin(pin, %{"title" => "Renamed"}, sub_map: sub_map)
+
+      assert updated.title == "Renamed"
+      assert "bbq" in Enum.map(updated.tags, & &1.name)
+    end
+
+    test "create_pin applies field_blobs atomically and stores refs" do
+      user = user_fixture()
+
+      pin_type =
+        pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+              ]
+            }
+          },
+          user
+        )
+
+      assert {:ok, pin} =
+               Pins.create_pin(
+                 %{
+                   "title" => "With song",
+                   "latitude" => 1.0,
+                   "longitude" => 2.0,
+                   "pin_type_id" => pin_type.id,
+                   "field_blobs" => [
+                     %{"field_key" => "song", "type" => "music", "payload" => "tempo=100"}
+                   ]
+                 },
+                 user.id
+               )
+
+      assert %{"ref" => ref} = pin.custom_data["song"]
+      assert is_integer(ref)
+      assert Pins.get_field_blob(pin.id, "song", :music).payload == "tempo=100"
+    end
+
+    test "create_pin rolls back when field_blobs are invalid" do
+      user = user_fixture()
+      pin_type = simple_pin_type_fixture(%{}, user)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Pins.create_pin(
+                 %{
+                   "title" => "No blob field",
+                   "latitude" => 1.0,
+                   "longitude" => 2.0,
+                   "pin_type_id" => pin_type.id,
+                   "field_blobs" => [
+                     %{"field_key" => "song", "type" => "music", "payload" => "tempo=100"}
+                   ]
+                 },
+                 user.id
+               )
+
+      assert Pins.list_pins() == []
+    end
+
+    test "create_pin requires nested blob for required music fields" do
+      user = user_fixture()
+
+      pin_type =
+        pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+              ]
+            }
+          },
+          user
+        )
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Pins.create_pin(
+                 %{
+                   "title" => "Missing song",
+                   "latitude" => 1.0,
+                   "longitude" => 2.0,
+                   "pin_type_id" => pin_type.id
+                 },
+                 user.id
+               )
+
+      assert "missing required fields: Song" in errors_on(changeset).custom_data
     end
 
     test "update_pin/2 with invalid data returns error changeset" do

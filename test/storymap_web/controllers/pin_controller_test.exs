@@ -399,6 +399,51 @@ defmodule StorymapWeb.PinControllerTest do
       assert pin.status == :approved
       assert pin.visible_on_world_map == true
     end
+
+    test "creates pin with nested field_blobs and returns refs", %{conn: conn, user: user} do
+      import Storymap.PinTypesFixtures
+
+      pin_type =
+        pin_type_fixture(
+          %{
+            "schema" => %{
+              "fields" => [
+                %{"key" => "song", "label" => "Song", "type" => "music", "required" => true}
+              ]
+            }
+          },
+          user
+        )
+
+      conn =
+        post(conn, ~p"/api/pins",
+          pin: %{
+            title: "Jam",
+            latitude: 30.0,
+            longitude: -97.0,
+            pin_type_id: pin_type.id,
+            tags: [],
+            field_blobs: [
+              %{field_key: "song", type: "music", payload: "tempo=120"}
+            ]
+          }
+        )
+
+      data = json_response(conn, 201)["data"]
+      assert %{"ref" => ref} = data["custom_data"]["song"]
+      assert is_integer(ref)
+    end
+
+    test "returns held_for_moderation when content filter holds a pin", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/pins",
+          pin: Map.put(@create_attrs, :title, "contains zzhatephrase here")
+        )
+
+      data = json_response(conn, 201)["data"]
+      assert data["status"] == "pending"
+      assert data["held_for_moderation"] == true
+    end
   end
 
   describe "update pin" do
@@ -416,6 +461,29 @@ defmodule StorymapWeb.PinControllerTest do
                "longitude" => 456.7,
                "title" => "some updated title"
              } = json_response(conn, 200)["data"]
+    end
+
+    test "omitting tags and linked_pin_ids preserves them", %{conn: conn, user: user} do
+      target = pin_fixture(%{"title" => "Target"}, user)
+
+      {:ok, pin} =
+        Storymap.Pins.create_pin(
+          %{
+            "title" => "Tagged",
+            "latitude" => 1.0,
+            "longitude" => 2.0,
+            "pin_type" => "one_time",
+            "tags" => ["keep"],
+            "linked_pin_ids" => [target.id]
+          },
+          user.id
+        )
+
+      conn = put(conn, ~p"/api/pins/#{pin}", pin: @update_attrs)
+      data = json_response(conn, 200)["data"]
+      assert "keep" in data["tags"]
+      assert [%{"pin_id" => target_id}] = data["linked_pins"]
+      assert target_id == target.id
     end
 
     test "records pin_updated admin activity event with diff", %{conn: conn, pin: pin} do

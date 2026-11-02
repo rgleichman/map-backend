@@ -79,4 +79,28 @@ defmodule Storymap.Pins.ReferencesTest do
 
     assert errors_on(changeset).linked_pin_ids != []
   end
+
+  test "sync without linked_pin_ids keeps explicit links and refreshes text refs" do
+    user = user_fixture()
+    explicit_target = pin_fixture(%{"title" => "Explicit"}, user)
+    text_target = pin_fixture(%{"title" => "Textual"}, user)
+    source = pin_fixture(%{"title" => "Source"}, user)
+
+    assert {:ok, _} = References.sync(source, %{"linked_pin_ids" => [explicit_target.id]})
+
+    origin = Storymap.Pins.ReferenceParser.default_origin()
+    link = "#{origin}/map?pin=#{text_target.id}"
+
+    assert {:ok, updated} =
+             Pins.update_pin(source, %{
+               "description" => "See #{link}"
+             })
+
+    refs =
+      Repo.all(from(r in PinReference, where: r.source_pin_id == ^updated.id))
+      |> Enum.sort_by(& &1.kind)
+
+    assert Enum.any?(refs, &(&1.kind == :explicit and &1.target_pin_id == explicit_target.id))
+    assert Enum.any?(refs, &(&1.kind == :text and &1.target_pin_id == text_target.id))
+  end
 end

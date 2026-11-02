@@ -156,8 +156,6 @@ describe("validateAndBuildSavePayload", () => {
     expect(result).toEqual({
       mode: "edit",
       pinId: 42,
-      blobDrafts: {},
-      adHocBlobDrafts: {},
       changes: expect.objectContaining({
         title: "Updated",
         latitude: 41,
@@ -167,7 +165,7 @@ describe("validateAndBuildSavePayload", () => {
     })
   })
 
-  it("strips ad-hoc music and drawing drafts into adHocBlobDrafts", () => {
+  it("strips ad-hoc music and drawing drafts into field_blobs", () => {
     const musicPayload = JSON.stringify({
       version: 1,
       tempo: 100,
@@ -207,10 +205,10 @@ describe("validateAndBuildSavePayload", () => {
         { id: "ad_hoc_song", label: "Jam", type: BlobFieldType.Music },
         { id: "ad_hoc_draw", label: "Sketch", type: BlobFieldType.Drawing },
       ])
-      expect(result.adHocBlobDrafts).toEqual({
-        ad_hoc_song: { type: BlobFieldType.Music, payload: musicPayload },
-        ad_hoc_draw: { type: BlobFieldType.Drawing, payload: drawingPayload },
-      })
+      expect(result.payload.field_blobs).toEqual([
+        { field_key: "ad_hoc_song", type: BlobFieldType.Music, payload: musicPayload },
+        { field_key: "ad_hoc_draw", type: BlobFieldType.Drawing, payload: drawingPayload },
+      ])
     } else {
       throw new Error("expected add payload")
     }
@@ -255,7 +253,9 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("changes" in result) {
       expect(result.changes.custom_data).toEqual({})
-      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+      expect(result.changes.field_blobs).toEqual([
+        { field_key: "song", type: BlobFieldType.Music, payload: draftPayload },
+      ])
     } else {
       throw new Error("expected edit payload")
     }
@@ -296,7 +296,9 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+      expect(result.payload.field_blobs).toEqual([
+        { field_key: "song", type: BlobFieldType.Music, payload: draftPayload },
+      ])
     } else {
       throw new Error("expected add payload")
     }
@@ -325,7 +327,9 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.blobDrafts).toEqual({ song: { type: BlobFieldType.Music, payload: draftPayload } })
+      expect(result.payload.field_blobs).toEqual([
+        { field_key: "song", type: BlobFieldType.Music, payload: draftPayload },
+      ])
     } else {
       throw new Error("expected add payload")
     }
@@ -349,7 +353,9 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.blobDrafts).toEqual({ sketch: { type: BlobFieldType.Drawing, payload: draftPayload } })
+      expect(result.payload.field_blobs).toEqual([
+        { field_key: "sketch", type: BlobFieldType.Drawing, payload: draftPayload },
+      ])
     } else {
       throw new Error("expected add payload")
     }
@@ -385,7 +391,9 @@ describe("validateAndBuildSavePayload", () => {
     )
     if ("payload" in result) {
       expect(result.payload.custom_data).toEqual({})
-      expect(result.blobDrafts).toEqual({ sketch: { type: BlobFieldType.Drawing, payload: draftPayload } })
+      expect(result.payload.field_blobs).toEqual([
+        { field_key: "sketch", type: BlobFieldType.Drawing, payload: draftPayload },
+      ])
     } else {
       throw new Error("expected add payload")
     }

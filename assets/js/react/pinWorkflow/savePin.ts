@@ -1,4 +1,4 @@
-import type { CatalogPinType, NewPin, PinType, UpdatePin } from "../types"
+import type { CatalogPinType, FieldBlobInput, NewPin, PinType, UpdatePin } from "../types"
 import { findPinType, schemaFields } from "../utils/customPinTypes"
 import { validateCustomFields } from "../utils/customFieldValue"
 import {
@@ -21,20 +21,33 @@ export type SavePinValidationError =
   | { kind: "time"; message: string }
   | { kind: "form"; message: string }
 
-/** Blob payloads uploaded after the pin exists, keyed by field key / ad-hoc field id. */
-export type SavePinBlobDrafts = {
-  blobDrafts: Record<string, BlobFieldDraftEntry>
-  adHocBlobDrafts: Record<string, BlobFieldDraftEntry>
-}
-
-export type SavePinAddPayload = { mode: "add"; payload: NewPin } & SavePinBlobDrafts
+export type SavePinAddPayload = { mode: "add"; payload: NewPin }
 export type SavePinEditPayload = {
   mode: "edit"
   pinId: number
   changes: UpdatePin
-} & SavePinBlobDrafts
+}
 
 export type SavePinResult = SavePinAddPayload | SavePinEditPayload
+
+/** Build nested `field_blobs` from stripped draft maps for atomic pin create/update. */
+export function fieldBlobsFromDrafts(
+  blobDrafts: Record<string, BlobFieldDraftEntry>,
+  adHocBlobDrafts: Record<string, BlobFieldDraftEntry> = {}
+): FieldBlobInput[] {
+  return [
+    ...Object.entries(blobDrafts).map(([field_key, { type, payload }]) => ({
+      field_key,
+      type,
+      payload,
+    })),
+    ...Object.entries(adHocBlobDrafts).map(([field_key, { type, payload }]) => ({
+      field_key,
+      type,
+      payload,
+    })),
+  ]
+}
 
 export function validateAndBuildSavePayload(
   modal: NonNullable<Extract<ModalState, { mode: "add" } | { mode: "edit" }>>,
@@ -99,6 +112,8 @@ export function validateAndBuildSavePayload(
   const { cleaned: cleanedAdHocFields, drafts: adHocBlobDrafts } = stripAdHocBlobDrafts(
     pruneEmptyAdHocFields(adHocFields)
   )
+  const field_blobs = fieldBlobsFromDrafts(blobDrafts, adHocBlobDrafts)
+  const fieldBlobsProp = field_blobs.length > 0 ? { field_blobs } : {}
 
   if (modal.mode === "add") {
     const loc = addLocation ?? { lat: modal.lat, lng: modal.lng }
@@ -116,9 +131,10 @@ export function validateAndBuildSavePayload(
       ...timeFields,
       custom_data: cleanedCustomData,
       ad_hoc_fields: cleanedAdHocFields,
+      ...fieldBlobsProp,
       ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
     }
-    return { mode: "add", payload, blobDrafts, adHocBlobDrafts }
+    return { mode: "add", payload }
   }
 
   const lat = editLocation?.lat ?? modal.pin.latitude
@@ -131,9 +147,10 @@ export function validateAndBuildSavePayload(
     ...timeFields,
     custom_data: cleanedCustomData,
     ad_hoc_fields: cleanedAdHocFields,
+    ...fieldBlobsProp,
     latitude: lat,
     longitude: lng,
     ...(showPromoteToWorld ? { visible_on_world_map: visibleOnWorldMap } : {}),
   }
-  return { mode: "edit", pinId: modal.pin.id, changes, blobDrafts, adHocBlobDrafts }
+  return { mode: "edit", pinId: modal.pin.id, changes }
 }

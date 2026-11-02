@@ -48,6 +48,7 @@ defmodule StorymapWeb.PinJSON do
       :start_time -> {:start_time, pin.start_time && JSONDateTime.to_iso_local(pin.start_time)}
       :end_time -> {:end_time, pin.end_time && JSONDateTime.to_iso_local(pin.end_time)}
       :status -> {:status, to_string(pin.status)}
+      :held_for_moderation -> {:held_for_moderation, pin.held_for_moderation == true}
       key -> {key, Map.get(pin, key)}
     end)
     |> Map.new()

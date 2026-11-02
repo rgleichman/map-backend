@@ -80,6 +80,24 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
       assert json_response(conn, 200)["data"]["payload"] == "tempo=140"
     end
 
+    test "broadcasts marker_updated after blob upsert", %{conn: conn, user: user} do
+      pin = music_pin_fixture(user)
+      :ok = StorymapWeb.Endpoint.subscribe("map:world")
+
+      post(conn, ~p"/api/pins/#{pin.id}/music_fields/song",
+        music_field: %{payload: @payload, format: "music/v1", version: 1}
+      )
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: "map:world",
+        event: "marker_updated",
+        payload: %{pin: pin_data}
+      }
+
+      assert pin_data.id == pin.id
+      assert %{"ref" => _} = pin_data.custom_data["song"]
+    end
+
     test "rejects blob upsert on non-custom pin type", %{conn: conn, user: user} do
       pin = pin_fixture(%{"pin_type" => "one_time"}, user)
 
@@ -250,7 +268,10 @@ defmodule StorymapWeb.PinMusicFieldControllerTest do
     pin_fixture(
       %{
         "pin_type" => "#{pin_type.slug}",
-        "custom_data" => %{"status" => "working"}
+        "custom_data" => %{"status" => "working"},
+        "field_blobs" => [
+          %{"field_key" => "song", "type" => "music", "payload" => @payload}
+        ]
       },
       user
     )

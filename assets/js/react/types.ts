@@ -113,6 +113,8 @@ export type Pin = {
   /** True when the authenticated viewer created this pin (not merely can edit). */
   created_by_me?: boolean
   status: PinStatus
+  /** True when this response held the pin for content-filter moderation. */
+  held_for_moderation?: boolean
   visible_on_world_map?: boolean
   community?: PinCommunity | null
   tags: string[]
@@ -145,6 +147,15 @@ export type PinComment = {
   replies?: PinComment[]
 }
 
+/** Nested blob payload applied atomically with pin create/update. */
+export type FieldBlobInput = {
+  field_key: string
+  type: "music" | "drawing"
+  payload: string
+  format?: string
+  version?: number
+}
+
 export type NewPin = {
   title: string
   /** Catalog slug. */
@@ -158,6 +169,8 @@ export type NewPin = {
   custom_data?: Record<string, unknown>
   /** Author-defined extra fields, in display order. */
   ad_hoc_fields?: AdHocField[]
+  /** Blob payloads upserted in the same request as the pin write. */
+  field_blobs?: FieldBlobInput[]
   /** ISO datetime-local string (no timezone suffix). */
   start_time?: string
   /** ISO datetime-local string (no timezone suffix). */
@@ -177,6 +190,8 @@ export type UpdatePin = {
   tags: string[]
   custom_data?: Record<string, unknown>
   ad_hoc_fields?: AdHocField[]
+  /** Blob payloads upserted in the same request as the pin write. */
+  field_blobs?: FieldBlobInput[]
   start_time?: string | null
   end_time?: string | null
   schedule_rrule?: string | null

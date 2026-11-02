@@ -5,10 +5,8 @@ import { initialPinWorkflowState, pinWorkflowReducer } from "../pinWorkflow/redu
 import {
   validateAndBuildSavePayload,
   type SavePinAddPayload,
-  type SavePinBlobDrafts,
   type SavePinEditPayload,
 } from "../pinWorkflow/savePin"
-import { uploadBlobDrafts } from "../pinWorkflow/uploadBlobDrafts"
 import { parseApiErrorMessage } from "../utils/apiErrors"
 import { isPinNearDeviceLocation } from "../utils/nearUserLocation"
 import { PinStatusValue } from "../utils/pinStatus"
@@ -36,17 +34,6 @@ type Params = {
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
   setApiError: (error: string | null) => void
   setInfoMessage?: (message: string | null) => void
-}
-
-function uploadPinBlobDrafts(
-  csrfToken: string | undefined,
-  pin: Pin,
-  drafts: SavePinBlobDrafts
-): Promise<Pin> {
-  const hasDrafts =
-    Object.keys(drafts.blobDrafts).length > 0 || Object.keys(drafts.adHocBlobDrafts).length > 0
-  if (!hasDrafts) return Promise.resolve(pin)
-  return uploadBlobDrafts(csrfToken, pin, drafts.blobDrafts, drafts.adHocBlobDrafts)
 }
 
 export function usePinWorkflow({
@@ -202,9 +189,12 @@ export function usePinWorkflow({
           const { data: pinData } = communityUrl
             ? await api.createSubMapPin(csrfToken, communityUrl, result.payload)
             : await api.createPin(csrfToken, result.payload)
-          const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, pinData, result)
-          updateOrAddPin(pinWithBlobs)
-          if (pinWithBlobs.status === PinStatusValue.Pending) {
+          updateOrAddPin(pinData)
+          if (pinData.held_for_moderation) {
+            setInfoMessage?.(
+              "Submitted — held for moderation because the content matched a safety filter"
+            )
+          } else if (pinData.status === PinStatusValue.Pending) {
             setInfoMessage?.(
               communityUrl
                 ? "Submitted — awaiting community approval"
@@ -215,9 +205,13 @@ export function usePinWorkflow({
           setPendingNearLocationSave(null)
         } else {
           const { data } = await api.updatePin(csrfToken, result.pinId, result.changes)
-          const pinWithBlobs = await uploadPinBlobDrafts(csrfToken, data, result)
-          updateOrAddPin(pinWithBlobs)
-          dispatch({ type: "after_edit_saved", pin: pinWithBlobs })
+          updateOrAddPin(data)
+          if (data.held_for_moderation) {
+            setInfoMessage?.(
+              "Saved — held for moderation because the content matched a safety filter"
+            )
+          }
+          dispatch({ type: "after_edit_saved", pin: data })
         }
       } catch (err) {
         const raw = err instanceof Error ? err.message : ""

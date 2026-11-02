@@ -17,7 +17,15 @@ defmodule Storymap.Pins.References do
 
   @spec sync(Pin.t(), map()) :: Types.ecto_result(Pin.t())
   def sync(%Pin{id: source_id} = pin, attrs) when is_integer(source_id) do
-    explicit_ids = normalize_linked_pin_ids(Map.get(attrs, "linked_pin_ids", []))
+    # Presence-keyed: omit `linked_pin_ids` → keep existing explicit links.
+    # Key present (including []) → replace explicit set. Text refs always refresh.
+    explicit_ids =
+      if Map.has_key?(attrs, "linked_pin_ids") do
+        normalize_linked_pin_ids(Map.get(attrs, "linked_pin_ids"))
+      else
+        existing_explicit_target_ids(source_id)
+      end
+
     text_refs = extract_text_references(pin)
     rows = build_reference_rows(source_id, explicit_ids, text_refs)
 
@@ -28,6 +36,16 @@ defmodule Storymap.Pins.References do
   end
 
   def sync(%Pin{} = pin, _attrs), do: {:ok, pin}
+
+  @spec existing_explicit_target_ids(integer()) :: [integer()]
+  defp existing_explicit_target_ids(source_id) do
+    from(r in PinReference,
+      where: r.source_pin_id == ^source_id and r.kind == :explicit,
+      order_by: [asc: r.position],
+      select: r.target_pin_id
+    )
+    |> Repo.all()
+  end
 
   @spec replace_reference_rows(integer(), [map()]) :: :ok | {:error, Ecto.Changeset.t()}
   defp replace_reference_rows(source_id, rows) do

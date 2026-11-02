@@ -29,6 +29,7 @@ defmodule Storymap.Pins.Pin do
     :ad_hoc_fields,
     :status,
     :visible_on_world_map,
+    :held_for_moderation,
     :inserted_at,
     :updated_at
   ]
@@ -55,6 +56,7 @@ defmodule Storymap.Pins.Pin do
           schedule_timezone: String.t() | nil,
           custom_data: map(),
           ad_hoc_fields: [map()],
+          held_for_moderation: boolean(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -83,6 +85,8 @@ defmodule Storymap.Pins.Pin do
     field :schedule_timezone, :string
     field :custom_data, :map, default: %{}
     field :ad_hoc_fields, {:array, :map}, default: []
+    # Set when content filter holds a pin as pending (not persisted).
+    field :held_for_moderation, :boolean, virtual: true, default: false
     many_to_many :tags, Storymap.Tags.Tag, join_through: "pin_tags", on_replace: :delete
 
     has_many :outgoing_references, Storymap.Pins.PinReference, foreign_key: :source_pin_id
