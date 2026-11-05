@@ -19,7 +19,7 @@ defmodule StorymapWeb.PinTypeLive.New do
         {:ok,
          socket
          |> assign(:page_title, GardenCopy.create_plant_type())
-         |> assign(:fields, [Form.empty_field()])
+         |> assign(:fields, [])
          |> assign(:field_errors, %{})
          |> assign_form(%{})}
 

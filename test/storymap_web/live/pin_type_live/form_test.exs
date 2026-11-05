@@ -125,9 +125,8 @@ defmodule StorymapWeb.PinTypeLive.FormTest do
   end
 
   describe "fields_from_schema/1" do
-    test "returns empty field row for empty schema" do
-      assert [field] = Form.fields_from_schema(%{"fields" => []})
-      assert field == Form.empty_field()
+    test "returns empty list for empty schema" do
+      assert Form.fields_from_schema(%{"fields" => []}) == []
     end
 
     test "maps schema fields including select options" do

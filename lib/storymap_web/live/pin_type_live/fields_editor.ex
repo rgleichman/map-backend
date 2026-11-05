@@ -164,6 +164,10 @@ defmodule StorymapWeb.PinTypeLive.FieldsEditor do
         </p>
       </div>
 
+      <%= if @fields == [] do %>
+        <p class="text-sm text-base-content/60">No fields yet</p>
+      <% end %>
+
       <%= for {field, index} <- Enum.with_index(@fields) do %>
         <% field_error = Map.get(@field_errors, to_string(index), []) %>
         <% field_type = field["type"] || "text" %>

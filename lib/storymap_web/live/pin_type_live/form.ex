@@ -88,10 +88,6 @@ defmodule StorymapWeb.PinTypeLive.Form do
     schema
     |> Schema.fields()
     |> Enum.map(&field_to_form/1)
-    |> case do
-      [] -> [empty_field()]
-      fields -> fields
-    end
   end
 
   @spec maybe_add_schema_field_error(Ecto.Changeset.t(), field_errors()) :: Ecto.Changeset.t()
