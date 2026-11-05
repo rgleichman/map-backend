@@ -413,22 +413,22 @@ defmodule Storymap.Pins do
   end
 
   defp put_blob_ref(%Pin{} = pin, :custom_data, field_key, blob_id) do
-    custom_data = Map.put(pin.custom_data || %{}, field_key, %{"ref" => blob_id})
+    custom_data = Map.put(pin.custom_data, field_key, %{"ref" => blob_id})
     update_pin_fields(pin, %{"custom_data" => custom_data})
   end
 
   defp put_blob_ref(%Pin{} = pin, :ad_hoc, field_key, blob_id) do
-    fields = AdHocFields.put_blob_ref(pin.ad_hoc_fields || [], field_key, blob_id)
+    fields = AdHocFields.put_blob_ref(pin.ad_hoc_fields, field_key, blob_id)
     update_pin_fields(pin, %{"ad_hoc_fields" => fields})
   end
 
   defp clear_blob_ref(%Pin{} = pin, :custom_data, field_key) do
-    custom_data = Map.delete(pin.custom_data || %{}, field_key)
+    custom_data = Map.delete(pin.custom_data, field_key)
     update_pin_fields(pin, %{"custom_data" => custom_data})
   end
 
   defp clear_blob_ref(%Pin{} = pin, :ad_hoc, field_key) do
-    fields = AdHocFields.clear_blob_ref(pin.ad_hoc_fields || [], field_key)
+    fields = AdHocFields.clear_blob_ref(pin.ad_hoc_fields, field_key)
     update_pin_fields(pin, %{"ad_hoc_fields" => fields})
   end
 
@@ -641,7 +641,7 @@ defmodule Storymap.Pins do
       PinTypeSchema.fields(pin_type.schema)
       |> Enum.filter(&BlobFieldType.blob_field?(field_type(&1)))
 
-    custom_data = pin.custom_data || %{}
+    custom_data = pin.custom_data
 
     cleaned =
       Enum.reduce(blob_fields, custom_data, fn field, data ->
