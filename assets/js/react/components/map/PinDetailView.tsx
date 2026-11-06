@@ -3,11 +3,13 @@ import { getPinBacklinks } from "../../api/client"
 import type { Pin, PinLink } from "../../types"
 import LinkifiedText from "../LinkifiedText"
 import PinLinkChips from "../PinLinkChips"
+import PinTypeBadge from "../PinTypeBadge"
 import { CustomFieldDisplay, PinIdProvider } from "../CustomPinFields"
 import { isCustomFieldEmpty } from "../../utils/customFieldValue"
 import { adHocFieldSchema, isAdHocFieldEmpty } from "../../utils/adHocFields"
 import { usePinTypes } from "../../context/PinTypesContext"
 import { findPinType, schemaFields } from "../../utils/customPinTypes"
+import { getPinTypeLabel } from "../../utils/pinTypeIcons"
 import { communityUrlFromTag, pinMapUrl } from "../../utils/pinMapUrl"
 import { buildOpenInMapsUrl, formatDateTime, rruleToHumanReadable } from "../../utils/popupFormatters"
 import PinReportDialog from "./PinReportDialog"
@@ -140,6 +142,15 @@ export default function PinDetailView({
         {onClose ? (
           <CloseButton aria-label={GardenCopy.closePlantDetails} onClick={onClose} className="shrink-0" />
         ) : null}
+      </div>
+      <div className="mt-1 flex min-w-0 items-center gap-2">
+        <span className="text-sm font-medium text-base-content/70 shrink-0">
+          {GardenCopy.plantType}
+        </span>
+        <PinTypeBadge pinType={pin.pin_type} catalog={catalog} />
+        <span className="text-sm font-medium truncate">
+          {getPinTypeLabel(pin.pin_type, catalog)}
+        </span>
       </div>
       {showPinStatusBadge(pin.status) ? (
         <span className={`badge badge-sm mt-1 ${pinStatusBadgeClass(pin.status)}`}>
