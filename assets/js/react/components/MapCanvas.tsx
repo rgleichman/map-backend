@@ -404,12 +404,21 @@ export default function MapCanvas({
         center: [0, 0],
         zoom: 2,
         maxZoom: 20,
+        pitch: 0,
+        bearing: 0,
+        maxPitch: 0,
+        dragRotate: false,
+        pitchWithRotate: false,
+        touchPitch: false,
         renderWorldCopies: false,
         refreshExpiredTiles: false,
         fadeDuration: 50,
         // performance optimization
         validateStyle: false,
+        rollEnabled: false,
       })
+      map.touchZoomRotate.disableRotation()
+      map.keyboard.disableRotation()
       const geolocateControl = new maplibregl.GeolocateControl({
         positionOptions: GEOLOCATE_POSITION_OPTIONS,
         trackUserLocation: false,
