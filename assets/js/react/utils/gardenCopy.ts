@@ -113,9 +113,18 @@ export const GardenCopy = {
   couldntFindThatPlant: "Couldn't find that plant.",
   dramaticallyLeaveYourPlotBehind: "Dramatically leave your plot behind",
   scheduledPlants: "About to bloom",
+  newlyPlanted: "Newly planted",
+  newSinceVisit: "New",
+  minimizeRail: "Minimize",
+  showRail: "Show",
 } as const
 
 export type GardenCopyKey = keyof typeof GardenCopy
+
+/** Accessible name for collapsing or expanding a map discovery list. */
+export function discoveryRailToggleLabel(title: string, minimized: boolean): string {
+  return `${minimized ? GardenCopy.showRail : GardenCopy.minimizeRail} ${title}`
+}
 
 /** Hint when a map URL pin id is ready to link. */
 export function pressEnterToLinkPlant(pinId: number): string {

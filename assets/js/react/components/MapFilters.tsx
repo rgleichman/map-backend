@@ -110,6 +110,9 @@ type Props = {
   showSavedFilter?: boolean
   pinHeartsLoading?: boolean
   savedFilterEmptyOnMap?: boolean
+  /** Match the desktop pin-panel width when the editor is open. */
+  fillWidth?: boolean
+  onExpandedChange?: (expanded: boolean) => void
 }
 
 export default function MapFilters({
@@ -122,6 +125,8 @@ export default function MapFilters({
   showSavedFilter = false,
   pinHeartsLoading = false,
   savedFilterEmptyOnMap = false,
+  fillWidth = false,
+  onExpandedChange,
 }: Props) {
   const { catalog } = usePinTypes()
   const tags = deriveMapTags(pins)
@@ -149,6 +154,8 @@ export default function MapFilters({
       compact={false}
       maxHeight={position === "inline" ? mapShellFiltersMaxHeight() : undefined}
       panelClassName="sm:min-w-xs"
+      fillWidth={fillWidth}
+      onExpandedChange={onExpandedChange}
       renderCustomTrigger={({ open, expanded, panelId }) => (
         <div
           className={[

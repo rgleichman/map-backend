@@ -153,6 +153,18 @@ export const DESKTOP_MAP_RIGHT_RESERVE_PX =
   DESKTOP_PIN_PANEL_MAX_WIDTH_PX + DESKTOP_PIN_PANEL_INSET_PX
 
 /**
+ * Desktop discovery column (filters + idle rails). Same right edge and width as
+ * the floating pin panel so opening a pin swaps content in place.
+ */
+export function desktopDiscoveryColumnBox(): { right: string; width: string } {
+  const right = `max(${DESKTOP_PIN_PANEL_INSET}, env(safe-area-inset-right))`
+  return {
+    right,
+    width: `min(${DESKTOP_PIN_PANEL_MAX_WIDTH}, calc(100% - ${right}))`,
+  }
+}
+
+/**
  * MapLibre right padding for the permanent desktop rail column.
  * Caps at viewport width when narrower than the reserve.
  */

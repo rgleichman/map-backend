@@ -5,10 +5,18 @@ import type { SetCommunityScopeOptions } from "../mapRoute"
 
 export type NavigateToPin = (pinId: number, pins: Pin[]) => Promise<Pin | null>
 
+/** Zoom used when a list or search result should bring a pin into view. */
+export const PIN_FOCUS_ZOOM = 13
+
 /** One-shot request to open/focus a pin (boot, popstate, or in-app navigate). */
 export type PinFocusIntent = {
   pinId: number
   token: number
+  /**
+   * When set, fly at least this close. The current zoom is kept if it is
+   * already closer. Omitted requests keep the current zoom.
+   */
+  minZoom?: number
 }
 
 export type UseMapScopeParams = {

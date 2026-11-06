@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   DESKTOP_MAP_RIGHT_RESERVE_PX,
+  DESKTOP_PIN_PANEL_INSET,
+  DESKTOP_PIN_PANEL_MAX_WIDTH,
+  desktopDiscoveryColumnBox,
   desktopMapPadding,
   desktopMapPaddingRight,
 } from "./siteLayout"
@@ -18,6 +21,15 @@ describe("desktopMapPaddingRight", () => {
     expect(desktopMapPaddingRight(0)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
     expect(desktopMapPaddingRight(-10)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
     expect(desktopMapPaddingRight(Number.NaN)).toBe(DESKTOP_MAP_RIGHT_RESERVE_PX)
+  })
+})
+
+describe("desktopDiscoveryColumnBox", () => {
+  it("matches the pin panel inset and width", () => {
+    expect(desktopDiscoveryColumnBox()).toEqual({
+      right: `max(${DESKTOP_PIN_PANEL_INSET}, env(safe-area-inset-right))`,
+      width: `min(${DESKTOP_PIN_PANEL_MAX_WIDTH}, calc(100% - max(${DESKTOP_PIN_PANEL_INSET}, env(safe-area-inset-right))))`,
+    })
   })
 })
 

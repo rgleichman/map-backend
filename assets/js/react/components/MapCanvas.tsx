@@ -10,7 +10,7 @@ import {
 } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
 import { buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
-import type { PinFocusIntent } from "../hooks/mapHookTypes"
+import { PIN_FOCUS_ZOOM, type PinFocusIntent } from "../hooks/mapHookTypes"
 import { parsePinIdFromSearch } from "../mapRoute"
 import type { PlaceSuggestion } from "../utils/placeSearch"
 import {
@@ -54,13 +54,13 @@ import PinConnectionsToggle from "./PinConnectionsToggle"
 import MapSearch from "./MapSearch"
 import Button from "./ui/Button"
 import {
+  desktopDiscoveryColumnBox,
   desktopMapPadding,
   mapShellOverlayBottomAboveHelp,
   mapShellTopRightOverlayTop,
 } from "../utils/siteLayout"
 
 const GEOLOCATE_MAX_ZOOM = 12
-const PIN_FOCUS_ZOOM = 13
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
@@ -104,6 +104,8 @@ type Props = {
   mapBackgroundColor?: string
   /** Optional desktop rail below pollinator path / filters (e.g. timed pins in view). */
   topRightRail?: React.ReactNode
+  /** Filter editor opened or closed. Used to yield the discovery column. */
+  onFiltersExpandedChange?: (expanded: boolean) => void
 }
 
 export default function MapCanvas({
@@ -130,6 +132,7 @@ export default function MapCanvas({
   heartedPinIds = new Set(),
   pinHeartsLoading = false,
   topRightRail = null,
+  onFiltersExpandedChange,
   mapBackgroundColor,
 }: Props) {
   const { catalog } = usePinTypes()
@@ -268,10 +271,12 @@ export default function MapCanvas({
   )
 
   /** Fly to a pin, centering in the unobscured (left) map area on desktop. */
-  function flyToPin(map: MLMap, pin: Pin): void {
+  function flyToPin(map: MLMap, pin: Pin, minZoom?: number): void {
+    const zoom = minZoom == null ? undefined : Math.max(map.getZoom(), minZoom)
     map.flyTo({
       center: [pin.longitude, pin.latitude],
       padding: desktopMapPadding(map.getContainer().clientWidth, isDesktopRef.current),
+      ...(zoom != null ? { zoom } : {}),
     })
   }
 
@@ -733,9 +738,16 @@ export default function MapCanvas({
   // view (zoom 2) can overshoot maxZoom; the button path starts from a regional zoom.
   useEffect(() => {
     if (!mapReady || initialGeolocateTriggeredRef.current) return
-    // Landing on ?pin= or a pending camera request: never auto-geolocate this session.
-    if (cameraRequest != null || parsePinIdFromSearch() != null) {
+    // A shared pin link, or a camera request whose pin is on the map, owns the camera.
+    // A request for a missing pin is cleared below and must not skip geolocate for the session.
+    if (parsePinIdFromSearch() != null) {
       initialGeolocateTriggeredRef.current = true
+      return
+    }
+    if (cameraRequest != null) {
+      if (pinsRef.current.some((pin) => pin.id === cameraRequest.pinId)) {
+        initialGeolocateTriggeredRef.current = true
+      }
       return
     }
     const map = mapRef.current
@@ -929,11 +941,15 @@ export default function MapCanvas({
     if (lastCameraRequestTokenRef.current === cameraRequest.token) return
 
     const pin = pins.find((p) => p.id === cameraRequest.pinId)
-    if (!pin) return
+    if (!pin) {
+      lastCameraRequestTokenRef.current = cameraRequest.token
+      onCameraRequestConsumedRef.current?.()
+      return
+    }
 
     lastCameraRequestTokenRef.current = cameraRequest.token
     focusedPinIdRef.current = pin.id
-    flyToPin(map, pin)
+    flyToPin(map, pin, cameraRequest.minZoom)
     onCameraRequestConsumedRef.current?.()
   }, [cameraRequest, pins, mapReady])
 
@@ -966,7 +982,8 @@ export default function MapCanvas({
         <div
           data-map-chrome
           className={[
-            "absolute right-2 z-10 flex flex-col items-end gap-2 pointer-events-none",
+            "absolute z-10 flex flex-col gap-2 pointer-events-none",
+            isDesktop ? "items-stretch" : "right-2 items-end",
             searchActive && "max-sm:hidden",
           ]
             .filter(Boolean)
@@ -974,17 +991,31 @@ export default function MapCanvas({
           style={{
             top: mapShellTopRightOverlayTop(),
             bottom: mapShellOverlayBottomAboveHelp(),
+            ...(isDesktop ? desktopDiscoveryColumnBox() : {}),
           }}
         >
-          <div className="pointer-events-auto shrink-0">
+          <div className={["pointer-events-auto shrink-0", isDesktop && "self-end"].filter(Boolean).join(" ")}>
             <PinConnectionsToggle
               pressed={showConnections}
               onToggle={handleConnectionsToggle}
               globalCapped={showConnections && pinLinkBuildResult.globalCapped}
             />
           </div>
-          <div className="pointer-events-none min-h-0 flex-1 flex flex-col items-end gap-2 overflow-hidden">
-            <div className="pointer-events-none shrink-0 max-h-full overflow-hidden">
+          <div
+            className={[
+              "pointer-events-none min-h-0 flex-1 flex flex-col gap-2 overflow-hidden",
+              isDesktop ? "w-full items-stretch" : "items-end",
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "pointer-events-none overflow-hidden",
+                isDesktop && "w-full",
+                isDesktop && !topRightRail ? "min-h-0 flex-1" : "shrink-0 max-h-full",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <MapFilters
                 pins={pins}
                 filter={filter}
@@ -995,10 +1026,12 @@ export default function MapCanvas({
                 showSavedFilter={userId != null}
                 pinHeartsLoading={pinHeartsLoading}
                 savedFilterEmptyOnMap={savedFilterEmptyOnMap}
+                fillWidth={isDesktop}
+                onExpandedChange={onFiltersExpandedChange}
               />
             </div>
             {topRightRail ? (
-              <div className="pointer-events-auto shrink-0 max-h-full min-h-0 w-full flex justify-end">
+              <div className="pointer-events-none flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden">
                 {topRightRail}
               </div>
             ) : null}

@@ -4,6 +4,7 @@ import CommunityMapToolbar from "./components/CommunityMapToolbar"
 import MapShell from "./components/MapShell"
 import PinFlowUI from "./components/PinFlowUI"
 import PinTypeLegend from "./components/PinTypeLegend"
+import RecentPinsRail from "./components/RecentPinsRail"
 import TimedPinsRail from "./components/TimedPinsRail"
 import LoginRequiredModal from "./components/LoginRequiredModal"
 import WelcomeModal from "./components/WelcomeModal"
@@ -17,14 +18,16 @@ import { usePinHearts } from "./hooks/usePinHearts"
 import { useIsDesktop } from "./hooks/useMediaQuery"
 import { useMapScope } from "./hooks/useMapScope"
 import { useMapData } from "./hooks/useMapData"
-import type { PinFocusIntent } from "./hooks/mapHookTypes"
+import { PIN_FOCUS_ZOOM, type PinFocusIntent } from "./hooks/mapHookTypes"
 import type { PinType } from "./types"
 import type { PinWorkflowAction } from "./pinWorkflow/types"
-import { CLEARED_FILTER, isFilterCleared } from "./components/map/filters"
+import { CLEARED_FILTER, filterPins } from "./components/map/filters"
 import { canChooseWorldVisibility } from "./utils/subMapForm"
 import { mapPageFixedBottom } from "./utils/siteLayout"
 import { useContentOverlayOpen } from "./utils/contentOverlay"
 import { syncMapPinSearch } from "./mapRoute"
+import { takeLastVisitWatermark } from "./utils/mapLastVisit"
+import { listRecentPins } from "./utils/recentPins"
 import {
   listTimedPinsInView,
   type MapBounds,
@@ -152,18 +155,33 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const legendCloseRef = useRef<{ close(): void } | null>(null)
   const [cameraRequest, setCameraRequest] = useState<PinFocusIntent | null>(null)
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null)
+  const [filtersEditorOpen, setFiltersEditorOpen] = useState(false)
+  const [bloomMinimized, setBloomMinimized] = useState(false)
+  const [recentMinimized, setRecentMinimized] = useState(false)
   const lastAppliedFocusTokenRef = useRef(0)
   const lastHistoryCloseSeqRef = useRef(0)
+  const cameraTokenRef = useRef(1_000_000)
+
+  const mapScopeKey = communityUrl ?? "world"
+  const lastVisitWatermark = useMemo(
+    () => takeLastVisitWatermark(mapScopeKey),
+    [mapScopeKey],
+  )
 
   const timedPinsInView = useMemo(
     () => listTimedPinsInView(pins, mapBounds),
     [pins, mapBounds],
   )
-  const showTimedPinsRail =
-    isDesktop &&
-    !showDesktopPanel &&
-    placement == null &&
-    timedPinsInView.length > 0
+  const recentPins = useMemo(() => {
+    const matching = filterPins(pins, filter, pinTypes, heartedPinIds)
+    const excludeIds = new Set(timedPinsInView.map((pin) => pin.id))
+    return listRecentPins(matching, { excludeIds })
+  }, [pins, filter, pinTypes, heartedPinIds, timedPinsInView])
+
+  const showDiscoveryColumn =
+    isDesktop && !showDesktopPanel && placement == null && !filtersEditorOpen
+  const showTimedPinsRail = showDiscoveryColumn && timedPinsInView.length > 0
+  const showRecentPinsRail = showDiscoveryColumn && recentPins.length > 0
 
   const onMapBoundsChange = useCallback((bounds: MapBounds) => {
     setMapBounds(bounds)
@@ -210,6 +228,13 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
   const onOpenPin = useCallback((pinId: number) => {
     legendCloseRef.current?.close()
     onView(pinId)
+  }, [onView])
+
+  const onOpenListedPin = useCallback((pinId: number) => {
+    legendCloseRef.current?.close()
+    onView(pinId)
+    cameraTokenRef.current += 1
+    setCameraRequest({ pinId, token: cameraTokenRef.current, minZoom: PIN_FOCUS_ZOOM })
   }, [onView])
 
   useEffect(() => {
@@ -330,9 +355,30 @@ export default function App({ userId, userMuted = false, csrfToken, styleUrl = "
                   onNavigateToPin={handleNavigateToPin}
                   heartedPinIds={heartedPinIds}
                   pinHeartsLoading={pinHeartsLoading}
+                  onFiltersExpandedChange={setFiltersEditorOpen}
                   topRightRail={
-                    showTimedPinsRail ? (
-                      <TimedPinsRail pins={timedPinsInView} onOpenPin={onOpenPin} />
+                    showTimedPinsRail || showRecentPinsRail ? (
+                      <>
+                        {showTimedPinsRail ? (
+                          <TimedPinsRail
+                            pins={timedPinsInView}
+                            onOpenPin={onOpenListedPin}
+                            shareColumn={showRecentPinsRail && !recentMinimized}
+                            aboveCollapsedSibling={showRecentPinsRail && recentMinimized}
+                            minimized={bloomMinimized}
+                            onToggleMinimized={() => setBloomMinimized((current) => !current)}
+                          />
+                        ) : null}
+                        {showRecentPinsRail ? (
+                          <RecentPinsRail
+                            pins={recentPins}
+                            onOpenPin={onOpenListedPin}
+                            lastVisitWatermark={lastVisitWatermark}
+                            minimized={recentMinimized}
+                            onToggleMinimized={() => setRecentMinimized((current) => !current)}
+                          />
+                        ) : null}
+                      </>
                     ) : null
                   }
                 />

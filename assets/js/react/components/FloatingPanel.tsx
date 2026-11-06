@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useState } from "react"
+import React, { useCallback, useEffect, useId, useRef, useState } from "react"
 import { mapShellOverlayBottomAboveFooter, mapShellOverlayTop } from "../utils/siteLayout"
 import CloseButton from "./ui/CloseButton"
 
@@ -44,6 +44,10 @@ type Props = {
   maxHeight?: string
   /** Extra classes on the panel container (e.g. stable min-width on desktop). */
   panelClassName?: string
+  /** Stretch the panel to its parent width, capped at the desktop pin-panel width. */
+  fillWidth?: boolean
+  /** Fired when the panel opens or closes, including unmount. */
+  onExpandedChange?: (expanded: boolean) => void
 }
 
 export default function FloatingPanel({
@@ -66,18 +70,37 @@ export default function FloatingPanel({
   defaultExpanded = false,
   maxHeight,
   panelClassName,
+  fillWidth = false,
+  onExpandedChange,
 }: Props) {
   const panelId = useId()
   const [expanded, setExpanded] = useState(defaultExpanded)
-  const close = useCallback(() => setExpanded(false), [])
+  const onExpandedChangeRef = useRef(onExpandedChange)
+
+  useEffect(() => {
+    onExpandedChangeRef.current = onExpandedChange
+  }, [onExpandedChange])
+
+  const setExpandedState = useCallback((next: boolean) => {
+    setExpanded(next)
+    onExpandedChangeRef.current?.(next)
+  }, [])
+
+  const close = useCallback(() => setExpandedState(false), [setExpandedState])
+
+  useEffect(() => {
+    return () => {
+      onExpandedChangeRef.current?.(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!openRef) return
-    openRef.current = { open: () => setExpanded(true) }
+    openRef.current = { open: () => setExpandedState(true) }
     return () => {
       openRef.current = null
     }
-  }, [openRef])
+  }, [openRef, setExpandedState])
 
   useEffect(() => {
     if (!closeRef) return
@@ -134,13 +157,13 @@ export default function FloatingPanel({
             .join(" ")}
           style={triggerStyle}
         >
-          {renderCustomTrigger({ open: () => setExpanded(true), expanded, panelId })}
+          {renderCustomTrigger({ open: () => setExpandedState(true), expanded, panelId })}
         </div>
       )}
       {renderTrigger && showTrigger && !renderCustomTrigger && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => setExpandedState(true)}
           className={[
             "absolute z-10 flex items-center gap-2 bg-base-100 border border-base-300 rounded-full shadow-lg px-4 py-3 text-sm font-medium text-base-content hover:opacity-90 active:opacity-80 transition-opacity",
             alwaysVisibleOnDesktop && "sm:hidden",
@@ -160,12 +183,18 @@ export default function FloatingPanel({
         className={[
           isInline
             ? elevated
-              ? "relative z-20 rounded-lg border border-base-300 w-full sm:w-auto pointer-events-auto"
-              : "relative z-10 rounded-lg border border-base-300 w-full sm:w-auto pointer-events-auto"
+              ? "relative z-20 rounded-lg border border-base-300 pointer-events-auto"
+              : "relative z-10 rounded-lg border border-base-300 pointer-events-auto"
             : elevated
-              ? "absolute z-20 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto"
-              : "absolute z-10 rounded-lg border border-base-300 w-[calc(100vw-2rem)] sm:w-auto",
-          compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4 max-w-xs",
+              ? "absolute z-20 rounded-lg border border-base-300"
+              : "absolute z-10 rounded-lg border border-base-300",
+          fillWidth
+            ? "w-full max-w-md"
+            : isInline
+              ? "w-full sm:w-auto"
+              : "w-[calc(100vw-2rem)] sm:w-auto",
+          compact ? "bg-base-100/80 shadow-md p-3 max-w-[240px]" : "bg-base-100 shadow-lg p-4",
+          !compact && !fillWidth && "max-w-xs",
           expanded
             ? maxHeight
               ? "flex min-h-0 flex-col overflow-hidden"
