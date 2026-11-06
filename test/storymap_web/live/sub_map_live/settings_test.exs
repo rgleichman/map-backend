@@ -48,4 +48,27 @@ defmodule StorymapWeb.SubMapLive.SettingsTest do
 
     assert PinTypeSettings.enabled_pin_type_ids(sub_map) == [keep.id]
   end
+
+  test "owner confirms deletion and returns to the garden list", %{conn: conn, user: user} do
+    sub_map =
+      sub_map_fixture(%{"community_url" => "settings-delete", "name" => "Settings Delete"}, user)
+
+    {:ok, view, _html} = live(conn, ~p"/g/#{sub_map.community_url}/settings")
+
+    refute has_element?(view, "#delete-garden-modal")
+
+    view |> element("#delete-garden-btn") |> render_click()
+
+    assert has_element?(view, "#delete-garden-modal")
+    assert has_element?(view, "#delete-garden-modal", "every plant")
+
+    {:ok, _index, html} =
+      view
+      |> element("#confirm-delete-garden-btn")
+      |> render_click()
+      |> follow_redirect(conn, ~p"/g")
+
+    assert html =~ "Garden deleted"
+    refute Storymap.SubMaps.get_by_community_url("settings-delete")
+  end
 end

@@ -1,6 +1,7 @@
 defmodule StorymapWeb.SubMapController do
   use StorymapWeb, :controller
 
+  alias Storymap.AdminActivity
   alias Storymap.SubMaps
   alias StorymapWeb.{ConnAuth, PinBroadcast, PinJSON, Plugs.LoadSubMap}
 
@@ -16,7 +17,8 @@ defmodule StorymapWeb.SubMapController do
               :approve_pin,
               :reject_pin,
               :update,
-              :update_pin_type_settings
+              :update_pin_type_settings,
+              :delete
             ]
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -59,6 +61,22 @@ defmodule StorymapWeb.SubMapController do
     case SubMaps.update_sub_map(scope, sub_map, params) do
       {:ok, sub_map} -> render_show(conn, sub_map)
       other -> other
+    end
+  end
+
+  @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def delete(conn, _params) do
+    scope = conn.assigns.current_scope
+    sub_map = conn.assigns.sub_map
+
+    case SubMaps.delete_sub_map(scope, sub_map) do
+      {:ok, pins} ->
+        record_garden_deleted(scope, sub_map)
+        PinBroadcast.broadcast_deleted_pins(pins)
+        send_resp(conn, :no_content, "")
+
+      other ->
+        other
     end
   end
 
@@ -186,6 +204,18 @@ defmodule StorymapWeb.SubMapController do
       other ->
         other
     end
+  end
+
+  @spec record_garden_deleted(Storymap.Accounts.Scope.t(), Storymap.SubMaps.SubMap.t()) :: :ok
+  defp record_garden_deleted(scope, sub_map) do
+    _ =
+      AdminActivity.record_event(
+        "garden_deleted",
+        scope.user.id,
+        %{"name" => sub_map.name, "community_url" => sub_map.community_url}
+      )
+
+    :ok
   end
 
   defp render_show(conn, sub_map \\ nil) do

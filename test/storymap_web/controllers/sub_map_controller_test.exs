@@ -176,6 +176,86 @@ defmodule StorymapWeb.SubMapControllerTest do
     end
   end
 
+  describe "DELETE /api/sub_maps/:community_url" do
+    setup :register_and_log_in_user
+
+    test "owner receives 204 and open maps are told the plants are gone", %{
+      conn: conn,
+      user: user
+    } do
+      alias Storymap.Accounts.Scope
+      alias Storymap.AdminActivity.Event
+      alias Storymap.SubMaps
+      alias StorymapWeb.{Endpoint, PinBroadcast}
+
+      sub_map =
+        sub_map_fixture(
+          %{
+            "community_url" => "delete-garden",
+            "name" => "Gone",
+            "promote_to_world_default" => "always"
+          },
+          user
+        )
+
+      {:ok, pin} =
+        SubMaps.create_pin_in_sub_map(%Scope{user: user}, sub_map, %{
+          "title" => "Plant",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        })
+
+      public_topic = PinBroadcast.submap_topic(sub_map.community_url)
+      mod_topic = PinBroadcast.mod_submap_topic(sub_map.community_url)
+      :ok = Endpoint.subscribe(public_topic)
+      :ok = Endpoint.subscribe(mod_topic)
+      :ok = Endpoint.subscribe("map:world")
+
+      conn = delete(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
+
+      assert response(conn, 204) == ""
+      refute SubMaps.get_by_community_url("delete-garden")
+
+      pin_id = pin.id
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^public_topic,
+        event: "marker_deleted",
+        payload: %{pin_id: ^pin_id}
+      }
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^mod_topic,
+        event: "marker_deleted",
+        payload: %{pin_id: ^pin_id}
+      }
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: "map:world",
+        event: "marker_deleted",
+        payload: %{pin_id: ^pin_id}
+      }
+
+      event = Storymap.Repo.get_by!(Event, type: "garden_deleted")
+      assert event.sub_map_id == nil
+      assert event.actor_user_id == user.id
+      assert event.metadata["community_url"] == "delete-garden"
+      assert event.metadata["name"] == "Gone"
+    end
+
+    test "member is forbidden", %{conn: conn, user: user} do
+      owner = user_fixture()
+      sub_map = sub_map_fixture(%{"community_url" => "delete-forbidden"}, owner)
+      {:ok, _} = Storymap.SubMaps.join(%Storymap.Accounts.Scope{user: user}, sub_map)
+
+      conn = delete(conn, ~p"/api/sub_maps/#{sub_map.community_url}")
+
+      assert json_response(conn, 403)["errors"] != %{}
+      assert Storymap.SubMaps.get_by_community_url("delete-forbidden")
+    end
+  end
+
   describe "PATCH /api/sub_maps/:community_url/pin_type_settings" do
     setup :register_and_log_in_user
 

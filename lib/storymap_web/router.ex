@@ -146,6 +146,7 @@ defmodule StorymapWeb.Router do
     delete "/pin_types/:id", PinTypeController, :delete
     post "/sub_maps", SubMapController, :create
     patch "/sub_maps/:community_url", SubMapController, :update
+    delete "/sub_maps/:community_url", SubMapController, :delete
 
     patch "/sub_maps/:community_url/pin_type_settings",
           SubMapController,

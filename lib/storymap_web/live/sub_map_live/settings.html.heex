@@ -51,5 +51,28 @@
         </.button>
       </div>
     </.form>
+
+    <div class="mt-12 border-t border-base-300 pt-8">
+      <.button
+        id="delete-garden-btn"
+        type="button"
+        variant="danger_outline"
+        phx-click="show_delete_modal"
+      >
+        <.icon name="hero-trash" class="size-4" /> {GardenCopy.delete_garden()}
+      </.button>
+    </div>
+
+    <.confirm_modal
+      :if={@show_delete_modal}
+      id="delete-garden-modal"
+      title={GardenCopy.delete_garden_confirm_title()}
+      on_cancel="hide_delete_modal"
+      on_confirm="confirm_delete_garden"
+      confirm_id="confirm-delete-garden-btn"
+      cancel_id="cancel-delete-garden-btn"
+    >
+      {GardenCopy.delete_garden_confirm_body()}
+    </.confirm_modal>
   </div>
 </Layouts.app>

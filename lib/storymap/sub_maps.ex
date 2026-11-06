@@ -229,6 +229,35 @@ defmodule Storymap.SubMaps do
     end
   end
 
+  @doc """
+  Deletes a garden and every plant in it.
+
+  Pins are loaded first so callers can broadcast removals after commit.
+  Postgres cascade-deletes those pins, their comments, hearts, blobs,
+  references, and tags, plus memberships and pin-type joins.
+  """
+  @spec delete_sub_map(Scope.t(), SubMap.t()) ::
+          {:ok, [Pin.t()]} | Types.forbidden() | Types.ecto_err()
+  def delete_sub_map(%Scope{user: user}, %SubMap{} = sub_map) do
+    if Policy.can_edit_sub_map?(user, sub_map) do
+      Repo.transaction(fn ->
+        pins = pins_for_delete(sub_map)
+
+        case Repo.delete(sub_map) do
+          {:ok, _} -> pins
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+    else
+      {:error, :forbidden}
+    end
+  end
+
+  @spec pins_for_delete(SubMap.t()) :: [Pin.t()]
+  defp pins_for_delete(%SubMap{id: id}) do
+    Repo.all(from p in Pin, where: p.sub_map_id == ^id, preload: [:sub_map])
+  end
+
   @spec enabled_pin_types(SubMap.t()) :: [Storymap.PinTypes.PinType.t()]
   def enabled_pin_types(%SubMap{} = sub_map) do
     Storymap.PinTypes.list_pin_types_for_sub_map(sub_map)

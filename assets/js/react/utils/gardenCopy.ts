@@ -52,6 +52,12 @@ export const GardenCopy = {
   searchGardens: "Search gardens",
   gardenUrl: "Garden URL",
   gardenSettings: "Garden settings",
+  deleteGarden: "Delete",
+  deleteGardenConfirmTitle: "Delete this garden?",
+  deleteGardenConfirmBody:
+    "This permanently removes the garden and every plant in it. This cannot be undone.",
+  gardenDeleted: "Garden deleted",
+  gardenDeleteFailed: "There was a problem deleting this garden. Please try again.",
   gardenMap: "Garden map",
   gardenRules: "Garden rules",
   aboutThisGarden: "About this garden",

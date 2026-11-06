@@ -182,6 +182,23 @@ defmodule StorymapWeb.GardenCopy do
   @spec garden_settings_saved() :: String.t()
   def garden_settings_saved, do: "Garden settings saved"
 
+  @spec delete_garden() :: String.t()
+  def delete_garden, do: "Delete"
+
+  @spec delete_garden_confirm_title() :: String.t()
+  def delete_garden_confirm_title, do: "Delete this garden?"
+
+  @spec delete_garden_confirm_body() :: String.t()
+  def delete_garden_confirm_body,
+    do: "This permanently removes the garden and every plant in it. This cannot be undone."
+
+  @spec garden_deleted() :: String.t()
+  def garden_deleted, do: "Garden deleted"
+
+  @spec garden_delete_failed() :: String.t()
+  def garden_delete_failed,
+    do: "There was a problem deleting this garden. Please try again."
+
   @spec joined_garden() :: String.t()
   def joined_garden, do: "Joined garden"
 

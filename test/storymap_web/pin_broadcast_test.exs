@@ -223,4 +223,57 @@ defmodule StorymapWeb.PinBroadcastTest do
 
     assert pin_id == demoted_pin.id
   end
+
+  test "broadcast_deleted_pins/1 notifies garden channels after the pin is gone" do
+    owner = AccountsFixtures.user_fixture()
+
+    sub_map =
+      sub_map_fixture(
+        %{"community_url" => "delete-broadcast", "promote_to_world_default" => "always"},
+        owner
+      )
+
+    {:ok, pin} =
+      SubMaps.create_pin_in_sub_map(
+        %Scope{user: owner},
+        sub_map,
+        %{
+          "title" => "Removed",
+          "latitude" => 30.0,
+          "longitude" => -97.0,
+          "pin_type" => "other"
+        }
+      )
+
+    pin = Repo.preload(pin, :sub_map)
+    {:ok, _} = Pins.delete_pin(pin)
+
+    public_topic = PinBroadcast.submap_topic(sub_map.community_url)
+    mod_topic = PinBroadcast.mod_submap_topic(sub_map.community_url)
+    :ok = Endpoint.subscribe(public_topic)
+    :ok = Endpoint.subscribe(mod_topic)
+    :ok = Endpoint.subscribe("map:world")
+
+    assert :ok = PinBroadcast.broadcast_deleted_pins([pin])
+
+    pin_id = pin.id
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^public_topic,
+      event: "marker_deleted",
+      payload: %{pin_id: ^pin_id}
+    }
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^mod_topic,
+      event: "marker_deleted",
+      payload: %{pin_id: ^pin_id}
+    }
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: "map:world",
+      event: "marker_deleted",
+      payload: %{pin_id: ^pin_id}
+    }
+  end
 end

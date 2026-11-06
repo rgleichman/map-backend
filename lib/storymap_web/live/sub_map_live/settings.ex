@@ -2,9 +2,11 @@ defmodule StorymapWeb.SubMapLive.Settings do
   @moduledoc "Edit community settings (owner only)."
   use StorymapWeb, :live_view
 
+  alias Storymap.AdminActivity
   alias Storymap.SubMaps
   alias Storymap.SubMaps.SubMap
   alias StorymapWeb.GardenCopy
+  alias StorymapWeb.PinBroadcast
   alias StorymapWeb.SubMapLive.PinTypeForm
 
   on_mount {StorymapWeb.UserAuth, :require_authenticated}
@@ -12,6 +14,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
   on_mount {StorymapWeb.SubMapLive.OnMount, :require_owner}
 
   @impl true
+  @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
     sub_map = socket.assigns.sub_map
     changeset = SubMap.changeset(sub_map, %{})
@@ -20,6 +23,7 @@ defmodule StorymapWeb.SubMapLive.Settings do
      socket
      |> assign(:page_title, "Settings — #{sub_map.name}")
      |> assign(:form, to_form(changeset, as: :sub_map))
+     |> assign(:show_delete_modal, false)
      |> PinTypeForm.assign_pin_types(sub_map)}
   end
 
@@ -64,6 +68,56 @@ defmodule StorymapWeb.SubMapLive.Settings do
          |> put_flash(:error, GardenCopy.garden_owner_access_required())
          |> push_navigate(to: ~p"/g/#{socket.assigns.sub_map.community_url}/map")}
     end
+  end
+
+  @spec handle_event(String.t(), map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
+  def handle_event("show_delete_modal", _params, socket) do
+    {:noreply, assign(socket, :show_delete_modal, true)}
+  end
+
+  def handle_event("hide_delete_modal", _params, socket) do
+    {:noreply, assign(socket, :show_delete_modal, false)}
+  end
+
+  def handle_event("confirm_delete_garden", _params, socket) do
+    sub_map = socket.assigns.sub_map
+    scope = socket.assigns.current_scope
+
+    case SubMaps.delete_sub_map(scope, sub_map) do
+      {:ok, pins} ->
+        record_garden_deleted(scope, sub_map)
+        PinBroadcast.broadcast_deleted_pins(pins)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, GardenCopy.garden_deleted())
+         |> push_navigate(to: ~p"/g")}
+
+      {:error, :forbidden} ->
+        {:noreply,
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, GardenCopy.garden_owner_access_required())}
+
+      {:error, _} ->
+        {:noreply,
+         socket
+         |> assign(:show_delete_modal, false)
+         |> put_flash(:error, GardenCopy.garden_delete_failed())}
+    end
+  end
+
+  @spec record_garden_deleted(Storymap.Accounts.Scope.t(), SubMap.t()) :: :ok
+  defp record_garden_deleted(scope, sub_map) do
+    _ =
+      AdminActivity.record_event(
+        "garden_deleted",
+        scope.user.id,
+        %{"name" => sub_map.name, "community_url" => sub_map.community_url}
+      )
+
+    :ok
   end
 
   defp save_settings(scope, sub_map, sub_map_params, pin_type_attrs) do

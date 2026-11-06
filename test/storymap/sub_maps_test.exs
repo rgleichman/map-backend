@@ -2,11 +2,16 @@ defmodule Storymap.SubMapsTest do
   use Storymap.DataCase, async: true
 
   import Storymap.AccountsFixtures
+  import Storymap.PinsFixtures
   import Storymap.SubMapsFixtures
 
   alias Storymap.Accounts.Scope
+  alias Storymap.ContentReports.ContentReport
+  alias Storymap.PinTypes
   alias Storymap.Pins
+  alias Storymap.Pins.PinComment
   alias Storymap.SubMaps
+  alias Storymap.SubMaps.SubMapPinType
 
   test "create_sub_map/2 creates owner membership" do
     user = user_fixture()
@@ -471,6 +476,88 @@ defmodule Storymap.SubMapsTest do
 
     assert {:error, :forbidden} =
              SubMaps.approve_pin(%Scope{user: muted_owner}, sub_map, pin.id)
+  end
+
+  test "delete_sub_map/2 removes the garden, its plants, and clears report links" do
+    owner = user_fixture()
+    other_owner = user_fixture()
+
+    sub_map = sub_map_fixture(%{"community_url" => "doomed-garden", "name" => "Doomed"}, owner)
+
+    other_garden =
+      sub_map_fixture(%{"community_url" => "other-garden", "name" => "Other"}, other_owner)
+
+    {:ok, approved} =
+      SubMaps.create_pin_in_sub_map(%Scope{user: owner}, sub_map, %{
+        "title" => "Approved plant",
+        "latitude" => 30.0,
+        "longitude" => -97.0,
+        "pin_type" => "other"
+      })
+
+    {:ok, pending} =
+      SubMaps.create_pin_in_sub_map(%Scope{user: owner}, sub_map, %{
+        "title" => "Pending plant",
+        "latitude" => 30.1,
+        "longitude" => -97.1,
+        "pin_type" => "other"
+      })
+
+    pending = pending |> change(status: :pending) |> Repo.update!()
+    comment = pin_comment_fixture(%{}, approved, owner)
+
+    {:ok, other_pin} =
+      SubMaps.create_pin_in_sub_map(%Scope{user: other_owner}, other_garden, %{
+        "title" => "Elsewhere",
+        "latitude" => 31.0,
+        "longitude" => -98.0,
+        "pin_type" => "other"
+      })
+
+    world_pin = pin_fixture(%{"title" => "World plant"}, owner)
+    pin_type_id = approved.pin_type_id
+
+    {:ok, report} =
+      %{
+        "subject_type" => "pin",
+        "subject_id" => approved.id,
+        "category" => "spam",
+        "sub_map_id" => sub_map.id
+      }
+      |> ContentReport.create_changeset(reporter_user_id: owner.id)
+      |> Repo.insert()
+
+    assert SubMaps.get_membership(sub_map.id, owner.id)
+    assert Repo.exists?(from j in SubMapPinType, where: j.sub_map_id == ^sub_map.id)
+
+    assert {:ok, deleted_pins} = SubMaps.delete_sub_map(%Scope{user: owner}, sub_map)
+    assert Enum.sort(Enum.map(deleted_pins, & &1.id)) == Enum.sort([approved.id, pending.id])
+
+    refute SubMaps.get_by_community_url("doomed-garden")
+    refute Repo.get(Pins.Pin, approved.id)
+    refute Repo.get(Pins.Pin, pending.id)
+    refute Repo.get(PinComment, comment.id)
+    refute SubMaps.get_membership(sub_map.id, owner.id)
+    refute Repo.exists?(from j in SubMapPinType, where: j.sub_map_id == ^sub_map.id)
+
+    assert %Pins.Pin{} = Repo.get(Pins.Pin, world_pin.id)
+    assert %Pins.Pin{sub_map_id: other_id} = Repo.get(Pins.Pin, other_pin.id)
+    assert other_id == other_garden.id
+    assert %PinTypes.PinType{} = PinTypes.get_pin_type(pin_type_id)
+
+    report = Repo.get!(ContentReport, report.id)
+    assert report.sub_map_id == nil
+    assert report.subject_id == approved.id
+  end
+
+  test "delete_sub_map/2 rejects a member" do
+    owner = user_fixture()
+    member = user_fixture()
+    sub_map = sub_map_fixture(%{"community_url" => "member-cannot-delete"}, owner)
+    {:ok, _} = SubMaps.join(%Scope{user: member}, sub_map)
+
+    assert {:error, :forbidden} = SubMaps.delete_sub_map(%Scope{user: member}, sub_map)
+    assert SubMaps.get_by_community_url("member-cannot-delete")
   end
 
   test "join/2 forbidden when user is muted" do

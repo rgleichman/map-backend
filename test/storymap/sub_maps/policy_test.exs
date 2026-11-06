@@ -50,6 +50,26 @@ defmodule Storymap.SubMaps.PolicyTest do
     end
   end
 
+  describe "can_edit_sub_map?/2" do
+    test "allows the owner" do
+      assert Policy.can_edit_sub_map?(user(), sub_map(%{owner_user_id: 1}))
+    end
+
+    test "allows a site admin who is not the owner" do
+      assert Policy.can_edit_sub_map?(user(1), sub_map(%{owner_user_id: 99}))
+    end
+
+    test "denies a member, a moderator, and a stranger" do
+      sm = sub_map(%{owner_user_id: 99})
+      refute Policy.can_edit_sub_map?(user(), sm)
+    end
+
+    test "denies a muted owner" do
+      muted = %User{id: 1, admin_level: 0, muted_at: ~U[2026-01-01 00:00:00Z]}
+      refute Policy.can_edit_sub_map?(muted, sub_map(%{owner_user_id: 1}))
+    end
+  end
+
   describe "can_moderate?/3" do
     test "returns false for regular member without admin level" do
       sm = sub_map(%{})

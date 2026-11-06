@@ -9,6 +9,7 @@ defmodule StorymapWeb.PinBroadcast do
   alias Storymap.Pins.Query
   alias Storymap.Pins.Visibility
   alias Storymap.Repo
+  alias Storymap.SubMaps.SubMap
   alias StorymapWeb.Endpoint
   alias StorymapWeb.PinJSON
 
@@ -33,6 +34,37 @@ defmodule StorymapWeb.PinBroadcast do
   @spec broadcast_pin_event(integer(), :deleted) :: :ok
   def broadcast_pin_event(pin_id, :deleted) when is_integer(pin_id) do
     Endpoint.broadcast("map:world", event_name(:deleted), %{pin_id: pin_id})
+    :ok
+  end
+
+  @doc """
+  Broadcasts `marker_deleted` for pins already removed from the database.
+
+  Uses the in-memory pin (including a preloaded sub-map). Does not reload.
+  """
+  @spec broadcast_deleted_pins([Pin.t()]) :: :ok
+  def broadcast_deleted_pins(pins) when is_list(pins) do
+    Enum.each(pins, &broadcast_deleted_pin/1)
+    :ok
+  end
+
+  @spec broadcast_deleted_pin(Pin.t()) :: :ok
+  defp broadcast_deleted_pin(%Pin{} = pin) do
+    payload = %{pin_id: pin.id}
+
+    case pin.sub_map do
+      %SubMap{community_url: community_url} when is_binary(community_url) ->
+        Endpoint.broadcast(submap_topic(community_url), event_name(:deleted), payload)
+        Endpoint.broadcast(mod_submap_topic(community_url), event_name(:deleted), payload)
+
+      _ ->
+        :ok
+    end
+
+    if Visibility.world_visible?(pin) do
+      Endpoint.broadcast("map:world", event_name(:deleted), payload)
+    end
+
     :ok
   end
 
