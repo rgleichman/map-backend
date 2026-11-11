@@ -198,6 +198,41 @@
   color: var(--color-primary);
 }
 
+/* Dropped on a geocoded search result until the next empty map click or pin selection. */
+.place-search-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+
+.place-search-marker__label {
+  max-width: 14rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-base-100);
+  color: var(--color-base-content);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.28);
+}
+
+.place-search-marker__pin {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-base-100);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--color-primary) 40%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.35);
+}
+
 /* Readability for text over map imagery */
 .text-shadow-map-ui {
   text-shadow:

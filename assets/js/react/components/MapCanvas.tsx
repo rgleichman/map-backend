@@ -10,7 +10,7 @@ import {
 } from "../utils/pinTypeIcons"
 import { usePinTypes } from "../context/PinTypesContext"
 import { buildMapFilterSyncKey, createPinFilterMatcher, type FilterState } from "./map/filters"
-import { PIN_FOCUS_ZOOM, type PinFocusIntent } from "../hooks/mapHookTypes"
+import type { PinFocusIntent } from "../hooks/mapHookTypes"
 import { parsePinIdFromSearch } from "../mapRoute"
 import type { PlaceSuggestion } from "../utils/placeSearch"
 import {
@@ -61,10 +61,30 @@ import {
 } from "../utils/siteLayout"
 
 const GEOLOCATE_MAX_ZOOM = 12
+/** Closest zoom for a point result. Bounding boxes frame the area and do not zoom past this. */
+const PLACE_SEARCH_ZOOM = 18
 const GEOLOCATE_POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
   maximumAge: 20 * 60 * 1000,
+}
+
+function placeSearchMarkerElement(label: string): HTMLDivElement {
+  const el = document.createElement("div")
+  el.className = "place-search-marker"
+  el.setAttribute("role", "img")
+  el.setAttribute("aria-label", label)
+
+  const name = document.createElement("span")
+  name.className = "place-search-marker__label"
+  name.textContent = label
+
+  const pin = document.createElement("span")
+  pin.className = "place-search-marker__pin"
+  pin.setAttribute("aria-hidden", "true")
+
+  el.append(name, pin)
+  return el
 }
 
 type Props = {
@@ -141,6 +161,7 @@ export default function MapCanvas({
   const mapRef = useRef<MLMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pendingMarkerRef = useRef<Marker | null>(null)
+  const placeSearchMarkerRef = useRef<Marker | null>(null)
   const focusedPinIdRef = useRef<number | null>(null)
   const lastCameraRequestTokenRef = useRef(0)
   const onCameraRequestConsumedRef = useRef(onCameraRequestConsumed)
@@ -280,7 +301,24 @@ export default function MapCanvas({
     })
   }
 
+  function clearPlaceSearchMarker(): void {
+    placeSearchMarkerRef.current?.remove()
+    placeSearchMarkerRef.current = null
+  }
+
+  function showPlaceSearchMarker(map: MLMap, place: PlaceSuggestion): void {
+    clearPlaceSearchMarker()
+    const label = place.label.trim() || place.name
+    placeSearchMarkerRef.current = new Marker({
+      element: placeSearchMarkerElement(label),
+      anchor: "bottom",
+    })
+      .setLngLat([place.longitude, place.latitude])
+      .addTo(map)
+  }
+
   function selectPin(map: MLMap, pin: Pin, opts?: { flyTo?: boolean }): void {
+    clearPlaceSearchMarker()
     focusedPinIdRef.current = pin.id
     if (opts?.flyTo) flyToPin(map, pin)
     onOpenPinRef.current(pin.id)
@@ -455,6 +493,9 @@ export default function MapCanvas({
           layers: [...PIN_INTERACTIVE_LAYER_IDS, PIN_LINKS_LAYER_ID],
         })
         if (hit.length > 0) return
+
+        placeSearchMarkerRef.current?.remove()
+        placeSearchMarkerRef.current = null
 
         // Empty map click dismisses open pin detail
         if (detailPinIdRef.current != null && onDismissPinDetailRef.current) {
@@ -723,6 +764,8 @@ export default function MapCanvas({
       clearHoverTooltipRef.current()
       pendingMarkerRef.current?.remove()
       pendingMarkerRef.current = null
+      placeSearchMarkerRef.current?.remove()
+      placeSearchMarkerRef.current = null
       geolocateControlRef.current = null
       knownCustomImageIdsRef.current = new Set()
       customImageVisualKeysRef.current = new Map()
@@ -790,6 +833,8 @@ export default function MapCanvas({
     if (!map || !mapReady) return
 
     if (pendingLocation) {
+      placeSearchMarkerRef.current?.remove()
+      placeSearchMarkerRef.current = null
       const pinType: PinType = pendingPinType ?? "other"
       const typeChanged = pendingPinTypeRef.current !== pinType
       if (!pendingMarkerRef.current || typeChanged) {
@@ -1063,6 +1108,7 @@ export default function MapCanvas({
             onSelectPlace={(place: PlaceSuggestion) => {
               const map = mapRef.current
               if (!map) return
+              showPlaceSearchMarker(map, place)
               const mapPadding = desktopMapPadding(
                 map.getContainer().clientWidth,
                 isDesktopRef.current,
@@ -1080,14 +1126,14 @@ export default function MapCanvas({
                       left: 48 + mapPadding.left,
                       right: 48 + mapPadding.right,
                     },
-                    maxZoom: PIN_FOCUS_ZOOM,
+                    maxZoom: PLACE_SEARCH_ZOOM,
                     duration: 1000,
                   },
                 )
               } else {
                 map.flyTo({
                   center: [place.longitude, place.latitude],
-                  zoom: PIN_FOCUS_ZOOM,
+                  zoom: PLACE_SEARCH_ZOOM,
                   padding: mapPadding,
                 })
               }
