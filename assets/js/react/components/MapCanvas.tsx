@@ -34,6 +34,19 @@ import {
   pinLabelsVisibleFilter,
   suppressOverlappingPinLabels,
 } from "./map/mapPinFeatures"
+import {
+  SPIDER_LEAVES_LABELS_LAYER_ID,
+  SPIDER_LEAVES_LAYER_ID,
+  SPIDER_LEAVES_SELECTED_LAYER_ID,
+} from "./map/spiderfy"
+import {
+  addSpiderfySourcesAndLayers,
+  bumpSpiderfyOverlaySync,
+  clearSpiderfyOverlay,
+  createSpiderfyOverlayState,
+  resetSpiderfyOverlayState,
+  syncSpiderfyOverlay,
+} from "./map/syncSpiderfyOverlay"
 import { takeLastVisitWatermark } from "../utils/mapLastVisit"
 import { cacheDeviceLocation } from "../utils/nearUserLocation"
 import {
@@ -226,7 +239,9 @@ export default function MapCanvas({
   } | null>(null)
   const lastPinGeoJsonSyncKeyRef = useRef<string>("")
   const lastPinLinkSyncKeyRef = useRef<string>("")
+  const spiderfyOverlayStateRef = useRef(createSpiderfyOverlayState())
   const syncPinGeoJsonRef = useRef<() => void>(() => { })
+  const syncSpiderfyRef = useRef<() => void>(() => { })
   const pinLinkLayerAddedRef = useRef(false)
   const pinLinkLayerHandlersRef = useRef<{
     handlePinLinkClick: (e: maplibregl.MapLayerMouseEvent) => void
@@ -364,9 +379,22 @@ export default function MapCanvas({
         type: "FeatureCollection",
         features: featureSets.dimmed,
       })
+    // Drop prior spider exclusions immediately — cluster_ids are rebuilt async and
+    // stale filters can hide the wrong bubbles until idle re-syncs.
+    clearSpiderfyOverlay(map, spiderfyOverlayStateRef.current, detailPinIdRef.current ?? null)
+    map.once("idle", () => {
+      syncSpiderfyRef.current()
+    })
   }
 
   syncPinGeoJsonRef.current = syncPinGeoJsonToMap
+  syncSpiderfyRef.current = () => {
+    const map = mapRef.current
+    if (!map || !pinLayersAddedRef.current) return
+    void syncSpiderfyOverlay(map, spiderfyOverlayStateRef.current, {
+      selectedPinId: detailPinIdRef.current ?? null,
+    })
+  }
 
   useEffect(() => {
     if (!mapReady || !pinLinkLayerAddedRef.current) return
@@ -411,6 +439,11 @@ export default function MapCanvas({
     lastCameraRequestTokenRef.current = 0
     lastPinGeoJsonSyncKeyRef.current = ""
     lastPinLinkSyncKeyRef.current = ""
+    resetSpiderfyOverlayState(spiderfyOverlayStateRef.current)
+    const map = mapRef.current
+    if (map && pinLayersAddedRef.current) {
+      clearSpiderfyOverlay(map, spiderfyOverlayStateRef.current, null)
+    }
     setLastVisitWatermark(takeLastVisitWatermark(mapScopeKey))
     setFocusedBacklinks(null)
   }, [mapScopeKey])
@@ -613,6 +646,7 @@ export default function MapCanvas({
             filter: pinIconsSelectedFilter,
             layout: pinIconLayout,
           })
+          addSpiderfySourcesAndLayers(map)
           const handlePinIconClick = (e: maplibregl.MapLayerMouseEvent) => {
             const pinId = pinIdFromTopFeatureAt(map, e.point)
             if (pinId == null) return
@@ -696,6 +730,9 @@ export default function MapCanvas({
           map.on("click", "pin-icons-layer", handlePinIconClick)
           map.on("click", "pin-icons-dimmed-layer", handlePinIconClick)
           map.on("click", PIN_ICONS_SELECTED_LAYER_ID, handlePinIconClick)
+          map.on("click", SPIDER_LEAVES_LAYER_ID, handlePinIconClick)
+          map.on("click", SPIDER_LEAVES_SELECTED_LAYER_ID, handlePinIconClick)
+          map.on("click", SPIDER_LEAVES_LABELS_LAYER_ID, handlePinIconClick)
           map.on("click", "pin-clusters-layer", handleClusterClick)
           map.on("click", "pin-cluster-count-layer", handleClusterClick)
           map.on("mousemove", handlePinHoverMove)
@@ -732,6 +769,7 @@ export default function MapCanvas({
       pinLinkLayerAddedRef.current = false
       lastPinGeoJsonSyncKeyRef.current = ""
       lastPinLinkSyncKeyRef.current = ""
+      resetSpiderfyOverlayState(spiderfyOverlayStateRef.current)
       initialGeolocateTriggeredRef.current = false
       const map = mapRef.current
       const handler = mapMouseDownHandlerRef.current
@@ -744,6 +782,9 @@ export default function MapCanvas({
         map.off("click", "pin-icons-layer", pinHandlers.handlePinIconClick)
         map.off("click", "pin-icons-dimmed-layer", pinHandlers.handlePinIconClick)
         map.off("click", PIN_ICONS_SELECTED_LAYER_ID, pinHandlers.handlePinIconClick)
+        map.off("click", SPIDER_LEAVES_LAYER_ID, pinHandlers.handlePinIconClick)
+        map.off("click", SPIDER_LEAVES_SELECTED_LAYER_ID, pinHandlers.handlePinIconClick)
+        map.off("click", SPIDER_LEAVES_LABELS_LAYER_ID, pinHandlers.handlePinIconClick)
         map.off("click", "pin-clusters-layer", pinHandlers.handleClusterClick)
         map.off("click", "pin-cluster-count-layer", pinHandlers.handleClusterClick)
         map.off("mousemove", pinHandlers.handlePinHoverMove)
@@ -905,6 +946,23 @@ export default function MapCanvas({
       map.off("moveend", refreshLabels)
     }
   }, [mapReady, detailPinId])
+
+  // Spiderfy offsets are screen-space; refresh after pan/zoom settle (and when zoom drops below min).
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current
+    if (!map) return
+    const refreshSpiderfy = () => {
+      // Always recompute — rounded sync keys can skip needed offset updates after small pans.
+      bumpSpiderfyOverlaySync(spiderfyOverlayStateRef.current)
+      syncSpiderfyRef.current()
+    }
+    map.on("moveend", refreshSpiderfy)
+    refreshSpiderfy()
+    return () => {
+      map.off("moveend", refreshSpiderfy)
+    }
+  }, [mapReady])
 
   // Report viewport bounds for the idle timed-pins rail (and similar).
   useEffect(() => {

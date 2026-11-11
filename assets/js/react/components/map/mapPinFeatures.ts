@@ -40,9 +40,13 @@ export const PIN_LABEL_MAX_LEN = 36
 export const PIN_LABEL_HALO_WIDTH = 1.7
 export const PIN_LABEL_SELECTED_HALO_WIDTH = 3
 
-export const CLUSTER_RADIUS_PX = 16
-/** Stop clustering above this zoom so pin labels can render on individual features. */
-export const CLUSTER_MAX_ZOOM = 10
+/** Screen radius for MapLibre/Supercluster — sized to the ~50px marker disc. */
+export const CLUSTER_RADIUS_PX = 45
+/**
+ * Keep clustering through the map’s max zoom so dense piles stay as bubbles
+ * (small groups are spiderfied in `spiderfy.ts` when zoomed in).
+ */
+export const CLUSTER_MAX_ZOOM = 20
 
 /** Opacity for pins that do not match the active filters (still visible and clickable). */
 export const FILTER_DIMMED_OPACITY = 0.25

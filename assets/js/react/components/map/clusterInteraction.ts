@@ -1,10 +1,12 @@
 import type * as maplibregl from "maplibre-gl"
+import { SPIDER_LEAF_LAYER_IDS } from "./spiderfy"
 
 export const MATCHING_SOURCE_ID = "pin-features-matching"
 
 export const CLUSTER_LAYER_IDS = ["pin-cluster-count-layer", "pin-clusters-layer"] as const
 export const PIN_INTERACTIVE_LAYER_IDS = [
   ...CLUSTER_LAYER_IDS,
+  ...SPIDER_LEAF_LAYER_IDS,
   "pin-icons-selected-layer",
   "pin-icons-layer",
   "pin-icons-dimmed-layer",

@@ -23,7 +23,12 @@ function clusterFeature(
 
 function pinFeature(
   pinId = 7,
-  layerId: "pin-icons-layer" | "pin-icons-dimmed-layer" = "pin-icons-dimmed-layer",
+  layerId:
+    | "pin-icons-layer"
+    | "pin-icons-dimmed-layer"
+    | "pin-spider-leaves-layer"
+    | "pin-spider-leaves-selected-layer"
+    | "pin-spider-leaves-labels-layer" = "pin-icons-dimmed-layer",
 ): InteractiveMapFeature {
   return {
     geometry: { type: "Point", coordinates: [-122.41, 37.81] },
@@ -58,6 +63,16 @@ describe("pinIdFromTopFeatureAt", () => {
   it("returns the pin id when a pin is on top", () => {
     const map = mockMap([pinFeature(99)])
     expect(pinIdFromTopFeatureAt(map, clickPoint)).toBe(99)
+  })
+
+  it("returns the pin id when a spider leaf is on top", () => {
+    const map = mockMap([pinFeature(55, "pin-spider-leaves-layer")])
+    expect(pinIdFromTopFeatureAt(map, clickPoint)).toBe(55)
+  })
+
+  it("returns the pin id when a spider label is on top", () => {
+    const map = mockMap([pinFeature(61, "pin-spider-leaves-labels-layer")])
+    expect(pinIdFromTopFeatureAt(map, clickPoint)).toBe(61)
   })
 })
 
