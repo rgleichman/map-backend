@@ -91,7 +91,7 @@ export function validateAndBuildSavePayload(
       if (end <= start) {
         return { kind: "time", message: "End time must be after start time." }
       }
-      if (end < now) {
+      if (modal.mode === "add" && end < now) {
         return { kind: "time", message: "End time cannot be in the past." }
       }
     }

@@ -107,6 +107,22 @@ describe("validateAndBuildSavePayload", () => {
     expect(result).toEqual({ kind: "time", message: "End time cannot be in the past." })
   })
 
+  it("allows editing when one_time end is in the past", () => {
+    const result = validateAndBuildSavePayload(
+      { mode: "edit", pin: minimalPin() },
+      minimalDraft({
+        startTime: "2026-05-01T08:00",
+        endTime: "2026-05-01T09:00",
+      }),
+      false,
+      systemCatalog
+    )
+    expect(result).toMatchObject({
+      mode: "edit",
+      pinId: 42,
+    })
+  })
+
   it("builds add payload with location from modal when addLocation unset", () => {
     const result = validateAndBuildSavePayload(
       { mode: "add", lat: 10, lng: 20, pinType: "one_time" },
